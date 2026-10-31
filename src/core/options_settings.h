@@ -185,8 +185,7 @@ struct JointOptionsSettings {
     bool isValid() const { return materials.isValid() && bolts.isValid() && preloaded.isValid() && basePlate.isValid(); }
 };
 
-/// Cimentación > Opciones and Tablas de armado (captures of 2026-10-31; the Zapatas aisladas and Vigas de atado
-/// option sheets, the other pile-cap tabs and the Vigas centradoras table are still ticket TK-019).
+/// Cimentación > Opciones and Tablas de armado (captures of 2026-10-31; see ticket TK-019 for what is still missing).
 struct CleaningConcreteSettings {
     bool footings = false, pileCaps = false, tieAndCenteringBeams = false;
 };
@@ -217,17 +216,78 @@ struct CenteringBeamSettings {
     bool isValid() const { return toleranceAngleDeg >= 0 && toleranceAngleDeg < 90 && minTensionRatio >= 0; }
 };
 
-/// Source of an arrangement table (Zapatas aisladas / Vigas de atado): only the predefined one is selectable.
+/// Encepados > "Un pilote".
+struct PileCapSingleSettings {
+    double armingDepthPercent = 1.00;
+    bool diagonalStirrups = false;
+    bool isValid() const { return armingDepthPercent > 0; }
+};
+
+/// Encepados > "Vigas de encepado". Only the first entry of each hook combo was seen in the original.
+struct PileCapBeamSettings {
+    std::string topHook = "Colocar patilla mínima", bottomHook = "Colocar patilla mínima";
+    double topHookMaxLengthM = 10.00, bottomHookMaxLengthM = 10.00;
+    double maxHoopDiameterMm = 16.0, strutAngleDeg = 45.00;
+    bool isValid() const { return topHookMaxLengthM > 0 && bottomHookMaxLengthM > 0 && maxHoopDiameterMm > 0 && strutAngleDeg > 0 && strutAngleDeg < 90; }
+};
+
+/// Encepados > "Vigas y parrillas".
+struct PileCapGridSettings {
+    bool designTopGrid = false;
+    std::string criterion = "Armado según norma EHE";
+    std::string alternativeCriterion = "Armado según norma EHE";  ///< enabled by the other criteria (not captured)
+};
+
+/// All the tabs of Encepados > Opciones (the tab "Armado" was not captured yet).
+struct PileCapOptions {
+    PileCapGeneralSettings general;
+    PileCapSingleSettings single;
+    PileCapBeamSettings beams;
+    PileCapGridSettings grid;
+    bool isValid() const { return general.isValid() && single.isValid() && beams.isValid(); }
+};
+
+/// Zapatas aisladas > Opciones, tab "Generales" (the other tabs were not captured yet).
+struct FootingSettings {
+    double widthIncrementCm = 5.00, depthIncrementCm = 5.00, minDepthCm = 30.00;
+    bool minGeometricReinforcement = false;
+    double minGeometricRatio = 0.0010;
+    bool reduceFlexureMinimums = true;
+    bool topGridIfNeeded = true;
+    bool equalHooksPerDirection = true;
+    bool allowLiftOff = true;
+    bool noTopGridIfPlainConcrete = false;
+    std::string defaultType = "Zapata de canto constante";
+    std::string depthCriterion = "Canto zapatas >= canto viga sin excepción";
+    bool isValid() const {
+        return widthIncrementCm >= 0 && depthIncrementCm >= 0 && minDepthCm > 0 && minGeometricRatio >= 0;
+    }
+};
+
+/// Vigas de atado > Opciones.
+struct TieBeamSettings {
+    double compactionSurchargeKnPerM = 0.00;
+    double minAxialPercent = 0.0;
+    bool stirrupsInsideFoundation = false;
+    bool isValid() const { return compactionSurchargeKnPerM >= 0 && minAxialPercent >= 0 && minAxialPercent <= 100; }
+};
+
+/// Source of an arrangement table (Zapatas aisladas / Vigas de atado / Vigas centradoras): only the predefined one is selectable.
 enum class ReinforcementTableSource { Predefined, Library, Special };
 
 struct FoundationOptionsSettings {
     CleaningConcreteSettings cleaning;
     CrackingSettings cracking;
-    PileCapGeneralSettings pileCap;
+    FootingSettings footings;
+    PileCapOptions pileCap;
     CenteringBeamSettings centeringBeams;
+    TieBeamSettings tieBeams;
     ReinforcementTableSource footingTable = ReinforcementTableSource::Predefined;
+    ReinforcementTableSource centeringTable = ReinforcementTableSource::Predefined;
     ReinforcementTableSource tieBeamTable = ReinforcementTableSource::Predefined;
-    bool isValid() const { return cracking.isValid() && pileCap.isValid() && centeringBeams.isValid(); }
+    bool isValid() const {
+        return cracking.isValid() && footings.isValid() && pileCap.isValid() && centeringBeams.isValid() && tieBeams.isValid();
+    }
 };
 
 /// Everything edited from the Opciones buttons of the wizard.

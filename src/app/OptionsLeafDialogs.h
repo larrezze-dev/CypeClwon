@@ -42,22 +42,56 @@ private:
     QDoubleSpinBox *m_footingLimit, *m_beamLimit;
 };
 
-/// Encepados > Opciones (428x631). Only the tab "Generales" was captured; the other tabs are placeholders.
+/// Encepados > Opciones (428x631), tabs Generales, Un pilote, Vigas de encepado, Vigas y parrillas and Armado
+/// (the last one was not captured: placeholder).
 class PileCapOptionsDialog : public DefaultsDialog {
     Q_OBJECT
 public:
-    explicit PileCapOptionsDialog(const cc::core::PileCapGeneralSettings& initial, QWidget* parent = nullptr);
-    cc::core::PileCapGeneralSettings value() const;
+    explicit PileCapOptionsDialog(const cc::core::PileCapOptions& initial, QWidget* parent = nullptr);
+    cc::core::PileCapOptions value() const;
 
 protected:
     void resetToInstallationValues() override;
 
 private:
-    void load(const cc::core::PileCapGeneralSettings& settings);
+    void load(const cc::core::PileCapOptions& settings);
     QDoubleSpinBox *m_overPile, *m_overSupport, *m_minDepth, *m_maxDepth, *m_barSpacing, *m_maxDiameter, *m_fraction,
-        *m_factor;
-    QComboBox* m_criterion;
-    QCheckBox* m_withLoads;
+        *m_factor, *m_armingDepth, *m_topHookLength, *m_bottomHookLength, *m_hoopDiameter, *m_strutAngle;
+    QComboBox *m_criterion, *m_topHook, *m_bottomHook, *m_gridCriterion, *m_gridAlternative;
+    QCheckBox *m_withLoads, *m_diagonalStirrups, *m_topGrid;
+};
+
+/// Zapatas aisladas > Opciones (498x518). Only the tab "Generales" was captured; the other four are placeholders.
+class FootingOptionsDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    explicit FootingOptionsDialog(const cc::core::FootingSettings& initial, QWidget* parent = nullptr);
+    cc::core::FootingSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    void load(const cc::core::FootingSettings& settings);
+    QDoubleSpinBox *m_widthIncrement, *m_depthIncrement, *m_minDepth, *m_minRatio;
+    QCheckBox *m_minGeometric, *m_reduce, *m_topGrid, *m_hooks, *m_liftOff, *m_noTopGrid;
+    QComboBox *m_type, *m_criterion;
+};
+
+/// Vigas de atado > Opciones (403x189).
+class TieBeamOptionsDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    explicit TieBeamOptionsDialog(const cc::core::TieBeamSettings& initial, QWidget* parent = nullptr);
+    cc::core::TieBeamSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    void load(const cc::core::TieBeamSettings& settings);
+    QDoubleSpinBox *m_surcharge, *m_minAxial;
+    QCheckBox* m_stirrups;
 };
 
 /// Vigas centradoras > Opciones (399x245).
@@ -77,11 +111,11 @@ private:
     QComboBox* m_type;
 };
 
-/// Cimentación > Tablas de armado > Zapatas aisladas (481x267) / Vigas de atado (491x267).
+/// Cimentación > Tablas de armado > Zapatas aisladas (481x267) / Vigas centradoras (489x267) / Vigas de atado (491x267).
 class FoundationTableDialog : public CypeDialog {
     Q_OBJECT
 public:
-    enum class Kind { Footings, TieBeams };
+    enum class Kind { Footings, CenteringBeams, TieBeams };
     FoundationTableDialog(Kind kind, cc::core::ReinforcementTableSource initial, QWidget* parent = nullptr);
     cc::core::ReinforcementTableSource value() const;
 

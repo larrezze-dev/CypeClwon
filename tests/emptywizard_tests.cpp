@@ -454,19 +454,19 @@ TEST(OptionsLeafDialogs, CleaningAndCrackingRoundTrip) {
 
 TEST(OptionsLeafDialogs, PileCapGeneralAndCenteringBeams) {
     ensureApp();
-    PileCapOptionsDialog pileCap{cc::core::PileCapGeneralSettings{}};
+    PileCapOptionsDialog pileCap{cc::core::PileCapOptions{}};
     EXPECT_EQ(pileCap.size(), QSize(428, 631));
-    auto v = pileCap.value();
+    auto v = pileCap.value().general;
     EXPECT_DOUBLE_EQ(v.minOverhangOverPileM, 0.25);
     EXPECT_DOUBLE_EQ(v.maxDepthM, 2.50);
     EXPECT_DOUBLE_EQ(v.maxBarDiameterMm, 25.0);
     EXPECT_DOUBLE_EQ(v.loadFactor, 1.50);
     EXPECT_FALSE(v.withPileLoads);
-    EXPECT_EQ(pileCap.findChild<QTabWidget*>()->count(), 4);
-    pileCap.findChildren<QDoubleSpinBox*>().at(0)->setValue(0.30);
-    EXPECT_DOUBLE_EQ(pileCap.value().minOverhangOverPileM, 0.30);
+    EXPECT_EQ(pileCap.findChild<QTabWidget*>()->count(), 5);
+    pileCap.findChild<QTabWidget*>()->widget(0)->findChildren<QDoubleSpinBox*>().at(0)->setValue(0.30);
+    EXPECT_DOUBLE_EQ(pileCap.value().general.minOverhangOverPileM, 0.30);
     buttonWithText(&pileCap, QStringLiteral("Valores de instalación"))->click();
-    EXPECT_DOUBLE_EQ(pileCap.value().minOverhangOverPileM, 0.25);
+    EXPECT_DOUBLE_EQ(pileCap.value().general.minOverhangOverPileM, 0.25);
 
     CenteringBeamDialog beam{cc::core::CenteringBeamSettings{}};
     EXPECT_EQ(beam.size(), QSize(399, 245));
@@ -483,6 +483,95 @@ TEST(OptionsLeafDialogs, FoundationTablesOnlyPredefinedSelectable) {
     FoundationTableDialog ties(FoundationTableDialog::Kind::TieBeams, cc::core::ReinforcementTableSource::Predefined);
     EXPECT_EQ(ties.size(), QSize(491, 267));
     EXPECT_EQ(ties.findChildren<QRadioButton*>().size(), 3);
+}
+
+TEST(OptionsLeafDialogs, PileCapOtherTabsDefaultsAndEditing) {
+    ensureApp();
+    PileCapOptionsDialog pileCap{cc::core::PileCapOptions{}};
+    const auto tabs = pileCap.findChild<QTabWidget*>();
+    ASSERT_EQ(tabs->count(), 5);
+    const QStringList titles{"Generales", "Un pilote", "Vigas de encepado", "Vigas y parrillas", "Armado"};
+    for (int i = 0; i < 5; ++i) EXPECT_EQ(tabs->tabText(i), titles[i]);
+    auto v = pileCap.value();
+    EXPECT_DOUBLE_EQ(v.single.armingDepthPercent, 1.00);
+    EXPECT_FALSE(v.single.diagonalStirrups);
+    EXPECT_EQ(v.beams.topHook, "Colocar patilla mínima");
+    EXPECT_DOUBLE_EQ(v.beams.topHookMaxLengthM, 10.00);
+    EXPECT_DOUBLE_EQ(v.beams.maxHoopDiameterMm, 16.0);
+    EXPECT_DOUBLE_EQ(v.beams.strutAngleDeg, 45.00);
+    EXPECT_FALSE(v.grid.designTopGrid);
+    EXPECT_EQ(v.grid.criterion, "Armado según norma EHE");
+    for (QCheckBox* box : pileCap.findChildren<QCheckBox*>())
+        if (box->text() == "Disponer estribos diagonales" || box->text() == "Dimensionar parrilla superior") box->setChecked(true);
+    EXPECT_TRUE(pileCap.value().single.diagonalStirrups);
+    EXPECT_TRUE(pileCap.value().grid.designTopGrid);
+    buttonWithText(&pileCap, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_FALSE(pileCap.value().single.diagonalStirrups);
+    EXPECT_FALSE(pileCap.value().grid.designTopGrid);
+}
+
+TEST(OptionsLeafDialogs, FootingOptionsGeneralTab) {
+    ensureApp();
+    FootingOptionsDialog dialog{cc::core::FootingSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(498, 518));
+    const auto tabs = dialog.findChild<QTabWidget*>();
+    ASSERT_EQ(tabs->count(), 5);
+    EXPECT_EQ(tabs->tabText(0), "Generales");
+    EXPECT_EQ(tabs->tabText(1), "Armado perimetral");
+    auto v = dialog.value();
+    EXPECT_DOUBLE_EQ(v.widthIncrementCm, 5.00);
+    EXPECT_DOUBLE_EQ(v.depthIncrementCm, 5.00);
+    EXPECT_DOUBLE_EQ(v.minDepthCm, 30.00);
+    EXPECT_FALSE(v.minGeometricReinforcement);
+    EXPECT_DOUBLE_EQ(v.minGeometricRatio, 0.0010);
+    EXPECT_TRUE(v.reduceFlexureMinimums);
+    EXPECT_TRUE(v.topGridIfNeeded);
+    EXPECT_TRUE(v.equalHooksPerDirection);
+    EXPECT_TRUE(v.allowLiftOff);
+    EXPECT_FALSE(v.noTopGridIfPlainConcrete);
+    EXPECT_EQ(v.defaultType, "Zapata de canto constante");
+    // The geometric-minimum ratio is only editable once its check box is ticked.
+    const auto spins = dialog.findChildren<QDoubleSpinBox*>();
+    ASSERT_EQ(spins.size(), 4);
+    EXPECT_FALSE(spins[3]->isEnabled());
+    for (QCheckBox* box : dialog.findChildren<QCheckBox*>())
+        if (box->text() == "Mínimos geométricos de armadura") box->setChecked(true);
+    EXPECT_TRUE(spins[3]->isEnabled());
+    spins[0]->setValue(7.5);
+    EXPECT_DOUBLE_EQ(dialog.value().widthIncrementCm, 7.5);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(dialog.value().widthIncrementCm, 5.00);
+    EXPECT_FALSE(dialog.value().minGeometricReinforcement);
+}
+
+TEST(OptionsLeafDialogs, TieBeamOptions) {
+    ensureApp();
+    TieBeamOptionsDialog dialog{cc::core::TieBeamSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(403, 189));
+    EXPECT_DOUBLE_EQ(dialog.value().compactionSurchargeKnPerM, 0.00);
+    EXPECT_DOUBLE_EQ(dialog.value().minAxialPercent, 0.0);
+    EXPECT_FALSE(dialog.value().stirrupsInsideFoundation);
+    dialog.findChildren<QDoubleSpinBox*>().at(1)->setValue(25);
+    dialog.findChild<QCheckBox*>()->setChecked(true);  // first check box is "Disponer estribos..."
+    EXPECT_DOUBLE_EQ(dialog.value().minAxialPercent, 25.0);
+    EXPECT_TRUE(dialog.value().stirrupsInsideFoundation);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(dialog.value().minAxialPercent, 0.0);
+    cc::core::TieBeamSettings bad;
+    bad.minAxialPercent = 120;
+    EXPECT_FALSE(bad.isValid());
+}
+
+TEST(OptionsLeafDialogs, CenteringBeamTable) {
+    ensureApp();
+    FoundationTableDialog table(FoundationTableDialog::Kind::CenteringBeams, cc::core::ReinforcementTableSource::Predefined);
+    EXPECT_EQ(table.size(), QSize(489, 267));
+    EXPECT_EQ(table.value(), cc::core::ReinforcementTableSource::Predefined);
+    bool intro = false;
+    for (QLabel* l : table.findChildren<QLabel*>())
+        intro = intro || l->text().contains("secciones de vigas centradoras");
+    EXPECT_TRUE(intro);
+    EXPECT_EQ(table.findChildren<QRadioButton*>().size(), 3);
 }
 
 TEST(OptionsLeafDialogs, BeamTablesDefaultsAndEditing) {
@@ -559,6 +648,6 @@ TEST(OptionsSettings, FoundationAndBeamTableDefaults) {
     EXPECT_DOUBLE_EQ(o.foundation.cracking.footingLimitMm, 0.30);
     EXPECT_EQ(o.beams.tables.transverse.spacingsCm.size(), 26u);
     EXPECT_EQ(cc::app::TransverseTableDialog::summarise({1.0, 2.0}, 1).toStdString(), "1.0, 2.0");
-    o.foundation.pileCap.maxDepthM = 0.1;  // below the minimum depth
+    o.foundation.pileCap.general.maxDepthM = 0.1;  // below the minimum depth
     EXPECT_FALSE(o.isValid());
 }

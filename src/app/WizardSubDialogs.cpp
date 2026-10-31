@@ -1075,13 +1075,18 @@ OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& set
                                   piles = tr("Encepados"), centering = tr("Vigas centradoras"), footings = tr("Zapatas aisladas"),
                                   ties = tr("Vigas de atado");
                     if (caption == options) {
-                        // Zapatas aisladas and Vigas de atado option sheets are not captured yet (ticket TK-019).
                         std::unique_ptr<OptionsMenuDialog> menu;
                         menu.reset(new OptionsMenuDialog(
                             tr("Opciones"), QSize(207, 287),
-                            {{QString(), {cleaning, cracking, footings, piles, centering, ties}, {cleaning, cracking, piles, centering}}},
+                            {{QString(), {cleaning, cracking, footings, piles, centering, ties}, {cleaning, cracking, footings, piles, centering, ties}}},
                             [&](const QString& leaf) {
-                                if (leaf == cleaning) {
+                                if (leaf == footings) {
+                                    FootingOptionsDialog dialog(f.footings, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.footings = dialog.value();
+                                } else if (leaf == ties) {
+                                    TieBeamOptionsDialog dialog(f.tieBeams, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.tieBeams = dialog.value();
+                                } else if (leaf == cleaning) {
                                     CleaningConcreteDialog dialog(f.cleaning, menu.get());
                                     if (dialog.exec() == QDialog::Accepted) f.cleaning = dialog.value();
                                 } else if (leaf == cracking) {
@@ -1098,14 +1103,16 @@ OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& set
                             false, parent));
                         menu->exec();
                     } else if (caption == tables) {
-                        // The Vigas centradoras table is not captured yet (ticket TK-019).
                         std::unique_ptr<OptionsMenuDialog> menu;
                         menu.reset(new OptionsMenuDialog(
-                            tr("Tablas de armado"), QSize(165, 155), {{QString(), {footings, centering, ties}, {footings, ties}}},
+                            tr("Tablas de armado"), QSize(165, 155), {{QString(), {footings, centering, ties}, {footings, centering, ties}}},
                             [&](const QString& leaf) {
                                 if (leaf == footings) {
                                     FoundationTableDialog dialog(FoundationTableDialog::Kind::Footings, f.footingTable, menu.get());
                                     if (dialog.exec() == QDialog::Accepted) f.footingTable = dialog.value();
+                                } else if (leaf == centering) {
+                                    FoundationTableDialog dialog(FoundationTableDialog::Kind::CenteringBeams, f.centeringTable, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.centeringTable = dialog.value();
                                 } else if (leaf == ties) {
                                     FoundationTableDialog dialog(FoundationTableDialog::Kind::TieBeams, f.tieBeamTable, menu.get());
                                     if (dialog.exec() == QDialog::Accepted) f.tieBeamTable = dialog.value();
