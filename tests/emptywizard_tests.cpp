@@ -234,7 +234,12 @@ TEST(WizardSubDialogs, PileStructuralTabRoundTrip) {
     EXPECT_DOUBLE_EQ(v.structural.castInSituValue, 18.00);
     EXPECT_DOUBLE_EQ(v.structural.undrainedShearFactor, 1.40);
     EXPECT_DOUBLE_EQ(v.structural.unitWeightFactor, 1.00);
+    EXPECT_EQ(v.cap.precastBasis, cc::core::StrengthBasis::Relative);
+    EXPECT_DOUBLE_EQ(v.cap.precastValue, 0.30);
+    EXPECT_EQ(v.cap.castInSituBasis, cc::core::StrengthBasis::Absolute);
+    EXPECT_DOUBLE_EQ(v.cap.castInSituValue, 3.50);
     cc::core::PileAdvancedSettings custom;
+    custom.cap.castInSituValue = 4.25;
     custom.structural.reduceConcreteStrength = false;
     custom.structural.castInSituBasis = cc::core::StrengthBasis::Relative;
     custom.structural.castInSituValue = 0.85;
@@ -245,6 +250,7 @@ TEST(WizardSubDialogs, PileStructuralTabRoundTrip) {
     EXPECT_EQ(v.structural.castInSituBasis, cc::core::StrengthBasis::Relative);
     EXPECT_DOUBLE_EQ(v.structural.castInSituValue, 0.85);
     EXPECT_TRUE(v.structuralCap);
+    EXPECT_DOUBLE_EQ(v.cap.castInSituValue, 4.25);
     buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
     EXPECT_TRUE(other.value().structural.reduceConcreteStrength);
     EXPECT_FALSE(other.value().structuralCap);
@@ -259,7 +265,9 @@ TEST(WizardSubDialogs, MicropileAdvancedRoundTrip) {
     EXPECT_DOUBLE_EQ(v.sinking.geotechnicalShaftTension, 1.10);
     EXPECT_DOUBLE_EQ(v.sinking.unitTip, 1.00);
     EXPECT_DOUBLE_EQ(v.sinking.efficiencyK, 2.00);
-    EXPECT_EQ(dialog.findChildren<QDoubleSpinBox*>().size(), 12);  // 5 ground + 2 + 4 unit + K
+    EXPECT_DOUBLE_EQ(v.undrainedShearFactor, 1.40);
+    EXPECT_DOUBLE_EQ(v.unitWeightFactor, 1.00);
+    EXPECT_EQ(dialog.findChildren<QDoubleSpinBox*>().size(), 14);  // 5 ground + 2 + 4 unit + K + 2 p-y factors
     dialog.findChild<QTabWidget*>()->widget(0)->findChildren<QDoubleSpinBox*>().at(0)->setValue(1.30);
     EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.30);
     buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();

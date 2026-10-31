@@ -177,11 +177,22 @@ struct PileStructuralSettings {
     bool isValid() const;
 };
 
+/// Tab "Tope estructural" (orig_pilotes_ca_tope_marcado): enabled by the tick of the tab; the two rows are
+/// enabled only while it is ticked.
+struct PileCapSettings {
+    StrengthBasis precastBasis = StrengthBasis::Relative;
+    double precastValue = 0.30;
+    StrengthBasis castInSituBasis = StrengthBasis::Absolute;
+    double castInSituValue = 3.50;
+    bool isValid() const;
+};
+
 struct PileAdvancedSettings {
     PileSinkingSettings sinking;
     PileStructuralSettings structural;
-    bool structuralCap = false;  ///< "Tope estructural" tab tick; the panel is empty in the original
-    bool isValid() const { return sinking.isValid() && structural.isValid(); }
+    bool structuralCap = false;  ///< "Tope estructural" tab tick
+    PileCapSettings cap;
+    bool isValid() const { return sinking.isValid() && structural.isValid() && cap.isValid(); }
 };
 
 /// Tab "Pilotes (Hormigón armado)" of the wizard.
@@ -198,10 +209,13 @@ struct PileSettings {
 
 /// "Configuración avanzada" of micropiles (587x728). Tab "Hundimiento" reuses PileSinkingSettings: the micropile
 /// dialog shows only the shaft factors of the geotechnical group (geotechnicalShaft / geotechnicalShaftTension);
-/// tip and total stay at their defaults. The tab "Comprobación estructural" was not captured yet (ticket TK-016).
+/// tip and total stay at their defaults. The tab "Comprobación estructural" has only the two p-y factors.
 struct MicropileAdvancedSettings {
     PileSinkingSettings sinking;
-    bool isValid() const { return sinking.isValid(); }
+    // Tab "Comprobación estructural": only the p-y curve factors (orig_micropilotes_ca_comprobacion_estructural).
+    double undrainedShearFactor = 1.40;
+    double unitWeightFactor = 1.00;
+    bool isValid() const;
 };
 
 /// Tab "Micropilotes" of the wizard.

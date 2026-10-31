@@ -167,6 +167,12 @@ bool PileStructuralSettings::isValid() const {
            nonNegative(unitWeightFactor);
 }
 
+bool PileCapSettings::isValid() const { return nonNegative(precastValue) && nonNegative(castInSituValue); }
+
+bool MicropileAdvancedSettings::isValid() const {
+    return sinking.isValid() && nonNegative(undrainedShearFactor) && nonNegative(unitWeightFactor);
+}
+
 bool PileSettings::isValid() const {
     return nonNegative(minMomentEccentricityM) && nonNegative(shaftAxialFactor) && nonNegative(tipOnlyAxialFactor) &&
            nonNegative(bucklingCoefficient) && advanced.isValid();

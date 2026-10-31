@@ -13,6 +13,7 @@ class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
 class QLineEdit;
+class QGridLayout;
 class QTableWidget;
 class QTabWidget;
 
@@ -212,6 +213,13 @@ private:
     QTableWidget* m_table;
 };
 
+/// Message box in the style of the original "Información" dialog: blue icon, text and Aceptar.
+class InfoDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    InfoDialog(const QString& title, const QString& text, QWidget* parent = nullptr);
+};
+
 /// Shared "Hundimiento" tab of the pile and micropile "Configuración avanzada" dialogs.
 class PileAdvancedBase : public DefaultsDialog {
     Q_OBJECT
@@ -241,19 +249,26 @@ public:
 
 protected:
     void resetToInstallationValues() override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     void load(const cc::core::PileAdvancedSettings& settings);
     void updateStrengthUnits();
+    /// One "Relativa/Absoluta + value + unit" row; the widgets are appended to m_rows.
+    struct StrengthRow {
+        QComboBox* basis;
+        QDoubleSpinBox* value;
+        QLabel* unit;
+    };
+    StrengthRow makeStrengthRow(QGridLayout* grid, int row, const QString& label, QWidget* page);
     QCheckBox* m_reduceStrength;
-    QComboBox *m_precastBasis, *m_castBasis;
-    QDoubleSpinBox *m_precastValue, *m_castValue, *m_cuFactor, *m_gammaFactor;
-    QLabel *m_precastUnit, *m_castUnit;
+    StrengthRow m_precast, m_cast, m_capPrecast, m_capCast;
+    QDoubleSpinBox *m_cuFactor, *m_gammaFactor;
     QCheckBox* m_structuralCap;
+    QWidget* m_capPage;
 };
 
-/// Micropile "Configuración avanzada" (587x728): tab Hundimiento; the Comprobación estructural tab is a
-/// placeholder until it is captured from the original (ticket TK-016).
+/// Micropile "Configuración avanzada" (587x728): tabs Hundimiento and Comprobación estructural (p-y factors).
 class MicropileAdvancedDialog : public PileAdvancedBase {
     Q_OBJECT
 public:
@@ -262,6 +277,9 @@ public:
 
 protected:
     void resetToInstallationValues() override;
+
+private:
+    QDoubleSpinBox *m_cuFactor, *m_gammaFactor;
 };
 
 /// One page of an OptionsMenuDialog: a title (shown in the side list when there is more than one page), the

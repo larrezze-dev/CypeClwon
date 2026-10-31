@@ -3,6 +3,7 @@
 #include "OptionsDialogs.h"
 
 #include <QButtonGroup>
+#include <QEvent>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -657,6 +658,30 @@ UsualGroundDialog::UsualGroundDialog(QWidget* parent) : CypeDialog(tr("Importar 
 
 int UsualGroundDialog::selectedIndex() const { return m_table->currentRow(); }
 
+// ---------------------------------------------------------------- Información
+
+InfoDialog::InfoDialog(const QString& title, const QString& text, QWidget* parent) : CypeDialog(title, parent) {
+    setFixedSize(650, 218);
+    auto* row = new QHBoxLayout;
+    auto* icon = new QLabel(QStringLiteral("i"), this);
+    icon->setFixedSize(34, 34);
+    icon->setAlignment(Qt::AlignCenter);
+    icon->setStyleSheet(QStringLiteral("background: #1E5AA8; color: white; border-radius: 17px; font-size: 20px; font-weight: bold;"));
+    row->addWidget(icon, 0, Qt::AlignTop);
+    auto* label = new QLabel(text, this);
+    label->setWordWrap(true);
+    row->addWidget(label, 1);
+    contentLayout()->addLayout(row);
+    contentLayout()->addStretch(1);
+    QHBoxLayout* footer = setupCustomFooter();
+    auto* ok = new QPushButton(tr("Aceptar"), this);
+    ok->setDefault(true);
+    footer->addStretch(1);
+    footer->addWidget(ok);
+    footer->addStretch(1);
+    connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+}
+
 // ---------------------------------------------------------------- Pilotes: Configuración avanzada
 
 namespace {
@@ -762,6 +787,32 @@ PileSinkingSettings PileAdvancedBase::sinkingValue(PileSinkingSettings base) con
     return base;
 }
 
+PileAdvancedDialog::StrengthRow PileAdvancedDialog::makeStrengthRow(QGridLayout* grid, int row, const QString& label,
+                                                                    QWidget* page) {
+    StrengthRow r;
+    auto* text = new QLabel(label, page);
+    text->setContentsMargins(26, 0, 0, 0);
+    grid->addWidget(text, row, 0, 1, 2);
+    r.basis = new QComboBox(page);
+    // List order of the original: Absoluta, Relativa (orig_pilotes_ca_combo_precast).
+    r.basis->addItem(tr("Absoluta"), static_cast<int>(StrengthBasis::Absolute));
+    r.basis->addItem(tr("Relativa"), static_cast<int>(StrengthBasis::Relative));
+    r.basis->setFixedWidth(84);
+    grid->addWidget(r.basis, row, 2);
+    r.value = makeSpin(0.0, 0.0, 1000.0, 2, page);
+    grid->addWidget(r.value, row, 3);
+    r.unit = new QLabel(page);
+    r.unit->setMinimumWidth(32);
+    grid->addWidget(r.unit, row, 4);
+    connect(r.basis, &QComboBox::currentIndexChanged, this, [this] { updateStrengthUnits(); });
+    return r;
+}
+
+namespace {
+StrengthBasis basisOf(const QComboBox* combo) { return static_cast<StrengthBasis>(combo->currentData().toInt()); }
+void setBasis(QComboBox* combo, StrengthBasis basis) { combo->setCurrentIndex(combo->findData(static_cast<int>(basis))); }
+}  // namespace
+
 PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWidget* parent)
     : PileAdvancedBase(tr("Configuración avanzada"), parent) {
     setFixedSize(556, 786);
@@ -775,25 +826,12 @@ PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWid
     grid->setColumnStretch(1, 1);
     m_reduceStrength = new QCheckBox(tr("Considerar reducción de la resistencia del hormigón"), structural);
     grid->addWidget(m_reduceStrength, 0, 0, 1, 4);
-    grid->addWidget(makeInfoBadge(structural), 0, 4);
-    const auto addStrength = [&](int row, const QString& label, QComboBox*& combo, QDoubleSpinBox*& spin, QLabel*& unit) {
-        auto* text = new QLabel(label, structural);
-        text->setContentsMargins(26, 0, 0, 0);
-        grid->addWidget(text, row, 0, 1, 2);
-        combo = new QComboBox(structural);
-        combo->addItem(tr("Relativa"));
-        combo->addItem(tr("Absoluta"));
-        combo->setFixedWidth(84);
-        grid->addWidget(combo, row, 2);
-        spin = makeSpin(0.0, 0.0, 1000.0, 2, structural);
-        grid->addWidget(spin, row, 3);
-        unit = new QLabel(structural);
-        unit->setMinimumWidth(32);
-        grid->addWidget(unit, row, 4);
-        connect(combo, &QComboBox::currentIndexChanged, this, [this] { updateStrengthUnits(); });
-    };
-    addStrength(1, tr("Pilote prefabricado hincado"), m_precastBasis, m_precastValue, m_precastUnit);
-    addStrength(2, tr("Pilote hormigonado in situ"), m_castBasis, m_castValue, m_castUnit);
+    auto* info = makeInfoBadge(structural);
+    info->setCursor(Qt::PointingHandCursor);
+    info->installEventFilter(this);
+    grid->addWidget(info, 0, 4);
+    m_precast = makeStrengthRow(grid, 1, tr("Pilote prefabricado hincado"), structural);
+    m_cast = makeStrengthRow(grid, 2, tr("Pilote hormigonado in situ"), structural);
     auto* group = new QLabel(tr("Coeficientes parciales de seguridad para el terreno (Curvas p-y)"), structural);
     group->setContentsMargins(0, 10, 0, 0);
     grid->addWidget(group, 3, 0, 1, 5);
@@ -810,35 +848,63 @@ PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWid
     connect(m_reduceStrength, &QCheckBox::toggled, this, [this](bool) { updateStrengthUnits(); });
     tabs->addTab(structural, tr("Comprobación estructural"));
 
-    // --- Tope estructural: empty panel, the tab carries a tick (orig_pilotes_ca_tope_estructural)
-    tabs->addTab(new QWidget(tabs), tr("Tope estructural"));
+    // --- Tope estructural (orig_pilotes_ca_tope_marcado): the tab carries a tick that enables its two rows
+    m_capPage = new QWidget(tabs);
+    auto* capGrid = new QGridLayout(m_capPage);
+    capGrid->setColumnStretch(1, 1);
+    m_capPrecast = makeStrengthRow(capGrid, 0, tr("Pilote prefabricado hincado"), m_capPage);
+    m_capCast = makeStrengthRow(capGrid, 1, tr("Pilote hormigonado in situ"), m_capPage);
+    capGrid->setRowStretch(2, 1);
+    tabs->addTab(m_capPage, tr("Tope estructural"));
     m_structuralCap = new QCheckBox(tabs->tabBar());
     tabs->tabBar()->setTabButton(2, QTabBar::LeftSide, m_structuralCap);
+    connect(m_structuralCap, &QCheckBox::toggled, this, [this](bool) { updateStrengthUnits(); });
 
     setupDefaultsFooter();
     load(initial);
 }
 
-void PileAdvancedDialog::updateStrengthUnits() {
-    m_precastUnit->setText(m_precastBasis->currentIndex() == 0 ? QStringLiteral("· fc") : tr("MPa"));
-    m_castUnit->setText(m_castBasis->currentIndex() == 0 ? QStringLiteral("· fc") : tr("MPa"));
-    const bool on = m_reduceStrength->isChecked();
-    for (QWidget* w : {static_cast<QWidget*>(m_precastBasis), static_cast<QWidget*>(m_precastValue),
-                       static_cast<QWidget*>(m_castBasis), static_cast<QWidget*>(m_castValue)}) {
-        w->setEnabled(on);
+bool PileAdvancedDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::MouseButtonRelease && qobject_cast<QLabel*>(watched)) {
+        // Text taken from orig_pilotes_ca_info.
+        InfoDialog dialog(tr("Información"),
+                          tr("Es recomendable considerar una reducción en la resistencia característica del hormigón por razones "
+                             "constructivas relacionadas con la ejecución de los pilotes hormigonados in situ. Esta reducción se "
+                             "considera en la comprobación de los estados límite de agotamiento tanto frente a solicitaciones "
+                             "normales como de cortante."),
+                          this);
+        dialog.exec();
+        return true;
     }
+    return PileAdvancedBase::eventFilter(watched, event);
+}
+
+void PileAdvancedDialog::updateStrengthUnits() {
+    const auto refresh = [this](const StrengthRow& row, bool on) {
+        row.unit->setText(basisOf(row.basis) == StrengthBasis::Relative ? QStringLiteral("· fc") : tr("MPa"));
+        row.basis->setEnabled(on);
+        row.value->setEnabled(on);
+    };
+    refresh(m_precast, m_reduceStrength->isChecked());
+    refresh(m_cast, m_reduceStrength->isChecked());
+    refresh(m_capPrecast, m_structuralCap->isChecked());
+    refresh(m_capCast, m_structuralCap->isChecked());
 }
 
 void PileAdvancedDialog::load(const PileAdvancedSettings& settings) {
     loadSinking(settings.sinking);
     const PileStructuralSettings& c = settings.structural;
     m_reduceStrength->setChecked(c.reduceConcreteStrength);
-    m_precastBasis->setCurrentIndex(static_cast<int>(c.precastBasis));
-    m_precastValue->setValue(c.precastValue);
-    m_castBasis->setCurrentIndex(static_cast<int>(c.castInSituBasis));
-    m_castValue->setValue(c.castInSituValue);
+    setBasis(m_precast.basis, c.precastBasis);
+    m_precast.value->setValue(c.precastValue);
+    setBasis(m_cast.basis, c.castInSituBasis);
+    m_cast.value->setValue(c.castInSituValue);
     m_cuFactor->setValue(c.undrainedShearFactor);
     m_gammaFactor->setValue(c.unitWeightFactor);
+    setBasis(m_capPrecast.basis, settings.cap.precastBasis);
+    m_capPrecast.value->setValue(settings.cap.precastValue);
+    setBasis(m_capCast.basis, settings.cap.castInSituBasis);
+    m_capCast.value->setValue(settings.cap.castInSituValue);
     m_structuralCap->setChecked(settings.structuralCap);
     updateStrengthUnits();
 }
@@ -848,12 +914,16 @@ PileAdvancedSettings PileAdvancedDialog::value() const {
     out.sinking = sinkingValue(out.sinking);
     PileStructuralSettings& c = out.structural;
     c.reduceConcreteStrength = m_reduceStrength->isChecked();
-    c.precastBasis = static_cast<StrengthBasis>(m_precastBasis->currentIndex());
-    c.precastValue = m_precastValue->value();
-    c.castInSituBasis = static_cast<StrengthBasis>(m_castBasis->currentIndex());
-    c.castInSituValue = m_castValue->value();
+    c.precastBasis = basisOf(m_precast.basis);
+    c.precastValue = m_precast.value->value();
+    c.castInSituBasis = basisOf(m_cast.basis);
+    c.castInSituValue = m_cast.value->value();
     c.undrainedShearFactor = m_cuFactor->value();
     c.unitWeightFactor = m_gammaFactor->value();
+    out.cap.precastBasis = basisOf(m_capPrecast.basis);
+    out.cap.precastValue = m_capPrecast.value->value();
+    out.cap.castInSituBasis = basisOf(m_capCast.basis);
+    out.cap.castInSituValue = m_capCast.value->value();
     out.structuralCap = m_structuralCap->isChecked();
     return out;
 }
@@ -866,25 +936,43 @@ MicropileAdvancedDialog::MicropileAdvancedDialog(const MicropileAdvancedSettings
     auto* tabs = new QTabWidget(this);
     contentLayout()->addWidget(tabs, 1);
     tabs->addTab(buildSinkingTab(true, tabs), tr("Hundimiento"));
-    // Tab never captured in the original (TK-016): placeholder, nothing is invented.
+    // --- Comprobación estructural (orig_micropilotes_ca_comprobacion_estructural)
     auto* page = new QWidget(tabs);
-    auto* layout = new QVBoxLayout(page);
-    auto* note = new QLabel(tr("Contenido no verificado en el original (ticket TK-016)."), page);
-    note->setAlignment(Qt::AlignCenter);
-    note->setEnabled(false);
-    layout->addWidget(note);
+    auto* grid = new QGridLayout(page);
+    auto* group = new QLabel(tr("Coeficientes parciales de seguridad para el terreno (Curvas p-y)"), page);
+    grid->addWidget(group, 0, 0, 1, 2);
+    const auto addFactor = [&](int row, const QString& label, QDoubleSpinBox*& spin) {
+        auto* text = new QLabel(label, page);
+        text->setContentsMargins(16, 0, 0, 0);
+        grid->addWidget(text, row, 0);
+        spin = makeSpin(0.0, 0.0, 100.0, 2, page);
+        grid->addWidget(spin, row, 1, Qt::AlignRight);
+    };
+    addFactor(1, tr("Resistencia al corte sin drenaje Cu"), m_cuFactor);
+    addFactor(2, tr("Peso específico γ"), m_gammaFactor);
+    grid->setColumnStretch(0, 1);
+    grid->setRowStretch(3, 1);
     tabs->addTab(page, tr("Comprobación estructural"));
     setupDefaultsFooter();
     loadSinking(initial.sinking);
+    m_cuFactor->setValue(initial.undrainedShearFactor);
+    m_gammaFactor->setValue(initial.unitWeightFactor);
 }
 
 MicropileAdvancedSettings MicropileAdvancedDialog::value() const {
     MicropileAdvancedSettings out;
     out.sinking = sinkingValue(out.sinking);
+    out.undrainedShearFactor = m_cuFactor->value();
+    out.unitWeightFactor = m_gammaFactor->value();
     return out;
 }
 
-void MicropileAdvancedDialog::resetToInstallationValues() { loadSinking(MicropileAdvancedSettings{}.sinking); }
+void MicropileAdvancedDialog::resetToInstallationValues() {
+    const MicropileAdvancedSettings installation;
+    loadSinking(installation.sinking);
+    m_cuFactor->setValue(installation.undrainedShearFactor);
+    m_gammaFactor->setValue(installation.unitWeightFactor);
+}
 
 // ---------------------------------------------------------------- Opciones (menus)
 

@@ -46,3 +46,9 @@ Dos pestañas: Hundimiento y Comprobación estructural (esta segunda no abierta,
 
 ## Huecos
 Opciones > Pilares (19 diálogos hoja), Cimentación (hojas de Opciones y Tablas de armado), Vigas (páginas 2-6 de Opciones; edición de Límites de flecha; Tablas de armado), Uniones (3 pestañas restantes), pestaña Comprobación estructural de micropilotes, listas de los combos Relativa/Absoluta, comportamiento de la casilla Tope estructural marcada.
+
+## Capturas complementarias (2026-10-31, sesión 2) [verificado]
+- **Combos Relativa/Absoluta** (`orig_pilotes_ca_combo_precast`, `..._insitu`): la lista se despliega con **Absoluta** y **Relativa** (en ese orden).
+- **Icono (i) de Comprobación estructural** (`orig_pilotes_ca_info`): diálogo "Información" (650x218) con icono azul, botón Aceptar y el texto: "Es recomendable considerar una reducción en la resistencia característica del hormigón por razones constructivas relacionadas con la ejecución de los pilotes hormigonados in situ. Esta reducción se considera en la comprobación de los estados límite de agotamiento tanto frente a solicitaciones normales como de cortante."
+- **Tope estructural con la casilla marcada** (`orig_pilotes_ca_tope_marcado`): aparecen **Pilote prefabricado hincado**: Relativa 0.30 · fc y **Pilote hormigonado in situ**: Absoluta 3.50 MPa.
+- **Micropilotes - Comprobación estructural** (`orig_micropilotes_ca_comprobacion_estructural`): solo el grupo "Coeficientes parciales de seguridad para el terreno (Curvas p-y)": Cu 1.40 y γ 1.00.
