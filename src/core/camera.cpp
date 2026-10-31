@@ -8,7 +8,7 @@ namespace cc::core {
 namespace {
 constexpr double kPi = 3.14159265358979323846;
 double rad(double deg) { return deg * kPi / 180.0; }
-constexpr double kZoomPerNotch = 0.85;  // each notch brings the camera 15 % closer
+constexpr double kZoomPerNotch = 0.935;  // each notch brings the camera 6.5 % closer (measured in the original: 3 notches scale 1.215)
 }  // namespace
 
 Vec3 operator+(const Vec3& a, const Vec3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }

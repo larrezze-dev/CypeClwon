@@ -75,6 +75,13 @@ try {
             'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 900 }
             'wheel'  { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); $d = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]([int]$arg * 120)), 0); [D]::mouse_event(0x0800, 0, 0, $d, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'key'    { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
+            'drag'   { $a = $arg.Split(','); $f = @{L=@(2,4); R=@(8,16); M=@(32,64)}[$a[0]]
+                       $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
+                       $x1 = [int]$a[1]; $y1 = [int]$a[2]; $x2 = [int]$a[3]; $y2 = [int]$a[4]
+                       [void][D]::SetCursorPos($r.L + $x1, $r.T + $y1); Start-Sleep -Milliseconds 200
+                       [D]::mouse_event($f[0], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
+                       for ($i = 1; $i -le 10; $i++) { [void][D]::SetCursorPos($r.L + $x1 + [int](($x2 - $x1) * $i / 10), $r.T + $y1 + [int](($y2 - $y1) * $i / 10)); Start-Sleep -Milliseconds 40 }
+                       Start-Sleep -Milliseconds 200; [D]::mouse_event($f[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'shot'   { Shot $p $arg }
         }
     }

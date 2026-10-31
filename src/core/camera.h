@@ -66,7 +66,7 @@ public:
     /// Moves the view so the scene follows a mouse drag of (dxPx, dyPx) screen pixels (y grows downwards).
     void pan(double dxPx, double dyPx, double viewportHeightPx);
 
-    /// Dolly by `notches` wheel notches (positive = closer, 15 % per notch). With `cursorNdc` (x, y in [-1, 1]) the
+    /// Dolly by `notches` wheel notches (positive = closer, 6.5 % per notch). With `cursorNdc` (x, y in [-1, 1]) the
     /// point of the target plane under the cursor stays under the cursor.
     void zoom(double notches);
     void zoomAt(double notches, double ndcX, double ndcY, double aspect);

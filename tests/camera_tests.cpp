@@ -115,7 +115,7 @@ TEST(Camera, ZoomChangesDistanceWithinLimits) {
     Camera c;
     c.distance = 20;
     c.zoom(1);
-    EXPECT_NEAR(c.distance, 17.0, 1e-12);
+    EXPECT_NEAR(c.distance, 18.7, 1e-12);
     c.zoom(-1);
     EXPECT_NEAR(c.distance, 20.0, 1e-9);
     c.zoom(1e6);

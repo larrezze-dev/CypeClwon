@@ -48,11 +48,26 @@ protected:
 }  // namespace
 
 TEST_F(ViewportTest, OrbitDragChangesYawAndPitch) {
-    view->bindings().left = DragAction::Orbit;
+    view->setLeftDragAction(DragAction::Orbit);
     const double yaw = view->camera().yawDeg, pitch = view->camera().pitchDeg;
     drag(*view, Qt::LeftButton, {400, 300}, {450, 330});
     EXPECT_NE(view->camera().yawDeg, yaw);
     EXPECT_NE(view->camera().pitchDeg, pitch);
+}
+
+TEST_F(ViewportTest, DefaultBindingsMatchTheOriginal) {
+    const auto& b = view->bindings();
+    EXPECT_EQ(b.left, DragAction::None);
+    EXPECT_EQ(b.middle, DragAction::Pan);
+    EXPECT_EQ(b.right, DragAction::None);
+    drag(*view, Qt::RightButton, {400, 300}, {500, 400});
+    EXPECT_EQ(view->camera().yawDeg, 45.0);
+}
+
+TEST_F(ViewportTest, OrbitToolMakesTheLeftButtonOrbit) {
+    view->setLeftDragAction(DragAction::Orbit);
+    drag(*view, Qt::LeftButton, {400, 300}, {440, 300});
+    EXPECT_NEAR(view->camera().yawDeg, 45.0 - 40 * 0.25, 1e-9);
 }
 
 TEST_F(ViewportTest, UnboundButtonDoesNothing) {
