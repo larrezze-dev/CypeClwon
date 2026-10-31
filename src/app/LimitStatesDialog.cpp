@@ -11,6 +11,7 @@
 #include <QVBoxLayout>
 
 #include "Icons.h"
+#include "SituationsDialog.h"
 
 namespace cc::app {
 
@@ -47,7 +48,14 @@ LimitStatesDialog::LimitStatesDialog(const StandardsSelection& standards, const 
     body->addWidget(boldLabel(tr("E.L.U. de rotura. Aluminio: %1").arg(qs(shortStandardName(standards.aluminium))), this));
     body->addWidget(boldLabel(tr("Tensiones sobre el terreno"), this));
 
-    const auto snowRow = [this, body](const QString& label, const std::string& current, int comboWidth) {
+    ReportContext context;
+    context.concrete = shortStandardName(standards.concrete);
+    context.aluminium = shortStandardName(standards.aluminium);
+    context.coldFormed = shortStandardName(standards.coldFormedSteel);
+    context.timber = shortStandardName(standards.timber);
+    using ReportBuilder = CombinationReport (*)(bool, const ReportContext&);
+    const auto snowRow = [this, body, context](const QString& label, const std::string& current, int comboWidth,
+                                               ReportBuilder builder) {
         auto* row = new QHBoxLayout;
         row->addSpacing(10);
         row->addWidget(new QLabel(label, this));
@@ -60,19 +68,27 @@ LimitStatesDialog::LimitStatesDialog(const StandardsSelection& standards, const 
         auto* pencil = new QToolButton(this);
         pencil->setIcon(themedIcon(QStringLiteral("edit_pencil")));
         pencil->setAutoRaise(true);
-        pencil->setEnabled(false);  // editor dialog not captured (TK-017)
-        pencil->setToolTip(tr("Diálogo pendiente de capturar en el original (ticket TK-017)."));
+        if (builder) {
+            pencil->setToolTip(tr("Ver las situaciones y combinaciones de acciones"));
+            connect(pencil, &QToolButton::clicked, this, [this, combo, builder, context] {
+                const bool high = combo->currentText().toStdString() == LimitStatesSettings::snowChoices().front();
+                SituationsDialog(builder(high, context), this).exec();
+            });
+        } else {
+            pencil->setEnabled(false);  // report not captured in the original yet (TK-017)
+            pencil->setToolTip(tr("Informe pendiente de capturar en el original (ticket TK-017)."));
+        }
         row->addWidget(pencil);
         body->addLayout(row);
         return combo;
     };
-    m_ground = snowRow(tr("Nieve"), initial.groundSnow, 205);
+    m_ground = snowRow(tr("Nieve"), initial.groundSnow, 205, &buildGroundReport);
     body->addWidget(separator(this));
 
     body->addWidget(boldLabel(tr("E.L.U. de rotura. Acero conformado: %1").arg(qs(shortStandardName(standards.coldFormedSteel))), this));
     body->addWidget(boldLabel(tr("E.L.U. de rotura. Madera: %1").arg(qs(shortStandardName(standards.timber))), this));
     // Cold-formed steel and timber are listed together and share one snow combo in the original.
-    m_coldFormed = snowRow(tr("Cota de nieve"), initial.coldFormedSnow, 205);
+    m_coldFormed = snowRow(tr("Cota de nieve"), initial.coldFormedSnow, 205, &buildColdFormedTimberReport);
     body->addWidget(separator(this));
 
     body->addWidget(boldLabel(tr("E.L.U. de rotura. Acero laminado: %1").arg(qs(shortStandardName(standards.hotRolledSteel))), this));
@@ -85,7 +101,7 @@ LimitStatesDialog::LimitStatesDialog(const StandardsSelection& standards, const 
     codes->addWidget(ec);
     codes->addStretch(1);
     body->addLayout(codes);
-    m_hotRolled = snowRow(tr("Cota de nieve"), initial.hotRolledSnow, 205);
+    m_hotRolled = snowRow(tr("Cota de nieve"), initial.hotRolledSnow, 205, nullptr);
     body->addWidget(separator(this));
 
     body->addWidget(boldLabel(tr("Desplazamientos"), this));

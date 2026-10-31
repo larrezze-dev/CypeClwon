@@ -35,17 +35,17 @@ target_include_directories(standardsdialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src
 target_link_libraries(standardsdialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(standardsdialog_tests)
 
-add_executable(emptywizard_tests emptywizard_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/EmptyProjectWizard.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp
+add_executable(emptywizard_tests emptywizard_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/EmptyProjectWizard.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/WizardSubDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/OptionsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/OptionsLeafDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(emptywizard_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
-target_link_libraries(emptywizard_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+target_link_libraries(emptywizard_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(emptywizard_tests)
 
-add_executable(limitstates_dialog_tests limitstates_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp
+add_executable(limitstates_dialog_tests limitstates_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(limitstates_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
-target_link_libraries(limitstates_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+target_link_libraries(limitstates_dialog_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(limitstates_dialog_tests)
 
 add_executable(filemanager_tests filemanager_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/FileManagerDialog.cpp
@@ -53,3 +53,9 @@ add_executable(filemanager_tests filemanager_tests.cpp ${CMAKE_SOURCE_DIR}/src/a
 target_include_directories(filemanager_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(filemanager_tests PRIVATE Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(filemanager_tests)
+
+add_executable(situations_dialog_tests situations_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(situations_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(situations_dialog_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
+gtest_discover_tests(situations_dialog_tests)
