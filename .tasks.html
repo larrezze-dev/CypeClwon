@@ -13,12 +13,12 @@ tr.ok td:nth-child(4){color:var(--ok)}tr.wip td:nth-child(4){color:var(--wip)}
 details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 .tw{overflow-x:auto}
 </style></head><body>
-<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 19:06 Â· generado desde .tasks.md</div>
-<div class="kpi"><div><b>25.9%</b>completado</div><div><b>30</b>finalizadas</div><div><b>3</b>en marcha</div><div><b>83</b>pendientes</div><div><b>116</b>tareas</div></div>
+<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 19:15 Â· generado desde .tasks.md</div>
+<div class="kpi"><div><b>26.7%</b>completado</div><div><b>31</b>finalizadas</div><div><b>3</b>en marcha</div><div><b>82</b>pendientes</div><div><b>116</b>tareas</div></div>
 <h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:81%'></i><i class='w' style='width:12%'></i></div></td><td>13/16</td></tr>
 <tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:100%'></i><i class='w' style='width:0%'></i></div></td><td>9/9</td></tr>
 <tr><td>F2 Â· Inicio y asistentes</td><td><div class='bar'><i class='d' style='width:78%'></i><i class='w' style='width:0%'></i></div></td><td>7/9</td></tr>
-<tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>/5</td></tr>
+<tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:40%'></i><i class='w' style='width:0%'></i></div></td><td>2/5</td></tr>
 <tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/10</td></tr>
 <tr><td>F5 Â· GeometrÃ­a</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/11</td></tr>
 <tr><td>F6 Â· Propiedades</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/7</td></tr>
@@ -72,7 +72,7 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='todo'><td>T-P2-08</td><td>F2</td><td>Ejemplos de obra</td><td>[ ]</td><td>Depende de fases 5–7</td></tr>
 <tr class='ok'><td>T-P2-09</td><td>F2</td><td>Gesti&#243;n de licencias / Iniciar sesi&#243;n (stubs)</td><td>[x]</td><td>Descartada por decisi&#243;n del usuario: el programa es de uso libre (MIT), sin licencias. Eliminado el bot&#243;n Gesti&#243;n de licencias de la pantalla de inicio. Iniciar sesi&#243;n y CYPE Mentor siguen sin funci&#243;n y se revisar&#225;n si el usuario lo pide; el texto Contrato de Licencia de Programas de Ayuda est&#225; pendiente de decidir</td></tr>
 <tr class='todo'><td>T-P3-01</td><td>F3</td><td>Modelo de datos: obra, nudos, barras, l&#225;minas, materiales, secciones</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P3-02</td><td>F3</td><td>Sistema de unidades</td><td>[ ]</td><td></td></tr>
+<tr class='ok'><td>T-P3-02</td><td>F3</td><td>Sistema de unidades</td><td>[x]</td><td>Investigado en el original (docs/research/ui/dialogs_unidades.md): sin selector de sistema de unidades, trabaja siempre en kN/m/MPa y solo permite elegir la unidad de visualizaci&#243;n de Dimensiones, Armaduras y Longitudes (Metros/Cent&#237;metros/Mil&#237;metros; defecto cm/cm/m). core/units (modelo en metros, conversi&#243;n, formato con punto decimal, 5+ tests) y UnitsDialog 224x174 (2 tests). Integraci&#243;n (bot&#243;n de cinta, persistencia en la obra, uso en los editores) en TK-019</td></tr>
 <tr class='ok'><td>T-P3-03</td><td>F3</td><td>Pila deshacer/rehacer (comandos)</td><td>[x]</td><td>core/undo_stack (UndoCommand con redo/undo/texto, fusi&#243;n por mergeId, macros anidadas, punto limpio para el indicador de obra modificada, l&#237;mite de historial, callback de cambios); 14 tests. Conectada a las acciones Deshacer/Rehacer de la barra de acceso r&#225;pido (MainWindow::refreshUndoActions; se vac&#237;a al abrir/cerrar obra); permanecen deshabilitadas hasta que el modelo de obra (T-P3-01) aporte comandos</td></tr>
 <tr class='todo'><td>T-P3-04</td><td>F3</td><td>Serializaci&#243;n de obra (formato propio abierto) + versionado</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P3-05</td><td>F3</td><td>Datos generales (Obra &gt; Datos generales) persistentes</td><td>[ ]</td><td></td></tr>

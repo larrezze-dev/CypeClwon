@@ -1,5 +1,5 @@
 ﻿add_library(cc_core STATIC version.cpp standards.cpp standards.h project_settings.cpp project_settings.h
-  limit_states.cpp limit_states.h recent_files.cpp recent_files.h undo_stack.cpp undo_stack.h
+  limit_states.cpp limit_states.h recent_files.cpp recent_files.h undo_stack.cpp undo_stack.h units.cpp units.h
   options_settings.cpp options_settings.h
   combination_report.cpp combination_report.h combination_report_data.cpp combination_report_data.h
   combination_export.cpp combination_export.h combination_docx.cpp

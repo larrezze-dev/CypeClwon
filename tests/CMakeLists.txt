@@ -1,5 +1,5 @@
 ﻿include(GoogleTest)
-add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp)
+add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp units_tests.cpp)
 target_compile_definitions(core_tests PRIVATE CC_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 target_link_libraries(core_tests PRIVATE cc_core GTest::gtest GTest::gtest_main)
 gtest_discover_tests(core_tests)
@@ -59,3 +59,9 @@ add_executable(situations_dialog_tests situations_dialog_tests.cpp ${CMAKE_SOURC
 target_include_directories(situations_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(situations_dialog_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(situations_dialog_tests)
+
+add_executable(units_dialog_tests units_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/UnitsDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(units_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(units_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+gtest_discover_tests(units_dialog_tests)
