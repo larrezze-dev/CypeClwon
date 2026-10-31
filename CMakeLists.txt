@@ -17,6 +17,7 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets PrintSupport OpenGLWid
 find_package(GTest CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(miniz CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 set(SARIBBON_BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
 set(SARIBBON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
