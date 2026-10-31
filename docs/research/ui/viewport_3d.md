@@ -92,3 +92,9 @@ Comando Geometría > Nudos > Nuevo (barra de estado "Nudos - Nuevo | - LMB: Intr
 | Cursor a 25 px de la barra (sn5) | Sin ajuste (coordenadas libres). Radio del ajuste a líneas: entre 20 y 25 px. |
 
 Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Capturas a plantillas** (349x246, sn12): casillas "Activar capturas (F3)" (desmarcada) y "Activar puntos de rastreo (F11)" (desmarcada); modos con icono: Punto, Extremo (marcado), Punto de inserción, Centro, Perpendicular, Paralelo, Punto medio (marcado), Intersección (marcado), Cuadrante, Más cercano (marcado), Extensión (marcado); botones Aceptar, Quitar todas, Cancelar. Con "Activar capturas" desmarcada ya se observó el ajuste a nudo, barra (más cercano) y línea guía, y NO al punto medio: parece una base siempre activa (Extremo, Más cercano, Extensión) y que el diálogo gobierna el imán de objetos adicional (inferencia, por confirmar: TK-026).
+
+### Tooltips y caja de información en el clon (T-P4-05, sesión 14)
+
+- Fuente: capturas `sn2_nuevo_free.png`, `sn3_near_node.png`. La caja de información es una tabla blanca de 3 filas con filas separadas por líneas grises, pegada a la esquina superior derecha del área 3D (sin margen): fila 1 en negrita "Barra N2/N3: L. 4 m", fila 2 "Capa : por defecto", fila 3 sección y material "IPE 80 (S275 (UNE-EN 10025-2))". Tooltip de coordenadas: caja gris oscura con borde fino claro, texto blanco de ~16 px.
+- Implementado en `Viewport3D` (`coordinatesText`, `barInfoLines`, `anchoredRect`, `coordinateTooltipOrigin`, `setTooltipPosition`, `setShowElementInfo`).
+- Hipótesis por confirmar (TK-027): "Posición de los tooltips" gobierna la etiqueta de nudo y la caja de barra, no el tooltip de coordenadas; y la lista completa de posiciones del combo.

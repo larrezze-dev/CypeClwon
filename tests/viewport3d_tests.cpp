@@ -300,6 +300,78 @@ TEST_F(SelectionTest, SnapModeSnapsAndEntersPoints) {
     EXPECT_EQ(entered.count(), 1);
 }
 
+TEST(ViewportTooltips, CoordinatesUseThreeDecimalsAndTheUnit) {
+    EXPECT_EQ(Viewport3D::coordinatesText({187.5964, -186.2149, 153.7561}), QStringLiteral("187.596, -186.215, 153.756 m"));
+    EXPECT_EQ(Viewport3D::coordinatesText({-0.0001, 0, 3}), QStringLiteral("0.000, 0.000, 3.000 m"));
+}
+
+TEST(ViewportTooltips, AnchoredBoxesSitFlushInTheChosenCorner) {
+    const QSizeF size(100, 50), area(800, 600);
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::TopRight), QRectF(700, 0, 100, 50));
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::TopLeft), QRectF(0, 0, 100, 50));
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::BottomRight), QRectF(700, 550, 100, 50));
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::BottomLeft), QRectF(0, 550, 100, 50));
+}
+
+TEST(ViewportTooltips, CoordinateTooltipFollowsTheCursorAndStaysInside) {
+    const QSizeF size(150, 28), area(800, 600);
+    EXPECT_EQ(Viewport3D::coordinateTooltipOrigin({100, 100}, size, area), QPointF(140, 143));
+    const QPointF flipped = Viewport3D::coordinateTooltipOrigin({780, 590}, size, area);  // would overflow right and bottom
+    EXPECT_LT(flipped.x(), 780);
+    EXPECT_LT(flipped.y(), 590);
+    EXPECT_GE(flipped.x(), 0);
+}
+
+TEST_F(SelectionTest, BarInfoLinesDescribeTheBar) {
+    const int mat = model.addMaterial({0, "S275 (UNE-EN 10025-2)", cc::core::MaterialKind::Steel});
+    cc::core::CrossSection ipe;
+    ipe.name = "IPE 80";
+    ipe.areaM2 = 7.64e-4;
+    const int sec = model.addSection(ipe);
+    const int bar = model.addBar(model.nodes[0].id, model.nodes[1].id, mat, sec);
+    const QStringList lines = Viewport3D::barInfoLines(model, bar);
+    ASSERT_EQ(lines.size(), 3);
+    EXPECT_EQ(lines[0], QStringLiteral("Barra N1/N2: L. 4 m"));
+    EXPECT_EQ(lines[1], QStringLiteral("Capa : por defecto"));
+    EXPECT_EQ(lines[2], QStringLiteral("IPE 80 (S275 (UNE-EN 10025-2))"));
+    EXPECT_EQ(Viewport3D::barInfoLines(model, model.bars[0].id).size(), 2);  // unassigned section: no third row
+    EXPECT_TRUE(Viewport3D::barInfoLines(model, 999).isEmpty());
+}
+
+TEST_F(SelectionTest, TooltipAndInfoBoxFollowTheSnap) {
+    view->setSelectionMode(false);
+    view->setSnapMode(true);
+    EXPECT_FALSE(view->coordinateTooltipVisible());  // the cursor has not entered yet
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 2, 1.5), Qt::NoButton, Qt::NoButton);
+    EXPECT_TRUE(view->coordinateTooltipVisible());
+    EXPECT_FALSE(view->infoBarId());  // free point: no bar
+    const int topBar = model.bars[2].id;  // N3-N4, along the top at Z = 3
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 2, 3) + QPointF(0, 4), Qt::NoButton, Qt::NoButton);
+    EXPECT_EQ(view->infoBarId(), topBar);
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 0, 0) + QPointF(3, 2), Qt::NoButton, Qt::NoButton);
+    EXPECT_EQ(view->currentSnap().kind, cc::core::SnapKind::Endpoint);
+    EXPECT_EQ(view->infoBarId(), model.bars[0].id);  // the bar that meets at N1
+    view->setShowElementInfo(false);
+    EXPECT_FALSE(view->infoBarId());
+    view->setShowElementInfo(true);
+    view->setSnapMode(false);
+    EXPECT_FALSE(view->coordinateTooltipVisible());
+    EXPECT_FALSE(view->infoBarId());
+}
+
+TEST_F(SelectionTest, HoveredBarFeedsTheInfoBoxInSelectionMode) {
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 2, 3) + QPointF(0, 3), Qt::NoButton, Qt::NoButton);
+    ASSERT_TRUE(view->hovered());
+    EXPECT_EQ(view->infoBarId(), model.bars[2].id);
+}
+
+TEST_F(SelectionTest, TooltipPositionIsConfigurable) {
+    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::TopRight);
+    view->setTooltipPosition(cc::app::TooltipPosition::BottomLeft);
+    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::BottomLeft);
+    EXPECT_EQ(Viewport3D::tooltipPositionLabel(cc::app::TooltipPosition::TopRight), QStringLiteral("En la esquina superior derecha"));
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

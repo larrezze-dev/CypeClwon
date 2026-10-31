@@ -1,8 +1,13 @@
 #pragma once
+#include <QEnterEvent>
 #include <QOpenGLWidget>
 #include <QPoint>
 #include <QMetaType>
 #include <QPointF>
+#include <QRectF>
+#include <QSizeF>
+#include <QString>
+#include <QStringList>
 #include <optional>
 #include <vector>
 
@@ -16,6 +21,11 @@ namespace cc::app {
 
 /// What a mouse button drag does in the 3D viewport.
 enum class DragAction { None, Orbit, Pan };
+
+/// Corner of the 3D area where the anchored information (node label, bar information box) is shown: the original's
+/// "Posición de los tooltips" option (default "En la esquina superior derecha"). Provisional list of corners; the
+/// remaining entries of the original's combo are still to be captured (see docs/research/ui/viewport_3d.md).
+enum class TooltipPosition { TopRight, TopLeft, BottomRight, BottomLeft };
 
 /// Mouse button assignment of the viewport (see docs/research/ui/viewport_3d.md for what the original does).
 struct MouseBindings {
@@ -77,6 +87,30 @@ public:
     /// Position of the cursor in world coordinates: snapped when a snap applies, else on the target plane.
     core::Vec3 cursorWorld() const;
 
+    /// Where the anchored information is shown ("Posición de los tooltips").
+    void setTooltipPosition(TooltipPosition position);
+    TooltipPosition tooltipPosition() const { return m_tooltipPosition; }
+    /// "Mostrar la información de los elementos": the bar information box (snap mode and bar hover).
+    void setShowElementInfo(bool on);
+    bool showElementInfo() const { return m_showElementInfo; }
+    /// Bar the information box describes: the snapped bar (or a bar meeting at the snapped node) in snap mode, the
+    /// hovered bar in selection mode. Empty when nothing applies or the option is off.
+    std::optional<int> infoBarId() const;
+    /// True while the coordinate tooltip is visible: snap mode with the cursor inside the viewport.
+    bool coordinateTooltipVisible() const { return m_snapMode && m_cursorInside; }
+
+    /// "187.596, -186.215, 153.756 m": three decimals, point as decimal separator, unit at the end.
+    static QString coordinatesText(const core::Vec3& world);
+    /// Rows of the bar information box: "Barra N2/N3: L. 4 m", "Capa : por defecto" and, when assigned, "IPE 80 (S275)".
+    static QStringList barInfoLines(const core::StructuralModel& structure, int barId);
+    /// Rectangle of a box of `size` flush against the chosen corner of an area of `area` size.
+    static QRectF anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position);
+    /// Top-left corner of the coordinate tooltip: (+40, +43) px from the cursor, flipped to the other side of the
+    /// cursor when it would leave the area.
+    static QPointF coordinateTooltipOrigin(const QPointF& cursor, const QSizeF& size, const QSizeF& area);
+    /// es-ES text of a position, as the options panel shows it.
+    static QString tooltipPositionLabel(TooltipPosition position);
+
     bool isOrthographic() const { return m_camera.projection == core::Camera::Projection::Orthographic; }
     void setOrthographic(bool on);
     void setStandardView(core::StandardView view);
@@ -108,8 +142,12 @@ protected:
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void leaveEvent(QEvent* event) override;
+    void enterEvent(QEnterEvent* event) override;
 
 private:
+    void drawCoordinateTooltip(class QPainter& painter) const;
+    void drawInfoBox(class QPainter& painter) const;
+
     double aspect() const;
     DragAction actionFor(Qt::MouseButtons buttons) const;
     void drawGuideLines(class QPainter& painter) const;
@@ -143,6 +181,9 @@ private:
     bool m_snapMode = false;
     core::SnapOptions m_snapOptions;
     core::SnapResult m_snap;
+    TooltipPosition m_tooltipPosition = TooltipPosition::TopRight;
+    bool m_showElementInfo = true;
+    bool m_cursorInside = false;
 };
 
 }  // namespace cc::app
