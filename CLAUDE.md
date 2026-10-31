@@ -135,3 +135,9 @@ Una vez finalizado el desarrollo al 100% se realizará la traducción a los idio
 ## Licencia
 
 Este programa es para mi uso personal, pero estará en un repositorio de Github. La licencia será totalmente permisiva, MIT.
+
+## Comunicación con el usuario
+
+- Siempre que hayas finalizado alguna tarea y necesites información para seguir, informa al usuario de inmediato.
+- No te quedes en silencio sin motivo.
+- Si esperas el resultado de alguna tarea en segundo plano, pon un aviso en MAYÚSCULAS (por ejemplo: "ESPERANDO TAREA EN SEGUNDO PLANO: <qué tarea>").

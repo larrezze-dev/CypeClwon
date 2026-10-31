@@ -1,12 +1,24 @@
 ﻿#include "MainWindow.h"
 
+#include <QEvent>
+#include <QIcon>
+
 #include "SARibbonBar.h"
 #include "SARibbonCategory.h"
+#include "SARibbonSystemButtonBar.h"
+#include "SessionBar.h"
 #include "core/version.h"
 
 namespace cc::app {
 
+namespace {
+// Colours sampled from the original title bar (docs/screenshots/orig_asistente_02.png).
+constexpr const char* kTitleRed = "#B1291C";
+constexpr int kTitleBarHeight = 26;
+}  // namespace
+
 MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
+    setWindowIcon(QIcon(QStringLiteral(":/icons/app_logo.svg")));
     setWindowTitle(QStringLiteral("%1 v%2")
                        .arg(QString::fromUtf8(cc::core::productName().data(),
                                               static_cast<qsizetype>(cc::core::productName().size())),
@@ -14,6 +26,46 @@ MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
                                               static_cast<qsizetype>(cc::core::versionString().size()))));
     resize(1280, 800);
     buildRibbonTabs();
+    applyTitleBarStyle();
+}
+
+void MainWindow::applyTitleBarStyle() {
+    SARibbonBar* ribbon = ribbonBar();
+    ribbon->setTitleBarHeight(kTitleBarHeight);
+    ribbon->setWindowTitleBackgroundBrush(QColor(kTitleRed));
+    ribbon->setWindowTitleTextColor(Qt::white);
+    ribbon->setWindowTitleAlignment(Qt::AlignCenter);
+
+    if (SARibbonSystemButtonBar* buttons = windowButtonBar()) {
+        buttons->setStyleSheet(QStringLiteral(
+            "SARibbonSystemButtonBar { background: #B1291C; }"
+            "SARibbonSystemToolButton { qproperty-glyphColor: white; background: transparent; }"
+            "SARibbonSystemToolButton:hover { background: rgba(255,255,255,0.18); }"));
+        buttons->installEventFilter(this);
+    }
+    m_sessionBar = new SessionBar(ribbon);
+    ribbon->installEventFilter(this);
+    placeSessionBar();
+}
+
+void MainWindow::placeSessionBar() {
+    if (!m_sessionBar) return;
+    int right = ribbonBar()->width();
+    if (SARibbonSystemButtonBar* buttons = windowButtonBar()) {
+        right = ribbonBar()->mapFromGlobal(buttons->mapToGlobal(QPoint(0, 0))).x();
+    }
+    m_sessionBar->adjustSize();
+    const QSize size = m_sessionBar->sizeHint();
+    m_sessionBar->setGeometry(right - size.width() - 8, (kTitleBarHeight - size.height()) / 2,
+                              size.width(), size.height());
+    m_sessionBar->raise();
+}
+
+bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Resize || event->type() == QEvent::Move || event->type() == QEvent::Show) {
+        placeSessionBar();
+    }
+    return SARibbonMainWindow::eventFilter(watched, event);
 }
 
 void MainWindow::buildRibbonTabs() {
@@ -27,4 +79,6 @@ void MainWindow::buildRibbonTabs() {
 }
 
 }  // namespace cc::app
+
+
 
