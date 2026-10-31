@@ -7,7 +7,7 @@
 )
 # Drives the ORIGINAL application for research captures (only its window is captured, via PrintWindow).
 # Steps are separated by '|':  click:x,y  (window-relative, left click)   dclick:x,y   key:^{TAB} (SendKeys syntax)
-#                              wait:ms   shot:name  (saves <OutDir>\<name>.png of the foreground window of the process)
+#                              wait:ms   wheel:n (notches, negative = down, at the cursor)   shot:name  (saves <OutDir>\<name>.png of the foreground window of the process)
 # Run only after the user has freed the workspace and given an explicit OK.
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
@@ -73,6 +73,7 @@ try {
             'click'  { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $false; Start-Sleep -Milliseconds 700 }
             'dclick' { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $true; Start-Sleep -Milliseconds 700 }
             'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 900 }
+            'wheel'  { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); $d = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]([int]$arg * 120)), 0); [D]::mouse_event(0x0800, 0, 0, $d, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'key'    { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
             'shot'   { Shot $p $arg }
         }

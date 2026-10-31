@@ -1,0 +1,693 @@
+
+E.L.U. de rotura. Hormigón en cimentaciones: Eurocódigo 2
+E.L.U. de rotura. Hormigón: Eurocódigo 2
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes
+ criterios:
+
+  -Situaciones persistentes o transitorias
+
+   -
+
+  -Situaciones sísmicas
+
+   -
+
+  -Situaciones accidentales
+
+   -
+
+  -Donde:
+
+    Gk   Acción permanente
+
+    Pk   Acción de pretensado
+
+    Qk   Acción variable
+
+    AE   Acción sísmica
+
+    Ad   Acción accidental
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento
+
+    gAE  Coeficiente parcial de seguridad de la acción sísmica
+
+    gAd  Coeficiente parcial de seguridad de la acción accidental
+
+    yp,1 Coeficiente de combinación de la acción variable principal
+
+    ya,i Coeficiente de combinación de las acciones variables de acompañamiento
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                              Persistente o transitoria                                              |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.350          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.500          |      1.000       |         1.000         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.500          |      1.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.500          |      1.000       |         0.500         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.350          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                       Sísmica                                                       |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sismo (E)                  |       -1.000        |         1.000          |      1.000       |         0.000         |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                     Accidental                                                      |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Accidental (A)             |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+E.L.U. de rotura. Aluminio: Eurocódigo 9
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes
+ criterios:
+
+  -Situaciones persistentes o transitorias
+
+   -
+
+  -Situaciones sísmicas
+
+   -
+
+  -Situaciones accidentales
+
+   -
+
+  -Donde:
+
+    Gk   Acción permanente
+
+    Pk   Acción de pretensado
+
+    Qk   Acción variable
+
+    AE   Acción sísmica
+
+    Ad   Acción accidental
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento
+
+    gAE  Coeficiente parcial de seguridad de la acción sísmica
+
+    gAd  Coeficiente parcial de seguridad de la acción accidental
+
+    yp,1 Coeficiente de combinación de la acción variable principal
+
+    ya,i Coeficiente de combinación de las acciones variables de acompañamiento
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                              Persistente o transitoria                                              |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.350          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.500          |      1.000       |         1.000         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.500          |      1.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.500          |      1.000       |         0.500         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.350          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                       Sísmica                                                       |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sismo (E)                  |       -1.000        |         1.000          |      1.000       |         0.000         |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                     Accidental                                                      |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Accidental (A)             |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+Tensiones sobre el terreno (A1 - Conjunto B)
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes
+ criterios:
+
+  -Situaciones persistentes o transitorias
+
+   -
+
+  -Situaciones sísmicas
+
+   -
+
+  -Situaciones accidentales
+
+   -
+
+  -Donde:
+
+    Gk   Acción permanente
+
+    Pk   Acción de pretensado
+
+    Qk   Acción variable
+
+    AE   Acción sísmica
+
+    Ad   Acción accidental
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento
+
+    gAE  Coeficiente parcial de seguridad de la acción sísmica
+
+    gAd  Coeficiente parcial de seguridad de la acción accidental
+
+    yp,1 Coeficiente de combinación de la acción variable principal
+
+    ya,i Coeficiente de combinación de las acciones variables de acompañamiento
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                              Persistente o transitoria                                              |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.350          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.500          |      1.000       |         1.000         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.500          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.500          |      1.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.500          |      1.000       |         0.500         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.500          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.350          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                       Sísmica                                                       |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sismo (E)                  |       -1.000        |         1.000          |      1.000       |         0.000         |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                     Accidental                                                      |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Accidental (A)             |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+Tensiones sobre el terreno (A2 - Conjunto C)
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes
+ criterios:
+
+  -Situaciones persistentes o transitorias
+
+   -
+
+  -Situaciones sísmicas
+
+   -
+
+  -Situaciones accidentales
+
+   -
+
+  -Donde:
+
+    Gk   Acción permanente
+
+    Pk   Acción de pretensado
+
+    Qk   Acción variable
+
+    AE   Acción sísmica
+
+    Ad   Acción accidental
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento
+
+    gAE  Coeficiente parcial de seguridad de la acción sísmica
+
+    gAd  Coeficiente parcial de seguridad de la acción accidental
+
+    yp,1 Coeficiente de combinación de la acción variable principal
+
+    ya,i Coeficiente de combinación de las acciones variables de acompañamiento
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                              Persistente o transitoria                                              |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.300          |      1.000       |         1.000         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.300          |      1.000       |         0.700         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.300          |      1.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.300          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.300          |      1.000       |         0.500         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.300          |      1.000       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                       Sísmica                                                       |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sismo (E)                  |       -1.000        |         1.000          |      1.000       |         0.000         |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                     Accidental                                                      |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Accidental (A)             |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+
+E.L.S. Fisuración. Hormigón en cimentaciones: Eurocódigo 2
+E.L.S. Fisuración. Hormigón: Eurocódigo 2
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes
+ criterios:
+
+  -
+
+  -Donde:
+
+    Gk   Acción permanente
+
+    Pk   Acción de pretensado
+
+    Qk   Acción variable
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento
+
+    yp,1 Coeficiente de combinación de la acción variable principal
+
+    ya,i Coeficiente de combinación de las acciones variables de acompañamiento
+
+ |---------------------------------------------------------------------------------------------------------------------|
+ |                                                   Cuasipermanente                                                   |
+ |---------------------------|----------------------------------------------|------------------------------------------|
+ |                           |   Coeficientes parciales de seguridad (g)    |     Coeficientes de combinación (y)      |
+ |                           |---------------------|------------------------|------------------|-----------------------|
+ |                           |      Favorable      |      Desfavorable      |  Principal (yp)  |  Acompañamiento (ya)  |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
+ |Carga permanente (G)       |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Pretensado (PST)           |        1.000        |         1.000          |        -         |           -           |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso A)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso B)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso C)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso D)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso E)     |        0.000        |         1.000          |      0.800       |         0.800         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso F)     |        0.000        |         1.000          |      0.600       |         0.600         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso G)     |        0.000        |         1.000          |      0.300       |         0.300         |
+ |                           |                     |                        |                  |                       |
+ |Sobrecarga (Q - Uso H)     |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Viento (Q)                 |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Nieve (Q)                  |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Temperatura (T)            |        0.000        |         1.000          |      0.000       |         0.000         |
+ |                           |                     |                        |                  |                       |
+ |Empujes del terreno (H)    |        1.000        |         1.000          |        -         |           -           |
+ |---------------------------|---------------------|------------------------|------------------|-----------------------|
