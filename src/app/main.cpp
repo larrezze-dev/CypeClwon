@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < parser.value(demoOpt).toInt(); ++i) {
         window.workArea()->addDocumentWindow(QStringLiteral("3D"), new QWidget);
     }
+    if (window.workArea()->windowCount() > 0) window.setProjectOpen(true);
     window.show();
     return app.exec();
 }

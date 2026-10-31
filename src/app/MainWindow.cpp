@@ -4,6 +4,7 @@
 #include <QAction>
 #include <QIcon>
 #include <QKeySequence>
+#include <QStackedWidget>
 #include <QStatusBar>
 
 #include "SARibbonBar.h"
@@ -12,6 +13,7 @@
 #include "SARibbonSystemButtonBar.h"
 #include "Icons.h"
 #include "SessionBar.h"
+#include "StartPage.h"
 #include "WorkArea.h"
 #include "core/version.h"
 
@@ -39,8 +41,39 @@ MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
 }
 
 void MainWindow::createWorkArea() {
-    m_workArea = new WorkArea(this);
-    setCentralWidget(m_workArea);
+    m_stack = new QStackedWidget(this);
+    m_startPage = new StartPage(m_stack);
+    m_workArea = new WorkArea(m_stack);
+    m_stack->addWidget(m_startPage);
+    m_stack->addWidget(m_workArea);
+    setCentralWidget(m_stack);
+    setProjectOpen(false);
+
+    // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
+    auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
+    connect(m_startPage, &StartPage::newRequested, this, notYet);
+    connect(m_startPage, &StartPage::fileManagerRequested, this, notYet);
+    connect(m_startPage, &StartPage::examplesRequested, this, notYet);
+    connect(m_startPage, &StartPage::moreRecentRequested, this, notYet);
+    connect(m_startPage, &StartPage::recentFileRequested, this, notYet);
+    connect(m_startPage, &StartPage::helpRequested, this, notYet);
+    connect(m_startPage, &StartPage::licenceManagerRequested, this, notYet);
+}
+
+void MainWindow::setProjectOpen(bool open) {
+    m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
+    // Like the original, the ribbon shows no tabs until a project is open.
+    ribbonBar()->setMinimumMode(!open);
+    if (open) ribbonBar()->setCurrentIndex(0);
+    for (SARibbonCategory* category : ribbonBar()->categoryPages()) {
+        if (open) {
+            ribbonBar()->showCategory(category);
+        } else {
+            ribbonBar()->hideCategory(category);
+        }
+    }
+    statusBar()->showMessage(open ? tr("Seleccione una opción del menú.")
+                                  : tr("Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente."));
 }
 
 void MainWindow::createQuickAccessBar() {
@@ -64,8 +97,6 @@ void MainWindow::createQuickAccessBar() {
 }
 
 void MainWindow::createStatusBar() {
-    statusBar()->showMessage(
-        tr("Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente."));
 }
 
 void MainWindow::applyTitleBarStyle() {

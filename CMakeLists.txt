@@ -13,7 +13,7 @@ if(MSVC)
   add_compile_options(/W4 /permissive- /utf-8 /Zc:__cplusplus)
 endif()
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets Svg LinguistTools)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets Svg Test LinguistTools)
 find_package(GTest CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 
