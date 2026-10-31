@@ -19,5 +19,24 @@
     <file>icons/license.svg</file>
     <file>icons/structure_sample.svg</file>
     <file>icons/arrow_left_blue.svg</file>
+    <file>icons/data_general.svg</file>
+    <file>icons/profile_library.svg</file>
+    <file>icons/manufacturer_catalogs.svg</file>
+    <file>icons/plastic_hinges.svg</file>
+    <file>icons/performance.svg</file>
+    <file>icons/dimension_units.svg</file>
+    <file>icons/numbering_edit.svg</file>
+    <file>icons/numbering_reset.svg</file>
+    <file>icons/view_full.svg</file>
+    <file>icons/view_active.svg</file>
+    <file>icons/view_selection.svg</file>
+    <file>icons/joints.svg</file>
+    <file>icons/list_selected.svg</file>
+    <file>icons/list_csv.svg</file>
+    <file>icons/list_beams.svg</file>
+    <file>icons/bim_link.svg</file>
+    <file>icons/bim_unlink.svg</file>
+    <file>icons/bim_query.svg</file>
+    <file>icons/bim_share.svg</file>
   </qresource>
 </RCC>

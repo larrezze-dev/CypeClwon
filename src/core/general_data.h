@@ -42,4 +42,18 @@ private:
     GeneralData m_after;
 };
 
+/// Undoable change of the dimensioning units ("Unidades de acotación"); only the display units change.
+class EditUnitsCommand : public UndoCommand {
+public:
+    EditUnitsCommand(Project& project, DimensioningUnits newUnits);
+    void redo() override { m_project.units = m_after; }
+    void undo() override { m_project.units = m_before; }
+    std::string text() const override { return "Unidades de acotación"; }
+
+private:
+    Project& m_project;
+    DimensioningUnits m_before;
+    DimensioningUnits m_after;
+};
+
 }  // namespace cc::core

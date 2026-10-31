@@ -40,4 +40,7 @@ EditGeneralDataCommand::EditGeneralDataCommand(Project& project, GeneralData new
 void EditGeneralDataCommand::redo() { applyGeneralData(m_project, m_after); }
 void EditGeneralDataCommand::undo() { applyGeneralData(m_project, m_before); }
 
+EditUnitsCommand::EditUnitsCommand(Project& project, DimensioningUnits newUnits)
+    : m_project(project), m_before(project.units), m_after(newUnits) {}
+
 }  // namespace cc::core

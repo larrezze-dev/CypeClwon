@@ -71,3 +71,20 @@ TEST(GeneralData, EditedValuesSurviveSaveAndLoad) {
     EXPECT_TRUE(sameGeneralData(generalDataOf(loaded.document.project), generalDataOf(p)));
     fs::remove_all(dir);
 }
+
+TEST(GeneralData, EditUnitsCommandChangesOnlyTheDisplayUnitsAndUndoes) {
+    Project p;
+    p.structure.addNode({1, 2, 3});
+    UndoStack stack;
+    stack.setClean();
+    DimensioningUnits mm{LengthUnit::Millimetres, LengthUnit::Millimetres, LengthUnit::Centimetres};
+    stack.push(std::make_unique<EditUnitsCommand>(p, mm));
+    EXPECT_EQ(p.units, mm);
+    EXPECT_EQ(p.structure.nodes[0].position.z, 3.0) << "the model is always in metres";
+    EXPECT_EQ(stack.undoText(), "Unidades de acotación");
+    stack.undo();
+    EXPECT_EQ(p.units, DimensioningUnits{});
+    EXPECT_TRUE(stack.isClean());
+    stack.redo();
+    EXPECT_EQ(p.units, mm);
+}

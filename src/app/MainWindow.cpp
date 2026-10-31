@@ -25,6 +25,7 @@
 #include "FileManagerDialog.h"
 #include "FileOpsDialogs.h"
 #include "LimitStatesDialog.h"
+#include "UnitsDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
@@ -384,6 +385,70 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     return SARibbonMainWindow::eventFilter(watched, event);
 }
 
+void MainWindow::editUnits() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    UnitsDialog dialog(project.units, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const cc::core::DimensioningUnits edited = dialog.value();
+    if (edited == project.units) return;
+    m_undo.push(std::make_unique<cc::core::EditUnitsCommand>(project, edited));
+}
+
+void MainWindow::buildObraTab() {
+    SARibbonCategory* tab = ribbonBar()->categoryPages().first();
+    const auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
+    // `enabled` follows the original on an empty project (Vista 3D and Listados need selected elements, Desvincular,
+    // Consultar and Compartir need a linked BIMserver.center project).
+    const auto make = [&](const QString& icon, const QString& text, bool enabled, auto handler) {
+        auto* action = new QAction(themedIcon(icon), text, this);
+        action->setEnabled(enabled);
+        if (enabled) connect(action, &QAction::triggered, this, handler);
+        return action;
+    };
+
+    // (no title) Datos generales
+    m_generalDataAction = make(QStringLiteral("data_general"), tr("Datos generales"), true, [this] { editGeneralData(); });
+    m_generalDataAction->setStatusTip(tr("Datos generales de la obra"));
+    tab->addPanel(QString())->addLargeAction(m_generalDataAction);
+
+    // Obra: three rows of small buttons, two columns
+    SARibbonPanel* obra = tab->addPanel(tr("Obra"));
+    obra->addSmallAction(make(QStringLiteral("profile_library"), tr("Biblioteca de perfiles"), true, notYet));
+    obra->addSmallAction(make(QStringLiteral("manufacturer_catalogs"), tr("Catálogos de fabricante"), true, notYet));
+    obra->addSmallAction(make(QStringLiteral("plastic_hinges"), tr("Biblioteca de rótulas plásticas"), true, notYet));
+    obra->addSmallAction(make(QStringLiteral("performance"), tr("Rendimiento"), true, notYet));
+    m_unitsAction = make(QStringLiteral("dimension_units"), tr("Unidades de acotación"), true, [this] { editUnits(); });
+    obra->addSmallAction(m_unitsAction);
+
+    SARibbonPanel* numbering = tab->addPanel(tr("Numeración"));
+    numbering->addLargeAction(make(QStringLiteral("numbering_edit"), tr("Editar"), true, notYet));
+    numbering->addLargeAction(make(QStringLiteral("numbering_reset"), tr("Reiniciar"), true, notYet));
+
+    SARibbonPanel* view3d = tab->addPanel(tr("Vista 3D"));
+    view3d->addLargeAction(make(QStringLiteral("view_full"), tr("Estructura completa"), false, notYet));
+    view3d->addLargeAction(make(QStringLiteral("view_active"), tr("Ventana activa"), false, notYet));
+    view3d->addLargeAction(make(QStringLiteral("view_selection"), tr("Selección de elementos"), false, notYet));
+    auto* joints = make(QStringLiteral("joints"), tr("Uniones"), true, notYet);
+    joints->setCheckable(true);
+    joints->setChecked(true);  // pressed on a new project in the original
+    // A pressed ribbon button is light blue in the original (the default style is dark blue and hides the icon).
+    ribbonBar()->setStyleSheet(QStringLiteral(
+        "SARibbonToolButton:checked { background-color: #CDE6F7; border: 1px solid #9CCBEA; color: black; }"));
+    view3d->addLargeAction(joints);
+
+    SARibbonPanel* lists = tab->addPanel(tr("Listados"));
+    lists->addLargeAction(make(QStringLiteral("list_selected"), tr("Elementos seleccionados"), false, notYet));
+    lists->addLargeAction(make(QStringLiteral("list_csv"), tr("CSV de los elementos seleccionados"), false, notYet));
+    lists->addLargeAction(make(QStringLiteral("list_beams"), tr("Etiquetas de vigas"), false, notYet));
+
+    SARibbonPanel* bim = tab->addPanel(tr("BIMserver.center"));
+    bim->addLargeAction(make(QStringLiteral("bim_link"), tr("Vincular"), true, notYet));
+    bim->addLargeAction(make(QStringLiteral("bim_unlink"), tr("Desvincular"), false, notYet));
+    bim->addLargeAction(make(QStringLiteral("bim_query"), tr("Consultar"), false, notYet));
+    bim->addLargeAction(make(QStringLiteral("bim_share"), tr("Compartir"), false, notYet));
+}
+
 void MainWindow::buildRibbonTabs() {
     SARibbonBar* ribbon = ribbonBar();
     // Order and names follow the original application (docs/research/02_ui_inventory.md).
@@ -392,12 +457,7 @@ void MainWindow::buildRibbonTabs() {
     for (const QString& title : tabs) {
         ribbon->addCategoryPage(title);
     }
-    // Obra > Datos generales (no group, like the original). Icon provisional: the Obra tab is not captured (TK-022).
-    m_generalDataAction = new QAction(themedIcon(QStringLiteral("edit_pencil")), tr("Datos generales"), this);
-    m_generalDataAction->setStatusTip(tr("Datos generales de la obra"));
-    connect(m_generalDataAction, &QAction::triggered, this, &MainWindow::editGeneralData);
-    SARibbonPanel* panel = ribbon->categoryPages().first()->addPanel(QString());
-    panel->addLargeAction(m_generalDataAction);
+    buildObraTab();
 }
 
 }  // namespace cc::app

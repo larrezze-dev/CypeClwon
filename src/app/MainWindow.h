@@ -64,6 +64,10 @@ private:
     void refreshUndoActions();
     /// Obra > Datos generales: edits the settings of the open project as one undoable step.
     void editGeneralData();
+    /// Obra > Unidades de acotación.
+    void editUnits();
+    /// Builds the groups of the Obra tab (reference: docs/screenshots/orig_obra_tab.png).
+    void buildObraTab();
     void updateWindowTitle();
     /// Offers to save a modified project; false when the user cancels.
     bool maybeSave();
@@ -74,6 +78,7 @@ private:
     QAction* m_printAction = nullptr;
     QAction* m_saveAsAction = nullptr;
     QAction* m_generalDataAction = nullptr;
+    QAction* m_unitsAction = nullptr;
 
     SessionBar* m_sessionBar = nullptr;
     WorkArea* m_workArea = nullptr;

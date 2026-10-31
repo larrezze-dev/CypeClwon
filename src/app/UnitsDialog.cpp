@@ -13,6 +13,7 @@ QComboBox* UnitsDialog::makeCombo(LengthUnit current) {
         combo->addItem(tr(cc::core::unitName(unit)), static_cast<int>(unit));
         if (unit == current) combo->setCurrentIndex(combo->count() - 1);
     }
+    combo->setFixedHeight(26);  // the original's combos; the form must not squeeze them
     return combo;
 }
 
@@ -23,8 +24,8 @@ UnitsDialog::UnitsDialog(const cc::core::DimensioningUnits& initial, QWidget* pa
     m_reinforcement = makeCombo(initial.reinforcement);
     m_lengths = makeCombo(initial.lengths);
     auto* form = new QFormLayout;
-    form->setContentsMargins(12, 10, 12, 6);
-    form->setVerticalSpacing(10);
+    form->setContentsMargins(12, 2, 12, 0);
+    form->setVerticalSpacing(6);
     form->addRow(tr("Dimensiones"), m_dimensions);
     form->addRow(tr("Armaduras"), m_reinforcement);
     form->addRow(tr("Longitudes"), m_lengths);
