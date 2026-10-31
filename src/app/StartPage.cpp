@@ -132,6 +132,8 @@ QWidget* StartPage::buildRecentBody() {
     more->setObjectName(QStringLiteral("footer"));
     more->setCursor(Qt::PointingHandCursor);
     connect(more, &QPushButton::clicked, this, &StartPage::moreRecentRequested);
+    more->setEnabled(false);
+    m_moreButton = more;
     layout->addWidget(more, 0, Qt::AlignHCenter);
     return body;
 }
@@ -171,12 +173,14 @@ QWidget* StartPage::buildHelpBody() {
     return body;
 }
 
-void StartPage::setRecentFiles(const QStringList& paths) {
+void StartPage::setRecentFiles(const QStringList& paths, const QStringList& missing, bool hasMore) {
+    m_moreButton->setEnabled(hasMore);
     for (int i = 0; i < m_recentButtons.size(); ++i) {
         QPushButton* button = m_recentButtons[i];
         const bool filled = i < paths.size() && !paths[i].isEmpty();
-        button->setEnabled(filled);
+        button->setEnabled(filled && !missing.contains(paths[i]));
         button->setProperty("path", filled ? paths[i] : QString());
+        // Missing files keep their text (greyed out because the button is disabled).
         button->setText(filled ? QStringLiteral("%1 %2").arg(i + 1).arg(QDir::toNativeSeparators(paths[i]))
                                : tr("%1 Sin fichero").arg(i + 1));
         button->setToolTip(filled ? QFileInfo(paths[i]).fileName() : QString());

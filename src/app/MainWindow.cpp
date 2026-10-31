@@ -73,7 +73,6 @@ void MainWindow::loadRecentFiles() {
     std::vector<std::string> paths;
     for (const QString& path : stored) paths.push_back(path.toStdString());
     m_recent = cc::core::RecentFiles(std::move(paths));
-    m_recent.pruneMissing([](const std::string& p) { return QFileInfo::exists(QString::fromStdString(p)); });
     refreshRecentFiles();
 }
 
@@ -90,18 +89,18 @@ void MainWindow::saveRecentFiles() const {
 }
 
 void MainWindow::refreshRecentFiles() {
-    QStringList shown;
-    for (const std::string& path : m_recent.top()) shown << QString::fromStdString(path);
-    m_startPage->setRecentFiles(shown);
+    QStringList shown, missing;
+    for (const std::string& path : m_recent.top()) {
+        shown << QString::fromStdString(path);
+        if (!QFileInfo::exists(shown.back())) missing << shown.back();
+    }
+    m_startPage->setRecentFiles(shown, missing, m_recent.paths().size() > cc::core::RecentFiles::kStartPageSlots);
 }
 
 void MainWindow::openRecentFile(const QString& path) {
-    if (!QFileInfo::exists(path)) {
-        m_recent.remove(path.toStdString());
-        saveRecentFiles();
+    if (!QFileInfo::exists(path)) {  // vanished since the list was drawn: grey it out, keep it in the list
         refreshRecentFiles();
-        statusBar()->showMessage(tr("El fichero «%1» ya no existe y se ha quitado de la lista.")
-                                     .arg(QDir::toNativeSeparators(path)), 6000);
+        statusBar()->showMessage(tr("El fichero «%1» ya no existe.").arg(QDir::toNativeSeparators(path)), 6000);
         return;
     }
     // Opening a project needs the file format (T-P3-04); see ticket TK-018.

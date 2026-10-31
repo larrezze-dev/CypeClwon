@@ -35,6 +35,24 @@ TEST(StartPage, EmptySlotsAreDisabledAndLabelled) {
     }
 }
 
+TEST(StartPage, MissingFilesAreGreyedAndMoreFollowsHistory) {
+    ensureApp();
+    StartPage page;
+    page.setRecentFiles({"D:/obras/a.ed3", "D:/obras/b.ed3"}, {"D:/obras/b.ed3"}, false);
+    int enabledRecents = 0;
+    QPushButton* more = nullptr;
+    for (QPushButton* b : page.findChildren<QPushButton*>()) {
+        if (b->text() == "Más...") more = b;
+        else if (b->text().startsWith("1 D:") && b->isEnabled()) ++enabledRecents;
+        else if (b->text().startsWith("2 D:")) EXPECT_FALSE(b->isEnabled());
+    }
+    EXPECT_EQ(enabledRecents, 1);
+    ASSERT_NE(more, nullptr);
+    EXPECT_FALSE(more->isEnabled());
+    page.setRecentFiles({"D:/obras/a.ed3"}, {}, true);
+    EXPECT_TRUE(more->isEnabled());
+}
+
 TEST(StartPage, RecentFileEmitsItsPath) {
     ensureApp();
     StartPage page;

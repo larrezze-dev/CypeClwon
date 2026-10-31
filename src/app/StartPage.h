@@ -23,8 +23,10 @@ public:
 
     explicit StartPage(QWidget* parent = nullptr);
 
-    /// Shows up to kRecentSlots paths; missing slots read "Sin fichero" and are inert.
-    void setRecentFiles(const QStringList& paths);
+    /// Shows up to kRecentSlots paths; empty slots read "Sin fichero" and are inert. Paths listed in `missing`
+    /// (files that no longer exist) stay in the list but are greyed out and inert, as in the original. "Más..."
+    /// is enabled only when `hasMore` (the history holds more than kRecentSlots files).
+    void setRecentFiles(const QStringList& paths, const QStringList& missing = {}, bool hasMore = false);
 
 signals:
     void newRequested();
@@ -43,6 +45,7 @@ private:
     QWidget* buildHelpBody();
 
     QList<QPushButton*> m_recentButtons;
+    QPushButton* m_moreButton = nullptr;
 };
 
 }  // namespace cc::app
