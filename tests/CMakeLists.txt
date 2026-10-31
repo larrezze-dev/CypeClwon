@@ -21,3 +21,9 @@ add_executable(newproject_tests newproject_tests.cpp ${CMAKE_SOURCE_DIR}/src/app
 target_include_directories(newproject_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(newproject_tests PRIVATE Qt6::Widgets GTest::gtest)
 gtest_discover_tests(newproject_tests)
+
+add_executable(projecttype_tests projecttype_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ProjectTypeDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(projecttype_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(projecttype_tests PRIVATE Qt6::Widgets Qt6::Svg GTest::gtest)
+gtest_discover_tests(projecttype_tests)

@@ -12,5 +12,6 @@
     <file>icons/support.svg</file>
     <file>icons/community.svg</file>
     <file>icons/license.svg</file>
+    <file>icons/structure_sample.svg</file>
   </qresource>
 </RCC>

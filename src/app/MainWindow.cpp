@@ -15,6 +15,7 @@
 #include "Icons.h"
 #include "SessionBar.h"
 #include "NewProjectDialog.h"
+#include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
 #include "core/version.h"
@@ -66,8 +67,10 @@ void MainWindow::newProject() {
     NewProjectDialog dialog(NewProjectDialog::defaultFolder(), this);
     if (dialog.exec() != QDialog::Accepted) return;
     NewProjectDialog::rememberFolder(dialog.folder());
-    // The project-type selector (T-P2-03) and the wizard (T-P2-04..06) follow in later tasks.
-    statusBar()->showMessage(tr("Nueva obra «%1». El selector de tipo de obra aún no está disponible.")
+    ProjectTypeDialog typeDialog(this);
+    if (typeDialog.exec() != QDialog::Accepted) return;
+    // The empty-project wizard (T-P2-04..06) follows in later tasks.
+    statusBar()->showMessage(tr("Nueva obra «%1». El asistente de obra vacía aún no está disponible.")
                                  .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
 }
 

@@ -8,6 +8,7 @@
 
 #include "MainWindow.h"
 #include "NewProjectDialog.h"
+#include "ProjectTypeDialog.h"
 #include "WorkArea.h"
 
 namespace {
@@ -41,6 +42,11 @@ int main(int argc, char* argv[]) {
     installTranslator(app, parser.value(localeOpt));
     if (parser.value(previewOpt) == QLatin1String("new-project")) {
         cc::app::NewProjectDialog dialog(cc::app::NewProjectDialog::defaultFolder());
+        dialog.show();
+        return app.exec();
+    }
+    if (parser.value(previewOpt) == QLatin1String("project-type")) {
+        cc::app::ProjectTypeDialog dialog;
         dialog.show();
         return app.exec();
     }
