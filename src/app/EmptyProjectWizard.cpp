@@ -72,8 +72,8 @@ EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra va
     columns->setSpacing(10);
     auto* left = new QVBoxLayout;
     auto* right = new QVBoxLayout;
-    columns->addLayout(left, 4);
-    columns->addLayout(right, 6);
+    columns->addLayout(left, 41);
+    columns->addLayout(right, 59);
     contentLayout()->addLayout(columns, 1);
 
     buildProfiles(left);
@@ -363,6 +363,7 @@ QDoubleSpinBox* pileSpin(double& target, QWidget* parent) {
     spin->setRange(0.0, 99.99);
     spin->setValue(target);
     spin->setAlignment(Qt::AlignRight);
+    spin->setLocale(QLocale::c());  // the original shows a decimal point (0.10)
     spin->setFixedWidth(72);
     QObject::connect(spin, &QDoubleSpinBox::valueChanged, parent, [&target](double v) { target = v; });
     return spin;

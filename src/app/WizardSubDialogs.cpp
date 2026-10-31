@@ -41,6 +41,7 @@ QDoubleSpinBox* makeSpin(double value, double min, double max, int decimals, QWi
     spin->setRange(min, max);
     spin->setValue(value);
     spin->setAlignment(Qt::AlignRight);
+    spin->setLocale(QLocale::c());  // the original shows a decimal point (0.10)
     spin->setFixedWidth(64);
     return spin;
 }
