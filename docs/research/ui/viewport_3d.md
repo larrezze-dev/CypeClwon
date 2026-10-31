@@ -17,3 +17,5 @@ Otros hechos: la vista por defecto al abrir una obra es la isométrica (yaw 45, 
 
 
 Líneas guía (T-P4-02, capturas gl_a0, gl_b2_in2, vp_s5): naranja (~#D98A4A) punteada de 1 px. Por cada nudo una recta completa en Y; en X y Z los nudos alineados se unen con un segmento que sobresale ~12 px (constante al hacer zoom) por los extremos. No hay rejilla. Con rueda -2 desde la vista por defecto el original dejó el área en blanco (sin explicar, TK-024).
+
+Selección (T-P4-03, sesión 11, capturas sel_*.png): con la herramienta puntero por defecto, clic sobre barra, pilar y nudo, arrastres de ventana (izq.-der.) y de cruce (der.-izq.) y paso del cursor NO produjeron resaltado ni selección visible; 4 de 10 capturas salieron con el área 3D en blanco (PrintWindow no captura bien la ventana OpenGL) y el clic en vacío desplazó la obra hacia la izquierda sin explicación. Nudos: cuadrado de contorno azul ~14 px, tamaño constante con el zoom. Conclusión: falta identificar la herramienta de selección real (iconos de la barra superior y de la vertical) antes de implementar.
