@@ -132,6 +132,14 @@ TEST_F(ViewportTest, StandardViewIsApplied) {
     EXPECT_NEAR(view->camera().pitchDeg, 90.0, 1e-9);
 }
 
+TEST_F(ViewportTest, NodesAreStoredForTheGuideLines) {
+    Viewport3D v;
+    EXPECT_TRUE(v.nodes().empty());
+    v.setNodes({{0, 0, 0}, {5, 0, 3}});
+    ASSERT_EQ(v.nodes().size(), 2u);
+    EXPECT_DOUBLE_EQ(v.nodes()[1].z, 3.0);
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

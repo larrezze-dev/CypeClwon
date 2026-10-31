@@ -306,7 +306,13 @@ void MainWindow::setProjectOpen(bool open) {
     refreshUndoActions();
     // The 3D window lives as long as the project: opened with it, closed with it.
     if (open && m_workArea->windowCount() == 0) {
-        m_workArea->addDocumentWindow(tr("3D"), new Viewport3D);
+        auto* viewport = new Viewport3D;
+        if (m_document) {
+            std::vector<cc::core::Vec3> nodes;
+            for (const cc::core::Node& n : m_document->project.structure.nodes) nodes.push_back({n.position.x, n.position.y, n.position.z});
+            viewport->setNodes(std::move(nodes));
+        }
+        m_workArea->addDocumentWindow(tr("3D"), viewport);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }

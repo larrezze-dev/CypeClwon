@@ -1,6 +1,7 @@
 #pragma once
 #include <QOpenGLWidget>
 #include <QPoint>
+#include <vector>
 
 #include "core/camera.h"
 
@@ -32,6 +33,10 @@ public:
     /// Navigation tool: what a left-button drag does (Orbit, Pan or None for the plain pointer).
     void setLeftDragAction(DragAction action) { m_bindings.left = action; }
 
+    /// Nodes of the open structure: the guide lines are drawn through them. Without nodes, through the world origin.
+    void setNodes(std::vector<core::Vec3> nodes);
+    const std::vector<core::Vec3>& nodes() const { return m_nodes; }
+
     bool isOrthographic() const { return m_camera.projection == core::Camera::Projection::Orthographic; }
     void setOrthographic(bool on);
     void setStandardView(core::StandardView view);
@@ -60,6 +65,9 @@ private:
     void drawGuideLines(class QPainter& painter) const;
     void drawAxesTriad(class QPainter& painter) const;
 
+    void drawGuideLine(class QPainter& painter, core::Vec3 a, core::Vec3 b) const;
+
+    std::vector<core::Vec3> m_nodes;
     core::Camera m_camera;
     MouseBindings m_bindings;
     QPoint m_last;

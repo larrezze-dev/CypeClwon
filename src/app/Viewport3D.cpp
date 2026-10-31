@@ -13,7 +13,8 @@ using core::Camera;
 using core::Vec3;
 
 namespace {
-constexpr double kGuideExtent = 1e5;  // the axis guide lines are effectively infinite
+constexpr double kGuideExtent = 1e5;  // the long guide lines are effectively infinite
+constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on screen
 
 // Eye-space position of a world point (the camera looks along -z).
 Vec3 toEye(const core::Mat4& view, const Vec3& p) {
@@ -104,21 +105,44 @@ void Viewport3D::wheelEvent(QWheelEvent* event) {
     event->accept();
 }
 
+void Viewport3D::setNodes(std::vector<Vec3> nodes) {
+    m_nodes = std::move(nodes);
+    update();
+}
+
+void Viewport3D::drawGuideLine(QPainter& painter, Vec3 a, Vec3 b) const {
+    if (!isOrthographic()) {  // clip against the near plane before projecting
+        const core::Mat4 view = m_camera.viewMatrix();
+        const double nearZ = -m_camera.nearPlane();
+        const double za = toEye(view, a).z, zb = toEye(view, b).z;
+        if (za > nearZ && zb > nearZ) return;
+        if (za > nearZ) a = a + (b - a) * ((nearZ - za) / (zb - za));
+        if (zb > nearZ) b = b + (a - b) * ((nearZ - zb) / (za - zb));
+    }
+    QPointF pa, pb;
+    if (worldToScreen(a, pa) && worldToScreen(b, pb)) painter.drawLine(pa, pb);
+}
+
 void Viewport3D::drawGuideLines(QPainter& painter) const {
+    // Original (vp_s5.png): thin dotted orange lines through every node: a full-length one along Y, and short stubs
+    // (about 12 px) along X and up along Z. With no nodes, the three axes through the origin are drawn.
+    QPen pen(QColor(QStringLiteral("#D98A4A")), 1);
+    pen.setStyle(Qt::DotLine);
+    painter.setPen(pen);
+    if (m_nodes.empty()) {
+        const Vec3 axes[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+        for (const Vec3& axis : axes) drawGuideLine(painter, axis * -kGuideExtent, axis * kGuideExtent);
+        return;
+    }
+    const double pixelsToWorld = m_camera.worldPerPixel(height());
     const core::Mat4 view = m_camera.viewMatrix();
-    const double nearZ = -m_camera.nearPlane();
-    painter.setPen(QPen(QColor(QStringLiteral("#D98A4A")), 1));
-    const Vec3 axes[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-    for (const Vec3& axis : axes) {
-        Vec3 a = axis * -kGuideExtent, b = axis * kGuideExtent;
-        if (!isOrthographic()) {  // clip against the near plane before projecting
-            const double za = toEye(view, a).z, zb = toEye(view, b).z;
-            if (za > nearZ && zb > nearZ) continue;
-            if (za > nearZ) a = a + (b - a) * ((nearZ - za) / (zb - za));
-            if (zb > nearZ) b = b + (a - b) * ((nearZ - zb) / (za - zb));
-        }
-        QPointF pa, pb;
-        if (worldToScreen(a, pa) && worldToScreen(b, pb)) painter.drawLine(pa, pb);
+    for (const Vec3& n : m_nodes) {
+        drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
+        // Constant on-screen length: in perspective, scale by the node depth relative to the target distance.
+        const double depthScale = isOrthographic() ? 1.0 : std::max(1e-6, -toEye(view, n).z / m_camera.distance);
+        const double stub = kStubPixels * pixelsToWorld * depthScale;
+        drawGuideLine(painter, n + Vec3{-stub, 0, 0}, n + Vec3{stub, 0, 0});
+        drawGuideLine(painter, n, n + Vec3{0, 0, stub * 1.25});
     }
 }
 
