@@ -1,6 +1,9 @@
 ﻿#include "MainWindow.h"
 
+#include <QCloseEvent>
 #include <QDir>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QEvent>
 #include <QAction>
 #include <QIcon>
@@ -24,7 +27,11 @@
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
+#include "core/project.h"
+#include "core/project_file.h"
 #include "core/version.h"
+
+#include <filesystem>
 
 namespace cc::app {
 
@@ -32,6 +39,24 @@ namespace {
 // Colours sampled from the original title bar (docs/screenshots/orig_asistente_02.png).
 constexpr const char* kTitleRed = "#B1291C";
 constexpr int kTitleBarHeight = 26;
+
+std::filesystem::path toPath(const QString& path) { return std::filesystem::path(path.toStdWString()); }
+
+/// The project described by the wizard and the limit-states dialog that follows it.
+cc::core::Project projectFrom(const EmptyProjectWizard& wizard, const cc::core::LimitStatesSettings& limitStates) {
+    cc::core::Project project;
+    project.standards = wizard.standards();
+    project.profiles = wizard.profiles();
+    project.concrete = wizard.reinforcedConcrete();
+    project.actions = wizard.actions();
+    project.environment = wizard.environment();
+    project.ground = wizard.ground();
+    project.limitStates = limitStates;
+    project.piles = wizard.piles();
+    project.micropiles = wizard.micropiles();
+    project.options = wizard.options();
+    return project;  // units keep their default (cm / cm / m)
+}
 }  // namespace
 
 MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
@@ -66,6 +91,8 @@ void MainWindow::createWorkArea() {
     connect(m_startPage, &StartPage::moreRecentRequested, this, &MainWindow::showRecentFiles);
     connect(m_startPage, &StartPage::recentFileRequested, this, &MainWindow::openRecentFile);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
+    connect(m_saveAction, &QAction::triggered, this, [this] { saveProject(); });
+    connect(m_saveAsAction, &QAction::triggered, this, [this] { saveProjectAs(); });
     connect(m_undoAction, &QAction::triggered, this, [this] { m_undo.undo(); });
     connect(m_redoAction, &QAction::triggered, this, [this] { m_undo.redo(); });
     m_undo.setChangeCallback([this] { refreshUndoActions(); });
@@ -87,7 +114,7 @@ void MainWindow::openFileManager() {
     });
     dialog.exec();
     if (wantsNew) newProject();
-    else if (!chosen.isEmpty()) openRecentFile(chosen);  // opening projects needs the file format (T-P3-04)
+    else if (!chosen.isEmpty()) openRecentFile(chosen);
 }
 
 void MainWindow::showRecentFiles() {
@@ -132,8 +159,87 @@ void MainWindow::openRecentFile(const QString& path) {
         statusBar()->showMessage(tr("El fichero «%1» ya no existe.").arg(QDir::toNativeSeparators(path)), 6000);
         return;
     }
-    // Opening a project needs the file format (T-P3-04); see ticket TK-018.
-    statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000);
+    openProjectFile(path);
+}
+
+bool MainWindow::openProjectFile(const QString& path) {
+    const cc::core::LoadResult loaded = cc::core::loadProjectFile(toPath(path));
+    if (!loaded.ok) {
+        QMessageBox::warning(this, tr("Abrir obra"), QString::fromStdString(loaded.error));
+        return false;
+    }
+    m_document = loaded.document;
+    m_projectPath = QDir::cleanPath(QFileInfo(path).absoluteFilePath());
+    setProjectOpen(true);
+    m_undo.setClean();
+    registerRecentFile(m_projectPath);
+    updateWindowTitle();
+    return true;
+}
+
+bool MainWindow::saveProject() {
+    if (!m_document) return false;
+    const cc::core::SaveResult saved = cc::core::saveProjectFile(toPath(m_projectPath), *m_document);
+    if (!saved.ok) {
+        QMessageBox::warning(this, tr("Guardar obra"), QString::fromStdString(saved.error));
+        return false;
+    }
+    m_undo.setClean();
+    registerRecentFile(m_projectPath);
+    updateWindowTitle();
+    statusBar()->showMessage(tr("Obra guardada en «%1».").arg(QDir::toNativeSeparators(m_projectPath)), 4000);
+    return true;
+}
+
+bool MainWindow::saveProjectAs() {
+    if (!m_document) return false;
+    QString target = QFileDialog::getSaveFileName(this, tr("Guardar obra como"), m_projectPath, tr("Obra CYPE 3D (*.ed3)"));
+    if (target.isEmpty()) return false;
+    if (QFileInfo(target).suffix().isEmpty()) target += QStringLiteral(".ed3");
+    const cc::core::SaveResult saved = cc::core::saveProjectFile(toPath(target), *m_document);
+    if (!saved.ok) {
+        QMessageBox::warning(this, tr("Guardar obra como"), QString::fromStdString(saved.error));
+        return false;
+    }
+    m_projectPath = QDir::cleanPath(QFileInfo(target).absoluteFilePath());
+    m_undo.setClean();
+    registerRecentFile(m_projectPath);
+    updateWindowTitle();
+    statusBar()->showMessage(tr("Obra guardada en «%1».").arg(QDir::toNativeSeparators(m_projectPath)), 4000);
+    return true;
+}
+
+bool MainWindow::maybeSave() {
+    if (!isProjectModified()) return true;
+    QMessageBox box(QMessageBox::Question, tr("Guardar obra"),
+                    tr("La obra «%1» ha sido modificada. ¿Desea guardar los cambios?").arg(QFileInfo(m_projectPath).fileName()),
+                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this);
+    box.button(QMessageBox::Save)->setText(tr("Guardar"));
+    box.button(QMessageBox::Discard)->setText(tr("No guardar"));
+    box.button(QMessageBox::Cancel)->setText(tr("Cancelar"));
+    switch (box.exec()) {
+        case QMessageBox::Save: return saveProject();
+        case QMessageBox::Discard: return true;
+        default: return false;
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    if (maybeSave()) event->accept();
+    else event->ignore();
+}
+
+void MainWindow::updateWindowTitle() {
+    QString title = QStringLiteral("%1 v%2")
+                        .arg(QString::fromUtf8(cc::core::productName().data(), static_cast<qsizetype>(cc::core::productName().size())),
+                             QString::fromUtf8(cc::core::versionString().data(), static_cast<qsizetype>(cc::core::versionString().size())));
+    if (m_projectOpen && m_document) {
+        title += QStringLiteral(" - ") + QFileInfo(m_projectPath).fileName();
+        if (!m_undo.isClean()) title += QLatin1Char('*');  // provisional marker: the one of the original is not documented
+    }
+    setWindowTitle(title);
+    m_saveAction->setEnabled(m_projectOpen && m_document.has_value());
+    m_saveAsAction->setEnabled(m_projectOpen && m_document.has_value());
 }
 
 void MainWindow::newProject() {
@@ -144,14 +250,24 @@ void MainWindow::newProject() {
     if (typeDialog.exec() != QDialog::Accepted) return;
     EmptyProjectWizard wizard(this);
     // "Estados límite" follows "Terminar"; cancelling it returns to the wizard with its values intact.
+    cc::core::LimitStatesSettings limitStatesValue;
     for (;;) {
         if (wizard.exec() != QDialog::Accepted) return;
         LimitStatesDialog limitStates(wizard.standards(), wizard.limitStates(), this);
-        if (limitStates.exec() == QDialog::Accepted) break;
+        if (limitStates.exec() == QDialog::Accepted) {
+            limitStatesValue = limitStates.value();
+            break;
+        }
     }
-    // The editor follows in later tasks.
-    statusBar()->showMessage(tr("Nueva obra «%1». El asistente de obra vacía aún no está disponible.")
-                                 .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
+    // The file is written first and then opened from disk, so what the user sees is what was saved.
+    cc::core::ProjectDocument document =
+        cc::core::makeDocument(projectFrom(wizard, limitStatesValue), dialog.description().toStdString());
+    const cc::core::SaveResult saved = cc::core::saveProjectFile(toPath(dialog.filePath()), document);
+    if (!saved.ok) {
+        QMessageBox::warning(this, tr("Nueva obra"), QString::fromStdString(saved.error));
+        return;
+    }
+    openProjectFile(dialog.filePath());
 }
 
 void MainWindow::refreshUndoActions() {
@@ -161,10 +277,15 @@ void MainWindow::refreshUndoActions() {
     };
     describe(m_undoAction, tr("Deshacer"), m_undo.undoText(), m_projectOpen && m_undo.canUndo());
     describe(m_redoAction, tr("Rehacer"), m_undo.redoText(), m_projectOpen && m_undo.canRedo());
+    updateWindowTitle();
 }
 
 void MainWindow::setProjectOpen(bool open) {
     m_projectOpen = open;
+    if (!open) {
+        m_document.reset();
+        m_projectPath.clear();
+    }
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
@@ -193,6 +314,11 @@ void MainWindow::createQuickAccessBar() {
         return action;
     };
     m_saveAction = make(QStringLiteral("save"), tr("Guardar"), tr("Guarda la obra actual."), QKeySequence::Save);
+    m_saveAsAction = new QAction(tr("Guardar como..."), this);  // shortcut only: the entry point of the original is not captured
+    m_saveAsAction->setShortcut(QKeySequence::SaveAs);
+    m_saveAsAction->setStatusTip(tr("Guarda la obra actual con otro nombre."));
+    m_saveAsAction->setEnabled(false);
+    addAction(m_saveAsAction);
     m_undoAction = make(QStringLiteral("undo"), tr("Deshacer"), tr("Deshace la última acción."), QKeySequence::Undo);
     m_redoAction = make(QStringLiteral("redo"), tr("Rehacer"), tr("Rehace la última acción deshecha."), QKeySequence::Redo);
     m_printAction = make(QStringLiteral("print"), tr("Imprimir"), tr("Imprime la vista activa."), QKeySequence::Print);

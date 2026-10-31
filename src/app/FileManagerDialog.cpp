@@ -1,3 +1,4 @@
+#include "core/project_file.h"
 #include "FileManagerDialog.h"
 
 #include <QComboBox>
@@ -172,8 +173,11 @@ void FileManagerDialog::reloadList() {
         auto* name = new QTableWidgetItem(info.completeBaseName());
         name->setData(Qt::UserRole, info.absoluteFilePath());
         m_table->setItem(row, 0, name);
-        m_table->setItem(row, 1, new QTableWidgetItem());  // stored inside the file (T-P3-04, ticket TK-018)
-        m_table->setItem(row, 2, new QTableWidgetItem());
+        // Description and version live in the manifest of the file; only that entry is read, not the whole project.
+        const cc::core::ManifestResult manifest = cc::core::readProjectManifest(std::filesystem::path(info.absoluteFilePath().toStdWString()));
+        m_table->setItem(row, 1, new QTableWidgetItem(manifest.ok ? QString::fromStdString(manifest.manifest.description) : QString()));
+        m_table->setItem(row, 2, new QTableWidgetItem(manifest.ok ? QString::fromStdString(manifest.manifest.appVersion) : QString()));
+        if (!manifest.ok) name->setToolTip(QString::fromStdString(manifest.error));
         m_table->setItem(row, 3, new QTableWidgetItem(info.lastModified().toString(QStringLiteral("dd/MM/yyyy"))));
     }
 }

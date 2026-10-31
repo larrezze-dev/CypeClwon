@@ -17,6 +17,7 @@
 
 #include "FileManagerDialog.h"
 #include "FileOpsDialogs.h"
+#include "core/project_file.h"
 
 using namespace cc::app;
 
@@ -58,6 +59,22 @@ TEST(FileManagerDialog, ListsOnlyProjectsOfTheFolder) {
     EXPECT_EQ(dialog.table()->horizontalHeaderItem(0)->text(), "Obra");
     EXPECT_EQ(dialog.table()->horizontalHeaderItem(3)->text(), "Fecha");
     EXPECT_EQ(dialog.table()->item(0, 3)->text().size(), 10);  // dd/MM/yyyy
+}
+
+TEST(FileManagerDialog, ShowsDescriptionAndVersionFromTheManifest) {
+    ensureApp();
+    QTemporaryDir dir;
+    ASSERT_TRUE(dir.isValid());
+    cc::core::ProjectDocument doc = cc::core::makeDocument(cc::core::Project{}, "Nave de prueba");
+    ASSERT_TRUE(cc::core::saveProjectFile(std::filesystem::path(dir.filePath("real.ed3").toStdWString()), doc).ok);
+    touch(dir.filePath("zz_foreign.ed3"));  // not one of our files: listed, with empty columns
+    FileManagerDialog dialog(dir.path());
+    ASSERT_EQ(dialog.table()->rowCount(), 2);
+    EXPECT_EQ(dialog.table()->item(0, 1)->text(), "Nave de prueba");
+    EXPECT_EQ(dialog.table()->item(0, 2)->text(), QString::fromStdString(doc.manifest.appVersion));
+    EXPECT_FALSE(dialog.table()->item(0, 2)->text().isEmpty());
+    EXPECT_TRUE(dialog.table()->item(1, 1)->text().isEmpty());
+    EXPECT_TRUE(dialog.table()->item(1, 2)->text().isEmpty());
 }
 
 TEST(FileManagerDialog, OpenEmitsSelectedPathAndPendingButtonsAreDisabled) {
