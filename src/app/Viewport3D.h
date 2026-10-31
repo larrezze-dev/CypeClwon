@@ -98,8 +98,9 @@ public:
     /// Bar the information box describes: the snapped bar (or a bar meeting at the snapped node) in snap mode, the
     /// hovered bar in selection mode. Empty when nothing applies or the option is off.
     std::optional<int> infoBarId() const;
-    /// True while the coordinate tooltip is visible: snap mode with the cursor inside the viewport.
-    bool coordinateTooltipVisible() const { return m_snapMode && m_cursorInside; }
+    /// True while the coordinate tooltip is visible: whenever the cursor is inside the viewport (the original shows it
+    /// without any command active too: tp1_after_esc.png), snapped to elements in snap mode, free otherwise.
+    bool coordinateTooltipVisible() const { return m_cursorInside; }
 
     /// "187.596, -186.215, 153.756 m": three decimals, point as decimal separator, unit at the end.
     static QString coordinatesText(const core::Vec3& world);

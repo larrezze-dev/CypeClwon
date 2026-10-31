@@ -357,7 +357,7 @@ TEST_F(SelectionTest, TooltipAndInfoBoxFollowTheSnap) {
     EXPECT_FALSE(view->infoBarId());
     view->setShowElementInfo(true);
     view->setSnapMode(false);
-    EXPECT_FALSE(view->coordinateTooltipVisible());
+    EXPECT_TRUE(view->coordinateTooltipVisible());  // free coordinates without a command, as in the original
     EXPECT_FALSE(view->infoBarId());
 }
 

@@ -246,6 +246,8 @@ void Viewport3D::leaveEvent(QEvent* event) {
 
 void Viewport3D::enterEvent(QEnterEvent* event) {
     m_cursorInside = true;
+    m_cursor = event->position();
+    update();
     QOpenGLWidget::enterEvent(event);
 }
 
