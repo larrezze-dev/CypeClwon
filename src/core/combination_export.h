@@ -19,5 +19,7 @@ std::string utf8ToUtf16Le(const std::string& utf8, bool withBom);
 /// Rich formats; formulae are written in Unicode text instead of images.
 std::string exportHtml(const CombinationReport& report);
 std::string exportRtf(const CombinationReport& report);
+/// Word 2007 (OfficeOpenXML) package, zipped with miniz.
+std::string exportDocx(const CombinationReport& report);
 
 }  // namespace cc::core

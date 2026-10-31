@@ -60,3 +60,11 @@ TEST(CombinationReport, RichFormatsContainTheTables) {
     EXPECT_EQ(rtf.rfind("{\\rtf1", 0), 0u);
     EXPECT_NE(rtf.find("\\u968"), std::string::npos);  // psi
 }
+
+TEST(CombinationReport, DocxIsAZipWithTheDocumentPart) {
+    const std::string docx = exportDocx(buildGroundReport(false));
+    ASSERT_GT(docx.size(), 4u);
+    EXPECT_EQ(docx.substr(0, 4), std::string("PK", 4));
+    EXPECT_NE(docx.find("word/document.xml"), std::string::npos);
+    EXPECT_NE(docx.find("[Content_Types].xml"), std::string::npos);
+}
