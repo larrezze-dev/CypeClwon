@@ -12,6 +12,8 @@
 #include "SARibbonCategory.h"
 #include "SARibbonQuickAccessBar.h"
 #include "SARibbonSystemButtonBar.h"
+#include <QFileInfo>
+#include <QSettings>
 #include "Icons.h"
 #include "SessionBar.h"
 #include "NewProjectDialog.h"
@@ -60,9 +62,50 @@ void MainWindow::createWorkArea() {
     connect(m_startPage, &StartPage::fileManagerRequested, this, notYet);
     connect(m_startPage, &StartPage::examplesRequested, this, notYet);
     connect(m_startPage, &StartPage::moreRecentRequested, this, notYet);
-    connect(m_startPage, &StartPage::recentFileRequested, this, notYet);
+    connect(m_startPage, &StartPage::recentFileRequested, this, &MainWindow::openRecentFile);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
     connect(m_startPage, &StartPage::licenceManagerRequested, this, notYet);
+    loadRecentFiles();
+}
+
+void MainWindow::loadRecentFiles() {
+    const QStringList stored = QSettings().value(QStringLiteral("recentFiles")).toStringList();
+    std::vector<std::string> paths;
+    for (const QString& path : stored) paths.push_back(path.toStdString());
+    m_recent = cc::core::RecentFiles(std::move(paths));
+    m_recent.pruneMissing([](const std::string& p) { return QFileInfo::exists(QString::fromStdString(p)); });
+    refreshRecentFiles();
+}
+
+void MainWindow::registerRecentFile(const QString& path) {
+    m_recent.add(QDir::cleanPath(QFileInfo(path).absoluteFilePath()).toStdString());
+    saveRecentFiles();
+    refreshRecentFiles();
+}
+
+void MainWindow::saveRecentFiles() const {
+    QStringList stored;
+    for (const std::string& path : m_recent.paths()) stored << QString::fromStdString(path);
+    QSettings().setValue(QStringLiteral("recentFiles"), stored);
+}
+
+void MainWindow::refreshRecentFiles() {
+    QStringList shown;
+    for (const std::string& path : m_recent.top()) shown << QString::fromStdString(path);
+    m_startPage->setRecentFiles(shown);
+}
+
+void MainWindow::openRecentFile(const QString& path) {
+    if (!QFileInfo::exists(path)) {
+        m_recent.remove(path.toStdString());
+        saveRecentFiles();
+        refreshRecentFiles();
+        statusBar()->showMessage(tr("El fichero «%1» ya no existe y se ha quitado de la lista.")
+                                     .arg(QDir::toNativeSeparators(path)), 6000);
+        return;
+    }
+    // Opening a project needs the file format (T-P3-04); see ticket TK-018.
+    statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000);
 }
 
 void MainWindow::newProject() {

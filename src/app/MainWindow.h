@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "SARibbonMainWindow.h"
+#include "core/recent_files.h"
 
 class QAction;
 class QStackedWidget;
@@ -21,6 +22,8 @@ public:
 
     /// Switches between the start screen (no project open) and the ribbon + work area.
     void setProjectOpen(bool open);
+    /// Puts `path` at the top of "Últimos ficheros" and persists the list (called when a project is saved or opened).
+    void registerRecentFile(const QString& path);
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -33,6 +36,10 @@ private:
     void createStatusBar();
     void createWorkArea();
     void newProject();
+    void loadRecentFiles();
+    void saveRecentFiles() const;
+    void refreshRecentFiles();
+    void openRecentFile(const QString& path);
 
     QAction* m_saveAction = nullptr;
     QAction* m_undoAction = nullptr;
@@ -42,6 +49,7 @@ private:
     SessionBar* m_sessionBar = nullptr;
     WorkArea* m_workArea = nullptr;
     StartPage* m_startPage = nullptr;
+    cc::core::RecentFiles m_recent;
     QStackedWidget* m_stack = nullptr;
 };
 

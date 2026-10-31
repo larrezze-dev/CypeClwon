@@ -948,102 +948,108 @@
 <context>
     <name>cc::app::MainWindow</name>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="112"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Guardar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="112"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Guarda la obra actual.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="113"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Deshacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="113"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Deshace la última acción.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="114"/>
+        <location filename="../src/app/MainWindow.cpp" line="157"/>
         <source>Rehacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="114"/>
+        <location filename="../src/app/MainWindow.cpp" line="157"/>
         <source>Rehace la última acción deshecha.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="115"/>
+        <location filename="../src/app/MainWindow.cpp" line="158"/>
         <source>Imprimir</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="115"/>
+        <location filename="../src/app/MainWindow.cpp" line="158"/>
         <source>Imprime la vista activa.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="99"/>
+        <location filename="../src/app/MainWindow.cpp" line="142"/>
         <source>Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="58"/>
+        <location filename="../src/app/MainWindow.cpp" line="60"/>
+        <location filename="../src/app/MainWindow.cpp" line="108"/>
         <source>Esta función aún no está disponible.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="82"/>
+        <location filename="../src/app/MainWindow.cpp" line="103"/>
+        <source>El fichero «%1» ya no existe y se ha quitado de la lista.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/MainWindow.cpp" line="125"/>
         <source>Nueva obra «%1». El asistente de obra vacía aún no está disponible.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="98"/>
+        <location filename="../src/app/MainWindow.cpp" line="141"/>
         <source>Seleccione una opción del menú.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="167"/>
+        <location filename="../src/app/MainWindow.cpp" line="210"/>
         <source>Obra</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="167"/>
+        <location filename="../src/app/MainWindow.cpp" line="210"/>
         <source>Geometría</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="167"/>
+        <location filename="../src/app/MainWindow.cpp" line="210"/>
         <source>Propiedades</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="167"/>
+        <location filename="../src/app/MainWindow.cpp" line="210"/>
         <source>Carga</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="168"/>
+        <location filename="../src/app/MainWindow.cpp" line="211"/>
         <source>Uniones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="168"/>
+        <location filename="../src/app/MainWindow.cpp" line="211"/>
         <source>Cálculo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="168"/>
+        <location filename="../src/app/MainWindow.cpp" line="211"/>
         <source>Armaduras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="168"/>
+        <location filename="../src/app/MainWindow.cpp" line="211"/>
         <source>Ventana</source>
         <translation type="unfinished"></translation>
     </message>
