@@ -20,6 +20,7 @@ public class D {
  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr e);
+ [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
  public delegate bool EnumProc(IntPtr h, IntPtr l);
@@ -42,6 +43,15 @@ function Shot($p, $name) {
     [void][D]::PrintWindow($h, $dc, 2); $g.ReleaseHdc($dc); $g.Dispose()
     $bmp.Save((Join-Path $OutDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
     Log "saved $name ($($bmp.Width)x$($bmp.Height))"
+}
+function SShot($p, $name) {
+    # Real screen capture of the window rectangle (PrintWindow does not capture the OpenGL area reliably).
+    $h = [D]::Top([uint32]$p.Id); [void][D]::SetForegroundWindow($h); Start-Sleep -Milliseconds 300
+    $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
+    $bmp = New-Object System.Drawing.Bitmap ($r.Rt - $r.L), ($r.B - $r.T)
+    $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($r.L, $r.T, 0, 0, $bmp.Size); $g.Dispose()
+    $bmp.Save((Join-Path $OutDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
+    Log "saved screen $name"
 }
 function Click($p, $x, $y, $double) {
     $h = [D]::Top([uint32]$p.Id)
@@ -82,6 +92,12 @@ try {
                        [D]::mouse_event($f[0], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
                        for ($i = 1; $i -le 10; $i++) { [void][D]::SetCursorPos($r.L + $x1 + [int](($x2 - $x1) * $i / 10), $r.T + $y1 + [int](($y2 - $y1) * $i / 10)); Start-Sleep -Milliseconds 40 }
                        Start-Sleep -Milliseconds 200; [D]::mouse_event($f[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
+            'mclick' { $a = $arg.Split(','); $vk = @{ctrl=0x11; shift=0x10}[$a[0]]; $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
+                       [void][D]::SetCursorPos($r.L + [int]$a[1], $r.T + [int]$a[2]); Start-Sleep -Milliseconds 150
+                       [D]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
+                       [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
+                       [D]::keybd_event([byte]$vk, 0, 2, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
+            'sshot'  { SShot $p $arg }
             'shot'   { Shot $p $arg }
         }
     }
