@@ -10,7 +10,7 @@ const std::string& LimitStatesSettings::defaultSnow() {
 }
 
 const std::vector<std::string>& LimitStatesSettings::snowChoices() {
-    static const std::vector<std::string> v = {defaultSnow()};
+    static const std::vector<std::string> v = {"Altitud superior a 1000 m", defaultSnow()};  // as listed by the original
     return v;
 }
 

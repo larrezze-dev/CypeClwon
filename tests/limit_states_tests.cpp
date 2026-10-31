@@ -35,3 +35,10 @@ TEST(Standards, ShortNameDropsScope) {
     EXPECT_EQ(shortStandardName("Eurocódigo 2 (UE)"), "Eurocódigo 2");
     EXPECT_EQ(shortStandardName("Eurocódigo 9"), "Eurocódigo 9");
 }
+
+TEST(LimitStates, SnowListHasTheTwoAltitudesOfTheOriginal) {
+    const auto& choices = cc::core::LimitStatesSettings::snowChoices();
+    ASSERT_EQ(choices.size(), 2u);
+    EXPECT_EQ(choices[0], "Altitud superior a 1000 m");
+    EXPECT_EQ(choices[1], "Altitud inferior o igual a 1000 m");
+}
