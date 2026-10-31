@@ -28,6 +28,8 @@
 #include "UnitsDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
+#include <QMdiArea>
+#include "Viewport3D.h"
 #include "WorkArea.h"
 #include "core/general_data.h"
 #include "core/project.h"
@@ -302,6 +304,12 @@ void MainWindow::setProjectOpen(bool open) {
     }
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
+    // The 3D window lives as long as the project: opened with it, closed with it.
+    if (open && m_workArea->windowCount() == 0) {
+        m_workArea->addDocumentWindow(tr("3D"), new Viewport3D);
+    } else if (!open) {
+        m_workArea->mdiArea()->closeAllSubWindows();
+    }
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.
     ribbonBar()->setMinimumMode(!open);

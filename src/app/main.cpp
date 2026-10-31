@@ -7,6 +7,7 @@
 #include <QTranslator>
 
 #include "MainWindow.h"
+#include "Viewport3D.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
 #include "FileManagerDialog.h"
@@ -80,10 +81,11 @@ int main(int argc, char* argv[]) {
         return app.exec();
     }
     cc::app::MainWindow window;
-    for (int i = 0; i < parser.value(demoOpt).toInt(); ++i) {
-        window.workArea()->addDocumentWindow(QStringLiteral("3D"), new QWidget);
+    const int demoWindows = parser.value(demoOpt).toInt();
+    if (demoWindows > 0) window.setProjectOpen(true);  // opens the first 3D window
+    for (int i = 1; i < demoWindows; ++i) {
+        window.workArea()->addDocumentWindow(QStringLiteral("3D"), new cc::app::Viewport3D);
     }
-    if (window.workArea()->windowCount() > 0) window.setProjectOpen(true);
     window.show();
     return app.exec();
 }
