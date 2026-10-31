@@ -72,6 +72,7 @@ try {
             'wait'   { Start-Sleep -Milliseconds ([int]$arg) }
             'click'  { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $false; Start-Sleep -Milliseconds 700 }
             'dclick' { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $true; Start-Sleep -Milliseconds 700 }
+            'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 900 }
             'key'    { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
             'shot'   { Shot $p $arg }
         }
