@@ -59,6 +59,7 @@ function Click($p, $x, $y, $double) {
     [void][D]::SetForegroundWindow($h)
     [void][D]::SetCursorPos($r.L + $x, $r.T + $y)
     Start-Sleep -Milliseconds 120
+    [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120
     $n = if ($double) { 2 } else { 1 }
     for ($i = 0; $i -lt $n; $i++) { [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 80 }
 }
@@ -82,7 +83,7 @@ try {
             'wait'   { Start-Sleep -Milliseconds ([int]$arg) }
             'click'  { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $false; Start-Sleep -Milliseconds 700 }
             'dclick' { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $true; Start-Sleep -Milliseconds 700 }
-            'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 900 }
+            'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120; Start-Sleep -Milliseconds 900 }
             'wheel'  { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); $d = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]([int]$arg * 120)), 0); [D]::mouse_event(0x0800, 0, 0, $d, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'key'    { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); [System.Windows.Forms.SendKeys]::SendWait($arg); Start-Sleep -Milliseconds 600 }
             'drag'   { $a = $arg.Split(','); $f = @{L=@(2,4); R=@(8,16); M=@(32,64)}[$a[0]]
@@ -94,7 +95,7 @@ try {
                        for ($i = 1; $i -le 25; $i++) { [void][D]::SetCursorPos($r.L + $x1 + [int](($x2 - $x1) * $i / 25), $r.T + $y1 + [int](($y2 - $y1) * $i / 25)); Start-Sleep -Milliseconds 60 }
                        Start-Sleep -Milliseconds 300; if ($a.Count -gt 5) { SShot $p $a[5] }; [D]::mouse_event($f[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'mclick' { $a = $arg.Split(','); $vk = @{ctrl=0x11; shift=0x10}[$a[0]]; $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
-                       [void][D]::SetCursorPos($r.L + [int]$a[1], $r.T + [int]$a[2]); Start-Sleep -Milliseconds 150
+                       [void][D]::SetCursorPos($r.L + [int]$a[1], $r.T + [int]$a[2]); Start-Sleep -Milliseconds 150; [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120
                        [D]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
                        [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
                        [D]::keybd_event([byte]$vk, 0, 2, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }

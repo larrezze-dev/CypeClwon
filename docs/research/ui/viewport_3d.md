@@ -70,3 +70,11 @@ Sin resolver: ni el clic, ni Ctrl+clic, ni Mayús+clic, ni la ventana dejaron un
 ### Confirmado por el usuario (captura `user_nudo_seleccionado.png`)
 
 El nudo seleccionado es un cuadrado de contorno naranja rojizo, algo más grueso que el azul normal (píxeles dominantes medidos: (204,126,50) y (232,143,56) con antialiasing; mi captura dio (218,135,53)). El normal: contorno (0,102,204). Es lo mismo que el naranja observado en las pruebas `s12_*`, por lo que queda establecido: **seleccionado = naranja rojizo (~#DA8735), 2-3 px; normal = azul #0066CC, 1 px, ~14 px de lado, constante con el zoom**.
+
+### Mecanismo real de la ventana (aportado por el usuario y comprobado, sesión 12, capturas s12_g*/s12_h*)
+
+- La ventana **no se arrastra**: se pulsa la esquina 1, se mueve el cursor (rectángulo de goma elástico) y se pulsa la esquina 2. Por eso los `drag` anteriores daban rectángulos "desplazados": eran clics de ventana mal interpretados, no un desplazamiento real.
+- Rectángulo: esquina 1 a la izquierda de la esquina 2 = línea **continua** (ventana: solo lo totalmente incluido); esquina 1 a la derecha = línea **punteada** (cruce: lo que toca). Verificado en h2/h3 (punteado de derecha a izquierda; línea continua degenerada con ancho cero).
+- Algunas acciones del ribbon solo admiten el clic directo sobre el elemento, no el modo ventana (dato del usuario). En el clon no hace falta copiarlo 1:1.
+- Con el script, el primer clic tras activar un comando parece quedar consumido (no inicia la ventana); hay que contar con ello al automatizar. Se añadió a `drive_original.ps1` un micro-movimiento real del ratón antes de cada clic, move y mclick.
+- Para automatizar una ventana: `click:A|move:B|click:B` (con un clic previo de activación).
