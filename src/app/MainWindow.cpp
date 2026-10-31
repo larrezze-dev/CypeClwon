@@ -12,6 +12,7 @@
 #include "SARibbonSystemButtonBar.h"
 #include "Icons.h"
 #include "SessionBar.h"
+#include "WorkArea.h"
 #include "core/version.h"
 
 namespace cc::app {
@@ -34,6 +35,12 @@ MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     applyTitleBarStyle();
     createQuickAccessBar();
     createStatusBar();
+    createWorkArea();
+}
+
+void MainWindow::createWorkArea() {
+    m_workArea = new WorkArea(this);
+    setCentralWidget(m_workArea);
 }
 
 void MainWindow::createQuickAccessBar() {

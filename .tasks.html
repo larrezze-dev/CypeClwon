@@ -13,10 +13,10 @@ tr.ok td:nth-child(4){color:var(--ok)}tr.wip td:nth-child(4){color:var(--wip)}
 details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 .tw{overflow-x:auto}
 </style></head><body>
-<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 13:03 Â· generado desde .tasks.md</div>
-<div class="kpi"><div><b>17.2%</b>completado</div><div><b>20</b>finalizadas</div><div><b>3</b>en marcha</div><div><b>93</b>pendientes</div><div><b>116</b>tareas</div></div>
+<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 13:45 Â· generado desde .tasks.md</div>
+<div class="kpi"><div><b>18.1%</b>completado</div><div><b>21</b>finalizadas</div><div><b>3</b>en marcha</div><div><b>92</b>pendientes</div><div><b>116</b>tareas</div></div>
 <h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:81%'></i><i class='w' style='width:12%'></i></div></td><td>13/16</td></tr>
-<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:78%'></i><i class='w' style='width:0%'></i></div></td><td>7/9</td></tr>
+<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:89%'></i><i class='w' style='width:0%'></i></div></td><td>8/9</td></tr>
 <tr><td>F2 Â· Inicio y asistentes</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/9</td></tr>
 <tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/5</td></tr>
 <tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/10</td></tr>
@@ -61,7 +61,7 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='ok'><td>T-P1-06</td><td>F1</td><td>Barra de estado + mensajes de ayuda</td><td>[x]</td><td>Mensaje inicial del original verificado en captura; statusTip por acci&#243;n</td></tr>
 <tr class='ok'><td>T-P1-07</td><td>F1</td><td>Sistema de iconos (SVG propios/libres) y tema claro</td><td>[x]</td><td>Icons.h + 5 SVG propios; tema claro; glifos blancos del cierre visibles en captura. M&#225;s iconos se a&#241;aden con cada fase</td></tr>
 <tr class='wip'><td>T-P1-08</td><td>F1</td><td>Infraestructura i18n Qt Linguist (es-ES inicial)</td><td>[o]</td><td>qt_add_translations, translations/cypeclwon_en_GB.ts (19 cadenas, fuente es_ES), carga de .qm en main; falta verificar carga en ejecuci&#243;n</td></tr>
-<tr class='todo'><td>T-P1-09</td><td>F1</td><td>&#193;rea de trabajo MDI (ventanas hijas)</td><td>[ ]</td><td></td></tr>
+<tr class='ok'><td>T-P1-09</td><td>F1</td><td>&#193;rea de trabajo MDI (ventanas hijas)</td><td>[x]</td><td>WorkArea (src/app): cabecera &quot;&#193;rea de trabajo&quot; + QMdiArea como widget central; acciones cascada, mosaico, mosaico horizontal/vertical, siguiente/anterior (Ctrl+Tab), cerrar, cerrar todas, listas para T-P17-04; primera ventana maximizada como en el original. 7 tests GUI offscreen (workarea_tests). Pendiente: ventanas 3D reales (fase 3) y estilo de la barra de t&#237;tulo hija azul-gris&#225;cea del original</td></tr>
 <tr class='todo'><td>T-P2-01</td><td>F2</td><td>Pantalla de inicio: paneles Archivo / &#218;ltimos ficheros / Ayuda</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P2-02</td><td>F2</td><td>Di&#225;logo Nueva obra (ruta, nombre .ed3, descripci&#243;n)</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P2-03</td><td>F2</td><td>Di&#225;logo tipo de obra (Obra vac&#237;a / IFC)</td><td>[ ]</td><td>IFC → ticket hasta fase 17</td></tr>
@@ -148,7 +148,7 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='todo'><td>T-P17-01</td><td>F17</td><td>Importaci&#243;n y exportaci&#243;n IFC</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P17-02</td><td>F17</td><td>Exportaci&#243;n glTF</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P17-03</td><td>F17</td><td>BIMserver.center (vincular, consultar, compartir)</td><td>[ ]</td><td>TK-002</td></tr>
-<tr class='todo'><td>T-P17-04</td><td>F17</td><td>Men&#250; Ventana (cascada, mosaicos, selecci&#243;n)</td><td>[ ]</td><td></td></tr>
+<tr class='todo'><td>T-P17-04</td><td>F17</td><td>Men&#250; Ventana (cascada, mosaicos, selecci&#243;n)</td><td>[ ]</td><td>Acciones ya creadas en WorkArea (T-P1-09); falta colocarlas en la pesta&#241;a Ventana y la lista de ventanas abiertas</td></tr>
 <tr class='todo'><td>T-P18-01</td><td>F18</td><td>QA integral y pruebas de uso indebido</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P18-02</td><td>F18</td><td>Empaquetado portable .zip</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P19-01</td><td>F19</td><td>Traducciones en-GB, pt-PT, pt-BR, de, it, nl, fr</td><td>[ ]</td><td></td></tr>
