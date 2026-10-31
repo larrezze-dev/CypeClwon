@@ -36,6 +36,7 @@ private:
     void createStatusBar();
     void createWorkArea();
     void newProject();
+    void openFileManager();
     void loadRecentFiles();
     void saveRecentFiles() const;
     void refreshRecentFiles();

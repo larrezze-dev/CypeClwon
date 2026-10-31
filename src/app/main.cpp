@@ -9,6 +9,7 @@
 #include "MainWindow.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
+#include "FileManagerDialog.h"
 #include "LimitStatesDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StandardsDialog.h"
@@ -55,6 +56,11 @@ int main(int argc, char* argv[]) {
     }
     if (parser.value(previewOpt) == QLatin1String("standards")) {
         cc::app::StandardsDialog dialog{cc::core::StandardsSelection{}};
+        dialog.show();
+        return app.exec();
+    }
+    if (parser.value(previewOpt) == QLatin1String("file-manager")) {
+        cc::app::FileManagerDialog dialog{cc::app::NewProjectDialog::defaultFolder()};
         dialog.show();
         return app.exec();
     }

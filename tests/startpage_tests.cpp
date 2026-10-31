@@ -67,15 +67,13 @@ TEST(StartPage, RecentFileEmitsItsPath) {
     EXPECT_NE(buttonWithText(page, "3 Sin fichero"), nullptr);
 }
 
-TEST(StartPage, ArchiveAndLicenceButtonsEmitSignals) {
+TEST(StartPage, ArchiveButtonEmitsSignalAndThereIsNoLicenceButton) {
     ensureApp();
     StartPage page;
     QSignalSpy newSpy(&page, &StartPage::newRequested);
-    QSignalSpy licSpy(&page, &StartPage::licenceManagerRequested);
     buttonWithText(page, "Nuevo")->click();
-    buttonWithText(page, "Gestión de licencias")->click();
     EXPECT_EQ(newSpy.count(), 1);
-    EXPECT_EQ(licSpy.count(), 1);
+    EXPECT_EQ(buttonWithText(page, "Gestión de licencias"), nullptr);
 }
 
 TEST(StartPage, HelpEntryEmitsItsId) {

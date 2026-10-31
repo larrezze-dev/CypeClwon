@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_GB" sourcelanguage="es_ES">
 <context>
+    <name>QObject</name>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="31"/>
+        <source>Pendiente de investigar en el original (ticket TK-018).</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>cc::app::AdditionalLoadsDialog</name>
     <message>
         <location filename="../src/app/WizardSubDialogs.cpp" line="499"/>
@@ -702,6 +710,84 @@
     </message>
 </context>
 <context>
+    <name>cc::app::FileManagerDialog</name>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="45"/>
+        <source>Gestión archivos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="53"/>
+        <source>Abrir</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="54"/>
+        <source>Nuevo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="57"/>
+        <source>Copiar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="57"/>
+        <source>Borrar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="57"/>
+        <source>Buscar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="59"/>
+        <source>Comprimir</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="59"/>
+        <source>Descomprimir</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="61"/>
+        <source>Compartir</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="63"/>
+        <source>Ejemplos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="79"/>
+        <source>Pendiente de investigar en el original (ticket TK-018).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="94"/>
+        <source>Obra</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="94"/>
+        <source>Descripción</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="94"/>
+        <source>Versión</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/FileManagerDialog.cpp" line="94"/>
+        <source>Fecha</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>cc::app::FireDialog</name>
     <message>
         <location filename="../src/app/WizardSubDialogs.cpp" line="471"/>
@@ -948,108 +1034,108 @@
 <context>
     <name>cc::app::MainWindow</name>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="154"/>
+        <location filename="../src/app/MainWindow.cpp" line="172"/>
         <source>Guardar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="154"/>
+        <location filename="../src/app/MainWindow.cpp" line="172"/>
         <source>Guarda la obra actual.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="155"/>
+        <location filename="../src/app/MainWindow.cpp" line="173"/>
         <source>Deshacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="155"/>
+        <location filename="../src/app/MainWindow.cpp" line="173"/>
         <source>Deshace la última acción.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="156"/>
+        <location filename="../src/app/MainWindow.cpp" line="174"/>
         <source>Rehacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="156"/>
+        <location filename="../src/app/MainWindow.cpp" line="174"/>
         <source>Rehace la última acción deshecha.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="157"/>
+        <location filename="../src/app/MainWindow.cpp" line="175"/>
         <source>Imprimir</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="157"/>
+        <location filename="../src/app/MainWindow.cpp" line="175"/>
         <source>Imprime la vista activa.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="141"/>
+        <location filename="../src/app/MainWindow.cpp" line="159"/>
         <source>Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="60"/>
-        <location filename="../src/app/MainWindow.cpp" line="107"/>
+        <location filename="../src/app/MainWindow.cpp" line="61"/>
+        <location filename="../src/app/MainWindow.cpp" line="125"/>
         <source>Esta función aún no está disponible.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="103"/>
+        <location filename="../src/app/MainWindow.cpp" line="121"/>
         <source>El fichero «%1» ya no existe.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="124"/>
+        <location filename="../src/app/MainWindow.cpp" line="142"/>
         <source>Nueva obra «%1». El asistente de obra vacía aún no está disponible.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="140"/>
+        <location filename="../src/app/MainWindow.cpp" line="158"/>
         <source>Seleccione una opción del menú.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="209"/>
+        <location filename="../src/app/MainWindow.cpp" line="227"/>
         <source>Obra</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="209"/>
+        <location filename="../src/app/MainWindow.cpp" line="227"/>
         <source>Geometría</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="209"/>
+        <location filename="../src/app/MainWindow.cpp" line="227"/>
         <source>Propiedades</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="209"/>
+        <location filename="../src/app/MainWindow.cpp" line="227"/>
         <source>Carga</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="210"/>
+        <location filename="../src/app/MainWindow.cpp" line="228"/>
         <source>Uniones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="210"/>
+        <location filename="../src/app/MainWindow.cpp" line="228"/>
         <source>Cálculo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="210"/>
+        <location filename="../src/app/MainWindow.cpp" line="228"/>
         <source>Armaduras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="210"/>
+        <location filename="../src/app/MainWindow.cpp" line="228"/>
         <source>Ventana</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1656,87 +1742,82 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="53"/>
-        <source>Gestión de licencias</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/StartPage.cpp" line="103"/>
+        <location filename="../src/app/StartPage.cpp" line="98"/>
         <source>Nuevo...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="104"/>
+        <location filename="../src/app/StartPage.cpp" line="99"/>
         <source>Gestión archivos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="105"/>
+        <location filename="../src/app/StartPage.cpp" line="100"/>
         <source>Ejemplos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="131"/>
+        <location filename="../src/app/StartPage.cpp" line="126"/>
         <source>Más...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="154"/>
+        <location filename="../src/app/StartPage.cpp" line="149"/>
         <source>Documentación del programa</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="155"/>
+        <location filename="../src/app/StartPage.cpp" line="150"/>
         <source>CYPE 3D - Memoria de Cálculo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="156"/>
+        <location filename="../src/app/StartPage.cpp" line="151"/>
         <source>CYPE 3D - Ejemplo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="157"/>
+        <location filename="../src/app/StartPage.cpp" line="152"/>
         <source>Ir a la FAQ de CYPE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="158"/>
+        <location filename="../src/app/StartPage.cpp" line="153"/>
         <source>Novedades</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="159"/>
+        <location filename="../src/app/StartPage.cpp" line="154"/>
         <source>Contrato de Licencia de Programas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="160"/>
+        <location filename="../src/app/StartPage.cpp" line="155"/>
         <source>Cláusula de Responsabilidades</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="161"/>
+        <location filename="../src/app/StartPage.cpp" line="156"/>
         <source>Soporte técnico</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="162"/>
+        <location filename="../src/app/StartPage.cpp" line="157"/>
         <source>Comunidad de usuarios</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="163"/>
+        <location filename="../src/app/StartPage.cpp" line="158"/>
         <source>Recursos de aprendizaje</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="164"/>
+        <location filename="../src/app/StartPage.cpp" line="159"/>
         <source>Acerca de ...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/StartPage.cpp" line="185"/>
+        <location filename="../src/app/StartPage.cpp" line="180"/>
         <source>%1 Sin fichero</source>
         <translation type="unfinished"></translation>
     </message>

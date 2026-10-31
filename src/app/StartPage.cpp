@@ -32,7 +32,7 @@ StartPage::StartPage(QWidget* parent) : QWidget(parent) {
     auto* outer = new QVBoxLayout(this);
     outer->addStretch(3);
 
-    // Centred column holding the title, the three panels and the licence button.
+    // Centred column holding the title, the three panels (no licence button: the program is free to use).
     auto* column = new QWidget(this);
     column->setFixedWidth(830);
     auto* col = new QVBoxLayout(column);
@@ -50,11 +50,6 @@ StartPage::StartPage(QWidget* parent) : QWidget(parent) {
     panels->addWidget(makePanel(tr("Ayuda"), buildHelpBody()), 0);
     col->addLayout(panels);
 
-    auto* licences = new QPushButton(themedIcon(QStringLiteral("license")), tr("Gestión de licencias"), column);
-    licences->setObjectName(QStringLiteral("footer"));
-    licences->setCursor(Qt::PointingHandCursor);
-    connect(licences, &QPushButton::clicked, this, &StartPage::licenceManagerRequested);
-    col->addWidget(licences, 0, Qt::AlignRight);
 
     auto* centre = new QHBoxLayout;
     centre->addStretch(1);

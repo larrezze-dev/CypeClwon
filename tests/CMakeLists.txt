@@ -46,3 +46,9 @@ add_executable(limitstates_dialog_tests limitstates_dialog_tests.cpp ${CMAKE_SOU
 target_include_directories(limitstates_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(limitstates_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(limitstates_dialog_tests)
+
+add_executable(filemanager_tests filemanager_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/FileManagerDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(filemanager_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(filemanager_tests PRIVATE Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
+gtest_discover_tests(filemanager_tests)

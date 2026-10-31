@@ -35,7 +35,6 @@ signals:
     void recentFileRequested(const QString& path);
     void moreRecentRequested();
     void helpRequested(cc::app::StartPage::HelpEntry entry);
-    void licenceManagerRequested();
 
 private:
     QWidget* makePanel(const QString& title, QWidget* body);

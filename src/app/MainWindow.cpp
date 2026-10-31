@@ -18,6 +18,7 @@
 #include "SessionBar.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
+#include "FileManagerDialog.h"
 #include "LimitStatesDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
@@ -59,13 +60,30 @@ void MainWindow::createWorkArea() {
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
     auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
     connect(m_startPage, &StartPage::newRequested, this, &MainWindow::newProject);
-    connect(m_startPage, &StartPage::fileManagerRequested, this, notYet);
+    connect(m_startPage, &StartPage::fileManagerRequested, this, &MainWindow::openFileManager);
     connect(m_startPage, &StartPage::examplesRequested, this, notYet);
     connect(m_startPage, &StartPage::moreRecentRequested, this, notYet);
     connect(m_startPage, &StartPage::recentFileRequested, this, &MainWindow::openRecentFile);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
-    connect(m_startPage, &StartPage::licenceManagerRequested, this, notYet);
     loadRecentFiles();
+}
+
+void MainWindow::openFileManager() {
+    // Last folder used by "Nuevo", or the default projects folder.
+    FileManagerDialog dialog(NewProjectDialog::defaultFolder(), this);
+    QString chosen;
+    bool wantsNew = false;
+    connect(&dialog, &FileManagerDialog::openRequested, &dialog, [&](const QString& path) {
+        chosen = path;
+        dialog.accept();
+    });
+    connect(&dialog, &FileManagerDialog::newRequested, &dialog, [&] {
+        wantsNew = true;
+        dialog.accept();
+    });
+    dialog.exec();
+    if (wantsNew) newProject();
+    else if (!chosen.isEmpty()) openRecentFile(chosen);  // opening projects needs the file format (T-P3-04)
 }
 
 void MainWindow::loadRecentFiles() {
