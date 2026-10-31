@@ -1,5 +1,7 @@
 #include "WizardSubDialogs.h"
 
+#include "OptionsDialogs.h"
+
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
@@ -657,12 +659,20 @@ int UsualGroundDialog::selectedIndex() const { return m_table->currentRow(); }
 
 // ---------------------------------------------------------------- Pilotes: Configuración avanzada
 
-PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWidget* parent)
-    : DefaultsDialog(tr("Configuración avanzada"), parent) {
-    setFixedSize(556, 786);
-    auto* tabs = new QTabWidget(this);
-    contentLayout()->addWidget(tabs, 1);
+namespace {
 
+/// Blue round "i" badge used by the original next to explanatory options.
+QLabel* makeInfoBadge(QWidget* parent) {
+    auto* badge = new QLabel(QStringLiteral("i"), parent);
+    badge->setFixedSize(18, 18);
+    badge->setAlignment(Qt::AlignCenter);
+    badge->setStyleSheet(QStringLiteral("background: #1E88E5; color: white; border-radius: 9px; font-weight: bold;"));
+    return badge;
+}
+
+}  // namespace
+
+QWidget* PileAdvancedBase::buildSinkingTab(bool micro, QTabWidget* tabs) {
     auto* sinking = new QWidget(tabs);
     auto* grid = new QGridLayout(sinking);
     grid->setColumnStretch(0, 1);
@@ -679,9 +689,9 @@ PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWid
         text->setContentsMargins(indent, 6, 0, 0);
         grid->addWidget(text, row++, 0, 1, 2);
     };
-    const auto addSpin = [&](const QString& label) {
+    const auto addSpin = [&](const QString& label, double PileSinkingSettings::*field) {
         QDoubleSpinBox* spin = makeSpin(0.0, 0.0, 100.0, 2, sinking);
-        m_spins.push_back(spin);
+        m_sinkingSpins.emplace_back(spin, field);
         addRow(label, spin, 16);
     };
 
@@ -695,46 +705,113 @@ PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWid
     addRow(tr("Referencia"), m_reference, 16);
 
     addTitle(tr("Coeficientes parciales de seguridad para el terreno"), 16);
-    addSpin(tr("Ángulo de rozamiento interno ϕ"));
-    addSpin(tr("Cohesión c'"));
-    addSpin(tr("Resistencia al corte sin drenaje Cu"));
-    addSpin(tr("Resistencia a compresión simple qu"));
-    addSpin(tr("Peso específico γ"));
-    for (const QString& group : {tr("Coeficientes parciales de seguridad para el pilote (Parámetros geotécnicos)"),
-                                 tr("Coeficientes parciales de seguridad para el pilote (Resistencias unitarias)")}) {
-        addTitle(group, 16);
-        addSpin(tr("Punta γb"));
-        addSpin(tr("Fuste (Compresión) γf,s"));
-        addSpin(tr("Total (Compresión) γt"));
-        addSpin(tr("Fuste (Tracción) γft,s"));
-    }
+    addSpin(tr("Ángulo de rozamiento interno ϕ"), &PileSinkingSettings::frictionAngle);
+    addSpin(tr("Cohesión c'"), &PileSinkingSettings::cohesion);
+    addSpin(tr("Resistencia al corte sin drenaje Cu"), &PileSinkingSettings::undrainedShear);
+    addSpin(tr("Resistencia a compresión simple qu"), &PileSinkingSettings::unconfinedCompression);
+    addSpin(tr("Peso específico γ"), &PileSinkingSettings::unitWeight);
+    addTitle(micro ? tr("Coeficientes parciales de seguridad para el micropilote (Parámetros geotécnicos)")
+                   : tr("Coeficientes parciales de seguridad para el pilote (Parámetros geotécnicos)"),
+             16);
+    if (!micro) addSpin(tr("Punta γb"), &PileSinkingSettings::geotechnicalTip);
+    addSpin(tr("Fuste (Compresión) γf,s"), &PileSinkingSettings::geotechnicalShaft);
+    if (!micro) addSpin(tr("Total (Compresión) γt"), &PileSinkingSettings::geotechnicalTotal);
+    addSpin(tr("Fuste (Tracción) γft,s"), &PileSinkingSettings::geotechnicalShaftTension);
+    addTitle(micro ? tr("Coeficientes parciales de seguridad para el micropilote (Resistencias unitarias)")
+                   : tr("Coeficientes parciales de seguridad para el pilote (Resistencias unitarias)"),
+             16);
+    addSpin(tr("Punta γb"), &PileSinkingSettings::unitTip);
+    addSpin(tr("Fuste (Compresión) γf,s"), &PileSinkingSettings::unitShaft);
+    addSpin(tr("Total (Compresión) γt"), &PileSinkingSettings::unitTotal);
+    addSpin(tr("Fuste (Tracción) γft,s"), &PileSinkingSettings::unitShaftTension);
 
     m_efficiency = new QComboBox(sinking);
     m_efficiency->addItem(tr("Aplicar la fórmula de Converse-Labarre"));  // the only entry seen
     addRow(tr("Factor de eficiencia"), m_efficiency, 0);
-    m_ignoreFar = new QCheckBox(tr("No considerar el factor de eficiencia si la distancia libre entre pilotes es igual o superior a K·D"), sinking);
+    m_ignoreFar = new QCheckBox(
+        micro ? tr("No considerar el factor de eficiencia si la distancia libre entre micropilotes es igual o superior a K·D")
+              : tr("No considerar el factor de eficiencia si la distancia libre entre pilotes es igual o superior a K·D"),
+        sinking);
     grid->addWidget(m_ignoreFar, row++, 0, 1, 2);
     auto* kRow = new QHBoxLayout;
     kRow->addSpacing(16);
     kRow->addWidget(new QLabel(tr("K"), sinking));
     QDoubleSpinBox* k = makeSpin(0.0, 0.0, 100.0, 2, sinking);
-    m_spins.push_back(k);
+    m_sinkingSpins.emplace_back(k, &PileSinkingSettings::efficiencyK);
     kRow->addWidget(k);
     kRow->addStretch(1);
     grid->addLayout(kRow, row++, 0, 1, 2);
     grid->setRowStretch(row, 1);
-    tabs->addTab(sinking, tr("Hundimiento"));
+    return sinking;
+}
 
-    // Tabs never opened in the original (TK-016): placeholders, nothing is invented.
-    for (const QString& title : {tr("Comprobación estructural"), tr("Tope estructural")}) {
-        auto* page = new QWidget(tabs);
-        auto* layout = new QVBoxLayout(page);
-        auto* note = new QLabel(tr("Contenido no verificado en el original (ticket TK-016)."), page);
-        note->setAlignment(Qt::AlignCenter);
-        note->setEnabled(false);
-        layout->addWidget(note);
-        tabs->addTab(page, title);
-    }
+void PileAdvancedBase::loadSinking(const PileSinkingSettings& s) {
+    m_resistance->setCurrentText(QString::fromStdString(s.resistanceCalculation));
+    m_reference->setText(QString::fromStdString(s.reference));
+    for (const auto& [spin, field] : m_sinkingSpins) spin->setValue(s.*field);
+    m_efficiency->setCurrentText(QString::fromStdString(s.efficiencyFormula));
+    m_ignoreFar->setChecked(s.ignoreEfficiencyWhenFar);
+}
+
+PileSinkingSettings PileAdvancedBase::sinkingValue(PileSinkingSettings base) const {
+    base.resistanceCalculation = m_resistance->currentText().toStdString();
+    base.reference = m_reference->text().toStdString();
+    for (const auto& [spin, field] : m_sinkingSpins) base.*field = spin->value();
+    base.efficiencyFormula = m_efficiency->currentText().toStdString();
+    base.ignoreEfficiencyWhenFar = m_ignoreFar->isChecked();
+    return base;
+}
+
+PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWidget* parent)
+    : PileAdvancedBase(tr("Configuración avanzada"), parent) {
+    setFixedSize(556, 786);
+    auto* tabs = new QTabWidget(this);
+    contentLayout()->addWidget(tabs, 1);
+    tabs->addTab(buildSinkingTab(false, tabs), tr("Hundimiento"));
+
+    // --- Comprobación estructural (orig_pilotes_ca_comprobacion_estructural)
+    auto* structural = new QWidget(tabs);
+    auto* grid = new QGridLayout(structural);
+    grid->setColumnStretch(1, 1);
+    m_reduceStrength = new QCheckBox(tr("Considerar reducción de la resistencia del hormigón"), structural);
+    grid->addWidget(m_reduceStrength, 0, 0, 1, 4);
+    grid->addWidget(makeInfoBadge(structural), 0, 4);
+    const auto addStrength = [&](int row, const QString& label, QComboBox*& combo, QDoubleSpinBox*& spin, QLabel*& unit) {
+        auto* text = new QLabel(label, structural);
+        text->setContentsMargins(26, 0, 0, 0);
+        grid->addWidget(text, row, 0, 1, 2);
+        combo = new QComboBox(structural);
+        combo->addItem(tr("Relativa"));
+        combo->addItem(tr("Absoluta"));
+        combo->setFixedWidth(84);
+        grid->addWidget(combo, row, 2);
+        spin = makeSpin(0.0, 0.0, 1000.0, 2, structural);
+        grid->addWidget(spin, row, 3);
+        unit = new QLabel(structural);
+        unit->setMinimumWidth(32);
+        grid->addWidget(unit, row, 4);
+        connect(combo, &QComboBox::currentIndexChanged, this, [this] { updateStrengthUnits(); });
+    };
+    addStrength(1, tr("Pilote prefabricado hincado"), m_precastBasis, m_precastValue, m_precastUnit);
+    addStrength(2, tr("Pilote hormigonado in situ"), m_castBasis, m_castValue, m_castUnit);
+    auto* group = new QLabel(tr("Coeficientes parciales de seguridad para el terreno (Curvas p-y)"), structural);
+    group->setContentsMargins(0, 10, 0, 0);
+    grid->addWidget(group, 3, 0, 1, 5);
+    const auto addFactor = [&](int row, const QString& label, QDoubleSpinBox*& spin) {
+        auto* text = new QLabel(label, structural);
+        text->setContentsMargins(6, 0, 0, 0);
+        grid->addWidget(text, row, 0, 1, 3);
+        spin = makeSpin(0.0, 0.0, 100.0, 2, structural);
+        grid->addWidget(spin, row, 3, 1, 2, Qt::AlignRight);
+    };
+    addFactor(4, tr("Resistencia al corte sin drenaje Cu"), m_cuFactor);
+    addFactor(5, tr("Peso específico γ"), m_gammaFactor);
+    grid->setRowStretch(6, 1);
+    connect(m_reduceStrength, &QCheckBox::toggled, this, [this](bool) { updateStrengthUnits(); });
+    tabs->addTab(structural, tr("Comprobación estructural"));
+
+    // --- Tope estructural: empty panel, the tab carries a tick (orig_pilotes_ca_tope_estructural)
+    tabs->addTab(new QWidget(tabs), tr("Tope estructural"));
     m_structuralCap = new QCheckBox(tabs->tabBar());
     tabs->tabBar()->setTabButton(2, QTabBar::LeftSide, m_structuralCap);
 
@@ -742,50 +819,91 @@ PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWid
     load(initial);
 }
 
+void PileAdvancedDialog::updateStrengthUnits() {
+    m_precastUnit->setText(m_precastBasis->currentIndex() == 0 ? QStringLiteral("· fc") : tr("MPa"));
+    m_castUnit->setText(m_castBasis->currentIndex() == 0 ? QStringLiteral("· fc") : tr("MPa"));
+    const bool on = m_reduceStrength->isChecked();
+    for (QWidget* w : {static_cast<QWidget*>(m_precastBasis), static_cast<QWidget*>(m_precastValue),
+                       static_cast<QWidget*>(m_castBasis), static_cast<QWidget*>(m_castValue)}) {
+        w->setEnabled(on);
+    }
+}
+
 void PileAdvancedDialog::load(const PileAdvancedSettings& settings) {
-    const PileSinkingSettings& s = settings.sinking;
-    m_resistance->setCurrentText(QString::fromStdString(s.resistanceCalculation));
-    m_reference->setText(QString::fromStdString(s.reference));
-    const double values[] = {s.frictionAngle,       s.cohesion,           s.undrainedShear,        s.unconfinedCompression,
-                             s.unitWeight,          s.geotechnicalTip,    s.geotechnicalShaft,     s.geotechnicalTotal,
-                             s.geotechnicalShaftTension, s.unitTip,       s.unitShaft,             s.unitTotal,
-                             s.unitShaftTension,    s.efficiencyK};
-    for (std::size_t i = 0; i < m_spins.size(); ++i) m_spins[i]->setValue(values[i]);
-    m_efficiency->setCurrentText(QString::fromStdString(s.efficiencyFormula));
-    m_ignoreFar->setChecked(s.ignoreEfficiencyWhenFar);
+    loadSinking(settings.sinking);
+    const PileStructuralSettings& c = settings.structural;
+    m_reduceStrength->setChecked(c.reduceConcreteStrength);
+    m_precastBasis->setCurrentIndex(static_cast<int>(c.precastBasis));
+    m_precastValue->setValue(c.precastValue);
+    m_castBasis->setCurrentIndex(static_cast<int>(c.castInSituBasis));
+    m_castValue->setValue(c.castInSituValue);
+    m_cuFactor->setValue(c.undrainedShearFactor);
+    m_gammaFactor->setValue(c.unitWeightFactor);
     m_structuralCap->setChecked(settings.structuralCap);
+    updateStrengthUnits();
 }
 
 PileAdvancedSettings PileAdvancedDialog::value() const {
     PileAdvancedSettings out;
-    PileSinkingSettings& s = out.sinking;
-    s.resistanceCalculation = m_resistance->currentText().toStdString();
-    s.reference = m_reference->text().toStdString();
-    double* fields[] = {&s.frictionAngle,       &s.cohesion,           &s.undrainedShear,        &s.unconfinedCompression,
-                        &s.unitWeight,          &s.geotechnicalTip,    &s.geotechnicalShaft,     &s.geotechnicalTotal,
-                        &s.geotechnicalShaftTension, &s.unitTip,       &s.unitShaft,             &s.unitTotal,
-                        &s.unitShaftTension,    &s.efficiencyK};
-    for (std::size_t i = 0; i < m_spins.size(); ++i) *fields[i] = m_spins[i]->value();
-    s.efficiencyFormula = m_efficiency->currentText().toStdString();
-    s.ignoreEfficiencyWhenFar = m_ignoreFar->isChecked();
+    out.sinking = sinkingValue(out.sinking);
+    PileStructuralSettings& c = out.structural;
+    c.reduceConcreteStrength = m_reduceStrength->isChecked();
+    c.precastBasis = static_cast<StrengthBasis>(m_precastBasis->currentIndex());
+    c.precastValue = m_precastValue->value();
+    c.castInSituBasis = static_cast<StrengthBasis>(m_castBasis->currentIndex());
+    c.castInSituValue = m_castValue->value();
+    c.undrainedShearFactor = m_cuFactor->value();
+    c.unitWeightFactor = m_gammaFactor->value();
     out.structuralCap = m_structuralCap->isChecked();
     return out;
 }
 
 void PileAdvancedDialog::resetToInstallationValues() { load(PileAdvancedSettings{}); }
 
+MicropileAdvancedDialog::MicropileAdvancedDialog(const MicropileAdvancedSettings& initial, QWidget* parent)
+    : PileAdvancedBase(tr("Configuración avanzada"), parent) {
+    setFixedSize(587, 728);
+    auto* tabs = new QTabWidget(this);
+    contentLayout()->addWidget(tabs, 1);
+    tabs->addTab(buildSinkingTab(true, tabs), tr("Hundimiento"));
+    // Tab never captured in the original (TK-016): placeholder, nothing is invented.
+    auto* page = new QWidget(tabs);
+    auto* layout = new QVBoxLayout(page);
+    auto* note = new QLabel(tr("Contenido no verificado en el original (ticket TK-016)."), page);
+    note->setAlignment(Qt::AlignCenter);
+    note->setEnabled(false);
+    layout->addWidget(note);
+    tabs->addTab(page, tr("Comprobación estructural"));
+    setupDefaultsFooter();
+    loadSinking(initial.sinking);
+}
+
+MicropileAdvancedSettings MicropileAdvancedDialog::value() const {
+    MicropileAdvancedSettings out;
+    out.sinking = sinkingValue(out.sinking);
+    return out;
+}
+
+void MicropileAdvancedDialog::resetToInstallationValues() { loadSinking(MicropileAdvancedSettings{}.sinking); }
+
 // ---------------------------------------------------------------- Opciones (menus)
 
 OptionsMenuDialog::OptionsMenuDialog(const QString& title, const QSize& size, const std::vector<OptionsPage>& pages,
-                                     QWidget* parent)
+                                     ButtonHandler onButton, bool withCancel, QWidget* parent)
     : CypeDialog(title, parent) {
     setFixedSize(size);
     const QString note = tr("Diálogo pendiente de capturar en el original (ticket TK-015).");
     const auto fillPage = [&](QVBoxLayout* layout, const OptionsPage& page) {
         for (const QString& caption : page.buttons) {
             auto* button = new QPushButton(caption, this);
-            button->setEnabled(false);
-            button->setToolTip(note);
+            if (page.enabledButtons.contains(caption)) {
+                connect(button, &QPushButton::clicked, this, [onButton, caption] {
+                    if (onButton) onButton(caption);
+                });
+            } else {
+                button->setEnabled(false);
+                button->setToolTip(note);
+            }
             layout->addWidget(button);
         }
     };
@@ -820,44 +938,127 @@ OptionsMenuDialog::OptionsMenuDialog(const QString& title, const QSize& size, co
     QHBoxLayout* footer = setupCustomFooter();
     auto* ok = new QPushButton(tr("Aceptar"), this);
     ok->setDefault(true);
-    footer->addStretch(1);
-    footer->addWidget(ok);
-    footer->addStretch(1);
     connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+    if (withCancel) {
+        auto* cancel = new QPushButton(tr("Cancelar"), this);
+        connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+        footer->addWidget(ok);
+        footer->addStretch(1);
+        footer->addWidget(cancel);
+    } else {
+        footer->addStretch(1);
+        footer->addWidget(ok);
+        footer->addStretch(1);
+    }
 }
 
-OptionsMenuDialog* OptionsMenuDialog::create(Family family, QWidget* parent) {
+OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& settings, QWidget* parent) {
     switch (family) {
         case Family::Columns:
             return new OptionsMenuDialog(
                 tr("Pilares"), QSize(575, 372),
-                {{tr("Tablas de armado"), {tr("Tablas de armado")}},
+                {{tr("Tablas de armado"), {tr("Tablas de armado")}, {}},
                  {tr("Dimensionamiento/Comprobación"),
                   {tr("Reducción de longitudes de anclaje en pilares"), tr("Criterios de simetría"),
                    tr("Criterios de continuidad"), tr("Pilares metálicos"),
                    tr("Ángulo de inclinación de las bielas de compresión"),
                    tr("Tolerancias en comprobaciones de separación"),
-                   tr("Comprobación de capacidad en pilares, por flexión")}},
+                   tr("Comprobación de capacidad en pilares, por flexión")},
+                  {}},
                  {tr("Disposiciones de armado"),
                   {tr("Disposición de barras"), tr("Cortar esperas en último tramo"),
                    tr("Transiciones por cambio de dimensiones"), tr("Redondeo de longitud de barras"),
                    tr("Solapar en la zona central del tramo"), tr("Opciones de arranques"),
-                   tr("Opciones para armado de estribos"), tr("Recubrimientos")}},
+                   tr("Opciones para armado de estribos"), tr("Recubrimientos")},
+                  {}},
                  {tr("Esfuerzos"),
                   {tr("Coeficiente de rigidez axil"), tr("Coeficiente de rigidez de torsión"),
-                   tr("Coeficiente de rigidez a flexión")}}},
-                parent);
-        case Family::Foundation:
-            return new OptionsMenuDialog(tr("Cimentación"), QSize(150, 158),
-                                         {{QString(), {tr("Opciones"), tr("Tablas de armado")}}}, parent);
-        case Family::Beams:
-            return new OptionsMenuDialog(tr("Vigas"), QSize(223, 257),
-                                         {{QString(), {tr("Opciones"), tr("Valoración de errores"), tr("Límites de flecha"),
-                                                       tr("Numeración de vigas continuas"), tr("Numeración de vigas")}}},
-                                         parent);
-        case Family::Joints:
-            return new OptionsMenuDialog(tr("Uniones"), QSize(117, 158),
-                                         {{QString(), {tr("Materiales"), tr("Opciones")}}}, parent);
+                   tr("Coeficiente de rigidez a flexión")},
+                  {}}},
+                {}, false, parent);
+        case Family::Foundation: {
+            const QString options = tr("Opciones"), tables = tr("Tablas de armado");
+            return new OptionsMenuDialog(
+                tr("Cimentación"), QSize(150, 158), {{QString(), {options, tables}, {options, tables}}},
+                [options, tables, parent](const QString& caption) {
+                    // The leaf dialogs of these two menus were not opened in the original yet (TK-015).
+                    if (caption == options) {
+                        OptionsMenuDialog menu(
+                            tr("Opciones"), QSize(207, 287),
+                            {{QString(),
+                              {tr("Hormigón de limpieza"), tr("Comprobación de fisuración"), tr("Zapatas aisladas"),
+                               tr("Encepados"), tr("Vigas centradoras"), tr("Vigas de atado")},
+                              {}}},
+                            {}, false, parent);
+                        menu.exec();
+                    } else if (caption == tables) {
+                        OptionsMenuDialog menu(
+                            tr("Tablas de armado"), QSize(165, 155),
+                            {{QString(), {tr("Zapatas aisladas"), tr("Vigas centradoras"), tr("Vigas de atado")}, {}}},
+                            {}, false, parent);
+                        menu.exec();
+                    }
+                },
+                false, parent);
+        }
+        case Family::Beams: {
+            const QString options = tr("Opciones"), errors = tr("Valoración de errores"), limits = tr("Límites de flecha"),
+                          continuous = tr("Numeración de vigas continuas"), numbering = tr("Numeración de vigas");
+            return new OptionsMenuDialog(
+                tr("Vigas"), QSize(223, 257), {{QString(), {options, errors, limits, continuous, numbering},
+                                                {options, errors, limits, continuous, numbering}}},
+                [=, &settings](const QString& caption) {
+                    BeamOptionsSettings& beams = settings.beams;
+                    if (caption == options) {
+                        // Pages 2-6 and the leaf dialogs of page 1 were not opened yet (TK-015).
+                        OptionsMenuDialog menu(
+                            tr("Opciones"), QSize(641, 537),
+                            {{tr("Tablas de armado en vigas"),
+                              {tr("Armadura de montaje en secciones rectangulares"),
+                               tr("Armadura de montaje en secciones rectangulares con un ala"),
+                               tr("Armadura de montaje en secciones rectangulares con dos alas"),
+                               tr("Armadura transversal"), tr("Armadura portaestribos"), tr("Armadura de piel"),
+                               tr("Armadura superior de refuerzo"), tr("Armadura inferior de refuerzo")},
+                              {}},
+                             {tr("Disposiciones de armado"), {}, {}},
+                             {tr("Esfuerzos"), {}, {}},
+                             {tr("Dimensionamiento / Comprobación"), {}, {}},
+                             {tr("Vigas metálicas"), {}, {}},
+                             {tr("Planos"), {}, {}}},
+                            {}, true, parent);
+                        menu.exec();
+                    } else if (caption == errors) {
+                        BeamErrorsDialog dialog(beams.errors, parent);
+                        if (dialog.exec() == QDialog::Accepted) beams.errors = dialog.value();
+                    } else if (caption == limits) {
+                        DeflectionLimitsDialog dialog(parent);
+                        dialog.exec();
+                    } else if (caption == continuous) {
+                        ContinuousBeamNumberingDialog dialog(beams.continuousNumbering, parent);
+                        if (dialog.exec() == QDialog::Accepted) beams.continuousNumbering = dialog.value();
+                    } else if (caption == numbering) {
+                        BeamNumberingDialog dialog(beams.numbering, parent);
+                        if (dialog.exec() == QDialog::Accepted) beams.numbering = dialog.value();
+                    }
+                },
+                false, parent);
+        }
+        case Family::Joints: {
+            const QString materials = tr("Materiales"), options = tr("Opciones");
+            return new OptionsMenuDialog(
+                tr("Uniones"), QSize(117, 158), {{QString(), {materials, options}, {materials, options}}},
+                [=, &settings](const QString& caption) {
+                    JointOptionsSettings& joints = settings.joints;
+                    if (caption == materials) {
+                        JointMaterialsDialog dialog(joints.materials, parent);
+                        if (dialog.exec() == QDialog::Accepted) joints.materials = dialog.value();
+                    } else if (caption == options) {
+                        JointOptionsDialog dialog(joints.bolts, parent);
+                        if (dialog.exec() == QDialog::Accepted) joints.bolts = dialog.value();
+                    }
+                },
+                false, parent);
+        }
     }
     return nullptr;
 }

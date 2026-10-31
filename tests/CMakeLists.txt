@@ -1,5 +1,5 @@
 ﻿include(GoogleTest)
-add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp)
+add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp)
 target_link_libraries(core_tests PRIVATE cc_core GTest::gtest GTest::gtest_main)
 gtest_discover_tests(core_tests)
 
@@ -35,7 +35,7 @@ target_link_libraries(standardsdialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Sv
 gtest_discover_tests(standardsdialog_tests)
 
 add_executable(emptywizard_tests emptywizard_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/EmptyProjectWizard.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/WizardSubDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/WizardSubDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/OptionsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(emptywizard_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(emptywizard_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)

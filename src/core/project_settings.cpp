@@ -162,6 +162,11 @@ bool PileSinkingSettings::isValid() const {
            nonNegative(efficiencyK);
 }
 
+bool PileStructuralSettings::isValid() const {
+    return nonNegative(precastValue) && nonNegative(castInSituValue) && nonNegative(undrainedShearFactor) &&
+           nonNegative(unitWeightFactor);
+}
+
 bool PileSettings::isValid() const {
     return nonNegative(minMomentEccentricityM) && nonNegative(shaftAxialFactor) && nonNegative(tipOnlyAxialFactor) &&
            nonNegative(bucklingCoefficient) && advanced.isValid();
@@ -169,7 +174,7 @@ bool PileSettings::isValid() const {
 
 bool MicropileSettings::isValid() const {
     return nonNegative(reducedAxialFactor) && nonNegative(bucklingCoefficient) && nonNegative(corrosionThicknessMm) &&
-           nonNegative(tubularAreaFactor) && nonNegative(executionFactor);
+           nonNegative(tubularAreaFactor) && nonNegative(executionFactor) && advanced.isValid();
 }
 
 bool ActionsSettings::isValid() const {

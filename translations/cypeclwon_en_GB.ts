@@ -2,6 +2,84 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_GB" sourcelanguage="es_ES">
 <context>
+    <name>BeamErrorsDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="70"/>
+        <source>Patilla por compresión</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="71"/>
+        <source>Armadura compresión superior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="72"/>
+        <source>Armadura compresión inferior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="73"/>
+        <source>Armado manual de ménsula corta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="74"/>
+        <source>Estribos de diámetro igual o superior a:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="75"/>
+        <source>Celosía muy corta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="76"/>
+        <source>Anclaje de la armadura de piel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="77"/>
+        <source>Tramo corto, longitud de barra menor que la longitud mínima de anclaje</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="79"/>
+        <source>Desnivel que necesita detalle constructivo de continuidad de barras</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="81"/>
+        <source>Longitud de la barra mayor que la longitud máxima</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="82"/>
+        <source>Anclaje de la armadura de montaje</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="83"/>
+        <source>Anclaje de la armadura superior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="84"/>
+        <source>Armadura superior en más de una capa</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="85"/>
+        <source>Anclaje de la armadura inferior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="86"/>
+        <source>Armadura inferior en más de una capa</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
         <location filename="../src/app/FileManagerDialog.cpp" line="31"/>
@@ -12,97 +90,97 @@
 <context>
     <name>cc::app::AdditionalLoadsDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="499"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="501"/>
         <source>Hipótesis adicionales</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="501"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="503"/>
         <source>Categorías de uso</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="503"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="505"/>
         <source>No hay categorías de uso definidas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="510"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="512"/>
         <source>Acciones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="512"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="514"/>
         <source>&lt;b&gt;Automáticas&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="513"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="515"/>
         <source>&lt;b&gt;Adicionales&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="519"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="521"/>
         <source>Peso propio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="520"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="522"/>
         <source>Cargas muertas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="521"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="523"/>
         <source>Sobrecarga de uso</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="522"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="524"/>
         <source>Temperatura</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="523"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="525"/>
         <source>Retracción</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="524"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="526"/>
         <source>Viento</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="525"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="527"/>
         <source>Sismo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="526"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="528"/>
         <source>Nieve</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="527"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="529"/>
         <source>Empujes del terreno</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="528"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="530"/>
         <source>Accidental</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="538"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="540"/>
         <source>La edición de hipótesis estará disponible con el módulo de cargas.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="546"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="548"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="546"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="548"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -110,57 +188,57 @@
 <context>
     <name>cc::app::AggregateDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="255"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="257"/>
         <source>Características del árido</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="258"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="260"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="258"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="260"/>
         <source>Vigas de forjado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="258"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="260"/>
         <source>Vigas de cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="262"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="264"/>
         <source>Naturaleza</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="265"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="267"/>
         <source>Tamaño máximo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="270"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="272"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="272"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="274"/>
         <source>Tamaño máximo de árido</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="274"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="276"/>
         <source> mm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="278"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="280"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="278"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="280"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -168,27 +246,27 @@
 <context>
     <name>cc::app::AluminiumDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="161"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="163"/>
         <source>Aluminio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="163"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="165"/>
         <source>Aleación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="168"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="170"/>
         <source>Estado de entrega</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="173"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="175"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="173"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="175"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -196,154 +274,243 @@
 <context>
     <name>cc::app::BeamEnvironmentDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="594"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="596"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="596"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="598"/>
         <source>Clase de exposición</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="599"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="601"/>
         <source>Sin riesgo de ataque por corrosión</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="599"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="601"/>
         <source>Corrosión provocada por carbonatación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="600"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="602"/>
         <source>Corrosión provocada por cloruros</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="600"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="602"/>
         <source>Corrosión inducida por cloruros de agua marina</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="601"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="603"/>
         <source>Ataque por congelación y deshielo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="601"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="603"/>
         <source>Ataque químico</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="611"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="613"/>
         <source>Designación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="618"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="620"/>
         <source>Fisuración</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="620"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="622"/>
         <source>Abertura máxima de fisura</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="621"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="623"/>
         <source> mm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="626"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="628"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="626"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="628"/>
         <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::BeamErrorsDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="90"/>
+        <source>Valoración de errores</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="92"/>
+        <source>Vigas de hormigón</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="92"/>
+        <source>Estribos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="92"/>
+        <source>Armados</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::BeamNumberingDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="225"/>
+        <source>Numeración de vigas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="230"/>
+        <source>No numerar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="231"/>
+        <source>Numeración consecutiva de la obra</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="232"/>
+        <source>Numeración por niveles</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>cc::app::ConstructionProcessDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="570"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="572"/>
         <source>Proceso constructivo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="574"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="576"/>
         <source>&lt;b&gt;Instante de descimbrado&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="578"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="580"/>
         <source>días</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::ContinuousBeamNumberingDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="167"/>
+        <source>Numeración de vigas continuas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="170"/>
+        <source>Referencia base</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="183"/>
+        <source>Numerar primero los pórticos paralelos al eje X global</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="184"/>
+        <source>Numerar primero los pórticos paralelos al eje Y global</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="185"/>
+        <source>Numerar los pórticos paralelos al eje X global en el sentido positivo del eje Y global.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="186"/>
+        <source>Numerar los pórticos paralelos al eje X global en el sentido negativo del eje Y global.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="187"/>
+        <source>Numerar los pórticos paralelos al eje Y global en el sentido positivo del eje X global.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="188"/>
+        <source>Numerar los pórticos paralelos al eje Y global en el sentido negativo del eje X global.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>cc::app::CoverDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="339"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="341"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="339"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="341"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="339"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="341"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="350"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="352"/>
         <source>cm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="356"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="358"/>
         <source>Recubrimiento</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="357"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="359"/>
         <source>Distancia de la cara del pilar a la cara de la barra del estribo.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="362"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="368"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="372"/>
-        <source>Recubrimiento superior</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="363"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="369"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="373"/>
-        <source>Recubrimiento inferior</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/app/WizardSubDialogs.cpp" line="364"/>
         <location filename="../src/app/WizardSubDialogs.cpp" line="370"/>
         <location filename="../src/app/WizardSubDialogs.cpp" line="374"/>
+        <source>Recubrimiento superior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="365"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="371"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="375"/>
+        <source>Recubrimiento inferior</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="366"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="372"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="376"/>
         <source>Recubrimiento lateral</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="367"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="369"/>
         <source>&lt;b&gt;Zapatas y encepados&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="371"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="373"/>
         <source>&lt;b&gt;Vigas centradoras y de atado&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -351,22 +518,22 @@
 <context>
     <name>cc::app::CoverMenuDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="322"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="324"/>
         <source>Recubrimientos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="324"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="326"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="325"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="327"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="326"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="328"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
@@ -374,22 +541,50 @@
 <context>
     <name>cc::app::DefaultsDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="295"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="297"/>
         <source>Grabar como opciones por defecto</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="303"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="305"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="305"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="307"/>
         <source>Valores de instalación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="306"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="308"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::DeflectionLimitsDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="138"/>
+        <source>Límites de flecha</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="147"/>
+        <source>No se ha definido ningún límite de flecha.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="156"/>
+        <source>Editor de límites pendiente de capturar en el original (ticket TK-015).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="161"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="161"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -648,12 +843,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="466"/>
-        <source>Diálogo pendiente de capturar en el original (ticket TK-016).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="469"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="471"/>
         <source>Micropilotes</source>
         <translation type="unfinished"></translation>
     </message>
@@ -790,47 +980,47 @@
 <context>
     <name>cc::app::FireDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="471"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="473"/>
         <source>Resistencia al fuego</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="477"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="479"/>
         <source>No considerar la situación de incendio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="478"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="480"/>
         <source>Comprobar la resistencia al fuego (Código Estructural)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="479"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="481"/>
         <source>Calcular la temperatura crítica en la situación de incendio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="487"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="489"/>
         <source>Acero</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="488"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="490"/>
         <source>Contenido pendiente de verificar.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="490"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="492"/>
         <source>Madera</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="492"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="494"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="492"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="494"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -838,28 +1028,124 @@
 <context>
     <name>cc::app::FoundationActionsDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="552"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="554"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="554"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="556"/>
         <source>Considerar combinaciones con viento</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="556"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="558"/>
         <source>Considerar combinaciones con sismo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="561"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="563"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="561"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="563"/>
         <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::JointMaterialsDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="245"/>
+        <source>Materiales</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="256"/>
+        <source>Acero laminado</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="258"/>
+        <source>Acero de pernos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="259"/>
+        <source>Hormigón:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="263"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="263"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::JointOptionsDialog</name>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="277"/>
+        <source>Opciones</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="286"/>
+        <source>&lt;b&gt;Series de tornillos&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="288"/>
+        <source>ISO 4014</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="289"/>
+        <source>ISO 4017</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="295"/>
+        <source>&lt;b&gt;Clase de acero de los tornillos&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="307"/>
+        <source>&lt;b&gt;Diámetros disponibles&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="316"/>
+        <source>Utilizar diámetros no habituales</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="320"/>
+        <source>Tornillería no pretensada</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="323"/>
+        <source>Tornillería pretensada</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="323"/>
+        <source>Rigidizadores</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="323"/>
+        <source>Placa de anclaje</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/OptionsDialogs.cpp" line="324"/>
+        <source>Contenido no verificado en el original (ticket TK-015).</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1141,6 +1427,29 @@
     </message>
 </context>
 <context>
+    <name>cc::app::MicropileAdvancedDialog</name>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="864"/>
+        <source>Configuración avanzada</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="868"/>
+        <source>Hundimiento</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="872"/>
+        <source>Contenido no verificado en el original (ticket TK-016).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="876"/>
+        <source>Comprobación estructural</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>cc::app::NewProjectDialog</name>
     <message>
         <location filename="../src/app/NewProjectDialog.cpp" line="25"/>
@@ -1230,304 +1539,470 @@
 <context>
     <name>cc::app::OptionsMenuDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="783"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="895"/>
         <source>Diálogo pendiente de capturar en el original (ticket TK-015).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="821"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="939"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="833"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="943"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="959"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="834"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="852"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="960"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="980"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="996"/>
         <source>Tablas de armado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="835"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="961"/>
         <source>Dimensionamiento/Comprobación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="836"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="962"/>
         <source>Reducción de longitudes de anclaje en pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="836"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="962"/>
         <source>Criterios de simetría</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="837"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="963"/>
         <source>Criterios de continuidad</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="837"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="963"/>
         <source>Pilares metálicos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="838"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="964"/>
         <source>Ángulo de inclinación de las bielas de compresión</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="839"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="965"/>
         <source>Tolerancias en comprobaciones de separación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="840"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="966"/>
         <source>Comprobación de capacidad en pilares, por flexión</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="841"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="968"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1023"/>
         <source>Disposiciones de armado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="842"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="969"/>
         <source>Disposición de barras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="842"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="969"/>
         <source>Cortar esperas en último tramo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="843"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="970"/>
         <source>Transiciones por cambio de dimensiones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="843"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="970"/>
         <source>Redondeo de longitud de barras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="844"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="971"/>
         <source>Solapar en la zona central del tramo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="844"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="971"/>
         <source>Opciones de arranques</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="845"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="972"/>
         <source>Opciones para armado de estribos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="845"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="972"/>
         <source>Recubrimientos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="846"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="974"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1024"/>
         <source>Esfuerzos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="847"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="975"/>
         <source>Coeficiente de rigidez axil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="847"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="975"/>
         <source>Coeficiente de rigidez de torsión</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="848"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="976"/>
         <source>Coeficiente de rigidez a flexión</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="851"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="982"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="852"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="855"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="860"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="980"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="987"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1005"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1015"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1047"/>
         <source>Opciones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="854"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1008"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="855"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1005"/>
         <source>Valoración de errores</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="855"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="989"/>
+        <source>Hormigón de limpieza</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="989"/>
+        <source>Comprobación de fisuración</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="989"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="997"/>
+        <source>Zapatas aisladas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="990"/>
+        <source>Encepados</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="990"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="997"/>
+        <source>Vigas centradoras</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="990"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="997"/>
+        <source>Vigas de atado</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1005"/>
         <source>Límites de flecha</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="856"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1006"/>
         <source>Numeración de vigas continuas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="856"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1006"/>
         <source>Numeración de vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="859"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1016"/>
+        <source>Tablas de armado en vigas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1017"/>
+        <source>Armadura de montaje en secciones rectangulares</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1018"/>
+        <source>Armadura de montaje en secciones rectangulares con un ala</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1019"/>
+        <source>Armadura de montaje en secciones rectangulares con dos alas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1020"/>
+        <source>Armadura transversal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1020"/>
+        <source>Armadura portaestribos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1020"/>
+        <source>Armadura de piel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1021"/>
+        <source>Armadura superior de refuerzo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1021"/>
+        <source>Armadura inferior de refuerzo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1025"/>
+        <source>Dimensionamiento / Comprobación</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1026"/>
+        <source>Vigas metálicas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1027"/>
+        <source>Planos</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1049"/>
         <source>Uniones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="860"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="1047"/>
         <source>Materiales</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::PileAdvancedBase</name>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="699"/>
+        <source>Automático</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="700"/>
+        <source>Cálculo de resistencia</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="701"/>
+        <source>A2 - Conjunto C</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="705"/>
+        <source>Referencia</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="707"/>
+        <source>Coeficientes parciales de seguridad para el terreno</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="708"/>
+        <source>Ángulo de rozamiento interno ϕ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="709"/>
+        <source>Cohesión c&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="710"/>
+        <source>Resistencia al corte sin drenaje Cu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="711"/>
+        <source>Resistencia a compresión simple qu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="712"/>
+        <source>Peso específico γ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="713"/>
+        <source>Coeficientes parciales de seguridad para el micropilote (Parámetros geotécnicos)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="714"/>
+        <source>Coeficientes parciales de seguridad para el pilote (Parámetros geotécnicos)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="716"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="723"/>
+        <source>Punta γb</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="717"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="724"/>
+        <source>Fuste (Compresión) γf,s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="718"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="725"/>
+        <source>Total (Compresión) γt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="719"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="726"/>
+        <source>Fuste (Tracción) γft,s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="720"/>
+        <source>Coeficientes parciales de seguridad para el micropilote (Resistencias unitarias)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="721"/>
+        <source>Coeficientes parciales de seguridad para el pilote (Resistencias unitarias)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="729"/>
+        <source>Aplicar la fórmula de Converse-Labarre</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="730"/>
+        <source>Factor de eficiencia</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="732"/>
+        <source>No considerar el factor de eficiencia si la distancia libre entre micropilotes es igual o superior a K·D</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="733"/>
+        <source>No considerar el factor de eficiencia si la distancia libre entre pilotes es igual o superior a K·D</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="738"/>
+        <source>K</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>cc::app::PileAdvancedDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="661"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="766"/>
         <source>Configuración avanzada</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="689"/>
-        <source>Automático</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="690"/>
-        <source>Cálculo de resistencia</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="691"/>
-        <source>A2 - Conjunto C</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="695"/>
-        <source>Referencia</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="697"/>
-        <source>Coeficientes parciales de seguridad para el terreno</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="698"/>
-        <source>Ángulo de rozamiento interno ϕ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="699"/>
-        <source>Cohesión c&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="700"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="807"/>
         <source>Resistencia al corte sin drenaje Cu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="701"/>
-        <source>Resistencia a compresión simple qu</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="702"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="808"/>
         <source>Peso específico γ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="703"/>
-        <source>Coeficientes parciales de seguridad para el pilote (Parámetros geotécnicos)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="704"/>
-        <source>Coeficientes parciales de seguridad para el pilote (Resistencias unitarias)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="706"/>
-        <source>Punta γb</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="707"/>
-        <source>Fuste (Compresión) γf,s</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="708"/>
-        <source>Total (Compresión) γt</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="709"/>
-        <source>Fuste (Tracción) γft,s</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="713"/>
-        <source>Aplicar la fórmula de Converse-Labarre</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="714"/>
-        <source>Factor de eficiencia</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="715"/>
-        <source>No considerar el factor de eficiencia si la distancia libre entre pilotes es igual o superior a K·D</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="719"/>
-        <source>K</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="726"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="770"/>
         <source>Hundimiento</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="729"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="776"/>
+        <source>Considerar reducción de la resistencia del hormigón</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="784"/>
+        <source>Relativa</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="785"/>
+        <source>Absoluta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="795"/>
+        <source>Pilote prefabricado hincado</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="796"/>
+        <source>Pilote hormigonado in situ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="797"/>
+        <source>Coeficientes parciales de seguridad para el terreno (Curvas p-y)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="811"/>
         <source>Comprobación estructural</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="729"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="814"/>
         <source>Tope estructural</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="732"/>
-        <source>Contenido no verificado en el original (ticket TK-016).</source>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="823"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="824"/>
+        <source>MPa</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1572,78 +2047,78 @@
 <context>
     <name>cc::app::RebarSteelDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="206"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="208"/>
         <source>Acero de barras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="217"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="219"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="217"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="219"/>
         <source>Armadura longitudinal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="217"/>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="222"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="219"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="224"/>
         <source>Armadura transversal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="218"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="220"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="219"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="221"/>
         <source>Armadura superior de montaje</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="220"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="222"/>
         <source>Armadura superior de refuerzo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="221"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="223"/>
         <source>Armadura inferior</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="223"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="225"/>
         <source>Armadura de piel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="224"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="226"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="225"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="227"/>
         <source>Zapatas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="225"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="227"/>
         <source>Encepados</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="225"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="227"/>
         <source>Vigas centradoras y de atado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="240"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="242"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="240"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="242"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1825,42 +2300,42 @@
 <context>
     <name>cc::app::SteelLibraryDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="185"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="187"/>
         <source>Biblioteca de aceros de usuario</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="188"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="190"/>
         <source>Acero laminado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="188"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="190"/>
         <source>Acero conformado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="192"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="194"/>
         <source>Tipo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="192"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="194"/>
         <source>Referencia</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="192"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="194"/>
         <source>Exportar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="200"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="202"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="200"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="202"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1868,42 +2343,42 @@
 <context>
     <name>cc::app::TimberDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="97"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="99"/>
         <source>Madera</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="100"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="102"/>
         <source>Material</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="105"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="107"/>
         <source>Clase resistente</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="112"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="114"/>
         <source>Clase de servicio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="135"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="137"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="135"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="137"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="141"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="143"/>
         <source>Clase de servicio 1: se caracteriza por un contenido de humedad en los materiales correspondiente a una temperatura de 20°C y una humedad relativa del aire que sólo exceda el 65% unas pocas semanas al año.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="147"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="149"/>
         <source>Clase de servicio %1: descripción pendiente de verificar.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1911,32 +2386,32 @@
 <context>
     <name>cc::app::UsualGroundDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="637"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="639"/>
         <source>Importar valores usuales de proyecto</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="641"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="643"/>
         <source>Tipo de terreno</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="641"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="643"/>
         <source>S1 (C) (MPa)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="641"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="643"/>
         <source>S2 (C) (MPa)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="653"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="655"/>
         <source>Aceptar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="653"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="655"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1944,32 +2419,32 @@
 <context>
     <name>cc::app::WasteDialog</name>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="427"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="429"/>
         <source>Mermas de acero</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="429"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="431"/>
         <source>Pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="430"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="432"/>
         <source>Vigas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="431"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="433"/>
         <source>Zapatas</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="432"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="434"/>
         <source>Encepados</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/WizardSubDialogs.cpp" line="433"/>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="435"/>
         <source>Vigas centradoras y de atado</source>
         <translation type="unfinished"></translation>
     </message>

@@ -4,7 +4,7 @@
   CypeDialog.cpp CypeDialog.h NewProjectDialog.cpp NewProjectDialog.h
   ProjectTypeDialog.cpp ProjectTypeDialog.h
   StandardsDialog.cpp StandardsDialog.h
-  FileManagerDialog.cpp FileManagerDialog.h LimitStatesDialog.cpp LimitStatesDialog.h WizardSubDialogs.cpp WizardSubDialogs.h EmptyProjectWizard.cpp EmptyProjectWizard.h
+  FileManagerDialog.cpp FileManagerDialog.h LimitStatesDialog.cpp LimitStatesDialog.h WizardSubDialogs.cpp WizardSubDialogs.h OptionsDialogs.cpp OptionsDialogs.h EmptyProjectWizard.cpp EmptyProjectWizard.h
   ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_link_libraries(cypeclwon PRIVATE cc_core Qt6::Widgets Qt6::Svg SARibbonBar::SARibbonBar)
 

@@ -3,6 +3,8 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QLabel>
+#include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QListWidget>
 #include <QPushButton>
@@ -12,6 +14,7 @@
 #include <memory>
 
 #include "EmptyProjectWizard.h"
+#include "OptionsDialogs.h"
 #include "WizardSubDialogs.h"
 
 using namespace cc::app;
@@ -198,7 +201,7 @@ TEST(EmptyProjectWizard, PileDefaultsAndEdits) {
     EXPECT_DOUBLE_EQ(wizard.micropiles().corrosionThicknessMm, 0.90);
     micro->findChildren<QToolButton*>().at(0)->click();
     EXPECT_DOUBLE_EQ(wizard.micropiles().corrosionThicknessMm, 0.60);
-    EXPECT_FALSE(buttonWithText(micro, "Configuración avanzada")->isEnabled());
+    EXPECT_TRUE(buttonWithText(micro, "Configuración avanzada")->isEnabled());
 }
 
 TEST(WizardSubDialogs, PileAdvancedRoundTrip) {
@@ -214,13 +217,56 @@ TEST(WizardSubDialogs, PileAdvancedRoundTrip) {
     EXPECT_DOUBLE_EQ(v.sinking.efficiencyK, 2.00);
     EXPECT_TRUE(v.sinking.ignoreEfficiencyWhenFar);
     EXPECT_FALSE(v.structuralCap);
-    dialog.findChildren<QDoubleSpinBox*>().at(0)->setValue(1.50);
+    dialog.findChild<QTabWidget*>()->widget(0)->findChildren<QDoubleSpinBox*>().at(0)->setValue(1.50);
     EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.50);
     buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
     EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.25);
 }
 
-TEST(WizardSubDialogs, OptionsMenusAreDisabledPlaceholders) {
+TEST(WizardSubDialogs, PileStructuralTabRoundTrip) {
+    ensureApp();
+    PileAdvancedDialog dialog{cc::core::PileAdvancedSettings{}};
+    auto v = dialog.value();
+    EXPECT_TRUE(v.structural.reduceConcreteStrength);
+    EXPECT_EQ(v.structural.precastBasis, cc::core::StrengthBasis::Relative);
+    EXPECT_DOUBLE_EQ(v.structural.precastValue, 1.00);
+    EXPECT_EQ(v.structural.castInSituBasis, cc::core::StrengthBasis::Absolute);
+    EXPECT_DOUBLE_EQ(v.structural.castInSituValue, 18.00);
+    EXPECT_DOUBLE_EQ(v.structural.undrainedShearFactor, 1.40);
+    EXPECT_DOUBLE_EQ(v.structural.unitWeightFactor, 1.00);
+    cc::core::PileAdvancedSettings custom;
+    custom.structural.reduceConcreteStrength = false;
+    custom.structural.castInSituBasis = cc::core::StrengthBasis::Relative;
+    custom.structural.castInSituValue = 0.85;
+    custom.structuralCap = true;
+    PileAdvancedDialog other{custom};
+    v = other.value();
+    EXPECT_FALSE(v.structural.reduceConcreteStrength);
+    EXPECT_EQ(v.structural.castInSituBasis, cc::core::StrengthBasis::Relative);
+    EXPECT_DOUBLE_EQ(v.structural.castInSituValue, 0.85);
+    EXPECT_TRUE(v.structuralCap);
+    buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_TRUE(other.value().structural.reduceConcreteStrength);
+    EXPECT_FALSE(other.value().structuralCap);
+}
+
+TEST(WizardSubDialogs, MicropileAdvancedRoundTrip) {
+    ensureApp();
+    MicropileAdvancedDialog dialog{cc::core::MicropileAdvancedSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(587, 728));
+    auto v = dialog.value();
+    EXPECT_DOUBLE_EQ(v.sinking.geotechnicalShaft, 1.00);
+    EXPECT_DOUBLE_EQ(v.sinking.geotechnicalShaftTension, 1.10);
+    EXPECT_DOUBLE_EQ(v.sinking.unitTip, 1.00);
+    EXPECT_DOUBLE_EQ(v.sinking.efficiencyK, 2.00);
+    EXPECT_EQ(dialog.findChildren<QDoubleSpinBox*>().size(), 12);  // 5 ground + 2 + 4 unit + K
+    dialog.findChild<QTabWidget*>()->widget(0)->findChildren<QDoubleSpinBox*>().at(0)->setValue(1.30);
+    EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.30);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.25);
+}
+
+TEST(WizardSubDialogs, OptionsMenusLayoutAndEnabledButtons) {
     ensureApp();
     using Family = OptionsMenuDialog::Family;
     struct Case {
@@ -228,20 +274,123 @@ TEST(WizardSubDialogs, OptionsMenusAreDisabledPlaceholders) {
         QSize size;
         int buttons;  // including Aceptar
     };
-    const Case cases[] = {{Family::Foundation, QSize(150, 158), 3}, {Family::Beams, QSize(223, 257), 6},
+    cc::core::OptionsSettings settings;
+    const Case cases[] = {{Family::Foundation, QSize(150, 158), 3},
+                          {Family::Beams, QSize(223, 257), 6},
                           {Family::Joints, QSize(117, 158), 3}};
     for (const Case& c : cases) {
-        std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(c.family));
+        std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(c.family, settings));
         EXPECT_EQ(menu->size(), c.size);
         EXPECT_EQ(menu->findChildren<QPushButton*>().size(), c.buttons);
-        EXPECT_TRUE(buttonWithText(menu.get(), "Aceptar")->isEnabled());
-        EXPECT_FALSE(menu->findChildren<QPushButton*>().at(0)->isEnabled());
+        // Every button of these three menus opens a captured dialog, so all of them are enabled.
+        for (QPushButton* button : menu->findChildren<QPushButton*>()) EXPECT_TRUE(button->isEnabled());
     }
-    std::unique_ptr<OptionsMenuDialog> columns(OptionsMenuDialog::create(Family::Columns));
+    std::unique_ptr<OptionsMenuDialog> columns(OptionsMenuDialog::create(Family::Columns, settings));
     EXPECT_EQ(columns->size(), QSize(575, 372));
     EXPECT_EQ(columns->findChild<QListWidget*>()->count(), 4);
-    // 1 + 7 + 8 + 3 page buttons plus Aceptar.
+    // 1 + 7 + 8 + 3 page buttons plus Aceptar; the Pilares leaves are not captured yet, so they are disabled.
     EXPECT_EQ(columns->findChildren<QPushButton*>().size(), 20);
+    EXPECT_FALSE(columns->findChildren<QPushButton*>().at(0)->isEnabled());
+}
+
+TEST(OptionsDialogs, BeamErrorsDefaultsAndRoundTrip) {
+    ensureApp();
+    BeamErrorsDialog dialog{cc::core::BeamErrorSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(437, 514));
+    auto v = dialog.value();
+    EXPECT_TRUE(v.compressionHook);
+    EXPECT_FALSE(v.skinAnchorage);
+    EXPECT_FALSE(v.topMultiLayer);
+    EXPECT_FALSE(v.bottomMultiLayer);
+    EXPECT_TRUE(v.minStirrupDiameter);
+    EXPECT_EQ(v.minStirrupDiameterMm, 16);
+    EXPECT_EQ(dialog.findChildren<QCheckBox*>().size(), 16);  // 15 error checks + "Grabar como opciones por defecto"
+    cc::core::BeamErrorSettings custom;
+    custom.skinAnchorage = true;
+    custom.compressionHook = false;
+    custom.minStirrupDiameter = false;
+    BeamErrorsDialog other{custom};
+    v = other.value();
+    EXPECT_TRUE(v.skinAnchorage);
+    EXPECT_FALSE(v.compressionHook);
+    EXPECT_FALSE(v.minStirrupDiameter);
+    buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_FALSE(other.value().skinAnchorage);
+    EXPECT_TRUE(other.value().compressionHook);
+}
+
+TEST(OptionsDialogs, DeflectionLimitsAreReadOnly) {
+    ensureApp();
+    DeflectionLimitsDialog dialog;
+    EXPECT_EQ(dialog.size(), QSize(309, 371));
+    bool found = false;
+    for (QLabel* label : dialog.findChildren<QLabel*>()) {
+        found = found || label->text() == QStringLiteral("Activa a largo plazo (Cuasipermanente): L/ 500");
+    }
+    EXPECT_TRUE(found);
+}
+
+TEST(OptionsDialogs, ContinuousBeamNumberingRoundTrip) {
+    ensureApp();
+    ContinuousBeamNumberingDialog dialog{cc::core::ContinuousBeamNumbering{}};
+    EXPECT_EQ(dialog.size(), QSize(531, 372));
+    auto v = dialog.value();
+    EXPECT_EQ(v.baseReference, "Pórtico 1");
+    EXPECT_EQ(v.firstAxis, cc::core::ContinuousBeamNumbering::Axis::X);
+    EXPECT_EQ(v.xFramesAlongY, cc::core::ContinuousBeamNumbering::Sense::Positive);
+    cc::core::ContinuousBeamNumbering custom;
+    custom.baseReference = "Eje A";
+    custom.firstAxis = cc::core::ContinuousBeamNumbering::Axis::Y;
+    custom.yFramesAlongX = cc::core::ContinuousBeamNumbering::Sense::Negative;
+    ContinuousBeamNumberingDialog other{custom};
+    v = other.value();
+    EXPECT_EQ(v.baseReference, "Eje A");
+    EXPECT_EQ(v.firstAxis, cc::core::ContinuousBeamNumbering::Axis::Y);
+    EXPECT_EQ(v.yFramesAlongX, cc::core::ContinuousBeamNumbering::Sense::Negative);
+    buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_EQ(other.value().baseReference, "Pórtico 1");
+}
+
+TEST(OptionsDialogs, BeamNumberingModes) {
+    ensureApp();
+    BeamNumberingDialog dialog{cc::core::BeamNumbering::None};
+    EXPECT_EQ(dialog.size(), QSize(397, 233));
+    EXPECT_EQ(dialog.value(), cc::core::BeamNumbering::None);
+    BeamNumberingDialog other{cc::core::BeamNumbering::ByLevel};
+    EXPECT_EQ(other.value(), cc::core::BeamNumbering::ByLevel);
+    buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_EQ(other.value(), cc::core::BeamNumbering::None);
+}
+
+TEST(OptionsDialogs, JointMaterialsAndBolts) {
+    ensureApp();
+    JointMaterialsDialog materials{cc::core::JointMaterials{}};
+    EXPECT_EQ(materials.size(), QSize(291, 181));
+    auto m = materials.value();
+    EXPECT_EQ(m.rolledSteel, "S275 (UNE-EN 10025-2)");
+    EXPECT_EQ(m.anchorBoltSteel, "B 400 S, Ys = 1.15");
+    EXPECT_EQ(m.concrete, "C25/30");
+
+    JointOptionsDialog dialog{cc::core::BoltSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(671, 460));
+    auto b = dialog.value();
+    EXPECT_TRUE(b.iso4014);
+    EXPECT_TRUE(b.iso4017);
+    EXPECT_EQ(b.steelClass, "8.8");
+    EXPECT_TRUE(b.diameters[3]);   // M24
+    EXPECT_FALSE(b.diameters[4]);  // M30
+    EXPECT_FALSE(b.unusualDiameters);
+    cc::core::BoltSettings custom;
+    custom.steelClass = "10.9";
+    custom.diameters[9] = true;
+    custom.iso4017 = false;
+    JointOptionsDialog other{custom};
+    b = other.value();
+    EXPECT_EQ(b.steelClass, "10.9");
+    EXPECT_TRUE(b.diameters[9]);
+    EXPECT_FALSE(b.iso4017);
+    buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_EQ(other.value().steelClass, "8.8");
 }
 
 TEST(EmptyProjectWizard, OptionsButtonsPresent) {

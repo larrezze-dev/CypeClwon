@@ -272,7 +272,7 @@ void EmptyProjectWizard::buildOptions(QVBoxLayout* layout) {
         grid->addWidget(button, index / 2, index % 2);
         ++index;
         connect(button, &QPushButton::clicked, this, [this, family = family] {
-            std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(family, this));
+            std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(family, m_options, this));
             menu->exec();
         });
     }
@@ -462,8 +462,10 @@ void EmptyProjectWizard::buildPiles(QVBoxLayout* layout) {
         ++mrow;
     }
     auto* mAdvanced = new QPushButton(tr("Configuración avanzada"), micro);
-    mAdvanced->setEnabled(false);  // never opened in the original (ticket TK-016)
-    mAdvanced->setToolTip(tr("Diálogo pendiente de capturar en el original (ticket TK-016)."));
+    connect(mAdvanced, &QPushButton::clicked, this, [this] {
+        MicropileAdvancedDialog dialog(m_micropiles.advanced, this);
+        if (dialog.exec() == QDialog::Accepted) m_micropiles.advanced = dialog.value();
+    });
     mg->addWidget(mAdvanced, mrow, 0, 1, 5);
     mg->setRowStretch(mrow + 1, 1);
     tabs->addTab(micro, tr("Micropilotes"));

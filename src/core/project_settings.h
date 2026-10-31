@@ -160,10 +160,28 @@ struct PileSinkingSettings {
     bool isValid() const;
 };
 
+/// How a concrete-strength reduction is expressed: relative (times fc) or absolute (MPa).
+enum class StrengthBasis { Relative, Absolute };
+
+/// Tab "Comprobación estructural" (orig_pilotes_ca_comprobacion_estructural). The lists of the two Relativa/Absoluta
+/// combos were not opened in the original; both entries are offered for each combo. Valid ranges are unverified
+/// and not enforced beyond "finite and not negative" (ticket TK-016).
+struct PileStructuralSettings {
+    bool reduceConcreteStrength = true;  ///< "Considerar reducción de la resistencia del hormigón"
+    StrengthBasis precastBasis = StrengthBasis::Relative;  ///< driven precast pile
+    double precastValue = 1.00;                            ///< times fc when relative, MPa when absolute
+    StrengthBasis castInSituBasis = StrengthBasis::Absolute;  ///< cast-in-situ pile
+    double castInSituValue = 18.00;
+    double undrainedShearFactor = 1.40;  ///< Cu, partial factor for p-y curves
+    double unitWeightFactor = 1.00;      ///< gamma, partial factor for p-y curves
+    bool isValid() const;
+};
+
 struct PileAdvancedSettings {
     PileSinkingSettings sinking;
-    bool structuralCap = false;  ///< "Tope estructural" tab tick
-    bool isValid() const { return sinking.isValid(); }
+    PileStructuralSettings structural;
+    bool structuralCap = false;  ///< "Tope estructural" tab tick; the panel is empty in the original
+    bool isValid() const { return sinking.isValid() && structural.isValid(); }
 };
 
 /// Tab "Pilotes (Hormigón armado)" of the wizard.
@@ -178,7 +196,15 @@ struct PileSettings {
     bool isValid() const;
 };
 
-/// Tab "Micropilotes". Its "Configuración avanzada" was never opened in the original (TK-016).
+/// "Configuración avanzada" of micropiles (587x728). Tab "Hundimiento" reuses PileSinkingSettings: the micropile
+/// dialog shows only the shaft factors of the geotechnical group (geotechnicalShaft / geotechnicalShaftTension);
+/// tip and total stay at their defaults. The tab "Comprobación estructural" was not captured yet (ticket TK-016).
+struct MicropileAdvancedSettings {
+    PileSinkingSettings sinking;
+    bool isValid() const { return sinking.isValid(); }
+};
+
+/// Tab "Micropilotes" of the wizard.
 struct MicropileSettings {
     bool reducedAxial = true;
     double reducedAxialFactor = 0.00;
@@ -188,6 +214,7 @@ struct MicropileSettings {
     double corrosionThicknessMm = 0.60;  ///< "Reducción de espesor de la armadura por efecto de la corrosión"
     double tubularAreaFactor = 1.00;     ///< "Coeficiente de minoración del área de la armadura tubular"
     double executionFactor = 1.00;       ///< "Coeficiente de influencia del tipo de ejecución"
+    MicropileAdvancedSettings advanced;
     bool isValid() const;
 };
 

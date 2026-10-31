@@ -1,6 +1,7 @@
 #pragma once
 #include "CypeDialog.h"
 #include "core/limit_states.h"
+#include "core/options_settings.h"
 #include "core/project_settings.h"
 #include "core/standards.h"
 
@@ -28,6 +29,7 @@ public:
     const cc::core::LimitStatesSettings& limitStates() const { return m_limitStates; }
     const cc::core::PileSettings& piles() const { return m_piles; }
     const cc::core::MicropileSettings& micropiles() const { return m_micropiles; }
+    const cc::core::OptionsSettings& options() const { return m_options; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -53,6 +55,7 @@ private:
     cc::core::LimitStatesSettings m_limitStates;
     cc::core::PileSettings m_piles;
     cc::core::MicropileSettings m_micropiles;
+    cc::core::OptionsSettings m_options;
     QPushButton* m_environmentButton = nullptr;
     QLineEdit* m_persistentEdit = nullptr;
     QLineEdit* m_seismicEdit = nullptr;

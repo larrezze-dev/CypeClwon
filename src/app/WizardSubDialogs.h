@@ -1,8 +1,10 @@
 #pragma once
 #include <QStringList>
+#include <functional>
 #include <vector>
 
 #include "CypeDialog.h"
+#include "core/options_settings.h"
 #include "core/project_settings.h"
 
 class QButtonGroup;
@@ -12,6 +14,7 @@ class QDoubleSpinBox;
 class QLabel;
 class QLineEdit;
 class QTableWidget;
+class QTabWidget;
 
 namespace cc::app {
 
@@ -209,9 +212,28 @@ private:
     QTableWidget* m_table;
 };
 
-/// Pile "Configuración avanzada" (556x786). Only the "Hundimiento" tab is documented; the other two tabs show a
-/// placeholder (ticket TK-016).
-class PileAdvancedDialog : public DefaultsDialog {
+/// Shared "Hundimiento" tab of the pile and micropile "Configuración avanzada" dialogs.
+class PileAdvancedBase : public DefaultsDialog {
+    Q_OBJECT
+public:
+    using DefaultsDialog::DefaultsDialog;
+
+protected:
+    /// Builds the tab; `micro` selects the micropile variant (shaft-only geotechnical group, "micropilote" texts).
+    QWidget* buildSinkingTab(bool micro, QTabWidget* tabs);
+    void loadSinking(const cc::core::PileSinkingSettings& settings);
+    cc::core::PileSinkingSettings sinkingValue(cc::core::PileSinkingSettings base) const;
+
+private:
+    QComboBox* m_resistance = nullptr;
+    QLineEdit* m_reference = nullptr;
+    std::vector<std::pair<QDoubleSpinBox*, double cc::core::PileSinkingSettings::*>> m_sinkingSpins;
+    QComboBox* m_efficiency = nullptr;
+    QCheckBox* m_ignoreFar = nullptr;
+};
+
+/// Pile "Configuración avanzada" (556x786): tabs Hundimiento, Comprobación estructural and Tope estructural.
+class PileAdvancedDialog : public PileAdvancedBase {
     Q_OBJECT
 public:
     explicit PileAdvancedDialog(const cc::core::PileAdvancedSettings& initial, QWidget* parent = nullptr);
@@ -222,31 +244,47 @@ protected:
 
 private:
     void load(const cc::core::PileAdvancedSettings& settings);
-    QComboBox* m_resistance;
-    QLineEdit* m_reference;
-    std::vector<QDoubleSpinBox*> m_spins;  ///< ground (5), geotechnical (4), unit (4), K (1)
-    QComboBox* m_efficiency;
-    QCheckBox* m_ignoreFar;
+    void updateStrengthUnits();
+    QCheckBox* m_reduceStrength;
+    QComboBox *m_precastBasis, *m_castBasis;
+    QDoubleSpinBox *m_precastValue, *m_castValue, *m_cuFactor, *m_gammaFactor;
+    QLabel *m_precastUnit, *m_castUnit;
     QCheckBox* m_structuralCap;
 };
 
-/// One page of an OptionsMenuDialog: a title (shown in the side list when there is more than one page) and the
-/// captions of its buttons.
+/// Micropile "Configuración avanzada" (587x728): tab Hundimiento; the Comprobación estructural tab is a
+/// placeholder until it is captured from the original (ticket TK-016).
+class MicropileAdvancedDialog : public PileAdvancedBase {
+    Q_OBJECT
+public:
+    explicit MicropileAdvancedDialog(const cc::core::MicropileAdvancedSettings& initial, QWidget* parent = nullptr);
+    cc::core::MicropileAdvancedSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+};
+
+/// One page of an OptionsMenuDialog: a title (shown in the side list when there is more than one page), the
+/// captions of its buttons and which of them are enabled. Buttons that were not captured from the original yet
+/// (ticket TK-015) stay disabled.
 struct OptionsPage {
     QString title;
     QStringList buttons;
+    QStringList enabledButtons;
 };
 
-/// Menu opened by the Opciones buttons of the wizard (Pilares, Cimentación, Vigas, Uniones). The leaf dialogs
-/// behind each button were never captured from the original (ticket TK-015), so every button is disabled.
+/// Menu opened by the Opciones buttons of the wizard (Pilares, Cimentación, Vigas, Uniones). The enabled buttons
+/// call `onButton` with their caption.
 class OptionsMenuDialog : public CypeDialog {
     Q_OBJECT
 public:
+    using ButtonHandler = std::function<void(const QString&)>;
     OptionsMenuDialog(const QString& title, const QSize& size, const std::vector<OptionsPage>& pages,
-                      QWidget* parent = nullptr);
-    /// Menu for one of the four option families with the sizes and captions seen in the original.
+                      ButtonHandler onButton = {}, bool withCancel = false, QWidget* parent = nullptr);
+    /// Menu for one of the four option families with the sizes and captions seen in the original. The settings
+    /// are edited in place by the leaf dialogs and must outlive the menu.
     enum class Family { Columns, Foundation, Beams, Joints };
-    static OptionsMenuDialog* create(Family family, QWidget* parent = nullptr);
+    static OptionsMenuDialog* create(Family family, cc::core::OptionsSettings& settings, QWidget* parent = nullptr);
 };
 
 }  // namespace cc::app
