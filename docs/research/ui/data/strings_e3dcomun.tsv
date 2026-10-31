@@ -1,0 +1,137 @@
+# id<TAB>first-run string (usually es-ES; some runs start in another language)<TAB>6th string of run (usually en)
+# Source: e3dcomun.dll UTF-16LE "<id>text" tables, extracted statically 2026-10-31
+3150	Aluminio	Aluminiu
+25160	Товар от вятър	風荷重
+25161	Товар от сняг	積雪荷重
+25163	Експлоатационен товар	生荷重
+25164	Експлоатационни товари	生荷重
+25166	Контрол на изпълнението	実行管理
+25167	Análisis de la estabilidad global	Global stability analysis
+25168	Програмата не отчита динамичното въздействие на вятъра, макар че, според нормата, в такъв случай е препоръчително то да бъде отчетено.	このケースにおいて、コードによると動的風荷重を考慮に 入れる必要がありますが、プログラムはそれを考慮しません。
+27639	Hormigón	Calcestruzzo
+27923	Обединява	結合
+28270	Opciones	Opcións
+29473	Vigas centradoras	Strap beams
+29578	Tablas de armado	Reinforcement tables
+34914	Acero laminado	Rolled steel
+35213	Hormigón de limpieza	Magrone di sottofondazione
+35435	Pilares	Stâlpi
+36391	Zapatas	Plinti
+36408	Vigas	Grinzi
+36424	Hormigón armado	Calcestruzzo armato
+36435	Madera	Timber
+37001	Encepados	Plinti su pali
+38874	Знаци за разрез в прозореца с хоризонталния разрез	平面図ビューで断面をマークする
+38875	Монтажен план	レイアウトプラン
+41382	Recubrimientos	Cover
+43469	Cimentación	Foundations
+43479	Zapatas aisladas	Plinti isolati
+43552	Vigas de cimentación	Foundation beams
+46085	Почти постоянен	準恒久的
+46087	Proceso constructivo	Construction process
+46232	Situaciones de proyecto introducidas por el usuario	Situazioni di progetto inserite dall'utente
+46233	Categorías de uso	Categorie d'uso
+46239	Debido a los cambios realizados en '%s' se van a mostrar las categorías de uso definidas en la obra para que pueda adaptarlas a los cambios.	A causa dei cambi eseguiti in '%s' si mostreranno le categorie d'uso definite nel progetto affinché possa adattarle ai cambi.
+46254	Hipótesis adicionales	Ipotesi aggiuntive
+49804	Mermas de acero	Steel leftovers
+52750	Situaciones de proyecto	Situazioni di progetto
+55633	Ambiente	Çevre
+58736	Acero de barras	Acciaio di barre
+58764	Acero conformado	Acciao sagomato
+61362	Създава нова задача, в която трябва да се въведат всички данни необходими за описването на възлите, прътите, натоварванията и т.н.	Crea una obra nueva en la que tendrá que introducir todos los datos necesarios para describir los nudos, las barras, las cargas, etc.
+61363	Obra CYPE 3D	Projekt CYPE 3D
+61364	Списък произшествия	Liste des incidents
+61367	eléctrico	electric
+61368	ejemplo	exemplu
+61371	cercha	truss
+61372	edificio	Gebäude
+61373	fichero	file
+61375	La edición de vigas no está disponible para la configuración de normas seleccionada. Los elementos de este tipo han sido convertidos a elementos estructurales de tipo genérico.	La modifica delle travi non è disponibile per la configurazione di norme selezionata. Gli elementi di questo tipo sono stati convertiti in elementi strutturali di tipo generico.
+61376	La edición de pilares no está disponible para la configuración de normas seleccionada. Los elementos de este tipo han sido convertidos a elementos estructurales de tipo genérico.	La modifica dei pilastri non è disponibile per la configurazione di norme selezionata. Gli elementi di questo tipo sono stati convertiti in elementi strutturali di tipo generico.
+61377	Para las normas de cálculo de perfiles metálicos que ha seleccionado no se puede comprobar la resistencia al fuego.	Non è possibile verificare la resistenza al fuoco per le norme di calcolo selezionate relative ai profilati in acciaio.
+61378	Al cambiar la norma correspondiente a un tipo de material (acero laminado, madera, etc.), la selección de los materiales, para las barras de dicho tipo de material, se inicializa a su valor por defecto.	Cambiando la norma corrispondente a un tipo di materiale (acciaio laminato, legno, ecc.), la selezione dei materiali, per le aste costituite da tale tipo di materiale, si inizializza al suo valore di default.
+61379	Hormigón para pilares	Calcestruzzo per pilastri
+61380	Hormigón para vigas de forjado	Calcestruzzo per travi di solaio
+61381	Hormigón para vigas de cimentación	Calcestruzzo per travi di fondazione
+61383	Vigas de forjado	Floor slab beams
+61388	Valoración de errores	Error assessment
+61389	Граници на деформациите	Sehim sınırları
+61390	Заради осъществените промени, гредите трябва да се армират отново.	Yapılan değişiklikler nedeniyle kirişlerin donatısı yeniden düzenlenmelidir.
+61391	Заради осъществените промени, колоните трябва да се армират отново.	Yapılan değişiklikler nedeniyle kolonların yeniden montajı gerekmektedir.
+61392	Hormigón para elementos de cimentación	Calcestruzzo per elementi di fondazione
+61393	Numeración de vigas continuas	Numbering of continuous beam
+61394	Numeración de vigas	Beam numbering
+61395	Si ha seleccionado, para la acción de sismo, una norma con análisis dinámico, no puede introducir hipótesis de carga adicionales de sismo.	Se, per l'azione sismica, ha selezionato una norma che prevede l'analisi modale, non può inserire nessuna ipotesi sismica di carico aggiuntiva.
+61396	Позволява да променяте, добавяте или да изтривате допълнителни товарни съчетания на задачата, и също да установите условия за съвместимост между тях	Projeye ait ek yükleme varsayımlarını düzenlemeye, eklemeye ve silmeye, ayrıca aralarındaki uyumluluk koşullarını belirlemeye olanak tanır
+61397	Si la placa de anclaje se ha dispuesto sobre un elemento de cimentación, el programa asume, automáticamente, el tipo de hormigón seleccionado en éste último para comprobar y dimensionar la placa de anclaje.	Se la piastra di ancoraggio è stata disposta al di sopra di un elemento di fondazione, il programma automaticamente adotta il tipo di calcestruzzo con cui è realizzato tale elemento per dimensionare e verificare la piastra di ancoraggio.
+62193	Estructura	Konstrukcja
+64352	No hay ningún campo seleccionado.	Non è stato selezionato nessun campo.
+64359	Aceros laminados y armados	Acciai laminati e saldati
+64360	Normas consideradas	Standarde luate în considerare
+64361	Datos de obra	Job data
+64943	Perfiles	Sections
+65325	Начална стойност	初期値
+67185	Estados límite	Stati limite
+71597	Calcular	Oblicz
+73636	Горна армировъчна мрежа	上端筋メッシュ
+73637	Долна армировъчна мрежа	下端筋メッシュ
+74794	Normas	Normen
+74847	Planta	Geschoss
+74885	Plano de pórticos	Disegno esecutivo di telai
+74888	Nueva obra	Proiect nou
+74995	Obra vacía	Empty project
+75402	Редактиране на таблици за долна носеща арм	追加の下端筋編集
+76394	Променя конструкция	Yapıyı düzenle
+76395	Изтрива съединение	Bağlantıyı sil
+76396	Определя денивелация	Seviye farkı ata
+76397	Списък на интегрираните 3Д конструкции	統合された3D構造のリスト
+76399	Денивелация на съединението	接合の標高差
+76402	Няма нито един възел с външна зависимост от 3Д конструкцията.	3D yapıda dış mesnete sahip herhangi bir düğüm bulunmamaktadır.
+76403	Премества конструкция	Yapıyı taşı
+76404	Копира конструкция	Yapıyı kopyala
+76405	Завърта конструкция	Yapıyı döndür
+82357	Uniones	Joints
+123097	Vigas centradoras y de atado	Travi di collegamento e cordoli di collegamento
+127953	Норма за валцована стомана	圧延鋼規格
+127954	Норма за студено-огъната стомана	Soğuk şekillendirilmiş çelik standardı
+127956	Норма за екструдиран алуминий	押し出しアルミニウム規格
+127959	Selección de normas	Selezione di norme
+138713	Compartir	Share
+139006	Datos generales	General data
+139010	Listados	Relazioni
+139105	Vigas de atado	Cordoli di collegamento
+143971	Consultar	Konsultuj
+156821	Якост	Dayanım
+156895	Combinaciones	Combinations
+157122	Materiales	Materiale
+157870	Има товари, участващи в несъществуващо вече товарно съчетание. Всички тези товари ще бъдат изтрити от задачата.	存在しない荷重ケースに属する荷重が見つかりました。これらの荷重は すべて削除されます。
+165459	Свойства на добавъчния материал	骨材のプロパティ
+170297	Comprobación de fisuración	Verifica di fessurazione
+173182	Конзолно издаване отлявао	左突出部
+173183	Конзолно издаване отдясно	右突出部
+173192	С тази форма фундамента не е в равновесие. Трябва да промените размерите.	Bu geometriyle temel dengede değildir. Boyutların değiştirilmesi gerekir.
+173217	Ивичен фундамент	Şerit temel
+173219	Ширина на фундамента	Temel genişliği
+175762	Acciones	Azioni
+191867	Resistencia al fuego	Fire resistance
+197375	За сеизмичния анализ, коравината на второстепенните елементи ще бъде редуцирана прилагайки коефициент дефиниран в "%s" в "%s". Това редуциране няма да бъде приложено към масите на второстепенните елементи.	Sismik analiz için, ikincil elemanların rijitliği, '%s' ve '%s' parametrelerinde tanımlanan faktör uygulanarak azaltılacaktır. Bu azalma, ikincil elemanların kütlesine uygulanmayacaktır.
+204286	Второстепенните елементи подложени на сеизмични въздействия, са конструктивни елементи, които не са част от антисеизмичната система поемаща тези въздействия.	Deprem etkisine karşı ikincil elemanlar, binanın bu etkisine karşı direnç sisteminin bir parçası olmayan yapısal elemanlardır.
+209929	Главен панел срещу сеизмични въздействия	Sismik etkiye karşı birincil paneller
+209930	Второстепенен панел срещу сеизмични въздействия	Sismik etkiye karşı ikincil paneller
+221086	Comentarios del proyecto	Appunti di progetto
+225427	Para conectarse a un proyecto o compartir los resultados debe haberse identificado en BIMserver.center. Tras haber iniciado su sesión en BIMserver.center, no necesita estar conectado continuamente a internet para trabajar.	To connect to a project or share results, you must first identify yourself on BIMserver.center. Once signed in to BIMserver.center, you do not need to be constantly connected to the internet to work.
+256113	Biblioteca de aceros de usuario	Steel user library
+256514	Ефект от вертикална сеизмична компонента	鉛直地震コンポーネントの影響
+282958	¿Desea desvincular esta obra del proyecto BIM?	Do you wish to unlink this project from the BIM project?
+282963	Vincular	Povezati
+328440	Не е възможно да експортирате силите за анализа на съединенията.	Bağlantı analizine yönelik kuvvetler dışa aktarılamaz.
+328796	Obteniendo los esfuerzos para el cálculo de las uniones	Obtaining forces to design connections
+328797	Exportar los esfuerzos para el cálculo de las uniones	Export forces to design connections
+352836	Para compartir los resultados debe haber seleccionado un proyecto alojado en BIMserver.center.	To be able to share the results, you must select a project located on BIMserver.center.
+379692	Actualizar las rigideces rotacionales de los extremos de las piezas	Update the rotational stiffness of the element ends
+379693	Las aportaciones seleccionadas no contienen resultados del análisis de rigidez rotacional de las uniones.	The selected contributions do not contain results of the rotational stiffness analysis of the connections.
+379694	Se ha modificado la rigidez rotacional de algunas piezas. Es necesario volver a realizar el cálculo de esfuerzos del modelo.	The rotational stiffness of some parts has been modified. The forces of the model must be recalculated.
+379695	No se ha modificado la rigidez rotacional de ninguna pieza.	The rotational stiffness of any parts has not been modified.
+392426	Análisis lineal	Linear analysis
+392427	Análisis no lineal	Non-linear analysis
+393595	При деактивиране на динамичното земетресение всички нелинейни комбинации, в които участва сеизмичната хипотеза, ще бъдат премахнати.	Dinamik deprem etkisi devre dışı bırakıldığında, deprem varsayımının dahil olduğu tüm doğrusal olmayan kombinasyonlar silinecektir.

@@ -13,10 +13,10 @@ tr.ok td:nth-child(4){color:var(--ok)}tr.wip td:nth-child(4){color:var(--wip)}
 details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 .tw{overflow-x:auto}
 </style></head><body>
-<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 10:50 Â· generado desde .tasks.md</div>
-<div class="kpi"><div><b>7.8%</b>completado</div><div><b>9</b>finalizadas</div><div><b>0</b>en marcha</div><div><b>107</b>pendientes</div><div><b>116</b>tareas</div></div>
-<h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:56%'></i><i class='w' style='width:0%'></i></div></td><td>9/16</td></tr>
-<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/9</td></tr>
+<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 11:01 Â· generado desde .tasks.md</div>
+<div class="kpi"><div><b>12.1%</b>completado</div><div><b>14</b>finalizadas</div><div><b>0</b>en marcha</div><div><b>102</b>pendientes</div><div><b>116</b>tareas</div></div>
+<h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:75%'></i><i class='w' style='width:0%'></i></div></td><td>12/16</td></tr>
+<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:22%'></i><i class='w' style='width:0%'></i></div></td><td>2/9</td></tr>
 <tr><td>F2 Â· Inicio y asistentes</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/9</td></tr>
 <tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/5</td></tr>
 <tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/10</td></tr>
@@ -49,12 +49,12 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='ok'><td>T-PLN-03</td><td>F0</td><td>Obtener aprobaci&#243;n del stack y del alcance normativo MVP</td><td>[x]</td><td>Aprobado 2026-10-31; usuario elige embeber OpenSees (D2)</td></tr>
 <tr class='ok'><td>T-PLN-04</td><td>F0</td><td>Integrar stack aprobado en .planning.md</td><td>[x]</td><td>.planning.md v0.2</td></tr>
 <tr class='ok'><td>T-PLN-05</td><td>F0</td><td>Crear agentes en .claude/agents/</td><td>[x]</td><td>11 agentes con modelo asignado</td></tr>
-<tr class='todo'><td>T-STK-01</td><td>F0</td><td>Verificar licencia de Qt 6 (LGPL) y requisitos de distribuci&#243;n portable</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-STK-02</td><td>F0</td><td>Verificar licencia/estado Qt 6 de SARibbon</td><td>[ ]</td><td>B&#250;squeda: MIT, Qt 6.8</td></tr>
-<tr class='todo'><td>T-STK-03</td><td>F0</td><td>Verificar licencias de librer&#237;as IFC/DXF/DWG/glTF</td><td>[ ]</td><td>Evitar GPL</td></tr>
+<tr class='ok'><td>T-STK-01</td><td>F0</td><td>Verificar licencia de Qt 6 (LGPL) y requisitos de distribuci&#243;n portable</td><td>[x]</td><td>Qt 6 LGPLv3, enlace din&#225;mico, solo m&#243;dulos LGPL; docs/research/05</td></tr>
+<tr class='ok'><td>T-STK-02</td><td>F0</td><td>Verificar licencia/estado Qt 6 de SARibbon</td><td>[x]</td><td>SARibbon MIT v2.9.6, Qt 6.8 LTS verificado; docs/research/05</td></tr>
+<tr class='ok'><td>T-STK-03</td><td>F0</td><td>Verificar licencias de librer&#237;as IFC/DXF/DWG/glTF</td><td>[x]</td><td>tinygltf MIT, IfcOpenShell LGPL, libdxfrw/LibreDWG GPL (evitar → parser DXF propio); docs/research/05</td></tr>
 <tr class='ok'><td>T-GIT-01</td><td>F0</td><td>Commit inicial de documentaci&#243;n y push a GitHub</td><td>[x]</td><td>Commit 3d61d4c subido; LICENSE MIT a&#241;adida</td></tr>
-<tr class='todo'><td>T-P1-01</td><td>F1</td><td>Proyecto CMake + vcpkg manifest + CTest + GoogleTest</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P1-02</td><td>F1</td><td>CI local: script build+test</td><td>[ ]</td><td></td></tr>
+<tr class='ok'><td>T-P1-01</td><td>F1</td><td>Proyecto CMake + vcpkg manifest + CTest + GoogleTest</td><td>[x]</td><td>CMake+presets, vcpkg (gtest, eigen3), Qt 6.8.3 en .toolchain/, CTest 2/2 OK; MSVC 14.51 (Build Tools 2026)</td></tr>
+<tr class='ok'><td>T-P1-02</td><td>F1</td><td>CI local: script build+test</td><td>[x]</td><td>tools/build.ps1 [-Config release</td></tr>
 <tr class='todo'><td>T-P1-03</td><td>F1</td><td>Ventana principal frameless con barra de t&#237;tulo roja y botones sesi&#243;n</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P1-04</td><td>F1</td><td>Integrar SARibbon con las 8 pesta&#241;as</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P1-05</td><td>F1</td><td>Barra de acceso r&#225;pido (guardar, deshacer, rehacer, imprimir…)</td><td>[ ]</td><td></td></tr>
