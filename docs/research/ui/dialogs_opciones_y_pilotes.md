@@ -52,3 +52,51 @@ Opciones > Pilares (19 diálogos hoja), Cimentación (hojas de Opciones y Tablas
 - **Icono (i) de Comprobación estructural** (`orig_pilotes_ca_info`): diálogo "Información" (650x218) con icono azul, botón Aceptar y el texto: "Es recomendable considerar una reducción en la resistencia característica del hormigón por razones constructivas relacionadas con la ejecución de los pilotes hormigonados in situ. Esta reducción se considera en la comprobación de los estados límite de agotamiento tanto frente a solicitaciones normales como de cortante."
 - **Tope estructural con la casilla marcada** (`orig_pilotes_ca_tope_marcado`): aparecen **Pilote prefabricado hincado**: Relativa 0.30 · fc y **Pilote hormigonado in situ**: Absoluta 3.50 MPa.
 - **Micropilotes - Comprobación estructural** (`orig_micropilotes_ca_comprobacion_estructural`): solo el grupo "Coeficientes parciales de seguridad para el terreno (Curvas p-y)": Cu 1.40 y γ 1.00.
+
+## Captura B (2026-10-31, sesión 3): hojas de Cimentación, Vigas y Uniones [verificado]
+Fuente: `tools/drive_original.ps1` con `build/steps_b.txt`. Todas las ventanas llevan Aceptar/Cancelar salvo indicación.
+
+### Cimentación > Opciones (hojas)
+- **Hormigón de limpieza** (`orig_opc_cim_opciones_1`, 277x178): tres casillas, todas desmarcadas: *Zapatas*, *Encepados*, *Vigas centradoras y de atado*.
+- **Comprobación de fisuración** (`orig_opc_cim_opciones_2`, 589x435): grupos *Zapatas* y *Vigas centradoras y de atado*, cada uno con casilla "Comprobar fisuración" (desmarcada) y "Abertura límite de fisuras" 0.30 mm (deshabilitado hasta marcar). Panel gris "Valores recomendados": Piezas protegidas 0.3 mm; Piezas no protegidas (en medio no agresivo) 0.2 mm; Piezas no protegidas (en medio agresivo) 0.1 mm. Nota: si los recubrimientos empleados son superiores a los mínimos de la norma, se puede aumentar la abertura multiplicándola por la relación entre el recubrimiento empleado y el mínimo.
+- **Encepados** (`orig_opc_cim_opciones_4`, 428x631): pestañas *Generales*, *Un pilote*, *Vigas de encepado*, *Vigas y parrillas*, *Ar...* (con flechas de desplazamiento). Pestaña Generales:
+  - Vuelos: Vuelo mínimo sobre pilote 0.25 m; Vuelo mínimo sobre apoyo 0.15 m.
+  - Cantos: combo "Criterios de canto mínimo" = *Canto mínimo según norma EHE*; Canto mínimo 0.20 m (deshabilitado); Canto máximo 2.50 m.
+  - Barras: Separación mínima entre barras 0.05 m; Diámetro máximo 25.0 mm.
+  - Cargas por pilote: casilla "Con cargas por pilote" (desmarcada); Fracción de carga 1.00 y Coeficiente de mayoración de carga 1.50 (deshabilitados).
+  - Pie: "Grabar como opciones por defecto", Aceptar / Valores de instalación / Cancelar. Las demás pestañas no se abrieron (hueco).
+- **Vigas centradoras** (`orig_opc_cim_opciones_5`, 399x245): Ángulo tolerancia centrado 15.0 grados; casilla "Disponer estribos dentro de la cimentación" (desmarcada); combo "Tipo centrado" = *Ley rectangular de tensiones bajo la zapata* con botón (?); casilla "Mínimos geométricos a tracción" (desmarcada) con valor 0.00100 (deshabilitado). Grabar como opciones por defecto; Aceptar / Valores de instalación / Cancelar.
+- Tooltips capturados en lugar de diálogo: `opciones_3` (casilla de **Zapatas aisladas**) "Colocar parrilla superior si es necesaria en zapatas aisladas: en el caso en que aparezcan despegues en la zapata, puede ocurrir que el momento negativo producido por el peso propio de la zapata haga necesaria la colocación de una armadura superior. Si esta opción está activada, se colocará armadura superior en el caso en que ésta sea necesaria por cálculo."; `opciones_6` tooltip de "Valores de instalación": "Permite recuperar los valores iniciales para todos los campos del cuadro de diálogo...". **Hueco:** hojas Zapatas aisladas y Vigas de atado de Opciones.
+
+### Cimentación > Tablas de armado
+- **Zapatas aisladas** (`orig_opc_cim_tablas_1`, 481x267) y **Vigas de atado** (`orig_opc_cim_tablas_3`, 491x267): texto introductorio ("Esta tabla de armado se utiliza para dimensionar el armado inferior y superior de las zapatas aisladas." / "...para el dimensionamiento de las secciones de vigas de atado"); tres radios: **Tabla predefinida** (por defecto, con botón "Tabla de armado para zapatas" / "Tabla de vigas de atado" e icono de guardar), **Tabla de biblioteca** (botón "..." e icono de tabla, deshabilitado), **Tabla especial** (botón "Editar tabla" e icono, deshabilitado). Tooltip del primer radio: "Seleccionar una tabla predefinida. Permite seleccionar una tabla predefinida. En la mayoría de los casos solamente existirá una tabla predefinida." (`tablas_2`, hueco: hoja de Vigas centradoras).
+
+### Vigas > Opciones: páginas
+Cada página es un panel de botones centrados. Orden y textos:
+1. *Tablas de armado en vigas* (8): Armadura de montaje en secciones rectangulares; ... con un ala; ... con dos alas; Armadura transversal; Armadura portaestribos; Armadura de piel; Armadura superior de refuerzo; Armadura inferior de refuerzo.
+2. *Disposiciones de armado* (9): Recubrimientos en vigas; Separación entre capas de armadura longitudinal; Selección de estribado; Longitud de anclaje en cierre de estribos; Vigas de celosía; Tipo de patilla; Biblioteca de vigas pretensadas; Redondeo de longitud de barras; Longitud máxima de una barra.
+3. *Esfuerzos* (4): Momentos mínimos a cubrir con armadura en vigas; Coeficientes para multiplicar los esfuerzos; Coeficiente de redistribución de negativos; Esfuerzos para dimensionamiento y comprobación.
+4. *Dimensionamiento / Comprobación* (13): Armados de jácenas; Montaje; Armadura de negativos; Armadura de positivos; Anclajes; Armadura transversal; Armadura portaestribos; Armadura de piel; Consideración del armado a torsión en vigas; Despiece de armado de vigas con sismo; Ángulo de inclinación de las bielas de compresión; Tolerancias en comprobaciones de separación; Cálculo de la resistencia a cortante.
+5. *Vigas metálicas* (1): Longitud a considerar en vigas metálicas.
+6. *Planos* (2): Tipo de representación; Opciones para dibujo de brochales.
+
+### Vigas > Tablas de armado (`orig_opc_vigas_p1_1..8`)
+- **Tablas con rejilla** (979x986, con botón de maximizar; barra de 7 iconos arriba, columna derecha de 4 iconos de biblioteca, pie con navegación de páginas "Página 1"): *Montaje en secciones rectangulares* (columnas Armadura longitudinal Nºsup./Øsup./Nºinf./Øinf., Referencia arm. long., Armadura transversal Disposiciones/Estribos (lápiz), Anchura [cm] Desde/Hasta, Canto [cm] Desde/Hasta, Referencia arm. trans., columna de validez; 21+ filas; p. ej. fila 1: 1 Ø10 / 1 Ø10, 1r, -- a 10; filas 4-18: 2 barras, 1e, 11 a 35; fila 19: 3 barras Ø10/Ø10 con 1e 25-55, 1e+1r 25-65, 2e 25-65). *Con un ala* (grupos Alma/Ala/Montaje Ø6; disposiciones 2e y 2e+1r). *Con dos alas* (Ala izquierda/Alma/Ala derecha/Montaje).
+- **Armadura transversal** (343x229): "Diámetros admisibles: Ø6, Ø8, Ø10, Ø12, Ø16" y "Separaciones (cm): 5.0, 6.0, 7.0, 8.0, ..., 30.0", cada uno con botón de edición.
+- **Armadura portaestribos** (359x347) y **Armadura de piel** (229x315): tabla Diámetros/Admisible con ✓/✗. Portaestribos: Ø6-Ø25 ✓, Ø32 ✗; casilla "Disponer armadura de montaje en alas". Piel: Ø6 ✗, Ø8-Ø25 ✓, Ø32 ✗.
+- **Armadura superior/inferior de refuerzo** (356x582, idénticas): "Diámetros admisibles: Ø10, Ø12, Ø16, Ø20, Ø25" (botón de edición); "Separación libre mínima entre barras" 2.0 cm; matriz Montaje (Ø6-Ø32) x Refuerzo 1 (Ø10-Ø25) y matriz Refuerzo 1 (Ø10-Ø25) x Refuerzo 2 (Ø10-Ø25) con ✓/✗ (✗ cuando el refuerzo es menor que el montaje: Ø20 con Ø10; Ø25 con Ø10 y Ø12; Ø32 con Ø10 y Ø12; en la segunda matriz, Ø20 con Ø10 y Ø25 con Ø10 y Ø12).
+- Todas llevan columna derecha con cuatro iconos (biblioteca). Hueco: función exacta de cada icono.
+
+### Vigas > Límites de flecha: editores (lápices)
+Ventanas "Límites de flecha (Hormigón | Acero laminado | Acero conformado | Madera)" con secciones *Instantánea, por tipo de hipótesis simple* (Carga permanente, Sobrecarga), *Instantánea, por tipo de combinación de acciones*, *A plazo infinito...* (solo Hormigón y Madera) y *Activa a largo plazo...* (Característica/Frecuente/Cuasipermanente); cada fila muestra "----" o "L/ n" y un botón lápiz.
+- Hormigón (405x481): plazo infinito Cuasipermanente L/ 250; activa a largo plazo Cuasipermanente L/ 500; "Construcción del elemento dañable" 3 x meses (combo).
+- Acero laminado (385x356): todo "----", sin plazo infinito ni elemento dañable.
+- Acero conformado (385x391): Sobrecarga L/ 350; Cuasipermanente instantánea L/ 300; Característica activa L/ 400; elemento dañable 3 x meses; icono CTE.
+- Madera (405x481): Sobrecarga L/ 350; plazo infinito Cuasipermanente L/ 300; activa Característica L/ 400; elemento dañable 3 x meses; icono CTE.
+- Hueco: el editor que abre cada lápiz.
+
+### Uniones > Opciones: pestañas 2-4 (671x460)
+- **Tornillería pretensada**: Series de tornillos (radios ISO 7411, ISO 7412, **EN 14399-3 (HR)** por defecto, EN 14399-4 (HV)); Clase de acero (8.8, **10.9**); Diámetros disponibles M12, M16, M20, M24, M27, M30, M36 (todos marcados) y casilla "Utilizar diámetros no habituales"; Clase de la superficie de rozamiento (Código Estructural, Anejo 21): A (µ = 0.50), B (µ = 0.40), **C (µ = 0.30)**, D (µ = 0.20) con cuadro azul claro de descripción (C: "Superficies limpiadas a cepillo metálico o con llama, con eliminación de partes oxidadas.").
+- **Rigidizadores**: "Disponer siempre en uniones pilar-viga" (desmarcada) y "...en uniones de cumbrera" (desmarcada); radios "Rigidizadores sin recortes" y **"Rigidizadores con recortes"** (defecto) con iconos.
+- **Placa de anclaje**: Relación máxima vuelo-espesor 20.00; ancho-espesor 30.00; Espesor máximo recomendable para placas 15.0 mm; Espesor del mortero de nivelación 2.00 cm; Ángulo en bisel para rigidizadores 45.00 grados; Relación máxima suma de lados-diámetro de pernos 50.00; combo "Anclaje pernos-placa" = *Soldados con preparación de bordes*.
+- Pie común: "Grabar como opciones por defecto", Aceptar / Valores de instalación / Cancelar. Imagen decorativa a la izquierda en las tres primeras pestañas.
