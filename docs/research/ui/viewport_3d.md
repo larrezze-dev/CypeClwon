@@ -45,3 +45,18 @@ Selección (continuación): este barrido no localizó la herramienta de selecci�
 ## Pestaña Geometría (captura geo_tab.png, aportada la pista por el usuario)
 
 Grupos: Planos | Nudos (Nuevo, Borrar, Mover) | Barras (Barra, Pilar, Viga, Pieza, Borrar, Disposición, Sección, Material, Mover extremo, Invertir eje 'x', Agrupar, Desagrupar, Información, Edición de pilares, Edición de vigas) | Láminas (Nueva, Borrar, Disposición, Sección, Material, Mover, Unir, Dividir, Invertir eje 'z', Definir eje 'x', Ejes locales) | Herramientas (Generar y 8 herramientas con icono) | Importar (DXF o DWG, Fichero de texto, Reparar). Hipótesis de trabajo para T-P4-03: la selección en CYPE 3D ocurre dentro de cada comando (Borrar, Mover, Sección...), con el puntero sobre la vista; hay que probar 'Borrar' de Nudos/Barras (sin confirmar) y 'Mover' con ventana/cruce, Ctrl y Mayús. Próxima sesión: activar esos comandos con drive_original (sshot) y observar resaltado, cursor y barra de estado. 'Seleccione una opción del menú.' es el texto de la barra de estado en reposo.
+
+## Selección dentro de un comando (T-P4-03, sesión 12, capturas s12_*.png)
+
+Método: `drive_original.ps1 -StartupMs 17000`, Geometría (136,36) > Nudos > Borrar (115,68), sin confirmar nada (ESC, nunca botón derecho). La ayuda web de CYPE no describe la selección (solo vídeos de learning.cype.com), así que todo sale de pruebas.
+
+| Hecho | Detalle |
+|---|---|
+| Barra de estado al activar el comando | `Nudos - Borrar | - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.` Es decir: botón izquierdo selecciona, **botón derecho ejecuta** sobre lo seleccionado. |
+| Aspecto de la vista en el comando | Las líneas guía naranjas desaparecen; quedan barras negras y nudos como cuadrados azules (~14 px). Se activan los iconos de la barra superior de selección (x=1760 y 1786). |
+| Rectángulo de ventana (arrastre izq.-der.) | Rectángulo **continuo** negro de 1 px. |
+| Rectángulo de cruce (arrastre der.-izq.) | Rectángulo **discontinuo** negro de 1 px. |
+| Resaltado al pasar el cursor | Con el cursor sobre un nudo, el cuadrado pasa de azul a **naranja/ámbar** y aparece una etiqueta `N3 (4, 0, 3)` (referencia y coordenadas en m) pegada a la esquina superior derecha del área 3D (opción "Posición de los tooltips"). Solo se vio con espera de 800 ms tras mover el cursor. |
+| Opción "Dimensiones de los nudos" | 15.0 cm en el panel izquierdo (pendiente comprobar si gobierna el tamaño del cuadrado). |
+
+Sin resolver: ni el clic, ni Ctrl+clic, ni Mayús+clic, ni la ventana dejaron un resaltado persistente de "seleccionado" tras soltar; además el rectángulo apareció desplazado ~(+95,+85) px respecto a las coordenadas del script (posible artefacto de `drag` en `drive_original.ps1`). Falta ver el aspecto de un elemento ya seleccionado, probablemente con otra comprobación (p. ej. mover el cursor fuera tras el clic) y con Barras > Borrar/Sección y Nudos > Mover.
