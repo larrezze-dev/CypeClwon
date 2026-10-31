@@ -31,3 +31,16 @@ Fuente: [captura] `07_ribbon_tabs.png` pestaña Obra no está en esa captura (so
 
 ## No verificado
 Todos los valores por defecto, rangos numéricos, estructura del diálogo Datos generales (por pestañas: ver wizard en `01_reverse_engineering_findings.md`), diálogos BIMserver.center, captura de la pestaña Obra.
+
+## Captura real de la pestaña Obra (2026-10-31, `docs/screenshots/orig_obra_tab.png`, TK-022)
+Original v2027.a con una obra vacía abierta, ventana maximizada 1920x1032. Título de ventana: **"CYPE 3D v2027.a - orig_obra.ed3"** (sin marca de modificada en una obra recién creada).
+Pestañas: Obra (seleccionada al abrir), Geometría, Propiedades, Carga, Uniones, Cálculo, Armaduras, Ventana. Grupos de la pestaña Obra, de izquierda a derecha:
+| Grupo | Contenido (verificado en pantalla) |
+|---|---|
+| (sin título) | **Datos generales**: botón grande (icono de hoja con lista, texto en dos líneas "Datos / generales") |
+| Obra | Tres filas de botones pequeños con icono: Biblioteca de perfiles, Catálogos de fabricante, Biblioteca de rótulas plásticas; segunda columna: Rendimiento, Unidades de acotación |
+| Numeración | Botones grandes **Editar** y **Reiniciar** (iconos "123") |
+| Vista 3D | Estructura completa, Ventana activa, Selección de elementos (deshabilitados), **Uniones** (botón de alternancia, pulsado) |
+| Listados | Elementos seleccionados, CSV de los elementos seleccionados, Etiquetas de vigas (deshabilitados) |
+| BIMserver.center | Vincular (habilitado), Desvincular, Consultar, Compartir (deshabilitados) |
+Resto de la ventana: barra de herramientas superior derecha con iconos, panel izquierdo Etiquetas / Categorías (Nudos, Barras, Tirantes, Pilares, Vigas, Paños, Láminas) / Opciones de visualización, vista 3D con tooltip de coordenadas, pestañas inferiores Estructura / Cimentación y barra de estado "Seleccione una opción del menú.".

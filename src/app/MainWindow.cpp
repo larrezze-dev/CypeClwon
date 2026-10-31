@@ -304,7 +304,6 @@ void MainWindow::setProjectOpen(bool open) {
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.
     ribbonBar()->setMinimumMode(!open);
-    if (open) ribbonBar()->setCurrentIndex(0);
     for (SARibbonCategory* category : ribbonBar()->categoryPages()) {
         if (open) {
             ribbonBar()->showCategory(category);
@@ -312,6 +311,8 @@ void MainWindow::setProjectOpen(bool open) {
             ribbonBar()->hideCategory(category);
         }
     }
+    // After showing the tabs: showCategory leaves the last one selected, and the original opens on "Obra".
+    if (open) ribbonBar()->setCurrentIndex(0);
     statusBar()->showMessage(open ? tr("Seleccione una opción del menú.")
                                   : tr("Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente."));
 }
