@@ -771,3 +771,36 @@ TEST(OptionsSettings, FoundationAndBeamTableDefaults) {
     o.foundation.pileCap.general.maxDepthM = 0.1;  // below the minimum depth
     EXPECT_FALSE(o.isValid());
 }
+
+TEST(EmptyProjectWizard, EditModeIsTheDatosGeneralesPage) {
+    ensureApp();
+    cc::core::GeneralData data;
+    data.profiles.hotRolledSteel = "S355 HISTAR®";
+    data.ground.persistentStressMPa = 0.35;
+    data.actions.dynamicSeismic = true;
+    EmptyProjectWizard wizard(data, EmptyProjectWizard::Mode::Edit);
+    EXPECT_EQ(wizard.windowTitle(), QStringLiteral("Datos generales"));
+    EXPECT_EQ(wizard.size(), QSize(848, 774));
+    // Only Aceptar (default); none of the wizard buttons.
+    ASSERT_NE(buttonWithText(&wizard, "Aceptar"), nullptr);
+    EXPECT_TRUE(buttonWithText(&wizard, "Aceptar")->isDefault());
+    EXPECT_EQ(buttonWithText(&wizard, "Cancelar"), nullptr);
+    EXPECT_EQ(buttonWithText(&wizard, "Terminar"), nullptr);
+    EXPECT_EQ(buttonWithText(&wizard, "Siguiente >"), nullptr);
+    // The page shows the project's values and hands them back unchanged.
+    EXPECT_EQ(wizard.profiles().hotRolledSteel, "S355 HISTAR®");
+    EXPECT_TRUE(cc::core::sameGeneralData(wizard.generalData(), data));
+    bool shown = false;
+    for (QComboBox* combo : wizard.findChildren<QComboBox*>())
+        if (combo->currentText() == QStringLiteral("S355 HISTAR®")) shown = true;
+    EXPECT_TRUE(shown);
+}
+
+TEST(EmptyProjectWizard, EditModeReportsTheChanges) {
+    ensureApp();
+    EmptyProjectWizard wizard(cc::core::GeneralData{}, EmptyProjectWizard::Mode::Edit);
+    for (QComboBox* combo : wizard.findChildren<QComboBox*>())
+        if (combo->findText(QStringLiteral("S355 HISTAR®")) >= 0) combo->setCurrentText(QStringLiteral("S355 HISTAR®"));
+    EXPECT_FALSE(cc::core::sameGeneralData(wizard.generalData(), cc::core::GeneralData{}));
+    EXPECT_EQ(wizard.generalData().profiles.hotRolledSteel, "S355 HISTAR®");
+}

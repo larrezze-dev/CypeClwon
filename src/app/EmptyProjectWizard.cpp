@@ -53,7 +53,25 @@ QString qs(const std::string& s) { return QString::fromStdString(s); }
 
 }  // namespace
 
-EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra vacía"), parent) {
+EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : EmptyProjectWizard(cc::core::GeneralData{}, Mode::Create, parent) {}
+
+cc::core::GeneralData EmptyProjectWizard::generalData() const {
+    return cc::core::GeneralData{m_standards, m_profiles, m_concrete, m_actions, m_environment,
+                                 m_ground,    m_limitStates, m_piles, m_micropiles, m_options};
+}
+
+EmptyProjectWizard::EmptyProjectWizard(const cc::core::GeneralData& initial, Mode mode, QWidget* parent)
+    : CypeDialog(mode == Mode::Create ? tr("Obra vacía") : tr("Datos generales"), parent),
+      m_standards(initial.standards),
+      m_profiles(initial.profiles),
+      m_concrete(initial.concrete),
+      m_actions(initial.actions),
+      m_environment(initial.environment),
+      m_ground(initial.ground),
+      m_limitStates(initial.limitStates),
+      m_piles(initial.piles),
+      m_micropiles(initial.micropiles),
+      m_options(initial.options) {
     setFixedSize(848, 774);
 
     auto* normsRow = new QHBoxLayout;
@@ -91,6 +109,17 @@ EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra va
     buildPiles(right);
 
     QHBoxLayout* footer = setupCustomFooter();
+    if (mode == Mode::Edit) {
+        // Obra > Datos generales: a single, default Aceptar button; closing the window with the cross discards the edit.
+        m_finish = new QPushButton(tr("Aceptar"), this);
+        m_finish->setDefault(true);
+        footer->addStretch(1);
+        footer->addWidget(m_finish);
+        footer->addStretch(1);
+        connect(m_finish, &QPushButton::clicked, this, &QDialog::accept);
+        refreshButtons();
+        return;
+    }
     auto* cancel = new QPushButton(tr("Cancelar"), this);
     m_previous = new QPushButton(tr("< Anterior"), this);
     m_next = new QPushButton(tr("Siguiente >"), this);

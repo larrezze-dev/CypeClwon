@@ -13,6 +13,7 @@
 
 #include "SARibbonBar.h"
 #include "SARibbonCategory.h"
+#include "SARibbonPanel.h"
 #include "SARibbonQuickAccessBar.h"
 #include "SARibbonSystemButtonBar.h"
 #include <QFileInfo>
@@ -27,11 +28,13 @@
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
+#include "core/general_data.h"
 #include "core/project.h"
 #include "core/project_file.h"
 #include "core/version.h"
 
 #include <filesystem>
+#include <memory>
 
 namespace cc::app {
 
@@ -270,6 +273,16 @@ void MainWindow::newProject() {
     openProjectFile(dialog.filePath());
 }
 
+void MainWindow::editGeneralData() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    EmptyProjectWizard wizard(cc::core::generalDataOf(project), EmptyProjectWizard::Mode::Edit, this);
+    if (wizard.exec() != QDialog::Accepted) return;
+    const cc::core::GeneralData edited = wizard.generalData();
+    if (cc::core::sameGeneralData(edited, cc::core::generalDataOf(project))) return;  // nothing changed: not "modified"
+    m_undo.push(std::make_unique<cc::core::EditGeneralDataCommand>(project, edited));
+}
+
 void MainWindow::refreshUndoActions() {
     const auto describe = [](QAction* action, const QString& verb, const std::string& text, bool enabled) {
         action->setEnabled(enabled);
@@ -378,6 +391,12 @@ void MainWindow::buildRibbonTabs() {
     for (const QString& title : tabs) {
         ribbon->addCategoryPage(title);
     }
+    // Obra > Datos generales (no group, like the original). Icon provisional: the Obra tab is not captured (TK-022).
+    m_generalDataAction = new QAction(themedIcon(QStringLiteral("edit_pencil")), tr("Datos generales"), this);
+    m_generalDataAction->setStatusTip(tr("Datos generales de la obra"));
+    connect(m_generalDataAction, &QAction::triggered, this, &MainWindow::editGeneralData);
+    SARibbonPanel* panel = ribbon->categoryPages().first()->addPanel(QString());
+    panel->addLargeAction(m_generalDataAction);
 }
 
 }  // namespace cc::app

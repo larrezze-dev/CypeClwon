@@ -1,5 +1,6 @@
 #pragma once
 #include "CypeDialog.h"
+#include "core/general_data.h"
 #include "core/limit_states.h"
 #include "core/options_settings.h"
 #include "core/project_settings.h"
@@ -18,7 +19,15 @@ namespace cc::app {
 class EmptyProjectWizard : public CypeDialog {
     Q_OBJECT
 public:
+    /// Create: the page of Nueva obra (Cancelar / < Anterior / Siguiente > / Terminar). Edit: the same page reused by
+    /// Obra > Datos generales (title "Datos generales", a single Aceptar button), filled with the project's values.
+    enum class Mode { Create, Edit };
+
     explicit EmptyProjectWizard(QWidget* parent = nullptr);
+    EmptyProjectWizard(const cc::core::GeneralData& initial, Mode mode, QWidget* parent = nullptr);
+
+    /// What the page currently describes.
+    cc::core::GeneralData generalData() const;
 
     const cc::core::StandardsSelection& standards() const { return m_standards; }
     const cc::core::ProfileSettings& profiles() const { return m_profiles; }
