@@ -3,8 +3,13 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QTabWidget>
+#include <QToolButton>
+#include <memory>
 
 #include "EmptyProjectWizard.h"
 #include "WizardSubDialogs.h"
@@ -164,6 +169,86 @@ TEST(EmptyProjectWizard, GroundAndEnvironmentDefaults) {
     EXPECT_DOUBLE_EQ(wizard.ground().seismicStressMPa, 0.300);
     EXPECT_FALSE(wizard.ground().checkFootingSliding);
     EXPECT_NE(buttonWithText(&wizard, QStringLiteral("X0")), nullptr);
+}
+
+TEST(EmptyProjectWizard, PileDefaultsAndEdits) {
+    ensureApp();
+    EmptyProjectWizard wizard;
+    EXPECT_DOUBLE_EQ(wizard.piles().minMomentEccentricityM, 0.10);
+    EXPECT_TRUE(wizard.piles().reducedAxial);
+    EXPECT_DOUBLE_EQ(wizard.piles().shaftAxialFactor, 0.00);
+    EXPECT_DOUBLE_EQ(wizard.piles().tipOnlyAxialFactor, 0.80);
+    EXPECT_DOUBLE_EQ(wizard.piles().bucklingCoefficient, 1.00);
+    EXPECT_FALSE(wizard.piles().lateralStability);
+    EXPECT_DOUBLE_EQ(wizard.micropiles().corrosionThicknessMm, 0.60);
+    EXPECT_TRUE(wizard.piles().isValid());
+    EXPECT_TRUE(wizard.micropiles().isValid());
+    auto* tabs = wizard.findChild<QTabWidget*>("pilesTabs");
+    ASSERT_NE(tabs, nullptr);
+    EXPECT_EQ(tabs->count(), 2);
+    EXPECT_EQ(tabs->tabText(0), "Pilotes (Hormigón armado)");
+    EXPECT_EQ(tabs->tabText(1), "Micropilotes");
+    // Editing a field writes through to the model.
+    tabs->widget(0)->findChildren<QDoubleSpinBox*>().at(1)->setValue(0.30);
+    EXPECT_DOUBLE_EQ(wizard.piles().shaftAxialFactor, 0.30);
+    // The micropile arrow restores the installation value.
+    auto* micro = tabs->widget(1);
+    micro->findChildren<QDoubleSpinBox*>().at(2)->setValue(0.90);
+    EXPECT_DOUBLE_EQ(wizard.micropiles().corrosionThicknessMm, 0.90);
+    micro->findChildren<QToolButton*>().at(0)->click();
+    EXPECT_DOUBLE_EQ(wizard.micropiles().corrosionThicknessMm, 0.60);
+    EXPECT_FALSE(buttonWithText(micro, "Configuración avanzada")->isEnabled());
+}
+
+TEST(WizardSubDialogs, PileAdvancedRoundTrip) {
+    ensureApp();
+    PileAdvancedDialog dialog{cc::core::PileAdvancedSettings{}};
+    EXPECT_EQ(dialog.size(), QSize(556, 786));
+    const auto v = dialog.value();
+    EXPECT_EQ(v.sinking.reference, "A2 + M2 + R3");
+    EXPECT_DOUBLE_EQ(v.sinking.frictionAngle, 1.25);
+    EXPECT_DOUBLE_EQ(v.sinking.undrainedShear, 1.40);
+    EXPECT_DOUBLE_EQ(v.sinking.geotechnicalShaftTension, 1.10);
+    EXPECT_DOUBLE_EQ(v.sinking.unitShaftTension, 1.10);
+    EXPECT_DOUBLE_EQ(v.sinking.efficiencyK, 2.00);
+    EXPECT_TRUE(v.sinking.ignoreEfficiencyWhenFar);
+    EXPECT_FALSE(v.structuralCap);
+    dialog.findChildren<QDoubleSpinBox*>().at(0)->setValue(1.50);
+    EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.50);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(dialog.value().sinking.frictionAngle, 1.25);
+}
+
+TEST(WizardSubDialogs, OptionsMenusAreDisabledPlaceholders) {
+    ensureApp();
+    using Family = OptionsMenuDialog::Family;
+    struct Case {
+        Family family;
+        QSize size;
+        int buttons;  // including Aceptar
+    };
+    const Case cases[] = {{Family::Foundation, QSize(150, 158), 3}, {Family::Beams, QSize(223, 257), 6},
+                          {Family::Joints, QSize(117, 158), 3}};
+    for (const Case& c : cases) {
+        std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(c.family));
+        EXPECT_EQ(menu->size(), c.size);
+        EXPECT_EQ(menu->findChildren<QPushButton*>().size(), c.buttons);
+        EXPECT_TRUE(buttonWithText(menu.get(), "Aceptar")->isEnabled());
+        EXPECT_FALSE(menu->findChildren<QPushButton*>().at(0)->isEnabled());
+    }
+    std::unique_ptr<OptionsMenuDialog> columns(OptionsMenuDialog::create(Family::Columns));
+    EXPECT_EQ(columns->size(), QSize(575, 372));
+    EXPECT_EQ(columns->findChild<QListWidget*>()->count(), 4);
+    // 1 + 7 + 8 + 3 page buttons plus Aceptar.
+    EXPECT_EQ(columns->findChildren<QPushButton*>().size(), 20);
+}
+
+TEST(EmptyProjectWizard, OptionsButtonsPresent) {
+    ensureApp();
+    EmptyProjectWizard wizard;
+    for (const char* text : {"Pilares", "Cimentación", "Vigas", "Uniones"}) {
+        EXPECT_NE(buttonWithText(&wizard, QString::fromUtf8(text)), nullptr) << text;
+    }
 }
 
 int main(int argc, char** argv) {

@@ -150,6 +150,28 @@ const std::vector<UsualGround>& usualGroundValues() {
 
 bool GroundSettings::isValidStress(double value) { return inRange(value, kMinStress, kMaxStress); }
 
+namespace {
+bool nonNegative(double v) { return std::isfinite(v) && v >= 0.0; }
+}  // namespace
+
+bool PileSinkingSettings::isValid() const {
+    return nonNegative(frictionAngle) && nonNegative(cohesion) && nonNegative(undrainedShear) &&
+           nonNegative(unconfinedCompression) && nonNegative(unitWeight) && nonNegative(geotechnicalTip) &&
+           nonNegative(geotechnicalShaft) && nonNegative(geotechnicalTotal) && nonNegative(geotechnicalShaftTension) &&
+           nonNegative(unitTip) && nonNegative(unitShaft) && nonNegative(unitTotal) && nonNegative(unitShaftTension) &&
+           nonNegative(efficiencyK);
+}
+
+bool PileSettings::isValid() const {
+    return nonNegative(minMomentEccentricityM) && nonNegative(shaftAxialFactor) && nonNegative(tipOnlyAxialFactor) &&
+           nonNegative(bucklingCoefficient) && advanced.isValid();
+}
+
+bool MicropileSettings::isValid() const {
+    return nonNegative(reducedAxialFactor) && nonNegative(bucklingCoefficient) && nonNegative(corrosionThicknessMm) &&
+           nonNegative(tubularAreaFactor) && nonNegative(executionFactor);
+}
+
 bool ActionsSettings::isValid() const {
     return inRange(formworkRemovalDays, kMinDays, kMaxDays) && static_cast<int>(steelFire) >= 0 &&
            static_cast<int>(steelFire) <= 2;

@@ -11,8 +11,8 @@ class QVBoxLayout;
 namespace cc::app {
 
 /// "Obra vacía" wizard (848x774, a single page; reference: docs/screenshots/orig_obra_vacia_01.png).
-/// Implemented so far: Normas, Perfiles and Hormigón armado. Acciones, Opciones, Ambiente, Terreno and
-/// Pilotes arrive with T-P2-05, and the Estados límite dialog shown after "Terminar" with T-P2-06.
+/// All sections are present; the Estados límite dialog shown after "Terminar" arrives with T-P2-06 and the
+/// leaf dialogs of Opciones with ticket TK-015.
 class EmptyProjectWizard : public CypeDialog {
     Q_OBJECT
 public:
@@ -24,6 +24,8 @@ public:
     const cc::core::ActionsSettings& actions() const { return m_actions; }
     const cc::core::EnvironmentSettings& environment() const { return m_environment; }
     const cc::core::GroundSettings& ground() const { return m_ground; }
+    const cc::core::PileSettings& piles() const { return m_piles; }
+    const cc::core::MicropileSettings& micropiles() const { return m_micropiles; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -33,7 +35,9 @@ private:
     void buildProfiles(QVBoxLayout* layout);
     void buildReinforcedConcrete(QVBoxLayout* layout);
     void buildActions(QVBoxLayout* layout);
+    void buildOptions(QVBoxLayout* layout);
     void buildEnvironment(QVBoxLayout* layout);
+    void buildPiles(QVBoxLayout* layout);
     void buildGround(QVBoxLayout* layout);
     void refreshButtons();
     QComboBox* concreteCombo(const std::string& current, std::string& target);
@@ -44,6 +48,8 @@ private:
     cc::core::ActionsSettings m_actions;
     cc::core::EnvironmentSettings m_environment;
     cc::core::GroundSettings m_ground;
+    cc::core::PileSettings m_piles;
+    cc::core::MicropileSettings m_micropiles;
     QPushButton* m_environmentButton = nullptr;
     QLineEdit* m_persistentEdit = nullptr;
     QLineEdit* m_seismicEdit = nullptr;

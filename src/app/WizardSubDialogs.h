@@ -1,4 +1,5 @@
 #pragma once
+#include <QStringList>
 #include <vector>
 
 #include "CypeDialog.h"
@@ -9,6 +10,7 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
+class QLineEdit;
 class QTableWidget;
 
 namespace cc::app {
@@ -205,6 +207,46 @@ public:
 
 private:
     QTableWidget* m_table;
+};
+
+/// Pile "Configuración avanzada" (556x786). Only the "Hundimiento" tab is documented; the other two tabs show a
+/// placeholder (ticket TK-016).
+class PileAdvancedDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    explicit PileAdvancedDialog(const cc::core::PileAdvancedSettings& initial, QWidget* parent = nullptr);
+    cc::core::PileAdvancedSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    void load(const cc::core::PileAdvancedSettings& settings);
+    QComboBox* m_resistance;
+    QLineEdit* m_reference;
+    std::vector<QDoubleSpinBox*> m_spins;  ///< ground (5), geotechnical (4), unit (4), K (1)
+    QComboBox* m_efficiency;
+    QCheckBox* m_ignoreFar;
+    QCheckBox* m_structuralCap;
+};
+
+/// One page of an OptionsMenuDialog: a title (shown in the side list when there is more than one page) and the
+/// captions of its buttons.
+struct OptionsPage {
+    QString title;
+    QStringList buttons;
+};
+
+/// Menu opened by the Opciones buttons of the wizard (Pilares, Cimentación, Vigas, Uniones). The leaf dialogs
+/// behind each button were never captured from the original (ticket TK-015), so every button is disabled.
+class OptionsMenuDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    OptionsMenuDialog(const QString& title, const QSize& size, const std::vector<OptionsPage>& pages,
+                      QWidget* parent = nullptr);
+    /// Menu for one of the four option families with the sizes and captions seen in the original.
+    enum class Family { Columns, Foundation, Beams, Joints };
+    static OptionsMenuDialog* create(Family family, QWidget* parent = nullptr);
 };
 
 }  // namespace cc::app

@@ -6,6 +6,10 @@
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QStackedWidget>
+#include <QTabBar>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -649,5 +653,212 @@ UsualGroundDialog::UsualGroundDialog(QWidget* parent) : CypeDialog(tr("Importar 
 }
 
 int UsualGroundDialog::selectedIndex() const { return m_table->currentRow(); }
+
+// ---------------------------------------------------------------- Pilotes: Configuración avanzada
+
+PileAdvancedDialog::PileAdvancedDialog(const PileAdvancedSettings& initial, QWidget* parent)
+    : DefaultsDialog(tr("Configuración avanzada"), parent) {
+    setFixedSize(556, 786);
+    auto* tabs = new QTabWidget(this);
+    contentLayout()->addWidget(tabs, 1);
+
+    auto* sinking = new QWidget(tabs);
+    auto* grid = new QGridLayout(sinking);
+    grid->setColumnStretch(0, 1);
+    int row = 0;
+    const auto addRow = [&](const QString& label, QWidget* field, int indent) {
+        auto* text = new QLabel(label, sinking);
+        text->setContentsMargins(indent, 0, 0, 0);
+        grid->addWidget(text, row, 0);
+        grid->addWidget(field, row, 1);
+        ++row;
+    };
+    const auto addTitle = [&](const QString& label, int indent) {
+        auto* text = new QLabel(label, sinking);
+        text->setContentsMargins(indent, 6, 0, 0);
+        grid->addWidget(text, row++, 0, 1, 2);
+    };
+    const auto addSpin = [&](const QString& label) {
+        QDoubleSpinBox* spin = makeSpin(0.0, 0.0, 100.0, 2, sinking);
+        m_spins.push_back(spin);
+        addRow(label, spin, 16);
+    };
+
+    m_resistance = new QComboBox(sinking);
+    m_resistance->addItem(tr("Automático"));  // the only entry seen in the original
+    addRow(tr("Cálculo de resistencia"), m_resistance, 0);
+    addTitle(tr("A2 - Conjunto C"), 4);
+    m_reference = new QLineEdit(sinking);
+    m_reference->setReadOnly(true);
+    m_reference->setAlignment(Qt::AlignRight);
+    addRow(tr("Referencia"), m_reference, 16);
+
+    addTitle(tr("Coeficientes parciales de seguridad para el terreno"), 16);
+    addSpin(tr("Ángulo de rozamiento interno ϕ"));
+    addSpin(tr("Cohesión c'"));
+    addSpin(tr("Resistencia al corte sin drenaje Cu"));
+    addSpin(tr("Resistencia a compresión simple qu"));
+    addSpin(tr("Peso específico γ"));
+    for (const QString& group : {tr("Coeficientes parciales de seguridad para el pilote (Parámetros geotécnicos)"),
+                                 tr("Coeficientes parciales de seguridad para el pilote (Resistencias unitarias)")}) {
+        addTitle(group, 16);
+        addSpin(tr("Punta γb"));
+        addSpin(tr("Fuste (Compresión) γf,s"));
+        addSpin(tr("Total (Compresión) γt"));
+        addSpin(tr("Fuste (Tracción) γft,s"));
+    }
+
+    m_efficiency = new QComboBox(sinking);
+    m_efficiency->addItem(tr("Aplicar la fórmula de Converse-Labarre"));  // the only entry seen
+    addRow(tr("Factor de eficiencia"), m_efficiency, 0);
+    m_ignoreFar = new QCheckBox(tr("No considerar el factor de eficiencia si la distancia libre entre pilotes es igual o superior a K·D"), sinking);
+    grid->addWidget(m_ignoreFar, row++, 0, 1, 2);
+    auto* kRow = new QHBoxLayout;
+    kRow->addSpacing(16);
+    kRow->addWidget(new QLabel(tr("K"), sinking));
+    QDoubleSpinBox* k = makeSpin(0.0, 0.0, 100.0, 2, sinking);
+    m_spins.push_back(k);
+    kRow->addWidget(k);
+    kRow->addStretch(1);
+    grid->addLayout(kRow, row++, 0, 1, 2);
+    grid->setRowStretch(row, 1);
+    tabs->addTab(sinking, tr("Hundimiento"));
+
+    // Tabs never opened in the original (TK-016): placeholders, nothing is invented.
+    for (const QString& title : {tr("Comprobación estructural"), tr("Tope estructural")}) {
+        auto* page = new QWidget(tabs);
+        auto* layout = new QVBoxLayout(page);
+        auto* note = new QLabel(tr("Contenido no verificado en el original (ticket TK-016)."), page);
+        note->setAlignment(Qt::AlignCenter);
+        note->setEnabled(false);
+        layout->addWidget(note);
+        tabs->addTab(page, title);
+    }
+    m_structuralCap = new QCheckBox(tabs->tabBar());
+    tabs->tabBar()->setTabButton(2, QTabBar::LeftSide, m_structuralCap);
+
+    setupDefaultsFooter();
+    load(initial);
+}
+
+void PileAdvancedDialog::load(const PileAdvancedSettings& settings) {
+    const PileSinkingSettings& s = settings.sinking;
+    m_resistance->setCurrentText(QString::fromStdString(s.resistanceCalculation));
+    m_reference->setText(QString::fromStdString(s.reference));
+    const double values[] = {s.frictionAngle,       s.cohesion,           s.undrainedShear,        s.unconfinedCompression,
+                             s.unitWeight,          s.geotechnicalTip,    s.geotechnicalShaft,     s.geotechnicalTotal,
+                             s.geotechnicalShaftTension, s.unitTip,       s.unitShaft,             s.unitTotal,
+                             s.unitShaftTension,    s.efficiencyK};
+    for (std::size_t i = 0; i < m_spins.size(); ++i) m_spins[i]->setValue(values[i]);
+    m_efficiency->setCurrentText(QString::fromStdString(s.efficiencyFormula));
+    m_ignoreFar->setChecked(s.ignoreEfficiencyWhenFar);
+    m_structuralCap->setChecked(settings.structuralCap);
+}
+
+PileAdvancedSettings PileAdvancedDialog::value() const {
+    PileAdvancedSettings out;
+    PileSinkingSettings& s = out.sinking;
+    s.resistanceCalculation = m_resistance->currentText().toStdString();
+    s.reference = m_reference->text().toStdString();
+    double* fields[] = {&s.frictionAngle,       &s.cohesion,           &s.undrainedShear,        &s.unconfinedCompression,
+                        &s.unitWeight,          &s.geotechnicalTip,    &s.geotechnicalShaft,     &s.geotechnicalTotal,
+                        &s.geotechnicalShaftTension, &s.unitTip,       &s.unitShaft,             &s.unitTotal,
+                        &s.unitShaftTension,    &s.efficiencyK};
+    for (std::size_t i = 0; i < m_spins.size(); ++i) *fields[i] = m_spins[i]->value();
+    s.efficiencyFormula = m_efficiency->currentText().toStdString();
+    s.ignoreEfficiencyWhenFar = m_ignoreFar->isChecked();
+    out.structuralCap = m_structuralCap->isChecked();
+    return out;
+}
+
+void PileAdvancedDialog::resetToInstallationValues() { load(PileAdvancedSettings{}); }
+
+// ---------------------------------------------------------------- Opciones (menus)
+
+OptionsMenuDialog::OptionsMenuDialog(const QString& title, const QSize& size, const std::vector<OptionsPage>& pages,
+                                     QWidget* parent)
+    : CypeDialog(title, parent) {
+    setFixedSize(size);
+    const QString note = tr("Diálogo pendiente de capturar en el original (ticket TK-015).");
+    const auto fillPage = [&](QVBoxLayout* layout, const OptionsPage& page) {
+        for (const QString& caption : page.buttons) {
+            auto* button = new QPushButton(caption, this);
+            button->setEnabled(false);
+            button->setToolTip(note);
+            layout->addWidget(button);
+        }
+    };
+    if (pages.size() == 1) {
+        auto* layout = new QVBoxLayout;
+        fillPage(layout, pages.front());
+        layout->addStretch(1);
+        contentLayout()->addLayout(layout, 1);
+    } else {
+        auto* row = new QHBoxLayout;
+        auto* list = new QListWidget(this);
+        list->setFixedWidth(227);
+        list->setStyleSheet(QStringLiteral("QListWidget { background: #D9D9D9; border: none; } "
+                                           "QListWidget::item { padding: 6px; } "
+                                           "QListWidget::item:selected { background: #F0F0F0; color: black; }"));
+        auto* stack = new QStackedWidget(this);
+        for (const OptionsPage& page : pages) {
+            list->addItem(page.title);
+            auto* widget = new QWidget(stack);
+            auto* layout = new QVBoxLayout(widget);
+            layout->addStretch(1);
+            fillPage(layout, page);
+            layout->addStretch(1);
+            stack->addWidget(widget);
+        }
+        connect(list, &QListWidget::currentRowChanged, stack, &QStackedWidget::setCurrentIndex);
+        list->setCurrentRow(0);
+        row->addWidget(list);
+        row->addWidget(stack, 1);
+        contentLayout()->addLayout(row, 1);
+    }
+    QHBoxLayout* footer = setupCustomFooter();
+    auto* ok = new QPushButton(tr("Aceptar"), this);
+    ok->setDefault(true);
+    footer->addStretch(1);
+    footer->addWidget(ok);
+    footer->addStretch(1);
+    connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+}
+
+OptionsMenuDialog* OptionsMenuDialog::create(Family family, QWidget* parent) {
+    switch (family) {
+        case Family::Columns:
+            return new OptionsMenuDialog(
+                tr("Pilares"), QSize(575, 372),
+                {{tr("Tablas de armado"), {tr("Tablas de armado")}},
+                 {tr("Dimensionamiento/Comprobación"),
+                  {tr("Reducción de longitudes de anclaje en pilares"), tr("Criterios de simetría"),
+                   tr("Criterios de continuidad"), tr("Pilares metálicos"),
+                   tr("Ángulo de inclinación de las bielas de compresión"),
+                   tr("Tolerancias en comprobaciones de separación"),
+                   tr("Comprobación de capacidad en pilares, por flexión")}},
+                 {tr("Disposiciones de armado"),
+                  {tr("Disposición de barras"), tr("Cortar esperas en último tramo"),
+                   tr("Transiciones por cambio de dimensiones"), tr("Redondeo de longitud de barras"),
+                   tr("Solapar en la zona central del tramo"), tr("Opciones de arranques"),
+                   tr("Opciones para armado de estribos"), tr("Recubrimientos")}},
+                 {tr("Esfuerzos"),
+                  {tr("Coeficiente de rigidez axil"), tr("Coeficiente de rigidez de torsión"),
+                   tr("Coeficiente de rigidez a flexión")}}},
+                parent);
+        case Family::Foundation:
+            return new OptionsMenuDialog(tr("Cimentación"), QSize(150, 158),
+                                         {{QString(), {tr("Opciones"), tr("Tablas de armado")}}}, parent);
+        case Family::Beams:
+            return new OptionsMenuDialog(tr("Vigas"), QSize(223, 257),
+                                         {{QString(), {tr("Opciones"), tr("Valoración de errores"), tr("Límites de flecha"),
+                                                       tr("Numeración de vigas continuas"), tr("Numeración de vigas")}}},
+                                         parent);
+        case Family::Joints:
+            return new OptionsMenuDialog(tr("Uniones"), QSize(117, 158),
+                                         {{QString(), {tr("Materiales"), tr("Opciones")}}}, parent);
+    }
+    return nullptr;
+}
 
 }  // namespace cc::app

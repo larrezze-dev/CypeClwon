@@ -1,6 +1,9 @@
 #include "EmptyProjectWizard.h"
 
 #include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QTabWidget>
+#include <memory>
 #include <QComboBox>
 #include <QFontMetrics>
 #include <QGridLayout>
@@ -74,14 +77,17 @@ EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra va
     contentLayout()->addLayout(columns, 1);
 
     buildProfiles(left);
-    left->addSpacing(12);
+    left->addStretch(1);
     buildActions(left);
-    left->addStretch(1);  // Opciones (leaf dialogs not captured yet) arrive with T-P2-05.
+    left->addSpacing(12);
+    buildOptions(left);
+    left->addSpacing(12);
     buildEnvironment(left);
     buildReinforcedConcrete(right);
-    right->addSpacing(12);
+    right->addStretch(1);
     buildGround(right);
-    right->addStretch(1);  // Pilotes arrive with T-P2-05.
+    right->addSpacing(8);
+    buildPiles(right);
 
     QHBoxLayout* footer = setupCustomFooter();
     auto* cancel = new QPushButton(tr("Cancelar"), this);
@@ -251,6 +257,26 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
     });
 }
 
+void EmptyProjectWizard::buildOptions(QVBoxLayout* layout) {
+    layout->addWidget(sectionHeader(tr("Opciones"), this));
+    auto* grid = new QGridLayout;
+    const std::pair<QString, OptionsMenuDialog::Family> entries[] = {{tr("Pilares"), OptionsMenuDialog::Family::Columns},
+                                                                     {tr("Cimentación"), OptionsMenuDialog::Family::Foundation},
+                                                                     {tr("Vigas"), OptionsMenuDialog::Family::Beams},
+                                                                     {tr("Uniones"), OptionsMenuDialog::Family::Joints}};
+    int index = 0;
+    for (const auto& [caption, family] : entries) {
+        auto* button = new QPushButton(caption, this);
+        grid->addWidget(button, index / 2, index % 2);
+        ++index;
+        connect(button, &QPushButton::clicked, this, [this, family = family] {
+            std::unique_ptr<OptionsMenuDialog> menu(OptionsMenuDialog::create(family, this));
+            menu->exec();
+        });
+    }
+    layout->addLayout(grid);
+}
+
 void EmptyProjectWizard::buildEnvironment(QVBoxLayout* layout) {
     layout->addWidget(sectionHeader(tr("Ambiente"), this));
     auto* row = new QHBoxLayout;
@@ -325,6 +351,121 @@ void EmptyProjectWizard::buildGround(QVBoxLayout* layout) {
         m_persistentEdit->setText(QString::number(usual.persistent, 'f', 3));
         m_seismicEdit->setText(QString::number(usual.seismic, 'f', 3));
     });
+}
+
+namespace {
+
+/// Right-aligned numeric field of the Pilotes tabs; edits are written straight into `target`.
+QDoubleSpinBox* pileSpin(double& target, QWidget* parent) {
+    auto* spin = new QDoubleSpinBox(parent);
+    spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+    spin->setDecimals(2);
+    spin->setRange(0.0, 99.99);
+    spin->setValue(target);
+    spin->setAlignment(Qt::AlignRight);
+    spin->setFixedWidth(72);
+    QObject::connect(spin, &QDoubleSpinBox::valueChanged, parent, [&target](double v) { target = v; });
+    return spin;
+}
+
+}  // namespace
+
+void EmptyProjectWizard::buildPiles(QVBoxLayout* layout) {
+    auto* tabs = new QTabWidget(this);
+    tabs->setObjectName(QStringLiteral("pilesTabs"));
+
+    // --- Pilotes (Hormigón armado)
+    auto* piles = new QWidget(tabs);
+    auto* grid = new QGridLayout(piles);
+    grid->setColumnStretch(0, 1);
+    const auto unit = [piles](const QString& text) { return new QLabel(text, piles); };
+    grid->addWidget(new QLabel(tr("Excentricidad para el momento mínimo"), piles), 0, 0, 1, 2);
+    grid->addWidget(pileSpin(m_piles.minMomentEccentricityM, piles), 0, 2);
+    grid->addWidget(unit(tr("m")), 0, 3);
+    auto* reduced = new QCheckBox(tr("Considerar esfuerzos con un axil reducido"), piles);
+    reduced->setChecked(m_piles.reducedAxial);
+    connect(reduced, &QCheckBox::toggled, this, [this](bool on) { m_piles.reducedAxial = on; });
+    grid->addWidget(reduced, 1, 0, 1, 4);
+    grid->addWidget(new QLabel(tr("Pilotes que trabajan por fuste"), piles), 2, 0);
+    grid->addWidget(pileSpin(m_piles.shaftAxialFactor, piles), 2, 2);
+    grid->addWidget(unit(tr("· Axil")), 2, 3);
+    grid->addWidget(new QLabel(tr("Pilotes que trabajan solo por punta"), piles), 3, 0);
+    grid->addWidget(pileSpin(m_piles.tipOnlyAxialFactor, piles), 3, 2);
+    grid->addWidget(unit(tr("· Axil")), 3, 3);
+    grid->addWidget(new QLabel(tr("Coeficiente de pandeo"), piles), 4, 0, 1, 2);
+    grid->addWidget(pileSpin(m_piles.bucklingCoefficient, piles), 4, 2);
+    auto* lateral = new QCheckBox(tr("Análisis de la estabilidad lateral del pilote"), piles);
+    lateral->setChecked(m_piles.lateralStability);
+    connect(lateral, &QCheckBox::toggled, this, [this](bool on) { m_piles.lateralStability = on; });
+    grid->addWidget(lateral, 5, 0, 1, 4);
+    auto* advanced = new QPushButton(tr("Configuración avanzada"), piles);
+    grid->addWidget(advanced, 6, 0, 1, 4);
+    grid->setRowStretch(7, 1);
+    connect(advanced, &QPushButton::clicked, this, [this] {
+        PileAdvancedDialog dialog(m_piles.advanced, this);
+        if (dialog.exec() == QDialog::Accepted) m_piles.advanced = dialog.value();
+    });
+    tabs->addTab(piles, tr("Pilotes (Hormigón armado)"));
+
+    // --- Micropilotes
+    auto* micro = new QWidget(tabs);
+    auto* mg = new QGridLayout(micro);
+    mg->setColumnStretch(0, 1);
+    auto* mReduced = new QCheckBox(tr("Considerar esfuerzos con un axil reducido"), micro);
+    mReduced->setChecked(m_micropiles.reducedAxial);
+    connect(mReduced, &QCheckBox::toggled, this, [this](bool on) { m_micropiles.reducedAxial = on; });
+    mg->addWidget(mReduced, 0, 0, 1, 2);
+    mg->addWidget(pileSpin(m_micropiles.reducedAxialFactor, micro), 0, 2);
+    mg->addWidget(new QLabel(tr("· Axil"), micro), 0, 3);
+    auto* bucklingRow = new QHBoxLayout;
+    bucklingRow->addWidget(new QLabel(tr("Análisis de pandeo"), micro));
+    auto* bucklingMode = new QComboBox(micro);
+    bucklingMode->addItem(tr("Coeficiente de pandeo"));  // the only entry seen in the original
+    bucklingRow->addWidget(bucklingMode);
+    bucklingRow->addStretch(1);
+    mg->addLayout(bucklingRow, 1, 0, 1, 2);
+    mg->addWidget(pileSpin(m_micropiles.bucklingCoefficient, micro), 1, 2);
+    auto* mLateral = new QCheckBox(tr("Análisis de la estabilidad lateral del micropilote"), micro);
+    mLateral->setChecked(m_micropiles.lateralStability);
+    connect(mLateral, &QCheckBox::toggled, this, [this](bool on) { m_micropiles.lateralStability = on; });
+    mg->addWidget(mLateral, 2, 0, 1, 4);
+
+    // Rows with a blue arrow that restores the installation value.
+    const MicropileSettings installation;
+    struct ArrowRow {
+        QString label;
+        QString unitText;
+        double* target;
+        double installationValue;
+    };
+    const ArrowRow arrowRows[] = {
+        {tr("Reducción de espesor de la armadura por efecto de la corrosión"), tr("mm"),
+         &m_micropiles.corrosionThicknessMm, installation.corrosionThicknessMm},
+        {tr("Coeficiente de minoración del área de la armadura tubular"), QString(), &m_micropiles.tubularAreaFactor,
+         installation.tubularAreaFactor},
+        {tr("Coeficiente de influencia del tipo de ejecución"), QString(), &m_micropiles.executionFactor,
+         installation.executionFactor}};
+    int mrow = 3;
+    for (const ArrowRow& r : arrowRows) {
+        mg->addWidget(new QLabel(r.label, micro), mrow, 0, 1, 2);
+        QDoubleSpinBox* spin = pileSpin(*r.target, micro);
+        mg->addWidget(spin, mrow, 2);
+        if (!r.unitText.isEmpty()) mg->addWidget(new QLabel(r.unitText, micro), mrow, 3);
+        auto* arrow = new QToolButton(micro);
+        arrow->setIcon(themedIcon(QStringLiteral("arrow_left_blue")));
+        arrow->setToolTip(tr("Valor por defecto"));
+        connect(arrow, &QToolButton::clicked, this, [spin, value = r.installationValue] { spin->setValue(value); });
+        mg->addWidget(arrow, mrow, 4);
+        ++mrow;
+    }
+    auto* mAdvanced = new QPushButton(tr("Configuración avanzada"), micro);
+    mAdvanced->setEnabled(false);  // never opened in the original (ticket TK-016)
+    mAdvanced->setToolTip(tr("Diálogo pendiente de capturar en el original (ticket TK-016)."));
+    mg->addWidget(mAdvanced, mrow, 0, 1, 5);
+    mg->setRowStretch(mrow + 1, 1);
+    tabs->addTab(micro, tr("Micropilotes"));
+
+    layout->addWidget(tabs, 1);
 }
 
 void EmptyProjectWizard::refreshButtons() {

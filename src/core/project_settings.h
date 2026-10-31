@@ -5,8 +5,7 @@
 namespace cc::core {
 
 /// General project settings edited by the "Obra vacía" wizard (docs/research/ui/dialogs_nueva_obra_wizard.md, 3.2-3.3).
-/// Only the sections implemented so far are present; Acciones, Opciones, Ambiente, Terreno and Pilotes
-/// arrive with T-P2-05.
+/// All sections of the wizard are modelled here; Opciones has no settings yet (leaf dialogs, ticket TK-015).
 
 /// Value lists, in the order shown by the original application. Items missing from a list because they
 /// were not verified on screen are recorded in ticket TK-011 and are never invented.
@@ -141,6 +140,55 @@ struct GroundSettings {
     static constexpr double kMinStress = 0.001, kMaxStress = 50.0;
     static bool isValidStress(double value);
     bool isValid() const { return isValidStress(persistentStressMPa) && isValidStress(seismicStressMPa); }
+};
+
+/// "Configuración avanzada" of reinforced-concrete piles, tab "Hundimiento" (556x786). The tabs "Comprobación
+/// estructural" and "Tope estructural" were never opened in the original: only the "Tope estructural" tick
+/// (unchecked) is known (ticket TK-016). The valid ranges of every field are unverified and not enforced beyond
+/// "finite and not negative".
+struct PileSinkingSettings {
+    std::string resistanceCalculation = "Automático";
+    std::string reference = "A2 + M2 + R3";  ///< set A2 - Conjunto C, read-only
+    // Partial safety factors for the ground.
+    double frictionAngle = 1.25, cohesion = 1.25, undrainedShear = 1.40, unconfinedCompression = 1.40, unitWeight = 1.00;
+    // Partial safety factors for the pile: tip, shaft (compression), total (compression), shaft (tension).
+    double geotechnicalTip = 1.00, geotechnicalShaft = 1.00, geotechnicalTotal = 1.00, geotechnicalShaftTension = 1.10;
+    double unitTip = 1.00, unitShaft = 1.00, unitTotal = 1.00, unitShaftTension = 1.10;
+    std::string efficiencyFormula = "Aplicar la fórmula de Converse-Labarre";
+    bool ignoreEfficiencyWhenFar = true;  ///< "No considerar el factor de eficiencia si ... es igual o superior a K·D"
+    double efficiencyK = 2.00;
+    bool isValid() const;
+};
+
+struct PileAdvancedSettings {
+    PileSinkingSettings sinking;
+    bool structuralCap = false;  ///< "Tope estructural" tab tick
+    bool isValid() const { return sinking.isValid(); }
+};
+
+/// Tab "Pilotes (Hormigón armado)" of the wizard.
+struct PileSettings {
+    double minMomentEccentricityM = 0.10;
+    bool reducedAxial = true;          ///< "Considerar esfuerzos con un axil reducido"
+    double shaftAxialFactor = 0.00;    ///< piles working by shaft, times the axial load
+    double tipOnlyAxialFactor = 0.80;  ///< piles working by tip only, times the axial load
+    double bucklingCoefficient = 1.00;
+    bool lateralStability = false;     ///< "Análisis de la estabilidad lateral del pilote"
+    PileAdvancedSettings advanced;
+    bool isValid() const;
+};
+
+/// Tab "Micropilotes". Its "Configuración avanzada" was never opened in the original (TK-016).
+struct MicropileSettings {
+    bool reducedAxial = true;
+    double reducedAxialFactor = 0.00;
+    std::string bucklingAnalysis = "Coeficiente de pandeo";  ///< the only entry seen in the combo
+    double bucklingCoefficient = 1.00;
+    bool lateralStability = false;
+    double corrosionThicknessMm = 0.60;  ///< "Reducción de espesor de la armadura por efecto de la corrosión"
+    double tubularAreaFactor = 1.00;     ///< "Coeficiente de minoración del área de la armadura tubular"
+    double executionFactor = 1.00;       ///< "Coeficiente de influencia del tipo de ejecución"
+    bool isValid() const;
 };
 
 }  // namespace cc::core
