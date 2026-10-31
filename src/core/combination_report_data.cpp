@@ -141,7 +141,7 @@ const RawTable kColdFormedTimber[] = {
         {"Sobrecarga (Q - Uso G2)", {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.000}}, false, {}},
         {"Retracción (R)", {{true, 1.000}, {true, 1.500}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Viento (Q)", {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.600}}, false, {}},
-        {"Nieve (Q)", {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.500}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.500}}, true, {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.700}}},
         {"Temperatura (T)", {{true, 0.000}, {true, 1.500}, {true, 1.000}, {true, 0.600}}, false, {}},
         {"Empujes del terreno (H)", {{true, 0.700}, {true, 1.350}, {false, 0.0}, {false, 0.0}}, false, {}},
     }},
@@ -173,7 +173,7 @@ const RawTable kColdFormedTimber[] = {
         {"Sobrecarga (Q - Uso G2)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
         {"Retracción (R)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Viento (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
-        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, true, {{true, 0.000}, {true, 1.000}, {true, 0.200}, {true, 0.200}}},
         {"Temperatura (T)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
         {"Empujes del terreno (H)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Sismo (E)", {{true, -1.000}, {true, 1.000}, {true, 1.000}, {true, 0.000}}, false, {}},
@@ -190,7 +190,7 @@ const RawTable kColdFormedTimber[] = {
         {"Sobrecarga (Q - Uso G2)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
         {"Retracción (R)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Viento (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.000}}, false, {}},
-        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.200}, {true, 0.000}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.200}, {true, 0.000}}, true, {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.200}}},
         {"Temperatura (T)", {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.000}}, false, {}},
         {"Empujes del terreno (H)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Accidental (A)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
@@ -207,9 +207,29 @@ const RawTable kColdFormedTimber[] = {
         {"Sobrecarga (Q - Uso G2)", {{true, 0.000}, {true, 1.000}, {true, 0.000}, {true, 0.000}}, false, {}},
         {"Retracción (R)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
         {"Viento (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.000}}, false, {}},
-        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.200}, {true, 0.000}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {true, 0.200}, {true, 0.000}}, true, {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.200}}},
         {"Temperatura (T)", {{true, 0.000}, {true, 1.000}, {true, 0.500}, {true, 0.000}}, false, {}},
         {"Empujes del terreno (H)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+    }},
+};
+
+const RawTable kDisplacements[] = {
+    {"Acciones variables sin sismo", {
+        {"Carga permanente (G)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Pretensado (PST)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Sobrecarga (Q)", {{true, 0.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Viento (Q)", {{true, 0.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Empujes del terreno (H)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+    }},
+    {"Sísmica", {
+        {"Carga permanente (G)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Pretensado (PST)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Sobrecarga (Q)", {{true, 0.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Viento (Q)", {{false, 0.0}, {false, 0.0}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Nieve (Q)", {{true, 0.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Empujes del terreno (H)", {{true, 1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
+        {"Sismo (E)", {{true, -1.000}, {true, 1.000}, {false, 0.0}, {false, 0.0}}, false, {}},
     }},
 };
 
@@ -218,7 +238,8 @@ const RawTableSet kTableSets[] = {
     {kGroundA2, 3},
     {kServiceQuasiPermanent, 1},
     {kColdFormedTimber, 5},
+    {kDisplacements, 2},
 };
-const int kTableSetCount = 4;
+const int kTableSetCount = 5;
 
 }  // namespace cc::core::detail

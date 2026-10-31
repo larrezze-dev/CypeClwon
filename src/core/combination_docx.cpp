@@ -52,7 +52,10 @@ std::string documentXml(const CombinationReport& report) {
         }
         firstSection = false;
         d << paragraph(introText());
-        if (sec.layout == SectionLayout::Ultimate) {
+        if (sec.layout == SectionLayout::Displacements) {
+            d << paragraph("Situaciones persistentes o transitorias") << paragraph(f.displacementsPersistent)
+              << paragraph("Situaciones sísmicas") << paragraph(f.displacementsSeismic);
+        } else if (sec.layout == SectionLayout::Ultimate) {
             d << paragraph("Situaciones persistentes o transitorias") << paragraph(f.persistent)
               << paragraph("Situaciones sísmicas") << paragraph(f.seismic) << paragraph("Situaciones accidentales")
               << paragraph(f.accidental);
@@ -68,8 +71,15 @@ std::string documentXml(const CombinationReport& report) {
             d << paragraph(t.title, true) << "<w:tbl><w:tblPr><w:tblBorders>";
             for (const char* side : {"top", "left", "bottom", "right", "insideH", "insideV"})
                 d << "<w:" << side << " w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>";
-            d << "</w:tblBorders></w:tblPr>"
-              << row({"", "Favorable (γ)", "Desfavorable (γ)", "Principal (ψp)", "Acompañamiento (ψa)"}, true);
+            d << "</w:tblBorders></w:tblPr>";
+            if (sec.layout == SectionLayout::Displacements) {
+                d << row({"", "Favorable (γ)", "Desfavorable (γ)"}, true);
+                for (const auto& r : t.rows)
+                    d << row({r.label, formatCoefficient(r.favourable, sec.layout), formatCoefficient(r.unfavourable, sec.layout)});
+                d << "</w:tbl>" << paragraph("");
+                continue;
+            }
+            d << row({"", "Favorable (γ)", "Desfavorable (γ)", "Principal (ψp)", "Acompañamiento (ψa)"}, true);
             for (const auto& r : t.rows)
                 d << row({r.label, formatCoefficient(r.favourable), formatCoefficient(r.unfavourable),
                           formatCoefficient(r.principal), formatCoefficient(r.accompanying)});

@@ -39,6 +39,31 @@ TEST(CombinationReport, TextExportMatchesOriginalForColdFormedTimberReport) {
     EXPECT_EQ(exportTextUtf16(buildColdFormedTimberReport(false)), expected);
 }
 
+TEST(CombinationReport, TextExportMatchesOriginalForColdFormedTimberReportHighSnow) {
+    const std::string expected = golden("s2hi.txt");
+    ASSERT_FALSE(expected.empty());
+    EXPECT_EQ(exportTextUtf16(buildColdFormedTimberReport(true)), expected);
+}
+
+TEST(CombinationReport, TextExportMatchesOriginalForDisplacementsReport) {
+    const std::string expected = golden("s4_desplazamientos.txt");
+    ASSERT_FALSE(expected.empty());
+    const std::string actual = exportTextUtf16(buildDisplacementsReport());
+    if (actual != expected) std::ofstream(std::string(CC_SOURCE_DIR) + "/build/disp_actual.txt", std::ios::binary) << actual;
+    EXPECT_TRUE(actual == expected);
+    EXPECT_EQ(exportTextUtf16(buildDisplacementsReport(true)), expected);  // snow altitude does not matter here
+}
+
+TEST(CombinationReport, DisplacementsRichFormatsUseTwoColumns) {
+    const auto report = buildDisplacementsReport();
+    const std::string html = exportHtml(report);
+    EXPECT_NE(html.find("Acciones variables sin sismo"), std::string::npos);
+    EXPECT_EQ(html.find("Acompañamiento"), std::string::npos);
+    EXPECT_EQ(html.find("accidentales"), std::string::npos);
+    EXPECT_EQ(exportRtf(report).find("Principal"), std::string::npos);
+    EXPECT_GT(exportDocx(report).size(), 100u);
+}
+
 TEST(CombinationReport, SnowRowsDependOnAltitude) {
     const auto lo = buildGroundReport(false);
     const auto hi = buildGroundReport(true);

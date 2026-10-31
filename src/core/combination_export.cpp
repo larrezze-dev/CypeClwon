@@ -53,6 +53,28 @@ void blanks(std::vector<std::string>& out, int n) {
     for (int i = 0; i < n; ++i) out.emplace_back();
 }
 
+void displacementTableLines(std::vector<std::string>& out, const CoefficientTable& t) {
+    const auto separator2 = [] { return " |" + dashes(42) + "|" + dashes(35) + "|" + dashes(38) + "| "; };
+    out.push_back(" |" + dashes(117) + "| ");
+    out.push_back(" |" + centre(t.title, 117) + "| ");
+    out.push_back(" |" + dashes(42) + "|" + dashes(74) + "| ");
+    out.push_back(" |" + std::string(42, ' ') + "|" + centre("Coeficientes parciales de seguridad (g)", 74) + "| ");
+    out.push_back(" |" + std::string(42, ' ') + "|" + dashes(35) + "|" + dashes(38) + "| ");
+    out.push_back(" |" + std::string(42, ' ') + "|" + centre("Favorable", 35) + "|" + centre("Desfavorable", 38) + "| ");
+    out.push_back(separator2());
+    bool firstRow = true;
+    for (const auto& r : t.rows) {
+        if (!firstRow) out.push_back(" |" + std::string(42, ' ') + "|" + std::string(35, ' ') + "|" + std::string(38, ' ') + "| ");
+        firstRow = false;
+        std::string label = r.label;
+        const std::size_t len = utf8Length(label);
+        if (len < 42) label += std::string(42 - len, ' ');
+        out.push_back(" |" + label + "|" + centre(formatCoefficient(r.favourable, SectionLayout::Displacements), 35) + "|" +
+                      centre(formatCoefficient(r.unfavourable, SectionLayout::Displacements), 38) + "| ");
+    }
+    out.push_back(separator2());
+}
+
 void tableLines(std::vector<std::string>& out, const CoefficientTable& t) {
     out.push_back(" |" + dashes(117) + "| ");
     out.push_back(" |" + centre(t.title, 117) + "| ");
@@ -108,8 +130,10 @@ std::string exportText(const CombinationReport& report, int pageWidth) {
         out.emplace_back();
         for (const auto& l : wrap(introText(), pageWidth)) out.push_back(l);
         blanks(out, 2);
-        if (sec.layout == SectionLayout::Ultimate) {
+        if (sec.layout != SectionLayout::Service) {
+            const bool disp = sec.layout == SectionLayout::Displacements;
             for (const char* name : {"persistentes o transitorias", "sísmicas", "accidentales"}) {
+                if (disp && std::string(name) == "accidentales") break;
                 out.push_back(std::string("  -Situaciones ") + name + " ");
                 blanks(out, 4);
                 out.push_back("   - ");
@@ -121,7 +145,8 @@ std::string exportText(const CombinationReport& report, int pageWidth) {
         }
         legendLines(out, sec.layout);
         for (std::size_t ti = 0; ti < sec.tables.size(); ++ti) {
-            tableLines(out, sec.tables[ti]);
+            if (sec.layout == SectionLayout::Displacements) displacementTableLines(out, sec.tables[ti]);
+            else tableLines(out, sec.tables[ti]);
             out.push_back("   ");
             if (ti + 1 < sec.tables.size()) blanks(out, 3);
             else if (si + 1 < report.sections.size()) blanks(out, 2);
@@ -219,7 +244,10 @@ std::string exportHtml(const CombinationReport& report) {
     for (const auto& sec : report.sections) {
         for (const auto& t : sec.titles) h << "<h3>" << htmlEscape(t) << "</h3>\n";
         h << "<p>" << htmlEscape(introText()) << "</p>\n<ul>\n";
-        if (sec.layout == SectionLayout::Ultimate) {
+        if (sec.layout == SectionLayout::Displacements) {
+            h << "<li>Situaciones persistentes o transitorias<br>" << htmlEscape(f.displacementsPersistent) << "</li>\n"
+              << "<li>Situaciones sísmicas<br>" << htmlEscape(f.displacementsSeismic) << "</li>\n";
+        } else if (sec.layout == SectionLayout::Ultimate) {
             h << "<li>Situaciones persistentes o transitorias<br>" << htmlEscape(f.persistent) << "</li>\n"
               << "<li>Situaciones sísmicas<br>" << htmlEscape(f.seismic) << "</li>\n"
               << "<li>Situaciones accidentales<br>" << htmlEscape(f.accidental) << "</li>\n";
@@ -232,6 +260,16 @@ std::string exportHtml(const CombinationReport& report) {
               << htmlEscape(item.description) << "</td></tr>\n";
         h << "</table>\n";
         for (const auto& t : sec.tables) {
+            if (sec.layout == SectionLayout::Displacements) {
+                h << "<table>\n<tr><th colspan=\"3\">" << htmlEscape(t.title) << "</th></tr>\n"
+                  << "<tr><th rowspan=\"2\"></th><th colspan=\"2\">Coeficientes parciales de seguridad (γ)</th></tr>\n"
+                  << "<tr><th>Favorable</th><th>Desfavorable</th></tr>\n";
+                for (const auto& r : t.rows)
+                    h << "<tr><td>" << htmlEscape(r.label) << "</td><td>" << formatCoefficient(r.favourable, sec.layout)
+                      << "</td><td>" << formatCoefficient(r.unfavourable, sec.layout) << "</td></tr>\n";
+                h << "</table>\n";
+                continue;
+            }
             h << "<table>\n<tr><th colspan=\"5\">" << htmlEscape(t.title) << "</th></tr>\n"
               << "<tr><th rowspan=\"2\"></th><th colspan=\"2\">Coeficientes parciales de seguridad (γ)</th>"
                  "<th colspan=\"2\">Coeficientes de combinación (ψ)</th></tr>\n"
@@ -261,7 +299,10 @@ std::string exportRtf(const CombinationReport& report) {
         firstSection = false;
         for (const auto& t : sec.titles) para(t, true);
         para(introText());
-        if (sec.layout == SectionLayout::Ultimate) {
+        if (sec.layout == SectionLayout::Displacements) {
+            para("Situaciones persistentes o transitorias: " + std::string(f.displacementsPersistent));
+            para("Situaciones sísmicas: " + std::string(f.displacementsSeismic));
+        } else if (sec.layout == SectionLayout::Ultimate) {
             para("Situaciones persistentes o transitorias: " + std::string(f.persistent));
             para("Situaciones sísmicas: " + std::string(f.seismic));
             para("Situaciones accidentales: " + std::string(f.accidental));
@@ -275,6 +316,13 @@ std::string exportRtf(const CombinationReport& report) {
         }
         for (const auto& t : sec.tables) {
             para(t.title, true);
+            if (sec.layout == SectionLayout::Displacements) {
+                para("Concepto | Favorable | Desfavorable");
+                for (const auto& row : t.rows)
+                    para(row.label + " | " + formatCoefficient(row.favourable, sec.layout) + " | " +
+                         formatCoefficient(row.unfavourable, sec.layout));
+                continue;
+            }
             para("Concepto | Favorable | Desfavorable | Principal (ψp) | Acompañamiento (ψa)");
             for (const auto& row : t.rows)
                 para(row.label + " | " + formatCoefficient(row.favourable) + " | " + formatCoefficient(row.unfavourable) +

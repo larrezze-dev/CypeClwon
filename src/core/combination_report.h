@@ -20,8 +20,10 @@ struct CoefficientTable {
     std::vector<CoefficientRow> rows;
 };
 
-/// Ultimate limit states show persistent, seismic and accidental formulae; service limit states only one.
-enum class SectionLayout { Ultimate, Service };
+/// Ultimate limit states show persistent, seismic and accidental formulae; service limit states only one;
+/// "Desplazamientos" shows persistent and seismic formulae with two-column tables (partial factors only) whose
+/// missing cells are blank instead of "-".
+enum class SectionLayout { Ultimate, Service, Displacements };
 
 struct ReportSection {
     std::vector<std::string> titles;  ///< heading lines
@@ -45,9 +47,12 @@ struct ReportContext {
 
 /// Report behind the first snow pencil of "Estados límite" (concrete, aluminium, ground stresses, cracking).
 CombinationReport buildGroundReport(bool highAltitude, const ReportContext& ctx = {});
-/// Report behind the second pencil (cold-formed steel and timber). Only captured for altitudes <= 1000 m; the same
-/// data is used above 1000 m until it is captured (ticket TK-017).
+/// Report behind the second pencil (cold-formed steel and timber).
 CombinationReport buildColdFormedTimberReport(bool highAltitude, const ReportContext& ctx = {});
+
+/// Report behind the fourth pencil ("Desplazamientos", characteristic actions); independent of the snow altitude.
+/// The pencil of hot-rolled steel (third) opened no viewer in the original (ticket TK-017).
+CombinationReport buildDisplacementsReport(bool highAltitude = false, const ReportContext& ctx = {});
 
 /// A legend entry ("Gk  Acción permanente"); `symbol` is the ASCII form used by the text export (g = γ, y = ψ).
 struct LegendItem {
@@ -61,6 +66,8 @@ struct Formulae {
     const char* persistent;
     const char* seismic;
     const char* accidental;
+    const char* displacementsPersistent;  ///< shown as an image in the viewer, transcribed from the capture
+    const char* displacementsSeismic;     ///< not legible in the capture: derived from the persistent one (unverified)
 };
 const Formulae& formulae();
 
@@ -74,6 +81,6 @@ std::string prettyText(const std::string& ascii);
 
 /// Intro sentence of every section, as one paragraph.
 const char* introText();
-std::string formatCoefficient(const Coefficient& c);  ///< "1.350" or "-"
+std::string formatCoefficient(const Coefficient& c, SectionLayout layout = SectionLayout::Ultimate);  ///< "1.350", "-" (blank in Displacements)
 
 }  // namespace cc::core

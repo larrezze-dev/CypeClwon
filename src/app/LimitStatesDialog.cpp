@@ -112,8 +112,8 @@ LimitStatesDialog::LimitStatesDialog(const StandardsSelection& standards, const 
     auto* pencil = new QToolButton(this);
     pencil->setIcon(themedIcon(QStringLiteral("edit_pencil")));
     pencil->setAutoRaise(true);
-    pencil->setEnabled(false);
-    pencil->setToolTip(tr("Diálogo pendiente de capturar en el original (ticket TK-017)."));
+    pencil->setToolTip(tr("Ver las situaciones y combinaciones de acciones"));
+    connect(pencil, &QToolButton::clicked, this, [this, context] { SituationsDialog(buildDisplacementsReport(false, context), this).exec(); });
     displacement->addWidget(pencil);
     body->addLayout(displacement);
 

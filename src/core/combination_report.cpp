@@ -61,7 +61,24 @@ CombinationReport buildColdFormedTimberReport(bool highAltitude, const ReportCon
     return r;
 }
 
+CombinationReport buildDisplacementsReport(bool highAltitude, const ReportContext&) {
+    CombinationReport r;
+    r.sections.push_back({{"Desplazamientos"}, SectionLayout::Displacements, tableSet(detail::kDisplacements, highAltitude)});
+    return r;
+}
+
 const std::vector<LegendItem>& legend(SectionLayout layout) {
+    static const std::vector<LegendItem> displacements = {
+        {"Gk", "Acción permanente"},
+        {"Pk", "Acción de pretensado"},
+        {"Qk", "Acción variable"},
+        {"AE", "Acción sísmica"},
+        {"gG", "Coeficiente parcial de seguridad de las acciones permanentes"},
+        {"gP", "Coeficiente parcial de seguridad de la acción de pretensado"},
+        {"gQ,1", "Coeficiente parcial de seguridad de la acción variable principal"},
+        {"gQ,i", "Coeficiente parcial de seguridad de las acciones variables de acompañamiento"},
+        {"gAE", "Coeficiente parcial de seguridad de la acción sísmica"}};
+    if (layout == SectionLayout::Displacements) return displacements;
     static const std::vector<LegendItem> ultimate = {
         {"Gk", "Acción permanente"},
         {"Pk", "Acción de pretensado"},
@@ -94,7 +111,9 @@ const Formulae& formulae() {
     static const Formulae f = {
         "Σ(j≥1) γG,j·Gk,j + γP·Pk + γQ,1·ψp,1·Qk,1 + Σ(i>1) γQ,i·ψa,i·Qk,i",
         "Σ(j≥1) γG,j·Gk,j + γP·Pk + γAE·AE + Σ(i≥1) γQ,i·ψa,i·Qk,i",
-        "Σ(j≥1) γG,j·Gk,j + γP·Pk + γAd·Ad + Σ(i≥1) γQ,i·ψa,i·Qk,i"};
+        "Σ(j≥1) γG,j·Gk,j + γP·Pk + γAd·Ad + Σ(i≥1) γQ,i·ψa,i·Qk,i",
+        "Σ(j≥1) γG,j·Gk,j + γP·Pk + Σ(i≥1) γQ,i·Qk,i",
+        "Σ(j≥1) γG,j·Gk,j + γP·Pk + γAE·AE + Σ(i≥1) γQ,i·Qk,i"};
     return f;
 }
 
@@ -122,8 +141,8 @@ const char* introText() {
            "siguientes criterios:";
 }
 
-std::string formatCoefficient(const Coefficient& c) {
-    if (!c.present) return "-";
+std::string formatCoefficient(const Coefficient& c, SectionLayout layout) {
+    if (!c.present) return layout == SectionLayout::Displacements ? "" : "-";
     char buf[32];
     std::snprintf(buf, sizeof buf, "%.3f", c.value);
     return buf;

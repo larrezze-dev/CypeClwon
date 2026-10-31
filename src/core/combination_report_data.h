@@ -36,5 +36,6 @@ extern const RawTable kConcreteAluminiumGroundA1[];
 extern const RawTable kGroundA2[];
 extern const RawTable kServiceQuasiPermanent[];
 extern const RawTable kColdFormedTimber[];
+extern const RawTable kDisplacements[];
 
 }  // namespace cc::core::detail
