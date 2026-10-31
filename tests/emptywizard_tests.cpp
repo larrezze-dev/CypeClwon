@@ -119,6 +119,31 @@ TEST(WizardSubDialogs, RebarAndAggregateRoundTrip) {
     EXPECT_EQ(aggregate.value().summary(), "Cuarcita (15 mm), 30 mm");
 }
 
+TEST(WizardSubDialogs, ActionsDialogsRoundTrip) {
+    ensureApp();
+    FireDialog fire(cc::core::SteelFireMode::Ignore);
+    EXPECT_EQ(fire.value(), cc::core::SteelFireMode::Ignore);
+    fire.findChildren<QRadioButton*>().at(2)->setChecked(true);
+    EXPECT_EQ(fire.value(), cc::core::SteelFireMode::CriticalTemperature);
+    FoundationActionsDialog foundation(true, false);
+    EXPECT_TRUE(foundation.wind());
+    EXPECT_FALSE(foundation.seism());
+    ConstructionProcessDialog process(14.0);
+    EXPECT_DOUBLE_EQ(process.days(), 14.0);
+    buttonWithText(&process, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(process.days(), 28.0);
+}
+
+TEST(EmptyProjectWizard, ActionsDefaults) {
+    ensureApp();
+    EmptyProjectWizard wizard;
+    EXPECT_FALSE(wizard.actions().dynamicSeismic);
+    EXPECT_TRUE(wizard.actions().foundationWind);
+    EXPECT_TRUE(wizard.actions().isValid());
+    EXPECT_NE(buttonWithText(&wizard, QStringLiteral("Hipótesis adicionales")), nullptr);
+    EXPECT_FALSE(buttonWithText(&wizard, QStringLiteral("Estados límite (combinaciones)"))->isEnabled());
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

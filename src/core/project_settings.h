@@ -99,4 +99,19 @@ struct ReinforcedConcreteSettings {
     bool isValid() const;
 };
 
+/// Fire situation for steel elements (dialog "Resistencia al fuego", tab Acero). The Madera tab content was
+/// not captured from the original (ticket TK-011) and is not modelled yet.
+enum class SteelFireMode { Ignore, CheckResistance, CriticalTemperature };
+
+/// "Acciones" section of the wizard (docs/research/ui/dialogs_nueva_obra_wizard.md, 3.4).
+struct ActionsSettings {
+    bool dynamicSeismic = false;  ///< "Con sismo dinámico"
+    SteelFireMode steelFire = SteelFireMode::Ignore;
+    bool foundationWind = true;   ///< "Considerar combinaciones con viento" (Cimentación)
+    bool foundationSeism = true;  ///< "Considerar combinaciones con sismo"
+    double formworkRemovalDays = 28.0;  ///< "Instante de descimbrado" (Proceso constructivo), in days
+    static constexpr double kMinDays = 0.0, kMaxDays = 3650.0;
+    bool isValid() const;
+};
+
 }  // namespace cc::core

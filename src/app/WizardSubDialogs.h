@@ -136,4 +136,50 @@ private:
     std::vector<QDoubleSpinBox*> m_spins;
 };
 
+/// "Resistencia al fuego" (598x335): tabs Acero / Madera. Only the Acero tab is implemented (TK-011).
+class FireDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit FireDialog(cc::core::SteelFireMode initial, QWidget* parent = nullptr);
+    cc::core::SteelFireMode value() const;
+
+private:
+    QButtonGroup* m_modes;
+};
+
+/// "Hipótesis adicionales" (280x443): shows the automatic and additional load-case counts per action.
+/// Editing the cases needs the load module (phase 7, ticket TK-013), so the edit buttons are disabled.
+class AdditionalLoadsDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit AdditionalLoadsDialog(QWidget* parent = nullptr);
+};
+
+/// "Cimentación" (253x136): wind and seismic combinations for the foundation.
+class FoundationActionsDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    FoundationActionsDialog(bool wind, bool seism, QWidget* parent = nullptr);
+    bool wind() const;
+    bool seism() const;
+
+private:
+    QCheckBox* m_wind;
+    QCheckBox* m_seism;
+};
+
+/// "Proceso constructivo" (398x152): formwork removal time. Only the "días" unit was seen (TK-011).
+class ConstructionProcessDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    explicit ConstructionProcessDialog(double days, QWidget* parent = nullptr);
+    double days() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    QDoubleSpinBox* m_days;
+};
+
 }  // namespace cc::app

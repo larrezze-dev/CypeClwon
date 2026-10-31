@@ -20,6 +20,7 @@ public:
     const cc::core::StandardsSelection& standards() const { return m_standards; }
     const cc::core::ProfileSettings& profiles() const { return m_profiles; }
     const cc::core::ReinforcedConcreteSettings& reinforcedConcrete() const { return m_concrete; }
+    const cc::core::ActionsSettings& actions() const { return m_actions; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -28,12 +29,14 @@ public:
 private:
     void buildProfiles(QVBoxLayout* layout);
     void buildReinforcedConcrete(QVBoxLayout* layout);
+    void buildActions(QVBoxLayout* layout);
     void refreshButtons();
     QComboBox* concreteCombo(const std::string& current, std::string& target);
 
     cc::core::StandardsSelection m_standards;
     cc::core::ProfileSettings m_profiles;
     cc::core::ReinforcedConcreteSettings m_concrete;
+    cc::core::ActionsSettings m_actions;
 
     QPushButton* m_standardsButton = nullptr;
     QPushButton* m_timberButton = nullptr;

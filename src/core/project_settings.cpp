@@ -138,6 +138,11 @@ bool WasteSettings::isValid() const {
     return true;
 }
 
+bool ActionsSettings::isValid() const {
+    return inRange(formworkRemovalDays, kMinDays, kMaxDays) && static_cast<int>(steelFire) >= 0 &&
+           static_cast<int>(steelFire) <= 2;
+}
+
 bool ReinforcedConcreteSettings::isValid() const {
     return contains(concreteGrades(), columnConcrete) && contains(concreteGrades(), beamConcrete) &&
            contains(concreteGrades(), foundationConcrete) && rebarSteel.isValid() && aggregate.isValid() &&

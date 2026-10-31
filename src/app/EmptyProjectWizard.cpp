@@ -1,5 +1,6 @@
 #include "EmptyProjectWizard.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFontMetrics>
 #include <QGridLayout>
@@ -70,7 +71,9 @@ EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra va
     contentLayout()->addLayout(columns, 1);
 
     buildProfiles(left);
-    left->addStretch(1);  // Acciones, Opciones and Ambiente arrive with T-P2-05.
+    left->addSpacing(12);
+    buildActions(left);
+    left->addStretch(1);  // Opciones and Ambiente arrive with T-P2-05.
     buildReinforcedConcrete(right);
     right->addStretch(1);  // Terreno de cimentación and Pilotes arrive with T-P2-05.
 
@@ -207,6 +210,38 @@ void EmptyProjectWizard::buildReinforcedConcrete(QVBoxLayout* layout) {
         WasteDialog dialog(m_concrete.waste, this);
         if (dialog.exec() != QDialog::Accepted) return;
         m_concrete.waste = dialog.value();
+    });
+}
+
+void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
+    layout->addWidget(sectionHeader(tr("Acciones"), this));
+    auto* seismic = new QCheckBox(tr("Con sismo dinámico"), this);
+    seismic->setChecked(m_actions.dynamicSeismic);
+    connect(seismic, &QCheckBox::toggled, this, [this](bool on) { m_actions.dynamicSeismic = on; });
+    layout->addWidget(seismic);
+
+    const auto addButton = [this, layout](const QString& text) {
+        auto* button = new QPushButton(text, this);
+        layout->addWidget(button);
+        return button;
+    };
+    connect(addButton(tr("Resistencia al fuego")), &QPushButton::clicked, this, [this] {
+        FireDialog dialog(m_actions.steelFire, this);
+        if (dialog.exec() == QDialog::Accepted) m_actions.steelFire = dialog.value();
+    });
+    auto* limitStates = addButton(tr("Estados límite (combinaciones)"));
+    limitStates->setEnabled(false);  // dialog arrives with T-P2-06
+    limitStates->setToolTip(tr("Disponible próximamente."));
+    connect(addButton(tr("Hipótesis adicionales")), &QPushButton::clicked, this, [this] { AdditionalLoadsDialog(this).exec(); });
+    connect(addButton(tr("Cimentación")), &QPushButton::clicked, this, [this] {
+        FoundationActionsDialog dialog(m_actions.foundationWind, m_actions.foundationSeism, this);
+        if (dialog.exec() != QDialog::Accepted) return;
+        m_actions.foundationWind = dialog.wind();
+        m_actions.foundationSeism = dialog.seism();
+    });
+    connect(addButton(tr("Proceso constructivo")), &QPushButton::clicked, this, [this] {
+        ConstructionProcessDialog dialog(m_actions.formworkRemovalDays, this);
+        if (dialog.exec() == QDialog::Accepted) m_actions.formworkRemovalDays = dialog.days();
     });
 }
 

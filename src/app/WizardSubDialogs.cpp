@@ -12,7 +12,9 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QTabWidget>
 #include <QTableWidget>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 namespace cc::app {
@@ -458,5 +460,127 @@ void WasteDialog::resetToInstallationValues() {
                              installation.tieBeams};
     for (std::size_t i = 0; i < m_spins.size(); ++i) m_spins[i]->setValue(values[i]);
 }
+
+// ---------------------------------------------------------------- Resistencia al fuego
+
+FireDialog::FireDialog(SteelFireMode initial, QWidget* parent) : CypeDialog(tr("Resistencia al fuego"), parent) {
+    setFixedSize(598, 335);
+    auto* tabs = new QTabWidget(this);
+    auto* steel = new QWidget(tabs);
+    auto* layout = new QVBoxLayout(steel);
+    m_modes = new QButtonGroup(this);
+    const QString texts[] = {tr("No considerar la situación de incendio"),
+                             tr("Comprobar la resistencia al fuego (Código Estructural)"),
+                             tr("Calcular la temperatura crítica en la situación de incendio")};
+    for (int i = 0; i < 3; ++i) {
+        auto* radio = new QRadioButton(texts[i], steel);
+        radio->setChecked(i == static_cast<int>(initial));
+        m_modes->addButton(radio, i);
+        layout->addWidget(radio);
+    }
+    layout->addStretch(1);
+    tabs->addTab(steel, tr("Acero"));
+    auto* timber = new QLabel(tr("Contenido pendiente de verificar."), tabs);
+    timber->setAlignment(Qt::AlignCenter);
+    tabs->addTab(timber, tr("Madera"));
+    contentLayout()->addWidget(tabs, 1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+SteelFireMode FireDialog::value() const { return static_cast<SteelFireMode>(m_modes->checkedId()); }
+
+// ---------------------------------------------------------------- Hipótesis adicionales
+
+AdditionalLoadsDialog::AdditionalLoadsDialog(QWidget* parent) : CypeDialog(tr("Hipótesis adicionales"), parent) {
+    setFixedSize(280, 443);
+    auto* uses = new QGroupBox(tr("Categorías de uso"), this);
+    auto* usesLayout = new QHBoxLayout(uses);
+    usesLayout->addWidget(new QLabel(tr("No hay categorías de uso definidas"), uses), 1);
+    auto* editUses = new QToolButton(uses);
+    editUses->setText(QStringLiteral("…"));
+    editUses->setEnabled(false);
+    usesLayout->addWidget(editUses);
+    contentLayout()->addWidget(uses);
+
+    auto* actions = new QGroupBox(tr("Acciones"), this);
+    auto* grid = new QGridLayout(actions);
+    grid->addWidget(new QLabel(tr("<b>Automáticas</b>"), actions), 0, 1, Qt::AlignRight);
+    grid->addWidget(new QLabel(tr("<b>Adicionales</b>"), actions), 0, 2, Qt::AlignRight);
+    struct Row {
+        QString name;
+        QString automatic;
+        QString additional;
+    };
+    const Row rows[] = {{tr("Peso propio"), QStringLiteral("1"), QStringLiteral("---")},
+                        {tr("Cargas muertas"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Sobrecarga de uso"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Temperatura"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Retracción"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Viento"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Sismo"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Nieve"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Empujes del terreno"), QStringLiteral("-"), QStringLiteral("0")},
+                        {tr("Accidental"), QStringLiteral("-"), QStringLiteral("0")}};
+    int r = 1;
+    for (const Row& row : rows) {
+        grid->addWidget(new QLabel(row.name, actions), r, 0);
+        grid->addWidget(new QLabel(row.automatic, actions), r, 1, Qt::AlignRight);
+        grid->addWidget(new QLabel(row.additional, actions), r, 2, Qt::AlignRight);
+        if (r > 1) {
+            auto* edit = new QToolButton(actions);
+            edit->setText(QStringLiteral("…"));
+            edit->setEnabled(false);
+            edit->setToolTip(tr("La edición de hipótesis estará disponible con el módulo de cargas."));
+            grid->addWidget(edit, r, 3);
+        }
+        ++r;
+    }
+    grid->setColumnStretch(0, 1);
+    contentLayout()->addWidget(actions);
+    contentLayout()->addStretch(1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+// ---------------------------------------------------------------- Cimentación (acciones)
+
+FoundationActionsDialog::FoundationActionsDialog(bool wind, bool seism, QWidget* parent)
+    : CypeDialog(tr("Cimentación"), parent) {
+    setFixedSize(253, 136);
+    m_wind = new QCheckBox(tr("Considerar combinaciones con viento"), this);
+    m_wind->setChecked(wind);
+    m_seism = new QCheckBox(tr("Considerar combinaciones con sismo"), this);
+    m_seism->setChecked(seism);
+    contentLayout()->addWidget(m_wind);
+    contentLayout()->addWidget(m_seism);
+    contentLayout()->addStretch(1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+bool FoundationActionsDialog::wind() const { return m_wind->isChecked(); }
+bool FoundationActionsDialog::seism() const { return m_seism->isChecked(); }
+
+// ---------------------------------------------------------------- Proceso constructivo
+
+ConstructionProcessDialog::ConstructionProcessDialog(double days, QWidget* parent)
+    : DefaultsDialog(tr("Proceso constructivo"), parent) {
+    setFixedSize(398, 152);
+    auto* row = new QHBoxLayout;
+    row->addStretch(1);
+    row->addWidget(new QLabel(tr("<b>Instante de descimbrado</b>"), this));
+    m_days = makeSpin(days, ActionsSettings::kMinDays, ActionsSettings::kMaxDays, 0, this);
+    row->addWidget(m_days);
+    auto* unit = new QComboBox(this);
+    unit->addItem(tr("días"));
+    row->addWidget(unit);
+    row->addStretch(1);
+    contentLayout()->addLayout(row);
+    contentLayout()->addStretch(1);
+    setupDefaultsFooter();
+    m_days->selectAll();
+    m_days->setFocus();
+}
+
+double ConstructionProcessDialog::days() const { return m_days->value(); }
+void ConstructionProcessDialog::resetToInstallationValues() { m_days->setValue(ActionsSettings{}.formworkRemovalDays); }
 
 }  // namespace cc::app
