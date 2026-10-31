@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rea": {
+      "command": "C:\\Users\\larre\\AppData\\Local\\nodejs-24.22.1\\node-v24.22.1-win-x64\\node.exe",
+      "args": ["D:\\AI\\rea-main\\scripts\\rea.mjs", "mcp"],
+      "env": {
+        "GHIDRA_INSTALL_DIR": "D:\\AI\\rea-main\\tools\\ghidra_12.1.4_PUBLIC",
+        "JAVA_HOME": "C:\\Program Files\\Java\\jdk-26.0.1"
+      }
+    }
+  }
+}
