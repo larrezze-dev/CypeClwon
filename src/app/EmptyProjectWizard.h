@@ -5,6 +5,7 @@
 
 class QComboBox;
 class QPushButton;
+class QVBoxLayout;
 
 namespace cc::app {
 
@@ -25,8 +26,8 @@ public:
     QPushButton* nextButton() const { return m_next; }
 
 private:
-    void buildProfiles(QLayout* layout);
-    void buildReinforcedConcrete(QLayout* layout);
+    void buildProfiles(QVBoxLayout* layout);
+    void buildReinforcedConcrete(QVBoxLayout* layout);
     void refreshButtons();
     QComboBox* concreteCombo(const std::string& current, std::string& target);
 

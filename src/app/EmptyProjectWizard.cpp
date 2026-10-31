@@ -101,7 +101,7 @@ QComboBox* EmptyProjectWizard::concreteCombo(const std::string& current, std::st
     return combo;
 }
 
-void EmptyProjectWizard::buildProfiles(QLayout* layout) {
+void EmptyProjectWizard::buildProfiles(QVBoxLayout* layout) {
     auto* header = new QWidget(this);
     auto* headerRow = new QHBoxLayout(header);
     headerRow->setContentsMargins(0, 0, 0, 0);
@@ -153,10 +153,10 @@ void EmptyProjectWizard::buildProfiles(QLayout* layout) {
 
     grid->addWidget(new QLabel(tr("Hormigón"), this), 4, 0);
     grid->addWidget(concreteCombo(m_profiles.concrete, m_profiles.concrete), 4, 1);
-    layout->addItem(grid);
+    layout->addLayout(grid);
 }
 
-void EmptyProjectWizard::buildReinforcedConcrete(QLayout* layout) {
+void EmptyProjectWizard::buildReinforcedConcrete(QVBoxLayout* layout) {
     layout->addWidget(sectionHeader(tr("Hormigón armado"), this));
 
     auto* grid = new QGridLayout;
@@ -177,14 +177,14 @@ void EmptyProjectWizard::buildReinforcedConcrete(QLayout* layout) {
     m_aggregateButton = new ElidedButton(this);
     grid->addWidget(m_aggregateButton, row++, 1);
     grid->setColumnMinimumWidth(1, 200);
-    layout->addItem(grid);
+    layout->addLayout(grid);
 
     auto* bottom = new QHBoxLayout;
     auto* covers = new QPushButton(tr("Recubrimientos"), this);
     auto* waste = new QPushButton(tr("Mermas de acero"), this);
     bottom->addWidget(covers);
     bottom->addWidget(waste);
-    layout->addItem(bottom);
+    layout->addLayout(bottom);
 
     connect(m_rebarButton, &QPushButton::clicked, this, [this] {
         RebarSteelDialog dialog(m_concrete.rebarSteel, this);
