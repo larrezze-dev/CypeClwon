@@ -4,7 +4,7 @@
   combination_report.cpp combination_report.h combination_report_data.cpp combination_report_data.h
   combination_export.cpp combination_export.h combination_docx.cpp
   project_archive.cpp project_archive.h project.h project_json.cpp project_json.h project_file.cpp project_file.h
-  structure_model.cpp structure_model.h general_data.cpp general_data.h)
+  structure_model.cpp structure_model.h general_data.cpp general_data.h camera.cpp camera.h)
 target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json)
 target_include_directories(cc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(cc_core PUBLIC cxx_std_20)

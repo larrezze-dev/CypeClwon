@@ -134,7 +134,8 @@ Una vez finalizado el desarrollo al 100% se realizará la traducción a los idio
 
 ## Licencia
 
-Este programa es para mi uso personal, pero estará en un repositorio de Github. La licencia será totalmente permisiva, MIT.
+Este programa es para mi uso personal, pero estará en un repositorio de Github. La licencia será totalmente permisiva, MIT. No replicar activaciones de licencia ni nada similar.
+
 
 ## Comunicación con el usuario
 
