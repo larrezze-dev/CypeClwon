@@ -66,6 +66,9 @@ void MainWindow::createWorkArea() {
     connect(m_startPage, &StartPage::moreRecentRequested, this, &MainWindow::showRecentFiles);
     connect(m_startPage, &StartPage::recentFileRequested, this, &MainWindow::openRecentFile);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
+    connect(m_undoAction, &QAction::triggered, this, [this] { m_undo.undo(); });
+    connect(m_redoAction, &QAction::triggered, this, [this] { m_undo.redo(); });
+    m_undo.setChangeCallback([this] { refreshUndoActions(); });
     loadRecentFiles();
 }
 
@@ -151,7 +154,19 @@ void MainWindow::newProject() {
                                  .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
 }
 
+void MainWindow::refreshUndoActions() {
+    const auto describe = [](QAction* action, const QString& verb, const std::string& text, bool enabled) {
+        action->setEnabled(enabled);
+        action->setStatusTip(enabled ? QStringLiteral("%1 %2").arg(verb, QString::fromStdString(text)) : verb);
+    };
+    describe(m_undoAction, tr("Deshacer"), m_undo.undoText(), m_projectOpen && m_undo.canUndo());
+    describe(m_redoAction, tr("Rehacer"), m_undo.redoText(), m_projectOpen && m_undo.canRedo());
+}
+
 void MainWindow::setProjectOpen(bool open) {
+    m_projectOpen = open;
+    m_undo.clear();  // every project starts with an empty history
+    refreshUndoActions();
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.
     ribbonBar()->setMinimumMode(!open);

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "core/undo_stack.h"
 #include "SARibbonMainWindow.h"
 #include "core/recent_files.h"
 
@@ -42,6 +43,7 @@ private:
     void saveRecentFiles() const;
     void refreshRecentFiles();
     void openRecentFile(const QString& path);
+    void refreshUndoActions();
 
     QAction* m_saveAction = nullptr;
     QAction* m_undoAction = nullptr;
@@ -52,6 +54,8 @@ private:
     WorkArea* m_workArea = nullptr;
     StartPage* m_startPage = nullptr;
     cc::core::RecentFiles m_recent;
+    cc::core::UndoStack m_undo;  ///< edit history of the open project (commands arrive with the project model, phase 3)
+    bool m_projectOpen = false;
     QStackedWidget* m_stack = nullptr;
 };
 
