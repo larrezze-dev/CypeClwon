@@ -1,5 +1,6 @@
 ﻿#include "MainWindow.h"
 
+#include <QDir>
 #include <QEvent>
 #include <QAction>
 #include <QIcon>
@@ -13,6 +14,7 @@
 #include "SARibbonSystemButtonBar.h"
 #include "Icons.h"
 #include "SessionBar.h"
+#include "NewProjectDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
 #include "core/version.h"
@@ -51,13 +53,22 @@ void MainWindow::createWorkArea() {
 
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
     auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
-    connect(m_startPage, &StartPage::newRequested, this, notYet);
+    connect(m_startPage, &StartPage::newRequested, this, &MainWindow::newProject);
     connect(m_startPage, &StartPage::fileManagerRequested, this, notYet);
     connect(m_startPage, &StartPage::examplesRequested, this, notYet);
     connect(m_startPage, &StartPage::moreRecentRequested, this, notYet);
     connect(m_startPage, &StartPage::recentFileRequested, this, notYet);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
     connect(m_startPage, &StartPage::licenceManagerRequested, this, notYet);
+}
+
+void MainWindow::newProject() {
+    NewProjectDialog dialog(NewProjectDialog::defaultFolder(), this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    NewProjectDialog::rememberFolder(dialog.folder());
+    // The project-type selector (T-P2-03) and the wizard (T-P2-04..06) follow in later tasks.
+    statusBar()->showMessage(tr("Nueva obra «%1». El selector de tipo de obra aún no está disponible.")
+                                 .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
 }
 
 void MainWindow::setProjectOpen(bool open) {

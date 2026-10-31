@@ -4,98 +4,190 @@
 <context>
     <name>cc::app::MainWindow</name>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="89"/>
+        <location filename="../src/app/MainWindow.cpp" line="100"/>
         <source>Guardar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="89"/>
+        <location filename="../src/app/MainWindow.cpp" line="100"/>
         <source>Guarda la obra actual.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="90"/>
+        <location filename="../src/app/MainWindow.cpp" line="101"/>
         <source>Deshacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="90"/>
+        <location filename="../src/app/MainWindow.cpp" line="101"/>
         <source>Deshace la última acción.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="91"/>
+        <location filename="../src/app/MainWindow.cpp" line="102"/>
         <source>Rehacer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="91"/>
+        <location filename="../src/app/MainWindow.cpp" line="102"/>
         <source>Rehace la última acción deshecha.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="92"/>
+        <location filename="../src/app/MainWindow.cpp" line="103"/>
         <source>Imprimir</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="92"/>
+        <location filename="../src/app/MainWindow.cpp" line="103"/>
         <source>Imprime la vista activa.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="76"/>
+        <location filename="../src/app/MainWindow.cpp" line="87"/>
         <source>Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="53"/>
+        <location filename="../src/app/MainWindow.cpp" line="55"/>
         <source>Esta función aún no está disponible.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="75"/>
+        <location filename="../src/app/MainWindow.cpp" line="70"/>
+        <source>Nueva obra «%1». El selector de tipo de obra aún no está disponible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/MainWindow.cpp" line="86"/>
         <source>Seleccione una opción del menú.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="144"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Obra</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="144"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Geometría</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="144"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Propiedades</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="144"/>
+        <location filename="../src/app/MainWindow.cpp" line="155"/>
         <source>Carga</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="145"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Uniones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="145"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Cálculo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="145"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Armaduras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/MainWindow.cpp" line="145"/>
+        <location filename="../src/app/MainWindow.cpp" line="156"/>
         <source>Ventana</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::NewProjectDialog</name>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="25"/>
+        <location filename="../src/app/NewProjectDialog.cpp" line="102"/>
+        <source>Nueva obra</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="28"/>
+        <source>Nombre de la obra</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="34"/>
+        <source>Examinar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="40"/>
+        <source>Nombre del fichero</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="48"/>
+        <source>Descripción</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="56"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="56"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="80"/>
+        <source>Debe indicar un nombre de fichero.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="83"/>
+        <source>El nombre del fichero no puede contener ninguno de los caracteres siguientes: \ / : * ? &quot; &lt; &gt; |</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="85"/>
+        <source>El nombre del fichero no puede terminar en un punto.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="88"/>
+        <source>El nombre «%1» está reservado por el sistema operativo.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="103"/>
+        <source>Obra CYPE 3D (*.ed3)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="114"/>
+        <location filename="../src/app/NewProjectDialog.cpp" line="120"/>
+        <location filename="../src/app/NewProjectDialog.cpp" line="124"/>
+        <location filename="../src/app/NewProjectDialog.cpp" line="129"/>
+        <source>Aviso</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="120"/>
+        <source>La ruta indicada no es una carpeta.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="124"/>
+        <source>La ruta completa del fichero es demasiado larga.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/NewProjectDialog.cpp" line="129"/>
+        <source>El fichero «%1» ya existe. ¿Desea sustituirlo?</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

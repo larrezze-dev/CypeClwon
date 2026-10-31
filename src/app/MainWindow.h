@@ -32,6 +32,7 @@ private:
     void createQuickAccessBar();
     void createStatusBar();
     void createWorkArea();
+    void newProject();
 
     QAction* m_saveAction = nullptr;
     QAction* m_undoAction = nullptr;

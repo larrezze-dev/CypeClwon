@@ -7,6 +7,7 @@
 #include <QTranslator>
 
 #include "MainWindow.h"
+#include "NewProjectDialog.h"
 #include "WorkArea.h"
 
 namespace {
@@ -27,14 +28,22 @@ void installTranslator(QApplication& app, const QString& override) {
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("CypeClwon"));
+    QCoreApplication::setApplicationName(QStringLiteral("CypeClwon"));
 
     // Developer aids: --locale forces a UI catalogue; --demo-windows opens N placeholder MDI windows.
     QCommandLineParser parser;
     QCommandLineOption localeOpt(QStringLiteral("locale"), QStringLiteral("Force UI locale."), QStringLiteral("name"));
     QCommandLineOption demoOpt(QStringLiteral("demo-windows"), QStringLiteral("Open N demo MDI windows."), QStringLiteral("n"));
-    parser.addOptions({localeOpt, demoOpt});
+    QCommandLineOption previewOpt(QStringLiteral("preview-dialog"), QStringLiteral("Show a dialog on its own (new-project)."), QStringLiteral("name"));
+    parser.addOptions({localeOpt, demoOpt, previewOpt});
     parser.process(app);
     installTranslator(app, parser.value(localeOpt));
+    if (parser.value(previewOpt) == QLatin1String("new-project")) {
+        cc::app::NewProjectDialog dialog(cc::app::NewProjectDialog::defaultFolder());
+        dialog.show();
+        return app.exec();
+    }
     cc::app::MainWindow window;
     for (int i = 0; i < parser.value(demoOpt).toInt(); ++i) {
         window.workArea()->addDocumentWindow(QStringLiteral("3D"), new QWidget);
