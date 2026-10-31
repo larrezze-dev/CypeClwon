@@ -305,12 +305,14 @@ TEST(ViewportTooltips, CoordinatesUseThreeDecimalsAndTheUnit) {
     EXPECT_EQ(Viewport3D::coordinatesText({-0.0001, 0, 3}), QStringLiteral("0.000, 0.000, 3.000 m"));
 }
 
-TEST(ViewportTooltips, AnchoredBoxesSitFlushInTheChosenCorner) {
+TEST(ViewportTooltips, AnchoredBoxesSitInTheCornerOrAboveTheElement) {
     const QSizeF size(100, 50), area(800, 600);
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::TopRight), QRectF(700, 0, 100, 50));
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::TopLeft), QRectF(0, 0, 100, 50));
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::BottomRight), QRectF(700, 550, 100, 50));
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, cc::app::TooltipPosition::BottomLeft), QRectF(0, 550, 100, 50));
+    using cc::app::TooltipPosition;
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::TopRightCorner), QRectF(700, 0, 100, 50));
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {400, 300}), QRectF(350, 238, 100, 50));
+    // Near the edges the box is kept inside the area.
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {5, 10}), QRectF(0, 0, 100, 50));
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {795, 590}), QRectF(700, 528, 100, 50));
 }
 
 TEST(ViewportTooltips, CoordinateTooltipFollowsTheCursorAndStaysInside) {
@@ -366,10 +368,11 @@ TEST_F(SelectionTest, HoveredBarFeedsTheInfoBoxInSelectionMode) {
 }
 
 TEST_F(SelectionTest, TooltipPositionIsConfigurable) {
-    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::TopRight);
-    view->setTooltipPosition(cc::app::TooltipPosition::BottomLeft);
-    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::BottomLeft);
-    EXPECT_EQ(Viewport3D::tooltipPositionLabel(cc::app::TooltipPosition::TopRight), QStringLiteral("En la esquina superior derecha"));
+    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::TopRightCorner);
+    view->setTooltipPosition(cc::app::TooltipPosition::OnElement);
+    EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::OnElement);
+    EXPECT_EQ(Viewport3D::tooltipPositionLabel(cc::app::TooltipPosition::TopRightCorner), QStringLiteral("En la esquina superior derecha"));
+    EXPECT_EQ(Viewport3D::tooltipPositionLabel(cc::app::TooltipPosition::OnElement), QStringLiteral("Sobre el elemento"));
 }
 
 int main(int argc, char** argv) {

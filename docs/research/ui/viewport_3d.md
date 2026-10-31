@@ -98,3 +98,7 @@ Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Captura
 - Fuente: capturas `sn2_nuevo_free.png`, `sn3_near_node.png`. La caja de información es una tabla blanca de 3 filas con filas separadas por líneas grises, pegada a la esquina superior derecha del área 3D (sin margen): fila 1 en negrita "Barra N2/N3: L. 4 m", fila 2 "Capa : por defecto", fila 3 sección y material "IPE 80 (S275 (UNE-EN 10025-2))". Tooltip de coordenadas: caja gris oscura con borde fino claro, texto blanco de ~16 px.
 - Implementado en `Viewport3D` (`coordinatesText`, `barInfoLines`, `anchoredRect`, `coordinateTooltipOrigin`, `setTooltipPosition`, `setShowElementInfo`).
 - Hipótesis por confirmar (TK-027): "Posición de los tooltips" gobierna la etiqueta de nudo y la caja de barra, no el tooltip de coordenadas; y la lista completa de posiciones del combo.
+
+- Combo "Posición de los tooltips" (captura `tp2_combo_open.png`, sesión 14): solo dos entradas, **"En la esquina superior derecha"** (por defecto) y **"Sobre el elemento"**. El clon las modela como `TooltipPosition::TopRightCorner` / `OnElement`.
+- Hallazgo: el tooltip de coordenadas (p. ej. "186.629, -186.946, 154.044 m") aparece también en la pestaña Obra, sin ningún comando activo, a ~(+40,+43) px del cursor (`tp1_after_esc.png`, `tp2_combo_open.png`). Pendiente en TK-027.
+- `tools/drive_original.ps1`: nuevo paso `fshot:name` (pantalla completa sin cambiar el foco), necesario para capturar listas desplegables, que son ventanas aparte y se cerraban con `sshot`.

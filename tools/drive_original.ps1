@@ -53,6 +53,14 @@ function SShot($p, $name) {
     $bmp.Save((Join-Path $OutDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
     Log "saved screen $name"
 }
+function FShot($name) {
+    # Whole primary screen, without touching focus (keeps popups such as combo lists open).
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+    $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size); $g.Dispose()
+    $bmp.Save((Join-Path $OutDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
+    Log "saved full screen $name"
+}
 function Click($p, $x, $y, $double) {
     $h = [D]::Top([uint32]$p.Id)
     $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
@@ -100,6 +108,7 @@ try {
                        [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
                        [D]::keybd_event([byte]$vk, 0, 2, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'sshot'  { SShot $p $arg }
+            'fshot'  { FShot $arg }
             'shot'   { Shot $p $arg }
         }
     }

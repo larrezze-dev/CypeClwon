@@ -22,10 +22,12 @@ namespace cc::app {
 /// What a mouse button drag does in the 3D viewport.
 enum class DragAction { None, Orbit, Pan };
 
-/// Corner of the 3D area where the anchored information (node label, bar information box) is shown: the original's
-/// "Posición de los tooltips" option (default "En la esquina superior derecha"). Provisional list of corners; the
-/// remaining entries of the original's combo are still to be captured (see docs/research/ui/viewport_3d.md).
-enum class TooltipPosition { TopRight, TopLeft, BottomRight, BottomLeft };
+/// Where the anchored information (node label, bar information box) is shown: the two entries of the original's
+/// "Posición de los tooltips" combo (captured in tp2_combo_open.png). Default: "En la esquina superior derecha".
+enum class TooltipPosition {
+    TopRightCorner,  ///< "En la esquina superior derecha": flush against the corner of the 3D area
+    OnElement        ///< "Sobre el elemento": just above the element the information is about
+};
 
 /// Mouse button assignment of the viewport (see docs/research/ui/viewport_3d.md for what the original does).
 struct MouseBindings {
@@ -103,8 +105,9 @@ public:
     static QString coordinatesText(const core::Vec3& world);
     /// Rows of the bar information box: "Barra N2/N3: L. 4 m", "Capa : por defecto" and, when assigned, "IPE 80 (S275)".
     static QStringList barInfoLines(const core::StructuralModel& structure, int barId);
-    /// Rectangle of a box of `size` flush against the chosen corner of an area of `area` size.
-    static QRectF anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position);
+    /// Rectangle of a box of `size` inside an area of `area` size: flush against the top-right corner, or centred above
+    /// `anchor` (screen position of the element) and kept inside the area.
+    static QRectF anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position, const QPointF& anchor = {});
     /// Top-left corner of the coordinate tooltip: (+40, +43) px from the cursor, flipped to the other side of the
     /// cursor when it would leave the area.
     static QPointF coordinateTooltipOrigin(const QPointF& cursor, const QSizeF& size, const QSizeF& area);
@@ -147,6 +150,8 @@ protected:
 private:
     void drawCoordinateTooltip(class QPainter& painter) const;
     void drawInfoBox(class QPainter& painter) const;
+    /// Screen position of the element the information is about (snapped point, node, or middle of the bar).
+    QPointF infoAnchor(const std::optional<int>& barId) const;
 
     double aspect() const;
     DragAction actionFor(Qt::MouseButtons buttons) const;
@@ -181,7 +186,7 @@ private:
     bool m_snapMode = false;
     core::SnapOptions m_snapOptions;
     core::SnapResult m_snap;
-    TooltipPosition m_tooltipPosition = TooltipPosition::TopRight;
+    TooltipPosition m_tooltipPosition = TooltipPosition::TopRightCorner;
     bool m_showElementInfo = true;
     bool m_cursorInside = false;
 };

@@ -310,10 +310,27 @@ QStringList Viewport3D::barInfoLines(const core::StructuralModel& structure, int
     return lines;
 }
 
-QRectF Viewport3D::anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position) {
-    const bool right = position == TooltipPosition::TopRight || position == TooltipPosition::BottomRight;
-    const bool top = position == TooltipPosition::TopRight || position == TooltipPosition::TopLeft;
-    return QRectF(QPointF(right ? area.width() - size.width() : 0.0, top ? 0.0 : area.height() - size.height()), size);
+QRectF Viewport3D::anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position, const QPointF& anchor) {
+    if (position == TooltipPosition::TopRightCorner) return QRectF(QPointF(area.width() - size.width(), 0.0), size);
+    constexpr double kGap = 12.0;  // space between the element and the box
+    const double x = std::clamp(anchor.x() - size.width() / 2.0, 0.0, std::max(0.0, area.width() - size.width()));
+    const double y = std::clamp(anchor.y() - kGap - size.height(), 0.0, std::max(0.0, area.height() - size.height()));
+    return QRectF(QPointF(x, y), size);
+}
+
+QPointF Viewport3D::infoAnchor(const std::optional<int>& barId) const {
+    const core::ScreenMapper map = mapper();
+    double x = m_cursor.x(), y = m_cursor.y();
+    if (m_snapMode && m_snap.snapped()) {
+        if (!map.toScreen(m_snap.point, x, y)) { x = m_cursor.x(); y = m_cursor.y(); }
+    } else if (m_structure && barId) {
+        const core::Bar* b = m_structure->findBar(*barId);
+        const core::Node* na = b ? m_structure->findNode(b->startNode) : nullptr;
+        const core::Node* nb = b ? m_structure->findNode(b->endNode) : nullptr;
+        double bx, by;
+        if (na && nb && map.toScreen(na->position, x, y) && map.toScreen(nb->position, bx, by)) { x = (x + bx) / 2; y = (y + by) / 2; }
+    }
+    return {x, y};
 }
 
 QPointF Viewport3D::coordinateTooltipOrigin(const QPointF& cursor, const QSizeF& size, const QSizeF& area) {
@@ -326,10 +343,8 @@ QPointF Viewport3D::coordinateTooltipOrigin(const QPointF& cursor, const QSizeF&
 
 QString Viewport3D::tooltipPositionLabel(TooltipPosition position) {
     switch (position) {
-        case TooltipPosition::TopRight: return tr("En la esquina superior derecha");
-        case TooltipPosition::TopLeft: return tr("En la esquina superior izquierda");
-        case TooltipPosition::BottomRight: return tr("En la esquina inferior derecha");
-        case TooltipPosition::BottomLeft: return tr("En la esquina inferior izquierda");
+        case TooltipPosition::TopRightCorner: return tr("En la esquina superior derecha");
+        case TooltipPosition::OnElement: return tr("Sobre el elemento");
     }
     return {};
 }
@@ -361,7 +376,7 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     double w = 0;
     for (int i = 0; i < lines.size(); ++i) w = std::max(w, static_cast<double>(QFontMetrics(i == 0 ? bold : font).horizontalAdvance(lines[i])));
     const QSizeF size(w + 2 * kPad, kRow * lines.size());
-    const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition);
+    const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, infoAnchor(id));
     painter.setBrush(Qt::white);
     painter.setPen(QPen(QColor(190, 190, 190), 1));  // original: white table, one grey-ruled row per line
     painter.drawRect(box);
@@ -535,7 +550,9 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     font.setPixelSize(13);
     painter.setFont(font);
     const QSizeF size(painter.fontMetrics().horizontalAdvance(text) + 16, 28);
-    const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition);  // "Posición de los tooltips"
+    double nx = 0, ny = 0;
+    mapper().toScreen(n->position, nx, ny);
+    const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, {nx, ny});  // "Posición de los tooltips"
     painter.setPen(kNodeBlue);
     painter.drawText(box, Qt::AlignCenter, text);
 }
