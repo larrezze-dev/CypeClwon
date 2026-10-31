@@ -14,3 +14,6 @@ Método: `tools/drive_original.ps1` (paso nuevo `drag:L|M|R,x1,y1,x2,y2`) sobre 
 | Tooltip de coordenadas | Aparece a la derecha del cursor/esquina según "Posición de los tooltips"; formato `x, y, z m` con 3 decimales. |
 
 Otros hechos: la vista por defecto al abrir una obra es la isométrica (yaw 45, pitch 30); fondo blanco; las líneas guía naranjas son familias de rectas paralelas por los nudos (no solo los tres ejes del origen), la T-P4-02 debe replicarlo. Los tooltips de los iconos de la barra no se mostraron con el cursor parado (pendiente identificar los iconos por clic).
+
+
+Líneas guía (T-P4-02, capturas gl_a0, gl_b2_in2, vp_s5): naranja (~#D98A4A) punteada de 1 px. Por cada nudo una recta completa en Y; en X y Z los nudos alineados se unen con un segmento que sobresale ~12 px (constante al hacer zoom) por los extremos. No hay rejilla. Con rueda -2 desde la vista por defecto el original dejó el área en blanco (sin explicar, TK-024).

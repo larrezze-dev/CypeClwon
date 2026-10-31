@@ -6,6 +6,8 @@
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <utility>
 
 namespace cc::app {
 
@@ -124,8 +126,8 @@ void Viewport3D::drawGuideLine(QPainter& painter, Vec3 a, Vec3 b) const {
 }
 
 void Viewport3D::drawGuideLines(QPainter& painter) const {
-    // Original (vp_s5.png): thin dotted orange lines through every node: a full-length one along Y, and short stubs
-    // (about 12 px) along X and up along Z. With no nodes, the three axes through the origin are drawn.
+    // Original (vp_s5.png): thin dotted orange lines through every node: a full-length one along Y, plus X and Z lines
+    // beyond the nodes along X and Z (nodes aligned along those axes are joined). With no nodes, the three axes through the origin are drawn.
     QPen pen(QColor(QStringLiteral("#D98A4A")), 1);
     pen.setStyle(Qt::DotLine);
     painter.setPen(pen);
@@ -136,14 +138,26 @@ void Viewport3D::drawGuideLines(QPainter& painter) const {
     }
     const double pixelsToWorld = m_camera.worldPerPixel(height());
     const core::Mat4 view = m_camera.viewMatrix();
+    // Constant on-screen length: in perspective, scale by the depth of the point relative to the target distance.
+    const auto stubAt = [&](const Vec3& p) {
+        const double depthScale = isOrthographic() ? 1.0 : std::max(1e-6, -toEye(view, p).z / m_camera.distance);
+        return kStubPixels * pixelsToWorld * depthScale;
+    };
+    // Y: a full-length line through every node.
+    for (const Vec3& n : m_nodes) drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
+    // X and Z: nodes that share the other two coordinates are joined by one segment, extended a few pixels at both ends.
+    const auto key = [](double a, double b) { return std::make_pair(std::llround(a * 1e6), std::llround(b * 1e6)); };
+    std::map<std::pair<long long, long long>, std::pair<Vec3, Vec3>> alongX, alongZ;  // line -> (lowest, highest) node
     for (const Vec3& n : m_nodes) {
-        drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
-        // Constant on-screen length: in perspective, scale by the node depth relative to the target distance.
-        const double depthScale = isOrthographic() ? 1.0 : std::max(1e-6, -toEye(view, n).z / m_camera.distance);
-        const double stub = kStubPixels * pixelsToWorld * depthScale;
-        drawGuideLine(painter, n + Vec3{-stub, 0, 0}, n + Vec3{stub, 0, 0});
-        drawGuideLine(painter, n, n + Vec3{0, 0, stub * 1.25});
+        auto [ix, newX] = alongX.try_emplace(key(n.y, n.z), n, n);
+        if (!newX) { if (n.x < ix->second.first.x) ix->second.first = n; if (n.x > ix->second.second.x) ix->second.second = n; }
+        auto [iz, newZ] = alongZ.try_emplace(key(n.x, n.y), n, n);
+        if (!newZ) { if (n.z < iz->second.first.z) iz->second.first = n; if (n.z > iz->second.second.z) iz->second.second = n; }
     }
+    for (const auto& [k, ends] : alongX)
+        drawGuideLine(painter, ends.first - Vec3{stubAt(ends.first), 0, 0}, ends.second + Vec3{stubAt(ends.second), 0, 0});
+    for (const auto& [k, ends] : alongZ)
+        drawGuideLine(painter, ends.first - Vec3{0, 0, stubAt(ends.first)}, ends.second + Vec3{0, 0, stubAt(ends.second)});
 }
 
 void Viewport3D::drawAxesTriad(QPainter& painter) const {
