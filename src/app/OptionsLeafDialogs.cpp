@@ -147,17 +147,6 @@ CrackingSettings CrackingDialog::value() const {
 
 namespace {
 
-/// Tab page with a note for the tabs that were not opened in the original yet (ticket TK-019).
-QWidget* placeholderPage(QWidget* parent) {
-    auto* page = new QWidget(parent);
-    auto* l = new QVBoxLayout(page);
-    auto* note = new QLabel(QObject::tr("Pestaña pendiente de capturar en el original (ticket TK-019)."), page);
-    note->setWordWrap(true);
-    l->addWidget(note);
-    l->addStretch(1);
-    return page;
-}
-
 /// Label + spin box + unit row in a grid.
 QDoubleSpinBox* gridSpin(QGridLayout* grid, int r, const QString& label, double min, double max, int decimals,
                          const QString& unit, QWidget* parent) {
@@ -265,7 +254,17 @@ PileCapOptionsDialog::PileCapOptionsDialog(const PileCapOptions& initial, QWidge
     gl->addStretch(1);
     tabs->addTab(grid, tr("Vigas y parrillas"));
 
-    tabs->addTab(placeholderPage(tabs), tr("Armado"));
+    // "Armado"
+    auto* reinforcement = new QWidget(tabs);
+    auto* rl = new QVBoxLayout(reinforcement);
+    m_perimeter = new QCheckBox(tr("Disponer armado perimetral"), reinforcement);
+    rl->addWidget(m_perimeter);
+    auto* rg = new QGridLayout;
+    m_perimeterFrom = gridSpin(rg, 0, tr("A partir de"), 0, 1000000, 2, tr("kN"), reinforcement);
+    rl->addLayout(rg);
+    rl->addStretch(1);
+    connect(m_perimeter, &QCheckBox::toggled, m_perimeterFrom, &QWidget::setEnabled);
+    tabs->addTab(reinforcement, tr("Armado"));
     contentLayout()->addWidget(tabs, 1);
     setupDefaultsFooter();
     load(initial);
@@ -296,6 +295,9 @@ void PileCapOptionsDialog::load(const PileCapOptions& all) {
     m_topGrid->setChecked(all.grid.designTopGrid);
     m_gridCriterion->setCurrentText(QString::fromStdString(all.grid.criterion));
     m_gridAlternative->setCurrentText(QString::fromStdString(all.grid.alternativeCriterion));
+    m_perimeter->setChecked(all.reinforcement.perimeterReinforcement);
+    m_perimeterFrom->setValue(all.reinforcement.fromAxialKn);
+    m_perimeterFrom->setEnabled(all.reinforcement.perimeterReinforcement);
 }
 
 PileCapOptions PileCapOptionsDialog::value() const {
@@ -322,6 +324,8 @@ PileCapOptions PileCapOptionsDialog::value() const {
     all.grid.designTopGrid = m_topGrid->isChecked();
     all.grid.criterion = m_gridCriterion->currentText().toStdString();
     all.grid.alternativeCriterion = m_gridAlternative->currentText().toStdString();
+    all.reinforcement.perimeterReinforcement = m_perimeter->isChecked();
+    all.reinforcement.fromAxialKn = m_perimeterFrom->value();
     return all;
 }
 
@@ -365,9 +369,78 @@ FootingOptionsDialog::FootingOptionsDialog(const FootingSettings& initial, QWidg
     column->addWidget(m_criterion);
     column->addStretch(1);
     tabs->addTab(general, tr("Generales"));
-    // The other tabs were not opened in the original yet (ticket TK-019). The last title is cut in the capture.
-    for (const QString& title : {tr("Armado perimetral"), tr("Tipos"), tr("Zapatas combinadas"), tr("Incremento te...")})
-        tabs->addTab(placeholderPage(tabs), title);
+
+    // "Armado perimetral"
+    auto* perimeter = new QWidget(tabs);
+    auto* pl = new QVBoxLayout(perimeter);
+    m_perimeter = new QCheckBox(tr("Disponer armado perimetral de zunchado"), perimeter);
+    pl->addWidget(m_perimeter);
+    auto* pg = new QGridLayout;
+    m_perimeterDiameter = gridSpin(pg, 0, tr("Diámetro mínimo"), 0.01, 100, 2, tr("mm"), perimeter);
+    m_perimeterBars = gridSpin(pg, 1, tr("Número mínimo de barras"), 1, 1000, 0, QString(), perimeter);
+    m_perimeterAxial = gridSpin(pg, 2, tr("Axil mínimo para disponer"), 0, 1000000, 2, tr("kN"), perimeter);
+    pl->addLayout(pg);
+    pl->addStretch(1);
+    for (QWidget* w : {static_cast<QWidget*>(m_perimeterDiameter), static_cast<QWidget*>(m_perimeterBars), static_cast<QWidget*>(m_perimeterAxial)})
+        connect(m_perimeter, &QCheckBox::toggled, w, &QWidget::setEnabled);
+    tabs->addTab(perimeter, tr("Armado perimetral"));
+
+    // "Tipos"
+    auto* types = new QWidget(tabs);
+    auto* tl = new QVBoxLayout(types);
+    const auto typeGroup = [&](const QString& title) {
+        auto* box = new QGroupBox(title, types);
+        auto* grid = new QGridLayout(box);
+        tl->addWidget(box);
+        return grid;
+    };
+    auto* square = typeGroup(tr("Zapata cuadrada"));
+    m_equalReinforcement = new QCheckBox(tr("Igualar armadura en las dos direcciones"), types);
+    square->addWidget(m_equalReinforcement, 0, 0, 1, 3);
+    m_squareOverhang = gridSpin(square, 1, tr("Vuelo mínimo"), 0, 1000, 2, tr("cm"), types);
+    auto* centred = typeGroup(tr("Zapata rectangular centrada"));
+    m_centredOverhang = gridSpin(centred, 0, tr("Vuelo mínimo"), 0, 1000, 2, tr("cm"), types);
+    m_centredRatio = gridSpin(centred, 1, tr("Relación máxima de lados"), 1, 100, 2, QString(), types);
+    auto* eccentric = typeGroup(tr("Zapata rectangular excéntrica"));
+    m_eccentricOverhang = gridSpin(eccentric, 0, tr("Vuelo mínimo"), 0, 1000, 2, tr("cm"), types);
+    m_eccentricRatio = gridSpin(eccentric, 1, tr("Relación máxima de lados"), 1, 100, 2, QString(), types);
+    auto* pyramid = typeGroup(tr("Zapata piramidal"));
+    m_pyramidAngle = gridSpin(pyramid, 0, tr("Ángulo máximo"), 0.01, 89.99, 2, tr("grados"), types);
+    m_pyramidPedestal = gridSpin(pyramid, 1, tr("Vuelo mínimo en pedestal"), 0, 1000, 2, tr("cm"), types);
+    m_pyramidEdge = gridSpin(pyramid, 2, tr("Canto mínimo en borde"), 0, 1000, 2, tr("cm"), types);
+    tl->addStretch(1);
+    tabs->addTab(types, tr("Tipos"));
+
+    // "Zapatas combinadas"
+    auto* combined = new QWidget(tabs);
+    auto* cl = new QVBoxLayout(combined);
+    auto* cg = new QGridLayout;
+    m_spanRatio = gridSpin(cg, 0, tr("Máxima relación luz máxima entre pilares-canto"), 0.01, 1000, 2, QString(), combined);
+    m_overhangRatio = gridSpin(cg, 1, tr("Máxima relación vuelo máximo-canto"), 0.01, 1000, 2, QString(), combined);
+    cl->addLayout(cg);
+    cl->addStretch(1);
+    tabs->addTab(combined, tr("Zapatas combinadas"));
+
+    // "Incremento tensión"
+    auto* increment = new QWidget(tabs);
+    auto* il = new QVBoxLayout(increment);
+    auto* note = new QLabel(tr("Se acepta, como norma general, admitir un incremento en la tensión máxima transmitida al terreno respecto a la tensión admisible definida, cuando hay excentricidad de la carga. Las comprobaciones que se realizan son las siguientes:"), increment);
+    note->setWordWrap(true);
+    il->addWidget(note);
+    const auto incrementGroup = [&](const QString& title, QDoubleSpinBox*& spin) {
+        auto* box = new QGroupBox(title, increment);
+        auto* row = new QHBoxLayout(box);
+        row->addWidget(new QLabel(tr("Tensión máxima cálculo <= ( 1 +"), increment));
+        spin = spinBox(0, 0, 100, 2, increment);
+        row->addWidget(spin);
+        row->addWidget(new QLabel(tr(") tensión admisible"), increment), 1);
+        il->addWidget(box);
+    };
+    incrementGroup(tr("Situaciones persistentes sin viento"), m_incrementPersistent);
+    incrementGroup(tr("Situaciones persistentes con viento"), m_incrementWind);
+    incrementGroup(tr("Situaciones accidentales"), m_incrementAccidental);
+    il->addStretch(1);
+    tabs->addTab(increment, tr("Incremento tensión"));
     contentLayout()->addWidget(tabs, 1);
     setupDefaultsFooter();
     load(initial);
@@ -387,6 +460,26 @@ void FootingOptionsDialog::load(const FootingSettings& s) {
     m_noTopGrid->setChecked(s.noTopGridIfPlainConcrete);
     m_type->setCurrentText(QString::fromStdString(s.defaultType));
     m_criterion->setCurrentText(QString::fromStdString(s.depthCriterion));
+    m_perimeter->setChecked(s.perimeter.enabled);
+    m_perimeterDiameter->setValue(s.perimeter.minDiameterMm);
+    m_perimeterBars->setValue(s.perimeter.minBars);
+    m_perimeterAxial->setValue(s.perimeter.minAxialKn);
+    for (QWidget* w : {static_cast<QWidget*>(m_perimeterDiameter), static_cast<QWidget*>(m_perimeterBars), static_cast<QWidget*>(m_perimeterAxial)})
+        w->setEnabled(s.perimeter.enabled);
+    m_equalReinforcement->setChecked(s.types.equalReinforcement);
+    m_squareOverhang->setValue(s.types.squareMinOverhangCm);
+    m_centredOverhang->setValue(s.types.centredMinOverhangCm);
+    m_centredRatio->setValue(s.types.centredMaxSideRatio);
+    m_eccentricOverhang->setValue(s.types.eccentricMinOverhangCm);
+    m_eccentricRatio->setValue(s.types.eccentricMaxSideRatio);
+    m_pyramidAngle->setValue(s.types.pyramidMaxAngleDeg);
+    m_pyramidPedestal->setValue(s.types.pyramidMinPedestalOverhangCm);
+    m_pyramidEdge->setValue(s.types.pyramidMinEdgeDepthCm);
+    m_spanRatio->setValue(s.combined.maxSpanDepthRatio);
+    m_overhangRatio->setValue(s.combined.maxOverhangDepthRatio);
+    m_incrementPersistent->setValue(s.stressIncrease.persistentNoWind);
+    m_incrementWind->setValue(s.stressIncrease.persistentWind);
+    m_incrementAccidental->setValue(s.stressIncrease.accidental);
 }
 
 FootingSettings FootingOptionsDialog::value() const {
@@ -403,6 +496,24 @@ FootingSettings FootingOptionsDialog::value() const {
     s.noTopGridIfPlainConcrete = m_noTopGrid->isChecked();
     s.defaultType = m_type->currentText().toStdString();
     s.depthCriterion = m_criterion->currentText().toStdString();
+    s.perimeter.enabled = m_perimeter->isChecked();
+    s.perimeter.minDiameterMm = m_perimeterDiameter->value();
+    s.perimeter.minBars = static_cast<int>(m_perimeterBars->value());
+    s.perimeter.minAxialKn = m_perimeterAxial->value();
+    s.types.equalReinforcement = m_equalReinforcement->isChecked();
+    s.types.squareMinOverhangCm = m_squareOverhang->value();
+    s.types.centredMinOverhangCm = m_centredOverhang->value();
+    s.types.centredMaxSideRatio = m_centredRatio->value();
+    s.types.eccentricMinOverhangCm = m_eccentricOverhang->value();
+    s.types.eccentricMaxSideRatio = m_eccentricRatio->value();
+    s.types.pyramidMaxAngleDeg = m_pyramidAngle->value();
+    s.types.pyramidMinPedestalOverhangCm = m_pyramidPedestal->value();
+    s.types.pyramidMinEdgeDepthCm = m_pyramidEdge->value();
+    s.combined.maxSpanDepthRatio = m_spanRatio->value();
+    s.combined.maxOverhangDepthRatio = m_overhangRatio->value();
+    s.stressIncrease.persistentNoWind = m_incrementPersistent->value();
+    s.stressIncrease.persistentWind = m_incrementWind->value();
+    s.stressIncrease.accidental = m_incrementAccidental->value();
     return s;
 }
 
@@ -734,6 +845,82 @@ ReinforcementBarTable ReinforcementBarDialog::value() const {
 
 // ---------------------------------------------------------------- Límites de flecha: editores
 
+DeflectionRowDialog::DeflectionRowDialog(const QString& title, const QString& header, const DeflectionRow& initial, QWidget* parent)
+    : CypeDialog(title, parent) {
+    setFixedSize(283, 197);
+    auto* layout = contentLayout();
+    layout->addWidget(greyBar(header, this));
+    auto* grid = new QGridLayout;
+    const QString rangeTip = tr("Debe estar entre %1 y %2.").arg(DeflectionRow::kMinDenominator).arg(DeflectionRow::kMaxDenominator);
+    const auto denominatorSpin = [&](int value) {
+        auto* spin = new QSpinBox(this);
+        spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+        spin->setRange(DeflectionRow::kMinDenominator, DeflectionRow::kMaxDenominator);
+        spin->setValue(value);
+        spin->setAlignment(Qt::AlignRight);
+        spin->setToolTip(rangeTip);
+        spin->setFixedWidth(55);
+        return spin;
+    };
+    // Absoluta: [value] cm
+    m_absolute = new QCheckBox(tr("Absoluta"), this);
+    m_absoluteCm = spinBox(initial.absoluteCm, 0.001, 100000, 3, this);
+    grid->addWidget(m_absolute, 0, 0);
+    grid->addWidget(m_absoluteCm, 0, 2);
+    grid->addWidget(new QLabel(tr("cm"), this), 0, 3);
+    // Mixta: L/ [n] + [value] cm
+    m_mixed = new QCheckBox(tr("Mixta"), this);
+    m_mixedDenominator = denominatorSpin(initial.mixedDenominator);
+    m_mixedCm = spinBox(initial.mixedCm, 0, 100000, 3, this);
+    auto* mixedRow = new QHBoxLayout;
+    mixedRow->addWidget(new QLabel(tr("L/"), this));
+    mixedRow->addWidget(m_mixedDenominator);
+    mixedRow->addWidget(new QLabel(tr("+"), this));
+    grid->addWidget(m_mixed, 1, 0);
+    grid->addLayout(mixedRow, 1, 1, 1, 1);
+    grid->addWidget(m_mixedCm, 1, 2);
+    grid->addWidget(new QLabel(tr("cm"), this), 1, 3);
+    // Relativa: L/ [n]
+    m_relative = new QCheckBox(tr("Relativa"), this);
+    m_relativeDenominator = denominatorSpin(initial.relativeDenominator);
+    auto* relativeRow = new QHBoxLayout;
+    relativeRow->addWidget(new QLabel(tr("L/"), this));
+    relativeRow->addWidget(m_relativeDenominator);
+    grid->addWidget(m_relative, 2, 0);
+    grid->addLayout(relativeRow, 2, 1, 1, 1);
+    grid->setColumnStretch(1, 1);
+    layout->addLayout(grid);
+    layout->addStretch(1);
+
+    m_absolute->setChecked(initial.absolute);
+    m_mixed->setChecked(initial.mixed);
+    m_relative->setChecked(initial.relative);
+    // Each value field is only editable while its box is checked.
+    const auto link = [](QCheckBox* box, const QList<QWidget*>& fields) {
+        const auto apply = [box, fields](bool on) {
+            for (QWidget* f : fields) f->setEnabled(on);
+        };
+        QObject::connect(box, &QCheckBox::toggled, box, apply);
+        apply(box->isChecked());
+    };
+    link(m_absolute, {m_absoluteCm});
+    link(m_mixed, {m_mixedDenominator, m_mixedCm});
+    link(m_relative, {m_relativeDenominator});
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+DeflectionRow DeflectionRowDialog::value() const {
+    DeflectionRow row;
+    row.absolute = m_absolute->isChecked();
+    row.absoluteCm = m_absoluteCm->value();
+    row.mixed = m_mixed->isChecked();
+    row.mixedDenominator = m_mixedDenominator->value();
+    row.mixedCm = m_mixedCm->value();
+    row.relative = m_relative->isChecked();
+    row.relativeDenominator = m_relativeDenominator->value();
+    return row;
+}
+
 DeflectionEditorDialog::DeflectionEditorDialog(const QString& material, const DeflectionLimitSet& initial, QWidget* parent)
     : CypeDialog(tr("Límites de flecha (%1)").arg(material), parent), m_set(initial) {
     if (initial.hasInfinite) setFixedSize(405, 481);
@@ -766,7 +953,7 @@ DeflectionLimitSet DeflectionEditorDialog::value() const {
     return s;
 }
 
-int* DeflectionEditorDialog::slot(Section section, int index) {
+DeflectionRow* DeflectionEditorDialog::slot(Section section, int index) {
     const auto i = static_cast<std::size_t>(index);
     switch (section) {
         case Section::InstantSimple: return &m_set.instantSimple.at(i);
@@ -777,40 +964,51 @@ int* DeflectionEditorDialog::slot(Section section, int index) {
     return nullptr;
 }
 
-const int* DeflectionEditorDialog::slot(Section section, int index) const {
-    return const_cast<DeflectionEditorDialog*>(this)->slot(section, index);
+const DeflectionRow& DeflectionEditorDialog::row(Section section, int index) const {
+    return *const_cast<DeflectionEditorDialog*>(this)->slot(section, index);
 }
 
-int DeflectionEditorDialog::limit(Section section, int index) const { return *slot(section, index); }
-
-void DeflectionEditorDialog::setLimit(Section section, int index, int denominator) {
-    *slot(section, index) = denominator < 0 ? 0 : denominator;
+void DeflectionEditorDialog::setRow(Section section, int index, const DeflectionRow& row) {
+    *slot(section, index) = row;
     for (auto& [key, label] : m_labels) {
-        if (key.first == section && key.second == index) {
-            label->setText(denominator > 0 ? QStringLiteral("L/ %1").arg(denominator) : QStringLiteral("----"));
-        }
+        if (key.first == section && key.second == index) label->setText(QString::fromStdString(row.summary()));
     }
+}
+
+QString DeflectionEditorDialog::rowTitle(Section section) {
+    switch (section) {
+        case Section::InstantSimple:
+        case Section::InstantCombination: return tr("Límites de flecha instantánea");
+        case Section::Infinite: return tr("Límites de flecha a plazo infinito");
+        case Section::Active: return tr("Límites de flecha activa a largo plazo");
+    }
+    return {};
+}
+
+QString DeflectionEditorDialog::rowHeader(Section section, const QString& name) {
+    const QString lower = name.toLower();
+    return section == Section::InstantSimple ? tr("Hipótesis: %1").arg(lower) : tr("Combinación de acciones: %1").arg(lower);
 }
 
 void DeflectionEditorDialog::addRows(QVBoxLayout* layout, const QString& title, Section section, const QStringList& names) {
     layout->addWidget(greyBar(title, this));
     for (int i = 0; i < names.size(); ++i) {
-        auto* row = new QHBoxLayout;
-        row->addWidget(new QLabel(names[i], this), 1);
+        auto* line = new QHBoxLayout;
+        line->addWidget(new QLabel(names[i], this), 1);
         auto* value = new QLabel(this);
-        value->setMinimumWidth(60);
-        row->addWidget(value);
+        value->setMinimumWidth(110);
+        value->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        line->addWidget(value);
         m_labels.push_back({{section, i}, value});
         auto* pencil = pencilButton(this);
-        connect(pencil, &QToolButton::clicked, this, [this, section, i] {
-            // The input window of the original was not captured (ticket TK-019): a plain integer prompt.
-            bool ok = false;
-            const int v = QInputDialog::getInt(this, windowTitle(), tr("Límite L/ (0: sin límite)"), limit(section, i), 0, 100000, 1, &ok);
-            if (ok) setLimit(section, i, v);
+        pencil->setToolTip(tr("Editar límite"));
+        connect(pencil, &QToolButton::clicked, this, [this, section, i, name = names[i]] {
+            DeflectionRowDialog dialog(rowTitle(section), rowHeader(section, name), row(section, i), this);
+            if (dialog.exec() == QDialog::Accepted) setRow(section, i, dialog.value());
         });
-        row->addWidget(pencil);
-        layout->addLayout(row);
-        setLimit(section, i, limit(section, i));
+        line->addWidget(pencil);
+        layout->addLayout(line);
+        setRow(section, i, row(section, i));
     }
 }
 

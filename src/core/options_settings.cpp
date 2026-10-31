@@ -1,39 +1,70 @@
 #include "core/options_settings.h"
 
 #include <algorithm>
+#include <cstdio>
 
 #include "core/project_settings.h"
 
 namespace cc::core {
 
 namespace {
-bool nonNegative(const std::array<int, 3>& values) {
-    return std::all_of(values.begin(), values.end(), [](int v) { return v >= 0; });
+template <std::size_t N>
+bool validRows(const std::array<DeflectionRow, N>& rows) {
+    return std::all_of(rows.begin(), rows.end(), [](const DeflectionRow& r) { return r.isValid(); });
+}
+std::string fixed(double value, int decimals) {
+    char buffer[32];
+    std::snprintf(buffer, sizeof buffer, "%.*f", decimals, value);
+    return buffer;
 }
 const char* const kCombinations[3] = {"Característica", "Frecuente", "Cuasipermanente"};
 }  // namespace
 
+bool DeflectionRow::isValid() const {
+    const auto inRange = [](int n) { return n >= kMinDenominator && n <= kMaxDenominator; };
+    return (!absolute || absoluteCm > 0) && (!mixed || (inRange(mixedDenominator) && mixedCm >= 0)) &&
+           (!relative || inRange(relativeDenominator));
+}
+
+DeflectionRow DeflectionRow::relativeLimit(int denominator) {
+    DeflectionRow row;
+    row.relative = true;
+    row.relativeDenominator = denominator;
+    return row;
+}
+
+std::string DeflectionRow::summary() const {
+    std::vector<std::string> parts;
+    if (absolute) parts.push_back(fixed(absoluteCm, 2) + " cm");
+    if (mixed) parts.push_back("L/ " + std::to_string(mixedDenominator) + " + " + fixed(mixedCm, 2) + " cm");
+    if (relative) parts.push_back("L/ " + std::to_string(relativeDenominator));
+    if (parts.empty()) return "----";
+    std::string text = parts.front();
+    for (std::size_t i = 1; i < parts.size(); ++i) text += "; " + parts[i];
+    return text;
+}
+
 bool DeflectionLimitSet::isValid() const {
-    return instantSimple[0] >= 0 && instantSimple[1] >= 0 && nonNegative(instantCombination) && nonNegative(infinite) &&
-           nonNegative(active) && damageableMonths >= 0;
+    return validRows(instantSimple) && validRows(instantCombination) && validRows(infinite) && validRows(active) &&
+           damageableMonths >= 0;
 }
 
 DeflectionLimitsSettings::DeflectionLimitsSettings() {
     DeflectionLimitSet& concrete = materials[0];
     concrete.hasInfinite = concrete.hasDamageable = true;
-    concrete.infinite[2] = 250;
-    concrete.active[2] = 500;
+    concrete.infinite[2] = DeflectionRow::relativeLimit(250);
+    concrete.active[2] = DeflectionRow::relativeLimit(500);
     // Acero laminado: no limit and no infinite / damageable sections.
     DeflectionLimitSet& cold = materials[2];
     cold.hasDamageable = true;
-    cold.instantSimple[1] = 350;
-    cold.instantCombination[2] = 300;
-    cold.active[0] = 400;
+    cold.instantSimple[1] = DeflectionRow::relativeLimit(350);
+    cold.instantCombination[2] = DeflectionRow::relativeLimit(300);
+    cold.active[0] = DeflectionRow::relativeLimit(400);
     DeflectionLimitSet& timber = materials[3];
     timber.hasInfinite = timber.hasDamageable = true;
-    timber.instantSimple[1] = 350;
-    timber.infinite[2] = 300;
-    timber.active[0] = 400;
+    timber.instantSimple[1] = DeflectionRow::relativeLimit(350);
+    timber.infinite[2] = DeflectionRow::relativeLimit(300);
+    timber.active[0] = DeflectionRow::relativeLimit(400);
 }
 
 const char* DeflectionLimitsSettings::materialName(std::size_t index) {
@@ -46,8 +77,8 @@ std::vector<DeflectionLimitGroup> DeflectionLimitsSettings::groups() const {
     for (std::size_t m = 0; m < materials.size(); ++m) {
         const DeflectionLimitSet& set = materials[m];
         DeflectionLimitGroup group{materialName(m), {}};
-        const auto add = [&](const std::string& text, int denominator) {
-            if (denominator > 0) group.limits.push_back({text, denominator});
+        const auto add = [&](const std::string& text, const DeflectionRow& row) {
+            if (row.isDefined()) group.limits.push_back({text, row.summary()});
         };
         add("Instantánea de carga permanente", set.instantSimple[0]);
         add("Instantánea de sobrecarga", set.instantSimple[1]);

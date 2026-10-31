@@ -24,10 +24,31 @@ struct BeamErrorSettings {
     bool isValid() const { return minStirrupDiameterMm > 0; }
 };
 
-/// One line of "Límites de flecha": a description and the L/ denominator.
+/// One line of "Límites de flecha" as summarised by the read-only dialog: a description and the limit text
+/// ("L/ 250", "1.00 cm" or "L/ 1000 + 0.50 cm"; several criteria are joined with "; ").
 struct DeflectionLimit {
     std::string description;
-    int denominator;
+    std::string text;
+};
+
+/// Limit of one row of a "Límites de flecha" editor. The row editor (283x197 in the original) has three
+/// independent check boxes: Absoluta (cm), Mixta (L/n + cm) and Relativa (L/n). The value fields keep their
+/// content while the box is unchecked; the row shows "----" when no box is checked.
+struct DeflectionRow {
+    static constexpr int kMinDenominator = 100, kMaxDenominator = 2000;  ///< "Debe estar entre 100 y 2000."
+    bool absolute = false;
+    double absoluteCm = 1.0;
+    bool mixed = false;
+    int mixedDenominator = 1000;
+    double mixedCm = 0.5;
+    bool relative = false;
+    int relativeDenominator = 250;
+    bool isDefined() const { return absolute || mixed || relative; }
+    bool isValid() const;
+    /// Row with only the relative criterion checked.
+    static DeflectionRow relativeLimit(int denominator);
+    /// Text shown in the editor and the summary ("----" when undefined).
+    std::string summary() const;
 };
 
 /// A material group of "Límites de flecha". An empty list means "No se ha definido ningún límite de flecha."
@@ -36,13 +57,13 @@ struct DeflectionLimitGroup {
     std::vector<DeflectionLimit> limits;
 };
 
-/// Editable limits of one material (the four "Límites de flecha (material)" editors). A denominator of 0 shows
-/// "----" (no limit). Combination order: Característica, Frecuente, Cuasipermanente.
+/// Editable limits of one material (the four "Límites de flecha (material)" editors). A row without any checked
+/// criterion shows "----" (no limit). Combination order: Característica, Frecuente, Cuasipermanente.
 struct DeflectionLimitSet {
-    std::array<int, 2> instantSimple{0, 0};       ///< Carga permanente, Sobrecarga
-    std::array<int, 3> instantCombination{0, 0, 0};
-    std::array<int, 3> infinite{0, 0, 0};         ///< "A plazo infinito" (only when hasInfinite)
-    std::array<int, 3> active{0, 0, 0};           ///< "Activa a largo plazo"
+    std::array<DeflectionRow, 2> instantSimple;   ///< Carga permanente, Sobrecarga
+    std::array<DeflectionRow, 3> instantCombination;
+    std::array<DeflectionRow, 3> infinite;        ///< "A plazo infinito" (only when hasInfinite)
+    std::array<DeflectionRow, 3> active;          ///< "Activa a largo plazo"
     int damageableMonths = 3;                      ///< "Construcción del elemento dañable" (only when hasDamageable)
     bool hasInfinite = false, hasDamageable = false;
     bool isValid() const;
@@ -238,16 +259,61 @@ struct PileCapGridSettings {
     std::string alternativeCriterion = "Armado según norma EHE";  ///< enabled by the other criteria (not captured)
 };
 
-/// All the tabs of Encepados > Opciones (the tab "Armado" was not captured yet).
+/// Encepados > "Armado".
+struct PileCapReinforcementSettings {
+    bool perimeterReinforcement = true;  ///< "Disponer armado perimetral"
+    double fromAxialKn = 2000.00;        ///< "A partir de"
+    bool isValid() const { return fromAxialKn >= 0; }
+};
+
+/// All the tabs of Encepados > Opciones.
 struct PileCapOptions {
     PileCapGeneralSettings general;
     PileCapSingleSettings single;
     PileCapBeamSettings beams;
     PileCapGridSettings grid;
-    bool isValid() const { return general.isValid() && single.isValid() && beams.isValid(); }
+    PileCapReinforcementSettings reinforcement;
+    bool isValid() const { return general.isValid() && single.isValid() && beams.isValid() && reinforcement.isValid(); }
 };
 
-/// Zapatas aisladas > Opciones, tab "Generales" (the other tabs were not captured yet).
+/// Zapatas aisladas > "Armado perimetral" (the three fields are enabled by the check box).
+struct FootingPerimeterSettings {
+    bool enabled = false;  ///< "Disponer armado perimetral de zunchado"
+    double minDiameterMm = 12.00;
+    int minBars = 3;
+    double minAxialKn = 2000.00;  ///< "Axil mínimo para disponer"
+    bool isValid() const { return minDiameterMm > 0 && minBars > 0 && minAxialKn >= 0; }
+};
+
+/// Zapatas aisladas > "Tipos".
+struct FootingTypeSettings {
+    bool equalReinforcement = true;  ///< square footing: "Igualar armadura en las dos direcciones"
+    double squareMinOverhangCm = 25.00;
+    double centredMinOverhangCm = 25.00, centredMaxSideRatio = 1.50;
+    double eccentricMinOverhangCm = 25.00, eccentricMaxSideRatio = 2.00;
+    double pyramidMaxAngleDeg = 25.00, pyramidMinPedestalOverhangCm = 5.00, pyramidMinEdgeDepthCm = 15.00;
+    bool isValid() const {
+        return squareMinOverhangCm >= 0 && centredMinOverhangCm >= 0 && centredMaxSideRatio >= 1 && eccentricMinOverhangCm >= 0 &&
+               eccentricMaxSideRatio >= 1 && pyramidMaxAngleDeg > 0 && pyramidMaxAngleDeg < 90 &&
+               pyramidMinPedestalOverhangCm >= 0 && pyramidMinEdgeDepthCm >= 0;
+    }
+};
+
+/// Zapatas aisladas > "Zapatas combinadas".
+struct FootingCombinedSettings {
+    double maxSpanDepthRatio = 8.00;      ///< "Máxima relación luz máxima entre pilares-canto"
+    double maxOverhangDepthRatio = 2.00;  ///< "Máxima relación vuelo máximo-canto"
+    bool isValid() const { return maxSpanDepthRatio > 0 && maxOverhangDepthRatio > 0; }
+};
+
+/// Zapatas aisladas > "Incremento tensión": allowed increase of the maximum stress when the load is eccentric,
+/// "Tensión máxima cálculo <= ( 1 + x ) tensión admisible", per group of situations.
+struct FootingStressIncrease {
+    double persistentNoWind = 0.25, persistentWind = 0.25, accidental = 0.25;
+    bool isValid() const { return persistentNoWind >= 0 && persistentWind >= 0 && accidental >= 0; }
+};
+
+/// Zapatas aisladas > Opciones: tab "Generales" plus the fields of the other four tabs.
 struct FootingSettings {
     double widthIncrementCm = 5.00, depthIncrementCm = 5.00, minDepthCm = 30.00;
     bool minGeometricReinforcement = false;
@@ -259,8 +325,13 @@ struct FootingSettings {
     bool noTopGridIfPlainConcrete = false;
     std::string defaultType = "Zapata de canto constante";
     std::string depthCriterion = "Canto zapatas >= canto viga sin excepción";
+    FootingPerimeterSettings perimeter;
+    FootingTypeSettings types;
+    FootingCombinedSettings combined;
+    FootingStressIncrease stressIncrease;
     bool isValid() const {
-        return widthIncrementCm >= 0 && depthIncrementCm >= 0 && minDepthCm > 0 && minGeometricRatio >= 0;
+        return widthIncrementCm >= 0 && depthIncrementCm >= 0 && minDepthCm > 0 && minGeometricRatio >= 0 && perimeter.isValid() &&
+               types.isValid() && combined.isValid() && stressIncrease.isValid();
     }
 };
 

@@ -18,10 +18,10 @@ TEST(OptionsSettings, DeflectionLimitsTable) {
     const auto& groups = defaultDeflectionLimits();
     ASSERT_EQ(groups.size(), 4u);
     EXPECT_EQ(groups[0].limits.size(), 2u);
-    EXPECT_EQ(groups[0].limits[0].denominator, 250);
+    EXPECT_EQ(groups[0].limits[0].text, "L/ 250");
     EXPECT_TRUE(groups[1].limits.empty());  // acero laminado: no limit defined
-    EXPECT_EQ(groups[2].limits[1].denominator, 300);
-    EXPECT_EQ(groups[3].limits[2].denominator, 400);
+    EXPECT_EQ(groups[2].limits[1].text, "L/ 300");
+    EXPECT_EQ(groups[3].limits[2].text, "L/ 400");
 }
 
 TEST(OptionsSettings, RejectsInvalidValues) {

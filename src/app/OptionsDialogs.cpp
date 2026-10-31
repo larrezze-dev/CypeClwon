@@ -159,7 +159,7 @@ void DeflectionLimitsDialog::rebuild() {
         auto* lines = new QVBoxLayout;
         if (group.limits.empty()) lines->addWidget(new QLabel(tr("No se ha definido ningún límite de flecha."), m_body));
         for (const DeflectionLimit& limit : group.limits) {
-            lines->addWidget(new QLabel(QStringLiteral("%1: L/ %2").arg(tr(limit.description.c_str())).arg(limit.denominator), m_body));
+            lines->addWidget(new QLabel(QStringLiteral("%1: %2").arg(tr(limit.description.c_str()), QString::fromStdString(limit.text)), m_body));
         }
         row->addLayout(lines, 1);
         auto* edit = new QToolButton(m_body);

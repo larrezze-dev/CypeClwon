@@ -531,7 +531,7 @@ TEST(OptionsLeafDialogs, FootingOptionsGeneralTab) {
     EXPECT_FALSE(v.noTopGridIfPlainConcrete);
     EXPECT_EQ(v.defaultType, "Zapata de canto constante");
     // The geometric-minimum ratio is only editable once its check box is ticked.
-    const auto spins = dialog.findChildren<QDoubleSpinBox*>();
+    const auto spins = tabs->widget(0)->findChildren<QDoubleSpinBox*>();
     ASSERT_EQ(spins.size(), 4);
     EXPECT_FALSE(spins[3]->isEnabled());
     for (QCheckBox* box : dialog.findChildren<QCheckBox*>())
@@ -542,6 +542,125 @@ TEST(OptionsLeafDialogs, FootingOptionsGeneralTab) {
     buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
     EXPECT_DOUBLE_EQ(dialog.value().widthIncrementCm, 5.00);
     EXPECT_FALSE(dialog.value().minGeometricReinforcement);
+}
+
+TEST(OptionsLeafDialogs, FootingOtherTabs) {
+    ensureApp();
+    FootingOptionsDialog dialog{cc::core::FootingSettings{}};
+    const auto tabs = dialog.findChild<QTabWidget*>();
+    ASSERT_EQ(tabs->count(), 5);
+    const QStringList titles{"Generales", "Armado perimetral", "Tipos", "Zapatas combinadas", "Incremento tensión"};
+    for (int i = 0; i < 5; ++i) EXPECT_EQ(tabs->tabText(i), titles[i]);
+    const auto v = dialog.value();
+    EXPECT_FALSE(v.perimeter.enabled);
+    EXPECT_DOUBLE_EQ(v.perimeter.minDiameterMm, 12.00);
+    EXPECT_EQ(v.perimeter.minBars, 3);
+    EXPECT_DOUBLE_EQ(v.perimeter.minAxialKn, 2000.00);
+    EXPECT_TRUE(v.types.equalReinforcement);
+    EXPECT_DOUBLE_EQ(v.types.centredMaxSideRatio, 1.50);
+    EXPECT_DOUBLE_EQ(v.types.eccentricMaxSideRatio, 2.00);
+    EXPECT_DOUBLE_EQ(v.types.pyramidMaxAngleDeg, 25.00);
+    EXPECT_DOUBLE_EQ(v.types.pyramidMinPedestalOverhangCm, 5.00);
+    EXPECT_DOUBLE_EQ(v.types.pyramidMinEdgeDepthCm, 15.00);
+    EXPECT_DOUBLE_EQ(v.combined.maxSpanDepthRatio, 8.00);
+    EXPECT_DOUBLE_EQ(v.combined.maxOverhangDepthRatio, 2.00);
+    EXPECT_DOUBLE_EQ(v.stressIncrease.persistentWind, 0.25);
+
+    // The three perimeter fields are disabled until the check box is ticked.
+    const auto perimeterSpins = tabs->widget(1)->findChildren<QDoubleSpinBox*>();
+    ASSERT_EQ(perimeterSpins.size(), 3);
+    for (auto* spin : perimeterSpins) EXPECT_FALSE(spin->isEnabled());
+    tabs->widget(1)->findChild<QCheckBox*>()->setChecked(true);
+    for (auto* spin : perimeterSpins) EXPECT_TRUE(spin->isEnabled());
+    perimeterSpins[1]->setValue(4);
+    EXPECT_EQ(dialog.value().perimeter.minBars, 4);
+    EXPECT_TRUE(dialog.value().perimeter.enabled);
+    tabs->widget(4)->findChildren<QDoubleSpinBox*>().at(2)->setValue(0.10);
+    EXPECT_DOUBLE_EQ(dialog.value().stressIncrease.accidental, 0.10);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_FALSE(dialog.value().perimeter.enabled);
+    EXPECT_DOUBLE_EQ(dialog.value().stressIncrease.accidental, 0.25);
+
+    cc::core::FootingSettings bad;
+    bad.types.pyramidMaxAngleDeg = 95;
+    EXPECT_FALSE(bad.isValid());
+}
+
+TEST(OptionsLeafDialogs, PileCapReinforcementTab) {
+    ensureApp();
+    PileCapOptionsDialog dialog{cc::core::PileCapOptions{}};
+    const auto tabs = dialog.findChild<QTabWidget*>();
+    auto* page = tabs->widget(4);
+    EXPECT_TRUE(dialog.value().reinforcement.perimeterReinforcement);
+    EXPECT_DOUBLE_EQ(dialog.value().reinforcement.fromAxialKn, 2000.00);
+    auto* from = page->findChildren<QDoubleSpinBox*>().at(0);
+    EXPECT_TRUE(from->isEnabled());
+    page->findChild<QCheckBox*>()->setChecked(false);
+    EXPECT_FALSE(from->isEnabled());
+    EXPECT_FALSE(dialog.value().reinforcement.perimeterReinforcement);
+    page->findChild<QCheckBox*>()->setChecked(true);
+    from->setValue(1500);
+    EXPECT_DOUBLE_EQ(dialog.value().reinforcement.fromAxialKn, 1500);
+    buttonWithText(&dialog, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(dialog.value().reinforcement.fromAxialKn, 2000.00);
+}
+
+TEST(OptionsLeafDialogs, DeflectionRowEditor) {
+    ensureApp();
+    using Section = DeflectionEditorDialog::Section;
+    EXPECT_EQ(DeflectionEditorDialog::rowTitle(Section::InstantSimple).toStdString(), "Límites de flecha instantánea");
+    EXPECT_EQ(DeflectionEditorDialog::rowTitle(Section::Infinite).toStdString(), "Límites de flecha a plazo infinito");
+    EXPECT_EQ(DeflectionEditorDialog::rowTitle(Section::Active).toStdString(), "Límites de flecha activa a largo plazo");
+    EXPECT_EQ(DeflectionEditorDialog::rowHeader(Section::InstantSimple, QStringLiteral("Carga permanente")).toStdString(),
+              "Hipótesis: carga permanente");
+    EXPECT_EQ(DeflectionEditorDialog::rowHeader(Section::Active, QStringLiteral("Cuasipermanente")).toStdString(),
+              "Combinación de acciones: cuasipermanente");
+
+    // Concrete, infinite term, quasi-permanent: relative L/250 is the only criterion checked.
+    cc::core::DeflectionLimitsSettings limits;
+    DeflectionRowDialog dialog(DeflectionEditorDialog::rowTitle(Section::Infinite), QStringLiteral("Combinación de acciones: cuasipermanente"),
+                               limits.materials[0].infinite[2]);
+    EXPECT_EQ(dialog.size(), QSize(283, 197));
+    const auto boxes = dialog.findChildren<QCheckBox*>();
+    ASSERT_EQ(boxes.size(), 3);
+    EXPECT_EQ(boxes[0]->text(), "Absoluta");
+    EXPECT_EQ(boxes[1]->text(), "Mixta");
+    EXPECT_EQ(boxes[2]->text(), "Relativa");
+    EXPECT_FALSE(boxes[0]->isChecked());
+    EXPECT_TRUE(boxes[2]->isChecked());
+    auto row = dialog.value();
+    EXPECT_DOUBLE_EQ(row.absoluteCm, 1.0);   // kept while unchecked
+    EXPECT_EQ(row.mixedDenominator, 1000);
+    EXPECT_DOUBLE_EQ(row.mixedCm, 0.5);
+    EXPECT_EQ(row.relativeDenominator, 250);
+    const auto denominators = dialog.findChildren<QSpinBox*>();
+    ASSERT_EQ(denominators.size(), 2);
+    EXPECT_EQ(denominators[0]->minimum(), 100);
+    EXPECT_EQ(denominators[0]->maximum(), 2000);
+    EXPECT_EQ(denominators[0]->toolTip().toStdString(), "Debe estar entre 100 y 2000.");
+    EXPECT_FALSE(denominators[0]->isEnabled());  // Mixta unchecked
+    EXPECT_TRUE(denominators[1]->isEnabled());
+    boxes[1]->setChecked(true);
+    boxes[0]->setChecked(true);
+    EXPECT_TRUE(denominators[0]->isEnabled());
+    denominators[1]->setValue(5000);  // clamped to the range
+    EXPECT_EQ(dialog.value().relativeDenominator, 2000);
+    EXPECT_EQ(dialog.value().summary(), "1.00 cm; L/ 1000 + 0.50 cm; L/ 2000");
+    EXPECT_TRUE(dialog.value().isValid());
+
+    // Accepting the row editor updates the label of the row; "----" when nothing is checked.
+    DeflectionEditorDialog editor(QStringLiteral("Hormigón"), limits.materials[0]);
+    cc::core::DeflectionRow mixed;
+    mixed.mixed = true;
+    editor.setRow(Section::InstantSimple, 0, mixed);
+    bool found = false;
+    for (QLabel* l : editor.findChildren<QLabel*>()) found = found || l->text() == QStringLiteral("L/ 1000 + 0.50 cm");
+    EXPECT_TRUE(found);
+    editor.setRow(Section::Infinite, 2, cc::core::DeflectionRow{});
+    EXPECT_FALSE(editor.value().infinite[2].isDefined());
+    EXPECT_EQ(cc::core::DeflectionRow{}.summary(), "----");
+    cc::core::DeflectionRow bad = cc::core::DeflectionRow::relativeLimit(50);
+    EXPECT_FALSE(bad.isValid());
 }
 
 TEST(OptionsLeafDialogs, TieBeamOptions) {
@@ -617,10 +736,11 @@ TEST(OptionsLeafDialogs, DeflectionEditorsAndSummary) {
     EXPECT_TRUE(limits.isValid());
     DeflectionEditorDialog concrete(QStringLiteral("Hormigón"), limits.materials[0]);
     EXPECT_EQ(concrete.size(), QSize(405, 481));
-    EXPECT_EQ(concrete.limit(DeflectionEditorDialog::Section::Infinite, 2), 250);
-    EXPECT_EQ(concrete.limit(DeflectionEditorDialog::Section::InstantSimple, 1), 0);
-    concrete.setLimit(DeflectionEditorDialog::Section::InstantSimple, 1, 400);
-    EXPECT_EQ(concrete.value().instantSimple[1], 400);
+    EXPECT_EQ(concrete.row(DeflectionEditorDialog::Section::Infinite, 2).relativeDenominator, 250);
+    EXPECT_FALSE(concrete.row(DeflectionEditorDialog::Section::InstantSimple, 1).isDefined());
+    concrete.setRow(DeflectionEditorDialog::Section::InstantSimple, 1, cc::core::DeflectionRow::relativeLimit(400));
+    EXPECT_EQ(concrete.value().instantSimple[1].relativeDenominator, 400);
+    EXPECT_TRUE(concrete.value().instantSimple[1].relative);
     EXPECT_EQ(concrete.value().damageableMonths, 3);
     DeflectionEditorDialog rolled(QStringLiteral("Acero laminado"), limits.materials[1]);
     EXPECT_EQ(rolled.size(), QSize(385, 356));
@@ -630,7 +750,7 @@ TEST(OptionsLeafDialogs, DeflectionEditorsAndSummary) {
     EXPECT_EQ(timber.size(), QSize(405, 481));
 
     // The summary dialog follows the edited values and enables one pencil per material.
-    limits.materials[1].instantSimple[1] = 300;
+    limits.materials[1].instantSimple[1] = cc::core::DeflectionRow::relativeLimit(300);
     DeflectionLimitsDialog summary{limits};
     int pencils = 0;
     for (QToolButton* b : summary.findChildren<QToolButton*>()) pencils += b->toolTip() == QStringLiteral("Editar límites de flecha");
@@ -638,7 +758,7 @@ TEST(OptionsLeafDialogs, DeflectionEditorsAndSummary) {
     bool found = false;
     for (QLabel* l : summary.findChildren<QLabel*>()) found = found || l->text() == QStringLiteral("Instantánea de sobrecarga: L/ 300");
     EXPECT_TRUE(found);
-    EXPECT_EQ(summary.value().materials[1].instantSimple[1], 300);
+    EXPECT_EQ(summary.value().materials[1].instantSimple[1].relativeDenominator, 300);
 }
 
 TEST(OptionsSettings, FoundationAndBeamTableDefaults) {
