@@ -273,17 +273,52 @@ JointMaterials JointMaterialsDialog::value() const {
 
 // ---------------------------------------------------------------- Uniones: Opciones
 
-JointOptionsDialog::JointOptionsDialog(const BoltSettings& initial, QWidget* parent)
-    : DefaultsDialog(tr("Opciones"), parent) {
-    setFixedSize(671, 460);
-    auto* tabs = new QTabWidget(this);
-    auto* page = new QWidget(tabs);
+namespace {
+QLabel* boldLabel(const QString& text, QWidget* parent) { return new QLabel(QStringLiteral("<b>%1</b>").arg(text), parent); }
+
+/// Tab page with the decorative bolt picture on the left and a column of controls on the right.
+QVBoxLayout* illustratedPage(QWidget* page) {
     auto* row = new QHBoxLayout(page);
     row->setContentsMargins(0, 0, 0, 0);
     row->addWidget(new BoltDiagram(page));
     auto* column = new QVBoxLayout;
+    row->addLayout(column, 1);
+    return column;
+}
 
-    column->addWidget(new QLabel(tr("<b>Series de tornillos</b>"), page));
+QLineEdit* numberField(int decimals, QWidget* parent) {
+    auto* edit = new QLineEdit(QString::number(0.0, 'f', decimals), parent);
+    edit->setFixedWidth(60);
+    edit->setAlignment(Qt::AlignRight);
+    return edit;
+}
+
+void markBold(QButtonGroup* group) {
+    QObject::connect(group, &QButtonGroup::idToggled, group, [group](int id, bool on) {
+        QFont font = group->button(id)->font();
+        font.setBold(on);
+        group->button(id)->setFont(font);
+    });
+}
+}  // namespace
+
+JointOptionsDialog::JointOptionsDialog(const JointOptionsSettings& initial, QWidget* parent)
+    : DefaultsDialog(tr("Opciones"), parent), m_passThrough(initial) {
+    setFixedSize(671, 460);
+    auto* tabs = new QTabWidget(this);
+    tabs->addTab(buildBoltsTab(tabs), tr("Tornillería no pretensada"));
+    tabs->addTab(buildPreloadedTab(tabs), tr("Tornillería pretensada"));
+    tabs->addTab(buildStiffenersTab(tabs), tr("Rigidizadores"));
+    tabs->addTab(buildBasePlateTab(tabs), tr("Placa de anclaje"));
+    contentLayout()->addWidget(tabs, 1);
+    setupDefaultsFooter();
+    load(initial);
+}
+
+QWidget* JointOptionsDialog::buildBoltsTab(QWidget* parent) {
+    auto* page = new QWidget(parent);
+    auto* column = illustratedPage(page);
+    column->addWidget(boldLabel(tr("Series de tornillos"), page));
     auto* series = new QHBoxLayout;
     m_iso4014 = new QCheckBox(tr("ISO 4014"), page);
     m_iso4017 = new QCheckBox(tr("ISO 4017"), page);
@@ -292,7 +327,7 @@ JointOptionsDialog::JointOptionsDialog(const BoltSettings& initial, QWidget* par
     series->addStretch(1);
     column->addLayout(series);
 
-    column->addWidget(new QLabel(tr("<b>Clase de acero de los tornillos</b>"), page));
+    column->addWidget(boldLabel(tr("Clase de acero de los tornillos"), page));
     auto* classes = new QHBoxLayout;
     m_classes = new QButtonGroup(this);
     int id = 0;
@@ -304,7 +339,7 @@ JointOptionsDialog::JointOptionsDialog(const BoltSettings& initial, QWidget* par
     classes->addStretch(1);
     column->addLayout(classes);
 
-    column->addWidget(new QLabel(tr("<b>Diámetros disponibles</b>"), page));
+    column->addWidget(boldLabel(tr("Diámetros disponibles"), page));
     auto* diameters = new QHBoxLayout;
     for (const std::string& name : boltDiameterNames()) {
         auto* check = new QCheckBox(QString::fromStdString(name), page);
@@ -316,40 +351,200 @@ JointOptionsDialog::JointOptionsDialog(const BoltSettings& initial, QWidget* par
     m_unusual = new QCheckBox(tr("Utilizar diámetros no habituales"), page);
     column->addWidget(m_unusual);
     column->addStretch(1);
-    row->addLayout(column, 1);
-    tabs->addTab(page, tr("Tornillería no pretensada"));
-
-    // Tabs never opened in the original (ticket TK-015): placeholders, nothing is invented.
-    for (const QString& title : {tr("Tornillería pretensada"), tr("Rigidizadores"), tr("Placa de anclaje")}) {
-        auto* other = new QLabel(tr("Contenido no verificado en el original (ticket TK-015)."), tabs);
-        other->setAlignment(Qt::AlignCenter);
-        other->setEnabled(false);
-        tabs->addTab(other, title);
-    }
-    contentLayout()->addWidget(tabs, 1);
-    setupDefaultsFooter();
-    load(initial);
+    return page;
 }
 
-void JointOptionsDialog::load(const BoltSettings& s) {
+QWidget* JointOptionsDialog::buildPreloadedTab(QWidget* parent) {
+    auto* page = new QWidget(parent);
+    auto* column = illustratedPage(page);
+    column->addWidget(boldLabel(tr("Series de tornillos"), page));
+    auto* series = new QHBoxLayout;
+    m_pSeries = new QButtonGroup(this);
+    int id = 0;
+    for (const std::string& name : preloadedBoltSeries()) {
+        auto* radio = new QRadioButton(QString::fromStdString(name), page);
+        m_pSeries->addButton(radio, id++);
+        series->addWidget(radio);
+    }
+    series->addStretch(1);
+    column->addLayout(series);
+    markBold(m_pSeries);
+
+    column->addWidget(boldLabel(tr("Clase de acero de los tornillos"), page));
+    auto* classes = new QHBoxLayout;
+    m_pClasses = new QButtonGroup(this);
+    id = 0;
+    for (const char* name : {"8.8", "10.9"}) {
+        auto* radio = new QRadioButton(QString::fromLatin1(name), page);
+        m_pClasses->addButton(radio, id++);
+        classes->addWidget(radio);
+    }
+    classes->addStretch(1);
+    column->addLayout(classes);
+    markBold(m_pClasses);
+
+    column->addWidget(boldLabel(tr("Diámetros disponibles"), page));
+    auto* diameters = new QHBoxLayout;
+    for (const std::string& name : preloadedBoltDiameterNames()) {
+        auto* check = new QCheckBox(QString::fromStdString(name), page);
+        m_pDiameters.push_back(check);
+        diameters->addWidget(check);
+    }
+    diameters->addStretch(1);
+    column->addLayout(diameters);
+    m_pUnusual = new QCheckBox(tr("Utilizar diámetros no habituales"), page);
+    column->addWidget(m_pUnusual);
+    column->addSpacing(12);
+
+    column->addWidget(boldLabel(tr("Clase de la superficie de rozamiento (Código Estructural, Anejo 21)"), page));
+    auto* friction = new QHBoxLayout;
+    m_pFriction = new QButtonGroup(this);
+    for (char c : {'A', 'B', 'C', 'D'}) {
+        auto* radio = new QRadioButton(
+            QStringLiteral("%1 (µ = %2)").arg(QChar::fromLatin1(c)).arg(frictionCoefficient(c), 0, 'f', 2), page);
+        m_pFriction->addButton(radio, c);
+        friction->addWidget(radio);
+    }
+    friction->addStretch(1);
+    column->addLayout(friction);
+    markBold(m_pFriction);
+    m_frictionText = new QLabel(page);
+    m_frictionText->setWordWrap(true);
+    m_frictionText->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    m_frictionText->setMinimumHeight(60);
+    m_frictionText->setStyleSheet(QStringLiteral("background: #D8F2FB; border: 1px solid #8CC8DC; padding: 4px;"));
+    column->addWidget(m_frictionText);
+    column->addStretch(1);
+    connect(m_pFriction, &QButtonGroup::idToggled, this, [this](int id, bool on) {
+        if (on) m_frictionText->setText(QString::fromStdString(frictionDescription(static_cast<char>(id))));
+    });
+    return page;
+}
+
+QWidget* JointOptionsDialog::buildStiffenersTab(QWidget* parent) {
+    auto* page = new QWidget(parent);
+    auto* column = illustratedPage(page);
+    column->addWidget(boldLabel(tr("Rigidizadores en el extremo de las cartelas"), page));
+    m_columnBeam = new QCheckBox(tr("Disponer siempre en uniones pilar-viga"), page);
+    m_ridge = new QCheckBox(tr("Disponer siempre en uniones de cumbrera"), page);
+    column->addWidget(m_columnBeam);
+    column->addWidget(m_ridge);
+    column->addSpacing(8);
+    column->addWidget(boldLabel(tr("Rigidizadores para vigas empotradas en el alma del pilar"), page));
+    m_cutouts = new QButtonGroup(this);
+    // the cut-out pictures of the original are not copied: plain radios (ticket TK-019)
+    auto* without = new QRadioButton(tr("Rigidizadores sin recortes"), page);
+    auto* with = new QRadioButton(tr("Rigidizadores con recortes"), page);
+    m_cutouts->addButton(without, 0);
+    m_cutouts->addButton(with, 1);
+    column->addWidget(without);
+    column->addWidget(with);
+    column->addStretch(1);
+    markBold(m_cutouts);
+    return page;
+}
+
+namespace {
+struct PlateField {
+    const char* label;
+    double BasePlateSettings::*member;
+    int decimals;
+    const char* unit;
+};
+const PlateField kPlateFields[] = {
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Relación máxima vuelo-espesor"), &BasePlateSettings::maxOverhangThickness, 2, ""},
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Relación máxima ancho-espesor"), &BasePlateSettings::maxWidthThickness, 2, ""},
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Espesor máximo recomendable para placas"),
+     &BasePlateSettings::maxRecommendedThicknessMm, 1, "mm"},
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Espesor del mortero de nivelación"), &BasePlateSettings::groutThicknessCm, 2, "cm"},
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Ángulo en bisel para rigidizadores"), &BasePlateSettings::stiffenerBevelDeg, 2,
+     "Grados"},
+    {QT_TRANSLATE_NOOP("JointOptionsDialog", "Relación máxima suma de lados-diámetro de pernos"),
+     &BasePlateSettings::maxSidesBoltDiameter, 2, ""}};
+}  // namespace
+
+QWidget* JointOptionsDialog::buildBasePlateTab(QWidget* parent) {
+    auto* page = new QWidget(parent);
+    auto* grid = new QGridLayout(page);
+    int row = 0;
+    for (const PlateField& field : kPlateFields) {
+        grid->addWidget(new QLabel(tr(field.label), page), row, 0);
+        auto* edit = numberField(field.decimals, page);
+        m_plateFields.push_back(edit);
+        grid->addWidget(edit, row, 1);
+        grid->addWidget(new QLabel(*field.unit ? tr(field.unit) : QString(), page), row, 2);
+        ++row;
+    }
+    grid->addWidget(new QLabel(tr("Anclaje pernos-placa"), page), row, 0);
+    m_plateAnchorage = new QComboBox(page);
+    m_plateAnchorage->addItem(tr("Soldados con preparación de bordes"));  // only entry seen (ticket TK-019)
+    grid->addWidget(m_plateAnchorage, row, 1, 1, 2);
+    grid->setRowStretch(row + 1, 1);
+    grid->setColumnStretch(0, 1);
+    return page;
+}
+
+void JointOptionsDialog::load(const JointOptionsSettings& all) {
+    m_passThrough = all;
+    const BoltSettings& s = all.bolts;
     m_iso4014->setChecked(s.iso4014);
     m_iso4017->setChecked(s.iso4017);
     const auto& classes = boltSteelClasses();
     for (std::size_t i = 0; i < classes.size(); ++i) m_classes->button(static_cast<int>(i))->setChecked(classes[i] == s.steelClass);
     for (std::size_t i = 0; i < m_diameters.size(); ++i) m_diameters[i]->setChecked(s.diameters[i]);
     m_unusual->setChecked(s.unusualDiameters);
+
+    const PreloadedBoltSettings& p = all.preloaded;
+    const auto& series = preloadedBoltSeries();
+    for (std::size_t i = 0; i < series.size(); ++i) m_pSeries->button(static_cast<int>(i))->setChecked(series[i] == p.series);
+    m_pClasses->button(p.steelClass == "8.8" ? 0 : 1)->setChecked(true);
+    for (std::size_t i = 0; i < m_pDiameters.size(); ++i) m_pDiameters[i]->setChecked(p.diameters[i]);
+    m_pUnusual->setChecked(p.unusualDiameters);
+    m_pFriction->button(p.frictionClass)->setChecked(true);
+
+    m_columnBeam->setChecked(all.stiffeners.alwaysColumnBeam);
+    m_ridge->setChecked(all.stiffeners.alwaysRidge);
+    m_cutouts->button(all.stiffeners.withCutouts ? 1 : 0)->setChecked(true);
+
+    for (std::size_t i = 0; i < m_plateFields.size(); ++i) {
+        m_plateFields[i]->setText(QString::number(all.basePlate.*kPlateFields[i].member, 'f', kPlateFields[i].decimals));
+    }
+    m_plateAnchorage->setCurrentText(QString::fromStdString(all.basePlate.boltPlateAnchorage));
 }
 
-BoltSettings JointOptionsDialog::value() const {
-    BoltSettings s;
+JointOptionsSettings JointOptionsDialog::value() const {
+    JointOptionsSettings all = m_passThrough;
+    BoltSettings& s = all.bolts;
     s.iso4014 = m_iso4014->isChecked();
     s.iso4017 = m_iso4017->isChecked();
     s.steelClass = boltSteelClasses().at(static_cast<std::size_t>(m_classes->checkedId()));
     for (std::size_t i = 0; i < m_diameters.size(); ++i) s.diameters[i] = m_diameters[i]->isChecked();
     s.unusualDiameters = m_unusual->isChecked();
-    return s;
+
+    PreloadedBoltSettings& p = all.preloaded;
+    p.series = preloadedBoltSeries().at(static_cast<std::size_t>(m_pSeries->checkedId()));
+    p.steelClass = m_pClasses->checkedId() == 0 ? "8.8" : "10.9";
+    for (std::size_t i = 0; i < m_pDiameters.size(); ++i) p.diameters[i] = m_pDiameters[i]->isChecked();
+    p.unusualDiameters = m_pUnusual->isChecked();
+    p.frictionClass = static_cast<char>(m_pFriction->checkedId());
+
+    all.stiffeners.alwaysColumnBeam = m_columnBeam->isChecked();
+    all.stiffeners.alwaysRidge = m_ridge->isChecked();
+    all.stiffeners.withCutouts = m_cutouts->checkedId() == 1;
+
+    for (std::size_t i = 0; i < m_plateFields.size(); ++i) {
+        bool ok = false;
+        const double v = m_plateFields[i]->text().replace(',', '.').toDouble(&ok);
+        if (ok) all.basePlate.*kPlateFields[i].member = v;
+    }
+    all.basePlate.boltPlateAnchorage = m_plateAnchorage->currentText().toStdString();
+    return all;
 }
 
-void JointOptionsDialog::resetToInstallationValues() { load(BoltSettings{}); }
+void JointOptionsDialog::resetToInstallationValues() {
+    JointOptionsSettings fresh;
+    fresh.materials = m_passThrough.materials;
+    load(fresh);
+}
 
 }  // namespace cc::app

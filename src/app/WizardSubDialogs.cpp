@@ -1141,8 +1141,8 @@ OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& set
                         JointMaterialsDialog dialog(joints.materials, parent);
                         if (dialog.exec() == QDialog::Accepted) joints.materials = dialog.value();
                     } else if (caption == options) {
-                        JointOptionsDialog dialog(joints.bolts, parent);
-                        if (dialog.exec() == QDialog::Accepted) joints.bolts = dialog.value();
+                        JointOptionsDialog dialog(joints, parent);
+                        if (dialog.exec() == QDialog::Accepted) joints = dialog.value();
                     }
                 },
                 false, parent);

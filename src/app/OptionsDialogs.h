@@ -80,22 +80,39 @@ private:
     QComboBox *m_steel, *m_bolts, *m_concrete;
 };
 
-/// Uniones > "Opciones" (671x460): tab "Tornillería no pretensada" implemented; the other three tabs were never
-/// opened in the original and show a placeholder (ticket TK-015).
+/// Uniones > "Opciones" (671x460): four tabs (Tornillería no pretensada, Tornillería pretensada, Rigidizadores and
+/// Placa de anclaje). The materials of JointOptionsSettings are passed through untouched.
 class JointOptionsDialog : public DefaultsDialog {
     Q_OBJECT
 public:
-    explicit JointOptionsDialog(const cc::core::BoltSettings& initial, QWidget* parent = nullptr);
-    cc::core::BoltSettings value() const;
+    explicit JointOptionsDialog(const cc::core::JointOptionsSettings& initial, QWidget* parent = nullptr);
+    cc::core::JointOptionsSettings value() const;
 
 protected:
     void resetToInstallationValues() override;
 
 private:
-    void load(const cc::core::BoltSettings& settings);
+    QWidget* buildBoltsTab(QWidget* parent);
+    QWidget* buildPreloadedTab(QWidget* parent);
+    QWidget* buildStiffenersTab(QWidget* parent);
+    QWidget* buildBasePlateTab(QWidget* parent);
+    void load(const cc::core::JointOptionsSettings& settings);
+    cc::core::JointOptionsSettings m_passThrough;
+    // Tornillería no pretensada
     QCheckBox *m_iso4014, *m_iso4017, *m_unusual;
     QButtonGroup* m_classes;
     std::vector<QCheckBox*> m_diameters;
+    // Tornillería pretensada
+    QButtonGroup *m_pSeries, *m_pClasses, *m_pFriction;
+    std::vector<QCheckBox*> m_pDiameters;
+    QCheckBox* m_pUnusual;
+    QLabel* m_frictionText;
+    // Rigidizadores
+    QCheckBox *m_columnBeam, *m_ridge;
+    QButtonGroup* m_cutouts;
+    // Placa de anclaje
+    std::vector<QLineEdit*> m_plateFields;
+    QComboBox* m_plateAnchorage;
 };
 
 }  // namespace cc::app

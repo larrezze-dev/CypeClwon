@@ -379,26 +379,38 @@ TEST(OptionsDialogs, JointMaterialsAndBolts) {
     EXPECT_EQ(m.anchorBoltSteel, "B 400 S, Ys = 1.15");
     EXPECT_EQ(m.concrete, "C25/30");
 
-    JointOptionsDialog dialog{cc::core::BoltSettings{}};
+    JointOptionsDialog dialog{cc::core::JointOptionsSettings{}};
     EXPECT_EQ(dialog.size(), QSize(671, 460));
-    auto b = dialog.value();
+    auto b = dialog.value().bolts;
     EXPECT_TRUE(b.iso4014);
     EXPECT_TRUE(b.iso4017);
     EXPECT_EQ(b.steelClass, "8.8");
+    EXPECT_EQ(dialog.value().preloaded.series, "EN 14399-3 (HR)");
     EXPECT_TRUE(b.diameters[3]);   // M24
     EXPECT_FALSE(b.diameters[4]);  // M30
     EXPECT_FALSE(b.unusualDiameters);
-    cc::core::BoltSettings custom;
-    custom.steelClass = "10.9";
-    custom.diameters[9] = true;
-    custom.iso4017 = false;
+    cc::core::JointOptionsSettings custom;
+    custom.bolts.steelClass = "10.9";
+    custom.bolts.diameters[9] = true;
+    custom.bolts.iso4017 = false;
+    custom.preloaded.frictionClass = 'B';
+    custom.preloaded.diameters[6] = false;
+    custom.stiffeners.withCutouts = false;
+    custom.basePlate.groutThicknessCm = 3.5;
     JointOptionsDialog other{custom};
-    b = other.value();
+    b = other.value().bolts;
+    EXPECT_EQ(other.value().preloaded.frictionClass, 'B');
+    EXPECT_FALSE(other.value().preloaded.diameters[6]);
+    EXPECT_FALSE(other.value().stiffeners.withCutouts);
+    EXPECT_DOUBLE_EQ(other.value().basePlate.groutThicknessCm, 3.5);
     EXPECT_EQ(b.steelClass, "10.9");
     EXPECT_TRUE(b.diameters[9]);
     EXPECT_FALSE(b.iso4017);
     buttonWithText(&other, QStringLiteral("Valores de instalación"))->click();
-    EXPECT_EQ(other.value().steelClass, "8.8");
+    EXPECT_EQ(other.value().bolts.steelClass, "8.8");
+    EXPECT_EQ(other.value().preloaded.frictionClass, 'C');
+    EXPECT_TRUE(other.value().stiffeners.withCutouts);
+    EXPECT_DOUBLE_EQ(other.value().basePlate.groutThicknessCm, 2.0);
 }
 
 TEST(EmptyProjectWizard, OptionsButtonsPresent) {

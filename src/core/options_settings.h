@@ -82,10 +82,48 @@ struct BoltSettings {
 const std::vector<std::string>& boltSteelClasses();
 const std::vector<std::string>& boltDiameterNames();
 
+/// Uniones > Opciones, tab "Tornillería pretensada".
+struct PreloadedBoltSettings {
+    std::string series = "EN 14399-3 (HR)";  ///< ISO 7411, ISO 7412, EN 14399-3 (HR) or EN 14399-4 (HV)
+    std::string steelClass = "10.9";          ///< 8.8 or 10.9
+    static constexpr std::size_t kDiameterCount = 7;
+    /// M12 M16 M20 M24 M27 M30 M36
+    std::array<bool, kDiameterCount> diameters{true, true, true, true, true, true, true};
+    bool unusualDiameters = false;
+    char frictionClass = 'C';  ///< slip-factor surface class A, B, C or D
+    bool isValid() const;
+};
+
+const std::vector<std::string>& preloadedBoltSeries();
+const std::vector<std::string>& preloadedBoltDiameterNames();
+/// Slip factor (mu) of a friction surface class A-D (Código Estructural, Anejo 21); 0 when unknown.
+double frictionCoefficient(char frictionClass);
+/// Description shown under the friction classes; empty when only the class C text was seen in the original.
+std::string frictionDescription(char frictionClass);
+
+/// Uniones > Opciones, tab "Rigidizadores".
+struct StiffenerSettings {
+    bool alwaysColumnBeam = false;  ///< "Disponer siempre en uniones pilar-viga"
+    bool alwaysRidge = false;       ///< "Disponer siempre en uniones de cumbrera"
+    bool withCutouts = true;        ///< "Rigidizadores con recortes" (false: sin recortes)
+};
+
+/// Uniones > Opciones, tab "Placa de anclaje".
+struct BasePlateSettings {
+    double maxOverhangThickness = 20.0, maxWidthThickness = 30.0;
+    double maxRecommendedThicknessMm = 15.0, groutThicknessCm = 2.0;
+    double stiffenerBevelDeg = 45.0, maxSidesBoltDiameter = 50.0;
+    std::string boltPlateAnchorage = "Soldados con preparación de bordes";
+    bool isValid() const;
+};
+
 struct JointOptionsSettings {
     JointMaterials materials;
     BoltSettings bolts;
-    bool isValid() const { return materials.isValid() && bolts.isValid(); }
+    PreloadedBoltSettings preloaded;
+    StiffenerSettings stiffeners;
+    BasePlateSettings basePlate;
+    bool isValid() const { return materials.isValid() && bolts.isValid() && preloaded.isValid() && basePlate.isValid(); }
 };
 
 /// Everything edited from the Opciones buttons of the wizard.
