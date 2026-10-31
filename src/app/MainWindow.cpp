@@ -19,6 +19,7 @@
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
 #include "FileManagerDialog.h"
+#include "FileOpsDialogs.h"
 #include "LimitStatesDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
@@ -62,7 +63,7 @@ void MainWindow::createWorkArea() {
     connect(m_startPage, &StartPage::newRequested, this, &MainWindow::newProject);
     connect(m_startPage, &StartPage::fileManagerRequested, this, &MainWindow::openFileManager);
     connect(m_startPage, &StartPage::examplesRequested, this, notYet);
-    connect(m_startPage, &StartPage::moreRecentRequested, this, notYet);
+    connect(m_startPage, &StartPage::moreRecentRequested, this, &MainWindow::showRecentFiles);
     connect(m_startPage, &StartPage::recentFileRequested, this, &MainWindow::openRecentFile);
     connect(m_startPage, &StartPage::helpRequested, this, notYet);
     loadRecentFiles();
@@ -84,6 +85,13 @@ void MainWindow::openFileManager() {
     dialog.exec();
     if (wantsNew) newProject();
     else if (!chosen.isEmpty()) openRecentFile(chosen);  // opening projects needs the file format (T-P3-04)
+}
+
+void MainWindow::showRecentFiles() {
+    QStringList all;
+    for (const std::string& path : m_recent.paths()) all << QString::fromStdString(path);
+    RecentFilesDialog dialog(all, this);
+    if (dialog.exec() == QDialog::Accepted && !dialog.chosenFile().isEmpty()) openRecentFile(dialog.chosenFile());
 }
 
 void MainWindow::loadRecentFiles() {

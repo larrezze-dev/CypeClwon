@@ -7,6 +7,10 @@
     <file>icons/redo.svg</file>
     <file>icons/print.svg</file>
     <file>icons/file_new.svg</file>
+    <file>icons/copy.svg</file>
+    <file>icons/trash.svg</file>
+    <file>icons/compress.svg</file>
+    <file>icons/decompress.svg</file>
     <file>icons/folder_open.svg</file>
     <file>icons/gift.svg</file>
     <file>icons/help_doc.svg</file>

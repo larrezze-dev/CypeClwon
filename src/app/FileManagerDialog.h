@@ -12,8 +12,8 @@ namespace cc::app {
 
 /// "Gestión archivos" (676x525): folder tree on the left, list of projects (.ed3) of the selected folder on the
 /// right with the columns Obra | Descripción | Versión | Fecha. Reference: docs/screenshots/orig_gestion_archivos_01.png
-/// and docs/research/ui/dialogs_gestion_archivos.md. Only Abrir, Nuevo and Ejemplos are wired; the behaviour of the
-/// other buttons and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
+/// and docs/research/ui/dialogs_gestion_archivos.md. Abrir, Nuevo, Copiar, Borrar, Comprimir and Descomprimir are wired (messages captured in
+/// docs/screenshots/orig_ga_*.png); Buscar, Compartir, Ejemplos and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
 class FileManagerDialog : public CypeDialog {
     Q_OBJECT
 public:
@@ -30,6 +30,11 @@ signals:
     void newRequested();
 
 private:
+    bool requireSelection();
+    void copyProject();
+    void deleteProject();
+    void compressProjectAction();
+    void decompressProjectAction();
     void reloadList();
     void revealFolder();
     QString m_folder;

@@ -37,6 +37,7 @@ private:
     void createWorkArea();
     void newProject();
     void openFileManager();
+    void showRecentFiles();
     void loadRecentFiles();
     void saveRecentFiles() const;
     void refreshRecentFiles();

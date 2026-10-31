@@ -9,7 +9,14 @@
 #include <QTemporaryDir>
 #include <QToolButton>
 
+#include <QCheckBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QPushButton>
+
 #include "FileManagerDialog.h"
+#include "FileOpsDialogs.h"
 
 using namespace cc::app;
 
@@ -53,7 +60,7 @@ TEST(FileManagerDialog, ListsOnlyProjectsOfTheFolder) {
     EXPECT_EQ(dialog.table()->item(0, 3)->text().size(), 10);  // dd/MM/yyyy
 }
 
-TEST(FileManagerDialog, OpenEmitsSelectedPathAndOtherButtonsAreDisabled) {
+TEST(FileManagerDialog, OpenEmitsSelectedPathAndPendingButtonsAreDisabled) {
     ensureApp();
     QTemporaryDir dir;
     touch(dir.filePath("one.ed3"));
@@ -65,12 +72,57 @@ TEST(FileManagerDialog, OpenEmitsSelectedPathAndOtherButtonsAreDisabled) {
     barButton(&dialog, "Abrir")->click();
     ASSERT_EQ(spy.count(), 1);
     EXPECT_TRUE(spy.at(0).at(0).toString().endsWith("one.ed3"));
-    for (const char* name : {"Copiar", "Borrar", "Buscar", "Comprimir", "Descomprimir", "Compartir", "Ejemplos"}) {
+    for (const char* name : {"Buscar", "Compartir", "Ejemplos"}) {
         EXPECT_FALSE(barButton(&dialog, name)->isEnabled()) << name;
+    }
+    for (const char* name : {"Copiar", "Borrar", "Comprimir", "Descomprimir"}) {
+        EXPECT_TRUE(barButton(&dialog, name)->isEnabled()) << name;
     }
     QSignalSpy newSpy(&dialog, &FileManagerDialog::newRequested);
     barButton(&dialog, "Nuevo")->click();
     EXPECT_EQ(newSpy.count(), 1);
+}
+
+TEST(FileOpsDialogs, DeleteConfirmationDefaultsToIncludingBackups) {
+    ensureApp();
+    DeleteProjectDialog dialog;
+    EXPECT_TRUE(dialog.includeBackups());
+    EXPECT_EQ(dialog.acceptButton()->text(), "Sí");
+    EXPECT_EQ(dialog.cancelButton()->text(), "No");
+}
+
+TEST(FileOpsDialogs, CompressProposesCypNextToTheProjectAndReportsKBytes) {
+    ensureApp();
+    QTemporaryDir dir;
+    QFile f(dir.filePath("nuevo2.ed3"));
+    ASSERT_TRUE(f.open(QIODevice::WriteOnly));
+    f.write(QByteArray(2048, 'x'));
+    f.close();
+    QFile bak(dir.filePath("nuevo2.bak"));
+    ASSERT_TRUE(bak.open(QIODevice::WriteOnly));
+    bak.write(QByteArray(1024, 'x'));
+    bak.close();
+    CompressDialog dialog(dir.filePath("nuevo2.ed3"));
+    EXPECT_TRUE(dialog.archivePath().endsWith("/nuevo2.cyp"));
+    EXPECT_FALSE(dialog.includeBackups());
+    const auto labels = dialog.findChildren<QLabel*>();
+    auto sizeText = [&] {
+        for (QLabel* l : labels) if (l->text().contains("KBytes")) return l->text();
+        return QString();
+    };
+    EXPECT_TRUE(sizeText().contains("2.00"));
+    dialog.findChild<QCheckBox*>()->setChecked(true);
+    EXPECT_TRUE(sizeText().contains("3.00"));
+    EXPECT_EQ(CompressDialog::kilobytesText(824135), "804.82");  // figure shown by the original for nuevo2
+}
+
+TEST(FileOpsDialogs, RecentFilesDialogChoosesTheSelectedEntry) {
+    ensureApp();
+    RecentFilesDialog dialog({"C:/a/one.ed3", "C:/a/two.ed3"});
+    ASSERT_EQ(dialog.list()->count(), 2);
+    dialog.list()->setCurrentRow(1);
+    dialog.acceptButton()->click();
+    EXPECT_EQ(dialog.chosenFile(), "C:/a/two.ed3");
 }
 
 int main(int argc, char** argv) {
