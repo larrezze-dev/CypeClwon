@@ -1,0 +1,6 @@
+﻿.toolchain/
+build/
+out/
+*.user
+CMakeUserPresets.json
+vcpkg_installed/
