@@ -1,0 +1,139 @@
+#pragma once
+#include <vector>
+
+#include "CypeDialog.h"
+#include "core/project_settings.h"
+
+class QButtonGroup;
+class QCheckBox;
+class QComboBox;
+class QDoubleSpinBox;
+class QLabel;
+
+namespace cc::app {
+
+/// Small dialogs opened from the "Obra vacía" wizard. Every dialog takes the current values, lets the user
+/// edit them and exposes the result through value(); callers apply it only when exec() returns Accepted.
+/// References: docs/screenshots/orig_obra_vacia_04..10 and docs/research/ui/dialogs_nueva_obra_wizard.md.
+
+/// "Madera" (492x285): material, strength class and service class.
+class TimberDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit TimberDialog(const cc::core::TimberSettings& initial, QWidget* parent = nullptr);
+    cc::core::TimberSettings value() const;
+
+private:
+    void updateServiceText();
+    QComboBox* m_material;
+    QComboBox* m_strength;
+    QButtonGroup* m_service;
+    QLabel* m_serviceText;
+};
+
+/// "Aluminio" (308x321): alloy and temper (delivery state) as radio groups.
+class AluminiumDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit AluminiumDialog(const cc::core::AluminiumSettings& initial, QWidget* parent = nullptr);
+    cc::core::AluminiumSettings value() const;
+
+private:
+    QButtonGroup* m_alloys;
+    QButtonGroup* m_tempers;
+};
+
+/// "Biblioteca de aceros de usuario" (478x245), opened by the fy icon. The user libraries are empty by default;
+/// editing them is not implemented yet (ticket TK-012).
+class SteelLibraryDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit SteelLibraryDialog(QWidget* parent = nullptr);
+};
+
+/// "Acero de barras" (277x480): rebar grade for every element.
+class RebarSteelDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit RebarSteelDialog(const cc::core::RebarSteelSettings& initial, QWidget* parent = nullptr);
+    cc::core::RebarSteelSettings value() const;
+
+private:
+    std::vector<QComboBox*> m_combos;  ///< same order as the fields of RebarSteelSettings
+};
+
+/// "Características del árido" (241x397).
+class AggregateDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit AggregateDialog(const cc::core::AggregateSettings& initial, QWidget* parent = nullptr);
+    cc::core::AggregateSettings value() const;
+
+private:
+    QComboBox* m_kind[3];
+    QComboBox* m_size[3];
+    QDoubleSpinBox* m_foundationSize;
+};
+
+/// Common base for the dialogs that carry "Grabar como opciones por defecto" and "Valores de instalación".
+class DefaultsDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    using CypeDialog::CypeDialog;
+    /// True when the user ticked "Grabar como opciones por defecto". Persisting the choice is ticket TK-012.
+    bool saveAsDefault() const;
+
+protected:
+    /// Adds the footer: the checkbox row plus Aceptar / Valores de instalación / Cancelar.
+    void setupDefaultsFooter();
+    virtual void resetToInstallationValues() = 0;
+
+private:
+    QCheckBox* m_saveDefault = nullptr;
+};
+
+/// "Recubrimientos" menu (180x191): three buttons, one per element family.
+class CoverMenuDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit CoverMenuDialog(const cc::core::CoverSettings& initial, QWidget* parent = nullptr);
+    /// Covers as edited so far (sub-dialog changes are applied immediately on their own Aceptar).
+    cc::core::CoverSettings value() const { return m_covers; }
+
+private:
+    cc::core::CoverSettings m_covers;
+};
+
+/// Cover dialogs for columns (404x384), beams (398x468) and foundation (398x350).
+class CoverDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    enum class Kind { Columns, Beams, Foundation };
+    CoverDialog(Kind kind, const cc::core::CoverSettings& initial, QWidget* parent = nullptr);
+    cc::core::CoverSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    void load(const cc::core::CoverSettings& settings);
+    Kind m_kind;
+    cc::core::CoverSettings m_base;       ///< fields of the other families are preserved
+    std::vector<QDoubleSpinBox*> m_spins; ///< order depends on m_kind (see .cpp)
+};
+
+/// "Mermas de acero" (398x266): percentage per element.
+class WasteDialog : public DefaultsDialog {
+    Q_OBJECT
+public:
+    explicit WasteDialog(const cc::core::WasteSettings& initial, QWidget* parent = nullptr);
+    cc::core::WasteSettings value() const;
+
+protected:
+    void resetToInstallationValues() override;
+
+private:
+    std::vector<QDoubleSpinBox*> m_spins;
+};
+
+}  // namespace cc::app

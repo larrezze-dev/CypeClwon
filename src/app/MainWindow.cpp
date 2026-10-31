@@ -15,6 +15,7 @@
 #include "Icons.h"
 #include "SessionBar.h"
 #include "NewProjectDialog.h"
+#include "EmptyProjectWizard.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
@@ -69,7 +70,9 @@ void MainWindow::newProject() {
     NewProjectDialog::rememberFolder(dialog.folder());
     ProjectTypeDialog typeDialog(this);
     if (typeDialog.exec() != QDialog::Accepted) return;
-    // The empty-project wizard (T-P2-04..06) follows in later tasks.
+    EmptyProjectWizard wizard(this);
+    if (wizard.exec() != QDialog::Accepted) return;
+    // The Estados límite dialog (T-P2-06) and the editor follow in later tasks.
     statusBar()->showMessage(tr("Nueva obra «%1». El asistente de obra vacía aún no está disponible.")
                                  .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
 }

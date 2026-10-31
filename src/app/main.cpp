@@ -8,6 +8,7 @@
 
 #include "MainWindow.h"
 #include "NewProjectDialog.h"
+#include "EmptyProjectWizard.h"
 #include "ProjectTypeDialog.h"
 #include "StandardsDialog.h"
 #include "WorkArea.h"
@@ -37,7 +38,7 @@ int main(int argc, char* argv[]) {
     QCommandLineParser parser;
     QCommandLineOption localeOpt(QStringLiteral("locale"), QStringLiteral("Force UI locale."), QStringLiteral("name"));
     QCommandLineOption demoOpt(QStringLiteral("demo-windows"), QStringLiteral("Open N demo MDI windows."), QStringLiteral("n"));
-    QCommandLineOption previewOpt(QStringLiteral("preview-dialog"), QStringLiteral("Show a dialog on its own (new-project)."), QStringLiteral("name"));
+    QCommandLineOption previewOpt(QStringLiteral("preview-dialog"), QStringLiteral("Show a dialog on its own (new-project, project-type, standards, empty-project)."), QStringLiteral("name"));
     parser.addOptions({localeOpt, demoOpt, previewOpt});
     parser.process(app);
     installTranslator(app, parser.value(localeOpt));
@@ -53,6 +54,11 @@ int main(int argc, char* argv[]) {
     }
     if (parser.value(previewOpt) == QLatin1String("standards")) {
         cc::app::StandardsDialog dialog{cc::core::StandardsSelection{}};
+        dialog.show();
+        return app.exec();
+    }
+    if (parser.value(previewOpt) == QLatin1String("empty-project")) {
+        cc::app::EmptyProjectWizard dialog;
         dialog.show();
         return app.exec();
     }

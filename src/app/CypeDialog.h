@@ -1,6 +1,7 @@
 #pragma once
 #include <QDialog>
 
+class QHBoxLayout;
 class QLabel;
 class QPushButton;
 class QToolButton;
@@ -23,6 +24,8 @@ protected:
     QVBoxLayout* contentLayout() const { return m_content; }
     /// Adds the footer band with the default Aceptar button and a Cancelar button.
     void setupFooter(const QString& acceptText, const QString& cancelText);
+    /// Adds an empty footer band and returns its layout, for dialogs with their own button row.
+    QHBoxLayout* setupCustomFooter();
 
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;

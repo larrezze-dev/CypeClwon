@@ -79,6 +79,15 @@ void CypeDialog::setupFooter(const QString& acceptText, const QString& cancelTex
     m_root->addWidget(footer);
 }
 
+QHBoxLayout* CypeDialog::setupCustomFooter() {
+    auto* footer = new QWidget(this);
+    footer->setObjectName(QStringLiteral("dlgFooter"));
+    auto* row = new QHBoxLayout(footer);
+    row->setContentsMargins(10, 10, 10, 10);
+    m_root->addWidget(footer);
+    return row;
+}
+
 void CypeDialog::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton && m_titleBar->geometry().contains(event->position().toPoint())) {
         m_dragging = true;
