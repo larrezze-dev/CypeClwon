@@ -26,7 +26,13 @@ constexpr const char* kSectionSuffix = ".json";
 constexpr mz_uint kMaxEntries = 4096;
 constexpr mz_uint64 kMaxEntryBytes = 512ull * 1024 * 1024;  // refuse "zip bombs"
 
-std::string quoted(const fs::path& path) { return "«" + path.filename().string() + "»"; }
+/// UTF-8 text of a path (path::string() would give the ANSI code page on Windows and garble accents in messages).
+std::string utf8(const fs::path& path) {
+    const std::u8string text = path.u8string();
+    return std::string(text.begin(), text.end());
+}
+
+std::string quoted(const fs::path& path) { return "«" + utf8(path.filename()) + "»"; }
 
 /// Read-only ZIP over a FILE*; closes everything on destruction.
 class ZipReader {
@@ -197,7 +203,8 @@ SaveResult saveProjectFile(const fs::path& path, ProjectDocument& document) {
 
     std::error_code ec;
     if (path.has_parent_path()) fs::create_directories(path.parent_path(), ec);
-    const fs::path temp = path.string() + ".tmp";
+    fs::path temp = path;
+    temp += ".tmp";
     {
         std::ofstream out(temp, std::ios::binary | std::ios::trunc);
         out.write(static_cast<const char*>(buffer), static_cast<std::streamsize>(size));
@@ -205,14 +212,14 @@ SaveResult saveProjectFile(const fs::path& path, ProjectDocument& document) {
         if (!out) {
             out.close();
             fs::remove(temp, ec);
-            result.error = "No se puede escribir en «" + path.string() + "». Compruebe que la carpeta existe y que hay espacio disponible.";
+            result.error = "No se puede escribir en «" + utf8(path) + "». Compruebe que la carpeta existe y que hay espacio disponible.";
             return result;
         }
     }
     fs::rename(temp, path, ec);  // replaces an existing file
     if (ec) {
         fs::remove(temp, ec);
-        result.error = "No se puede guardar «" + path.string() + "»: el fichero está en uso o es de solo lectura.";
+        result.error = "No se puede guardar «" + utf8(path) + "»: el fichero está en uso o es de solo lectura.";
         return result;
     }
     document.manifest = manifest;

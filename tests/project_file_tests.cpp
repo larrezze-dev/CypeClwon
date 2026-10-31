@@ -296,3 +296,19 @@ TEST_F(ProjectFileTest, TimestampIsIso8601Utc) {
     EXPECT_EQ(t[10], 'T');
     EXPECT_EQ(t.back(), 'Z');
 }
+
+TEST_F(ProjectFileTest, AccentedPathsWorkAndAppearAsUtf8InMessages) {
+    const fs::path folder = dir / fs::path(u8"obra_ñó");
+    const fs::path path = folder / fs::path(u8"Nave pequeña.ed3");
+    ProjectDocument doc = makeDocument(Project{}, "acentos");
+    ASSERT_TRUE(saveProjectFile(path, doc).ok);  // creates the folder
+    EXPECT_TRUE(loadProjectFile(path).ok);
+    EXPECT_TRUE(readProjectManifest(path).ok);
+    EXPECT_FALSE(fs::exists(folder / fs::path(u8"Nave pequeña.ed3.tmp")));
+
+    const LoadResult missing = loadProjectFile(folder / fs::path(u8"Nave inexistente.ed3"));
+    EXPECT_FALSE(missing.ok);
+    EXPECT_NE(missing.error.find("«Nave inexistente.ed3»"), std::string::npos) << missing.error;
+    const std::string utf8Name = "«Nave inexistente.ed3»";
+    EXPECT_NE(missing.error.find(utf8Name), std::string::npos);
+}

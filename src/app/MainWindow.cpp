@@ -315,7 +315,7 @@ void MainWindow::createQuickAccessBar() {
     };
     m_saveAction = make(QStringLiteral("save"), tr("Guardar"), tr("Guarda la obra actual."), QKeySequence::Save);
     m_saveAsAction = new QAction(tr("Guardar como..."), this);  // shortcut only: the entry point of the original is not captured
-    m_saveAsAction->setShortcut(QKeySequence::SaveAs);
+    m_saveAsAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S));  // QKeySequence::SaveAs is empty on Windows
     m_saveAsAction->setStatusTip(tr("Guarda la obra actual con otro nombre."));
     m_saveAsAction->setEnabled(false);
     addAction(m_saveAsAction);
