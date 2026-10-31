@@ -9,6 +9,7 @@
 #include "MainWindow.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
+#include "LimitStatesDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StandardsDialog.h"
 #include "WorkArea.h"
@@ -54,6 +55,16 @@ int main(int argc, char* argv[]) {
     }
     if (parser.value(previewOpt) == QLatin1String("standards")) {
         cc::app::StandardsDialog dialog{cc::core::StandardsSelection{}};
+        dialog.show();
+        return app.exec();
+    }
+    if (parser.value(previewOpt) == QLatin1String("limit-states")) {
+        cc::app::LimitStatesDialog dialog{cc::core::StandardsSelection{}, cc::core::LimitStatesSettings{}};
+        dialog.show();
+        return app.exec();
+    }
+    if (parser.value(previewOpt) == QLatin1String("limit-states-verify")) {
+        cc::app::LimitStatesVerifyDialog dialog{cc::core::LimitStatesSettings{}};
         dialog.show();
         return app.exec();
     }

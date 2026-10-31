@@ -18,6 +18,7 @@
 #include <QVBoxLayout>
 
 #include "Icons.h"
+#include "LimitStatesDialog.h"
 #include "StandardsDialog.h"
 #include "WizardSubDialogs.h"
 
@@ -241,9 +242,10 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
         FireDialog dialog(m_actions.steelFire, this);
         if (dialog.exec() == QDialog::Accepted) m_actions.steelFire = dialog.value();
     });
-    auto* limitStates = addButton(tr("Estados límite (combinaciones)"));
-    limitStates->setEnabled(false);  // dialog arrives with T-P2-06
-    limitStates->setToolTip(tr("Disponible próximamente."));
+    connect(addButton(tr("Estados límite (combinaciones)")), &QPushButton::clicked, this, [this] {
+        LimitStatesDialog dialog(m_standards, m_limitStates, this);
+        if (dialog.exec() == QDialog::Accepted) m_limitStates = dialog.value();
+    });
     connect(addButton(tr("Hipótesis adicionales")), &QPushButton::clicked, this, [this] { AdditionalLoadsDialog(this).exec(); });
     connect(addButton(tr("Cimentación")), &QPushButton::clicked, this, [this] {
         FoundationActionsDialog dialog(m_actions.foundationWind, m_actions.foundationSeism, this);

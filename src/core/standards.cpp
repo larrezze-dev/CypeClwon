@@ -103,13 +103,14 @@ bool StandardsSelection::isValid() const {
     return true;
 }
 
+std::string shortStandardName(std::string s) {
+    const auto open = s.rfind(" (");
+    if (open != std::string::npos && !s.empty() && s.back() == ')') s.erase(open);
+    return s;
+}
+
 std::string StandardsSelection::summary() const {
-    // Drops a trailing " (scope)" suffix.
-    auto strip = [](std::string s) {
-        const auto open = s.rfind(" (");
-        if (open != std::string::npos && s.back() == ')') s.erase(open);
-        return s;
-    };
+    const auto strip = [](const std::string& s) { return shortStandardName(s); };
     const std::vector<std::string> names = {strip(concrete), strip(coldFormedSteel), strip(hotRolledSteel), strip(timber),
                                             strip(aluminium)};
     std::string out;

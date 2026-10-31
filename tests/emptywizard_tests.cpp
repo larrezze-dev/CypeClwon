@@ -146,7 +146,8 @@ TEST(EmptyProjectWizard, ActionsDefaults) {
     EXPECT_TRUE(wizard.actions().foundationWind);
     EXPECT_TRUE(wizard.actions().isValid());
     EXPECT_NE(buttonWithText(&wizard, QStringLiteral("Hipótesis adicionales")), nullptr);
-    EXPECT_FALSE(buttonWithText(&wizard, QStringLiteral("Estados límite (combinaciones)"))->isEnabled());
+    EXPECT_TRUE(buttonWithText(&wizard, QStringLiteral("Estados límite (combinaciones)"))->isEnabled());
+    EXPECT_TRUE(wizard.limitStates().isValid());
 }
 
 TEST(WizardSubDialogs, EnvironmentAndGround) {

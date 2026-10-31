@@ -1,6 +1,7 @@
 ﻿<RCC>
   <qresource prefix="/">
     <file>icons/app_logo.svg</file>
+    <file>icons/edit_pencil.svg</file>
     <file>icons/save.svg</file>
     <file>icons/undo.svg</file>
     <file>icons/redo.svg</file>

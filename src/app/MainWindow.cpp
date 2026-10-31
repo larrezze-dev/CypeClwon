@@ -16,6 +16,7 @@
 #include "SessionBar.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
+#include "LimitStatesDialog.h"
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include "WorkArea.h"
@@ -71,8 +72,13 @@ void MainWindow::newProject() {
     ProjectTypeDialog typeDialog(this);
     if (typeDialog.exec() != QDialog::Accepted) return;
     EmptyProjectWizard wizard(this);
-    if (wizard.exec() != QDialog::Accepted) return;
-    // The Estados límite dialog (T-P2-06) and the editor follow in later tasks.
+    // "Estados límite" follows "Terminar"; cancelling it returns to the wizard with its values intact.
+    for (;;) {
+        if (wizard.exec() != QDialog::Accepted) return;
+        LimitStatesDialog limitStates(wizard.standards(), wizard.limitStates(), this);
+        if (limitStates.exec() == QDialog::Accepted) break;
+    }
+    // The editor follows in later tasks.
     statusBar()->showMessage(tr("Nueva obra «%1». El asistente de obra vacía aún no está disponible.")
                                  .arg(QDir::toNativeSeparators(dialog.filePath())), 6000);
 }

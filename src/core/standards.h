@@ -10,6 +10,9 @@ enum class StandardFamily { Concrete, ColdFormedSteel, HotRolledSteel, Timber, A
 /// Names available for a family, in the order shown by the original application.
 const std::vector<std::string>& availableStandards(StandardFamily family);
 
+/// Name without its trailing " (scope)" suffix, e.g. "Eurocódigo 2 (UE)" -> "Eurocódigo 2".
+std::string shortStandardName(std::string name);
+
 /// The code selected for each family. Defaults match the original installation defaults.
 struct StandardsSelection {
     std::string concrete = "Eurocódigo 2 (UE)";

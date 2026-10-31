@@ -1,5 +1,6 @@
 #pragma once
 #include "CypeDialog.h"
+#include "core/limit_states.h"
 #include "core/project_settings.h"
 #include "core/standards.h"
 
@@ -24,6 +25,7 @@ public:
     const cc::core::ActionsSettings& actions() const { return m_actions; }
     const cc::core::EnvironmentSettings& environment() const { return m_environment; }
     const cc::core::GroundSettings& ground() const { return m_ground; }
+    const cc::core::LimitStatesSettings& limitStates() const { return m_limitStates; }
     const cc::core::PileSettings& piles() const { return m_piles; }
     const cc::core::MicropileSettings& micropiles() const { return m_micropiles; }
 
@@ -48,6 +50,7 @@ private:
     cc::core::ActionsSettings m_actions;
     cc::core::EnvironmentSettings m_environment;
     cc::core::GroundSettings m_ground;
+    cc::core::LimitStatesSettings m_limitStates;
     cc::core::PileSettings m_piles;
     cc::core::MicropileSettings m_micropiles;
     QPushButton* m_environmentButton = nullptr;
