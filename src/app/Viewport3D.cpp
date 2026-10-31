@@ -1,8 +1,10 @@
 #include "Viewport3D.h"
 
 #include <QFont>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPolygonF>
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
@@ -17,6 +19,9 @@ using core::Vec3;
 namespace {
 constexpr double kGuideExtent = 1e5;  // the long guide lines are effectively infinite
 constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on screen
+constexpr double kNodeHalf = 7.0;     // blue node squares are ~14 px wide, constant with the zoom
+const QColor kNodeBlue(QStringLiteral("#0066CC"));
+const QColor kHighlight(QStringLiteral("#DA8735"));
 
 // Eye-space position of a world point (the camera looks along -z).
 Vec3 toEye(const core::Mat4& view, const Vec3& p) {
@@ -70,6 +75,7 @@ DragAction Viewport3D::actionFor(Qt::MouseButtons buttons) const {
 void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
     m_drag = actionFor(event->buttons());
+    if (m_selectionMode && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) selectionPress(event);
     event->accept();
 }
 
@@ -87,6 +93,8 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
         emit cameraChanged();
         update();
     }
+    m_cursor = event->position();
+    if (m_selectionMode) updateHover(m_cursor);
     emit cursorMoved(screenToTargetPlane(event->position()));
     event->accept();
 }
@@ -111,6 +119,205 @@ void Viewport3D::setNodes(std::vector<Vec3> nodes) {
     m_nodes = std::move(nodes);
     update();
 }
+
+void Viewport3D::setStructure(const core::StructuralModel* structure) {
+    m_structure = structure;
+    m_nodes.clear();
+    if (structure)
+        for (const core::Node& n : structure->nodes) m_nodes.push_back({n.position.x, n.position.y, n.position.z});
+    m_hover.reset();
+    m_windowStart.reset();
+    clearSelection();
+    update();
+}
+
+core::ScreenMapper Viewport3D::mapper() const { return {&m_camera, static_cast<double>(width()), static_cast<double>(height())}; }
+
+void Viewport3D::setSelectionMode(bool on) {
+    if (m_selectionMode == on) return;
+    m_selectionMode = on;
+    m_hover.reset();
+    m_windowStart.reset();
+    if (!on) clearSelection();
+    setFocusPolicy(on ? Qt::ClickFocus : Qt::NoFocus);
+    emit statusHint(on ? tr("LMB: Seleccione un grupo de elementos. RMB: Actuar sobre los elementos seleccionados") : QString());
+    update();
+}
+
+void Viewport3D::setSelectionFilter(const core::SelectionFilter& filter) {
+    m_filter = filter;
+    if (m_selection.restrictTo(filter)) emit selectionChanged();
+    m_hover.reset();
+    update();
+}
+
+void Viewport3D::clearSelection() {
+    if (m_selection.empty()) return;
+    m_selection.clear();
+    emit selectionChanged();
+    update();
+}
+
+void Viewport3D::cancelWindow() {
+    if (!m_windowStart) return;
+    m_windowStart.reset();
+    update();
+}
+
+void Viewport3D::updateHover(const QPointF& pos) {
+    std::optional<core::ElementRef> hover;
+    if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), m_filter, pos.x(), pos.y());
+    if (hover != m_hover || m_windowStart) {
+        m_hover = hover;
+        update();
+    }
+}
+
+void Viewport3D::selectionPress(QMouseEvent* event) {
+    if (event->button() == Qt::RightButton) {
+        if (m_windowStart) cancelWindow();
+        else emit actOnSelection();
+        return;
+    }
+    if (!m_structure) return;
+    const QPointF pos = event->position();
+    const core::SelectMode mode = event->modifiers().testFlag(Qt::ControlModifier) ? core::SelectMode::Add
+                                  : event->modifiers().testFlag(Qt::ShiftModifier) ? core::SelectMode::Remove
+                                                                                    : core::SelectMode::Replace;
+    bool changed = false;
+    if (m_windowStart) {  // second corner
+        const QPointF a = *m_windowStart;
+        m_windowStart.reset();
+        changed = m_selection.apply(core::pickRect(*m_structure, mapper(), m_filter, a.x(), a.y(), pos.x(), pos.y()), mode);
+    } else if (const auto hit = core::pickAt(*m_structure, mapper(), m_filter, pos.x(), pos.y())) {
+        changed = m_selection.apply({*hit}, mode);
+    } else {
+        m_windowStart = pos;  // first corner; a plain click on empty space does not clear the selection
+        m_cursor = pos;
+    }
+    m_hover.reset();
+    if (changed) emit selectionChanged();
+    update();
+}
+
+void Viewport3D::keyPressEvent(QKeyEvent* event) {
+    if (m_selectionMode && event->key() == Qt::Key_Escape) {
+        if (m_windowStart) cancelWindow();
+        else clearSelection();
+        event->accept();
+        return;
+    }
+    QOpenGLWidget::keyPressEvent(event);
+}
+
+void Viewport3D::leaveEvent(QEvent* event) {
+    if (m_hover) {
+        m_hover.reset();
+        update();
+    }
+    QOpenGLWidget::leaveEvent(event);
+}
+
+void Viewport3D::drawStructure(QPainter& painter) const {
+    if (!m_structure) return;
+    const core::ScreenMapper map = mapper();
+    for (const core::Shell& shell : m_structure->shells) {
+        QPolygonF poly;
+        for (int id : shell.nodeIds) {
+            const core::Node* n = m_structure->findNode(id);
+            double x, y;
+            if (n && map.toScreen(n->position, x, y)) poly << QPointF(x, y);
+        }
+        if (poly.size() < 3 || poly.size() != static_cast<int>(shell.nodeIds.size())) continue;
+        painter.setPen(QPen(QColor(60, 60, 60), 1));
+        painter.setBrush(QColor(120, 160, 200, 60));
+        painter.drawPolygon(poly);
+    }
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(QColor(32, 32, 32), 1.5));
+    for (const core::Bar& bar : m_structure->bars) {
+        const core::Node* a = m_structure->findNode(bar.startNode);
+        const core::Node* b = m_structure->findNode(bar.endNode);
+        double ax, ay, bx, by;
+        if (a && b && map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by))
+            painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
+    }
+}
+
+void Viewport3D::drawNodes(QPainter& painter) const {
+    if (!m_structure) return;
+    const core::ScreenMapper map = mapper();
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(kNodeBlue, 1));
+    for (const core::Node& n : m_structure->nodes) {
+        double x, y;
+        if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - kNodeHalf, y - kNodeHalf, 2 * kNodeHalf, 2 * kNodeHalf));
+    }
+}
+
+void Viewport3D::drawHighlight(QPainter& painter, const core::ElementRef& e, bool selected) const {
+    if (!m_structure) return;
+    const core::ScreenMapper map = mapper();
+    const double w = selected ? 3.0 : 2.0;  // original: orange squares 2-3 px thick
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(kHighlight, w));
+    double x, y;
+    switch (e.kind) {
+        case core::ElementKind::Node: {
+            const core::Node* n = m_structure->findNode(e.id);
+            if (n && map.toScreen(n->position, x, y)) painter.drawRect(QRectF(x - kNodeHalf, y - kNodeHalf, 2 * kNodeHalf, 2 * kNodeHalf));
+            break;
+        }
+        case core::ElementKind::Bar: {
+            const core::Bar* b = m_structure->findBar(e.id);
+            const core::Node* na = b ? m_structure->findNode(b->startNode) : nullptr;
+            const core::Node* nb = b ? m_structure->findNode(b->endNode) : nullptr;
+            double bx, by;
+            if (na && nb && map.toScreen(na->position, x, y) && map.toScreen(nb->position, bx, by))
+                painter.drawLine(QPointF(x, y), QPointF(bx, by));
+            break;
+        }
+        case core::ElementKind::Shell: {
+            const core::Shell* s = m_structure->findShell(e.id);
+            if (!s) break;
+            QPolygonF poly;
+            for (int id : s->nodeIds) {
+                const core::Node* n = m_structure->findNode(id);
+                if (n && map.toScreen(n->position, x, y)) poly << QPointF(x, y);
+            }
+            if (poly.size() == static_cast<int>(s->nodeIds.size())) painter.drawPolygon(poly);
+            break;
+        }
+    }
+}
+
+void Viewport3D::drawRubberBand(QPainter& painter) const {
+    if (!m_windowStart) return;
+    const QRectF r = QRectF(*m_windowStart, m_cursor).normalized();
+    const bool window = core::rectModeFor(m_windowStart->x(), m_cursor.x()) == core::RectMode::Window;
+    QPen pen(QColor(40, 40, 40), 1);
+    pen.setStyle(window ? Qt::SolidLine : Qt::DashLine);  // original: continuous = window, dotted = crossing
+    painter.setPen(pen);
+    painter.setBrush(window ? QColor(0, 102, 204, 25) : QColor(60, 160, 60, 25));
+    painter.drawRect(r);
+    painter.setBrush(Qt::NoBrush);
+}
+
+void Viewport3D::drawNodeLabel(QPainter& painter) const {
+    if (!m_hover || m_hover->kind != core::ElementKind::Node || !m_structure) return;
+    const core::Node* n = m_structure->findNode(m_hover->id);
+    if (!n) return;
+    const auto fmt = [](double v) { return QString::number(v, 'g', 6).replace('.', ','); };
+    const QString text =
+        QStringLiteral("N%1 (%2, %3, %4)").arg(n->id).arg(fmt(n->position.x), fmt(n->position.y), fmt(n->position.z));
+    QFont font = painter.font();
+    font.setPixelSize(13);
+    painter.setFont(font);
+    const int textWidth = painter.fontMetrics().horizontalAdvance(text);
+    painter.setPen(kNodeBlue);
+    painter.drawText(QPointF(width() - textWidth - 8, 20), text);  // top-right corner of the 3D area
+}
+
 
 void Viewport3D::drawGuideLine(QPainter& painter, Vec3 a, Vec3 b) const {
     if (!isOrthographic()) {  // clip against the near plane before projecting
@@ -195,7 +402,15 @@ void Viewport3D::paintGL() {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.fillRect(rect(), Qt::white);
-    drawGuideLines(painter);
+    if (!m_selectionMode) drawGuideLines(painter);  // the original hides the guide lines inside a command
+    drawStructure(painter);
+    if (m_selectionMode) {
+        drawNodes(painter);
+        for (const core::ElementRef& e : m_selection.items()) drawHighlight(painter, e, true);
+        if (m_hover) drawHighlight(painter, *m_hover, false);
+        drawRubberBand(painter);
+        drawNodeLabel(painter);
+    }
     drawAxesTriad(painter);
 }
 

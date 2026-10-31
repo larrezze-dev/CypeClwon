@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <QApplication>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSignalSpy>
 #include <QWheelEvent>
@@ -138,6 +139,144 @@ TEST_F(ViewportTest, NodesAreStoredForTheGuideLines) {
     v.setNodes({{0, 0, 0}, {5, 0, 3}});
     ASSERT_EQ(v.nodes().size(), 2u);
     EXPECT_DOUBLE_EQ(v.nodes()[1].z, 3.0);
+}
+
+// ---- Selection mode (T-P4-03) ----
+namespace {
+void click(Viewport3D& v, QPointF pos, Qt::MouseButton button = Qt::LeftButton, Qt::KeyboardModifiers mods = Qt::NoModifier) {
+    QMouseEvent press(QEvent::MouseButtonPress, pos, v.mapToGlobal(pos), button, button, mods);
+    QApplication::sendEvent(&v, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, pos, v.mapToGlobal(pos), button, Qt::NoButton, mods);
+    QApplication::sendEvent(&v, &release);
+}
+
+QPointF screenOf(const Viewport3D& v, double x, double z) {
+    QPointF p;
+    v.worldToScreen({x, 0, z}, p);
+    return p;
+}
+
+class SelectionTest : public ViewportTest {
+protected:
+    void SetUp() override {
+        ViewportTest::SetUp();
+        const int n1 = model.addNode({0, 0, 0}), n2 = model.addNode({4, 0, 0});
+        const int n3 = model.addNode({0, 0, 3}), n4 = model.addNode({4, 0, 3});
+        model.addBar(n1, n3);
+        model.addBar(n2, n4);
+        model.addBar(n3, n4);
+        view->setStandardView(cc::core::StandardView::Front);
+        view->setOrthographic(true);
+        view->camera().target = {2, 0, 1.5};
+        view->setStructure(&model);
+        view->setSelectionMode(true);
+    }
+    cc::core::StructuralModel model;
+};
+}  // namespace
+
+TEST_F(SelectionTest, IsOffByDefaultAndAnnouncesItself) {
+    Viewport3D v;
+    EXPECT_FALSE(v.selectionMode());
+    QSignalSpy hint(&v, &Viewport3D::statusHint);
+    v.setSelectionMode(true);
+    ASSERT_EQ(hint.count(), 1);
+    EXPECT_TRUE(hint.at(0).at(0).toString().startsWith(QStringLiteral("LMB:")));
+    v.setSelectionMode(false);
+    EXPECT_TRUE(hint.at(1).at(0).toString().isEmpty());
+}
+
+TEST_F(SelectionTest, PlainModeIgnoresClicks) {
+    view->setSelectionMode(false);
+    click(*view, screenOf(*view, 0, 0));
+    EXPECT_TRUE(view->selection().empty());
+}
+
+TEST_F(SelectionTest, ClickSelectsANodeAndHoverFollowsTheCursor) {
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 4, 3), Qt::NoButton, Qt::NoButton);
+    ASSERT_TRUE(view->hovered());
+    EXPECT_EQ(view->hovered()->kind, cc::core::ElementKind::Node);
+    EXPECT_EQ(view->hovered()->id, 4);
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 2, 1.5), Qt::NoButton, Qt::NoButton);
+    EXPECT_FALSE(view->hovered());
+    QSignalSpy spy(view.get(), &Viewport3D::selectionChanged);
+    click(*view, screenOf(*view, 4, 3));
+    EXPECT_EQ(spy.count(), 1);
+    EXPECT_TRUE(view->selection().contains({cc::core::ElementKind::Node, 4}));
+}
+
+TEST_F(SelectionTest, CtrlAddsAndShiftRemoves) {
+    click(*view, screenOf(*view, 0, 0));
+    click(*view, screenOf(*view, 4, 0), Qt::LeftButton, Qt::ControlModifier);
+    EXPECT_EQ(view->selection().size(), 2u);
+    click(*view, screenOf(*view, 0, 0), Qt::LeftButton, Qt::ShiftModifier);
+    EXPECT_EQ(view->selection().size(), 1u);
+    click(*view, screenOf(*view, 0, 3));  // plain click replaces
+    EXPECT_EQ(view->selection().size(), 1u);
+    EXPECT_TRUE(view->selection().contains({cc::core::ElementKind::Node, 3}));
+}
+
+TEST_F(SelectionTest, TwoClickWindowSelectsWhatIsFullyInside) {
+    click(*view, screenOf(*view, -1, 4));
+    EXPECT_TRUE(view->windowPending());
+    EXPECT_TRUE(view->selection().empty());
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 3, -1), Qt::NoButton, Qt::NoButton);
+    click(*view, screenOf(*view, 3, -1));
+    EXPECT_FALSE(view->windowPending());
+    EXPECT_EQ(view->selection().ids(cc::core::ElementKind::Node), (std::vector<int>{1, 3}));  // x = 4 is outside
+    EXPECT_EQ(view->selection().ids(cc::core::ElementKind::Bar), std::vector<int>{1});  // the lintel is cut
+}
+
+TEST_F(SelectionTest, TwoClickCrossingTouchesTheLintel) {
+    click(*view, screenOf(*view, 3, 4));
+    click(*view, screenOf(*view, -1, 2));  // right to left, crosses the lintel and the left column
+    EXPECT_EQ(view->selection().ids(cc::core::ElementKind::Bar), (std::vector<int>{1, 3}));
+    EXPECT_EQ(view->selection().ids(cc::core::ElementKind::Node), std::vector<int>{3});
+}
+
+TEST_F(SelectionTest, FilterLimitsWhatIsPicked) {
+    view->setSelectionFilter(cc::core::SelectionFilter::only(cc::core::ElementKind::Bar));
+    click(*view, screenOf(*view, 0, 0));  // node 1 is rejected, the click lands on bar 1 instead
+    EXPECT_EQ(view->selection().ids(cc::core::ElementKind::Bar), std::vector<int>{1});
+    EXPECT_EQ(view->selection().count(cc::core::ElementKind::Node), 0u);
+    view->setSelectionFilter(cc::core::SelectionFilter::only(cc::core::ElementKind::Node));
+    EXPECT_TRUE(view->selection().empty());  // the bar no longer passes the filter
+}
+
+TEST_F(SelectionTest, RightButtonCancelsAWindowThenActs) {
+    QSignalSpy act(view.get(), &Viewport3D::actOnSelection);
+    click(*view, screenOf(*view, -1, 4));
+    click(*view, screenOf(*view, 0, 0), Qt::RightButton);
+    EXPECT_FALSE(view->windowPending());
+    EXPECT_EQ(act.count(), 0);
+    click(*view, screenOf(*view, 0, 0), Qt::RightButton);
+    EXPECT_EQ(act.count(), 1);
+}
+
+TEST_F(SelectionTest, EscapeCancelsTheWindowThenClearsTheSelection) {
+    click(*view, screenOf(*view, 0, 0));
+    click(*view, screenOf(*view, 2, 1.5));
+    ASSERT_TRUE(view->windowPending());
+    QKeyEvent esc(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+    QApplication::sendEvent(view.get(), &esc);
+    EXPECT_FALSE(view->windowPending());
+    EXPECT_EQ(view->selection().size(), 1u);
+    QApplication::sendEvent(view.get(), &esc);
+    EXPECT_TRUE(view->selection().empty());
+}
+
+TEST_F(SelectionTest, MiddleButtonStillPansAndNeverSelects) {
+    const QPointF c0 = screenOf(*view, 0, 0);
+    drag(*view, Qt::MiddleButton, c0, c0 + QPointF(30, 0));
+    EXPECT_TRUE(view->selection().empty());
+    EXPECT_FALSE(view->windowPending());
+    EXPECT_NE(view->camera().target.x, 2.0);
+}
+
+TEST_F(SelectionTest, LeavingSelectionModeClearsTheSelection) {
+    click(*view, screenOf(*view, 0, 0));
+    view->setSelectionMode(false);
+    EXPECT_TRUE(view->selection().empty());
 }
 
 int main(int argc, char** argv) {
