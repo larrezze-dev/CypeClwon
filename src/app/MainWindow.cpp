@@ -1,11 +1,16 @@
 ﻿#include "MainWindow.h"
 
 #include <QEvent>
+#include <QAction>
 #include <QIcon>
+#include <QKeySequence>
+#include <QStatusBar>
 
 #include "SARibbonBar.h"
 #include "SARibbonCategory.h"
+#include "SARibbonQuickAccessBar.h"
 #include "SARibbonSystemButtonBar.h"
+#include "Icons.h"
 #include "SessionBar.h"
 #include "core/version.h"
 
@@ -27,6 +32,33 @@ MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     resize(1280, 800);
     buildRibbonTabs();
     applyTitleBarStyle();
+    createQuickAccessBar();
+    createStatusBar();
+}
+
+void MainWindow::createQuickAccessBar() {
+    // Actions stay disabled until a project is open (project lifecycle arrives in phase 2/3).
+    auto make = [this](const QString& icon, const QString& text, const QString& tip, const QKeySequence& key) {
+        auto* action = new QAction(themedIcon(icon), text, this);
+        action->setStatusTip(tip);
+        action->setToolTip(QStringLiteral("%1 (%2)").arg(text, key.toString(QKeySequence::NativeText)));
+        action->setShortcut(key);
+        action->setEnabled(false);
+        return action;
+    };
+    m_saveAction = make(QStringLiteral("save"), tr("Guardar"), tr("Guarda la obra actual."), QKeySequence::Save);
+    m_undoAction = make(QStringLiteral("undo"), tr("Deshacer"), tr("Deshace la última acción."), QKeySequence::Undo);
+    m_redoAction = make(QStringLiteral("redo"), tr("Rehacer"), tr("Rehace la última acción deshecha."), QKeySequence::Redo);
+    m_printAction = make(QStringLiteral("print"), tr("Imprimir"), tr("Imprime la vista activa."), QKeySequence::Print);
+    SARibbonQuickAccessBar* bar = ribbonBar()->quickAccessBar();
+    for (QAction* action : {m_saveAction, m_undoAction, m_redoAction, m_printAction}) {
+        bar->addAction(action);
+    }
+}
+
+void MainWindow::createStatusBar() {
+    statusBar()->showMessage(
+        tr("Para utilizar el programa, debe tener una obra abierta. Puede crear una obra nueva o abrir una existente."));
 }
 
 void MainWindow::applyTitleBarStyle() {
@@ -79,6 +111,8 @@ void MainWindow::buildRibbonTabs() {
 }
 
 }  // namespace cc::app
+
+
 
 
 

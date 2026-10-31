@@ -141,3 +141,4 @@ Este programa es para mi uso personal, pero estará en un repositorio de Github.
 - Siempre que hayas finalizado alguna tarea y necesites información para seguir, informa al usuario de inmediato.
 - No te quedes en silencio sin motivo.
 - Si esperas el resultado de alguna tarea en segundo plano, pon un aviso en MAYÚSCULAS (por ejemplo: "ESPERANDO TAREA EN SEGUNDO PLANO: <qué tarea>").
+- Antes de lanzar cualquier aplicación para capturar pantalla (la original o el clon), AVISA al usuario para que libere el workspace (pantalla) y espera su OK explícito antes de lanzarla. No lances aplicaciones con ventana sin ese OK.

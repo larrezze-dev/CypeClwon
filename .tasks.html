@@ -13,10 +13,10 @@ tr.ok td:nth-child(4){color:var(--ok)}tr.wip td:nth-child(4){color:var(--wip)}
 details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 .tw{overflow-x:auto}
 </style></head><body>
-<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 12:56 Â· generado desde .tasks.md</div>
-<div class="kpi"><div><b>14.7%</b>completado</div><div><b>17</b>finalizadas</div><div><b>2</b>en marcha</div><div><b>97</b>pendientes</div><div><b>116</b>tareas</div></div>
+<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 13:01 Â· generado desde .tasks.md</div>
+<div class="kpi"><div><b>14.7%</b>completado</div><div><b>17</b>finalizadas</div><div><b>6</b>en marcha</div><div><b>93</b>pendientes</div><div><b>116</b>tareas</div></div>
 <h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:81%'></i><i class='w' style='width:12%'></i></div></td><td>13/16</td></tr>
-<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:44%'></i><i class='w' style='width:0%'></i></div></td><td>4/9</td></tr>
+<tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:44%'></i><i class='w' style='width:44%'></i></div></td><td>4/9</td></tr>
 <tr><td>F2 Â· Inicio y asistentes</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/9</td></tr>
 <tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/5</td></tr>
 <tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/10</td></tr>
@@ -57,10 +57,10 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='ok'><td>T-P1-02</td><td>F1</td><td>CI local: script build+test</td><td>[x]</td><td>tools/build.ps1 [-Config release</td></tr>
 <tr class='ok'><td>T-P1-03</td><td>F1</td><td>Ventana principal frameless con barra de t&#237;tulo roja y botones sesi&#243;n</td><td>[x]</td><td>Barra roja #B1291C, logo propio SVG, t&#237;tulo centrado, botones de sistema y Iniciar sesi&#243;n/CYPE Mentor (stubs); captura clone_p1_titlebar.png. Glifo del bot&#243;n cerrar poco contrastado: revisar en T-P1-07</td></tr>
 <tr class='ok'><td>T-P1-04</td><td>F1</td><td>Integrar SARibbon con las 8 pesta&#241;as</td><td>[x]</td><td>SARibbon v2.9.6 (subm&#243;dulo third_party/SARibbon, est&#225;tico); 8 pesta&#241;as vac&#237;as; captura docs/screenshots/clone_p1_main_window.png. Grupos/botones se a&#241;aden con cada fase</td></tr>
-<tr class='todo'><td>T-P1-05</td><td>F1</td><td>Barra de acceso r&#225;pido (guardar, deshacer, rehacer, imprimir…)</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P1-06</td><td>F1</td><td>Barra de estado + mensajes de ayuda</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P1-07</td><td>F1</td><td>Sistema de iconos (SVG propios/libres) y tema claro</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P1-08</td><td>F1</td><td>Infraestructura i18n Qt Linguist (es-ES inicial)</td><td>[ ]</td><td></td></tr>
+<tr class='wip'><td>T-P1-05</td><td>F1</td><td>Barra de acceso r&#225;pido (guardar, deshacer, rehacer, imprimir…)</td><td>[o]</td><td>Guardar/Deshacer/Rehacer/Imprimir en barra de acceso r&#225;pido (deshabilitadas sin obra); compila; pendiente verificaci&#243;n visual</td></tr>
+<tr class='wip'><td>T-P1-06</td><td>F1</td><td>Barra de estado + mensajes de ayuda</td><td>[o]</td><td>QStatusBar con mensaje inicial del original y statusTip por acci&#243;n; pendiente verificaci&#243;n visual</td></tr>
+<tr class='wip'><td>T-P1-07</td><td>F1</td><td>Sistema de iconos (SVG propios/libres) y tema claro</td><td>[o]</td><td>Icons.h + 5 SVG propios (logo, guardar, deshacer, rehacer, imprimir); faltan tema claro final y revisar contraste del bot&#243;n cerrar</td></tr>
+<tr class='wip'><td>T-P1-08</td><td>F1</td><td>Infraestructura i18n Qt Linguist (es-ES inicial)</td><td>[o]</td><td>qt_add_translations, translations/cypeclwon_en_GB.ts (19 cadenas, fuente es_ES), carga de .qm en main; falta verificar carga en ejecuci&#243;n</td></tr>
 <tr class='todo'><td>T-P1-09</td><td>F1</td><td>&#193;rea de trabajo MDI (ventanas hijas)</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P2-01</td><td>F2</td><td>Pantalla de inicio: paneles Archivo / &#218;ltimos ficheros / Ayuda</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P2-02</td><td>F2</td><td>Di&#225;logo Nueva obra (ruta, nombre .ed3, descripci&#243;n)</td><td>[ ]</td><td></td></tr>

@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "SARibbonMainWindow.h"
 
+class QAction;
+
 namespace cc::app {
 
 class SessionBar;
@@ -18,9 +20,17 @@ private:
     void buildRibbonTabs();
     void applyTitleBarStyle();
     void placeSessionBar();
+    void createQuickAccessBar();
+    void createStatusBar();
+
+    QAction* m_saveAction = nullptr;
+    QAction* m_undoAction = nullptr;
+    QAction* m_redoAction = nullptr;
+    QAction* m_printAction = nullptr;
 
     SessionBar* m_sessionBar = nullptr;
 };
 
 }  // namespace cc::app
+
 
