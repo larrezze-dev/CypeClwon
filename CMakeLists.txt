@@ -17,7 +17,13 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets Svg)
 find_package(GTest CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 
+set(SARIBBON_BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+set(SARIBBON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/SARibbon EXCLUDE_FROM_ALL)
+
 enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
+
 

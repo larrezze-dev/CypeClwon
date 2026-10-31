@@ -1,14 +1,10 @@
 ﻿#include <QApplication>
-#include <QMainWindow>
 
-#include "core/version.h"
+#include "MainWindow.h"
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
-    QMainWindow window;
-    window.setWindowTitle(QString::fromUtf8(cc::core::productName().data(),
-                                            static_cast<qsizetype>(cc::core::productName().size())));
-    window.resize(1280, 800);
+    cc::app::MainWindow window;
     window.show();
     return app.exec();
 }
