@@ -1,6 +1,7 @@
 #include "WizardSubDialogs.h"
 
 #include "OptionsDialogs.h"
+#include "OptionsLeafDialogs.h"
 
 #include <QButtonGroup>
 #include <QEvent>
@@ -1068,23 +1069,50 @@ OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& set
             const QString options = tr("Opciones"), tables = tr("Tablas de armado");
             return new OptionsMenuDialog(
                 tr("Cimentación"), QSize(150, 158), {{QString(), {options, tables}, {options, tables}}},
-                [options, tables, parent](const QString& caption) {
-                    // The leaf dialogs of these two menus were not opened in the original yet (TK-015).
+                [=, &settings](const QString& caption) {
+                    FoundationOptionsSettings& f = settings.foundation;
+                    const QString cleaning = tr("Hormigón de limpieza"), cracking = tr("Comprobación de fisuración"),
+                                  piles = tr("Encepados"), centering = tr("Vigas centradoras"), footings = tr("Zapatas aisladas"),
+                                  ties = tr("Vigas de atado");
                     if (caption == options) {
-                        OptionsMenuDialog menu(
+                        // Zapatas aisladas and Vigas de atado option sheets are not captured yet (ticket TK-019).
+                        std::unique_ptr<OptionsMenuDialog> menu;
+                        menu.reset(new OptionsMenuDialog(
                             tr("Opciones"), QSize(207, 287),
-                            {{QString(),
-                              {tr("Hormigón de limpieza"), tr("Comprobación de fisuración"), tr("Zapatas aisladas"),
-                               tr("Encepados"), tr("Vigas centradoras"), tr("Vigas de atado")},
-                              {}}},
-                            {}, false, parent);
-                        menu.exec();
+                            {{QString(), {cleaning, cracking, footings, piles, centering, ties}, {cleaning, cracking, piles, centering}}},
+                            [&](const QString& leaf) {
+                                if (leaf == cleaning) {
+                                    CleaningConcreteDialog dialog(f.cleaning, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.cleaning = dialog.value();
+                                } else if (leaf == cracking) {
+                                    CrackingDialog dialog(f.cracking, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.cracking = dialog.value();
+                                } else if (leaf == piles) {
+                                    PileCapOptionsDialog dialog(f.pileCap, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.pileCap = dialog.value();
+                                } else if (leaf == centering) {
+                                    CenteringBeamDialog dialog(f.centeringBeams, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.centeringBeams = dialog.value();
+                                }
+                            },
+                            false, parent));
+                        menu->exec();
                     } else if (caption == tables) {
-                        OptionsMenuDialog menu(
-                            tr("Tablas de armado"), QSize(165, 155),
-                            {{QString(), {tr("Zapatas aisladas"), tr("Vigas centradoras"), tr("Vigas de atado")}, {}}},
-                            {}, false, parent);
-                        menu.exec();
+                        // The Vigas centradoras table is not captured yet (ticket TK-019).
+                        std::unique_ptr<OptionsMenuDialog> menu;
+                        menu.reset(new OptionsMenuDialog(
+                            tr("Tablas de armado"), QSize(165, 155), {{QString(), {footings, centering, ties}, {footings, ties}}},
+                            [&](const QString& leaf) {
+                                if (leaf == footings) {
+                                    FoundationTableDialog dialog(FoundationTableDialog::Kind::Footings, f.footingTable, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.footingTable = dialog.value();
+                                } else if (leaf == ties) {
+                                    FoundationTableDialog dialog(FoundationTableDialog::Kind::TieBeams, f.tieBeamTable, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) f.tieBeamTable = dialog.value();
+                                }
+                            },
+                            false, parent));
+                        menu->exec();
                     }
                 },
                 false, parent);
@@ -1098,29 +1126,64 @@ OptionsMenuDialog* OptionsMenuDialog::create(Family family, OptionsSettings& set
                 [=, &settings](const QString& caption) {
                     BeamOptionsSettings& beams = settings.beams;
                     if (caption == options) {
-                        // Pages 2-6 and the leaf dialogs of page 1 were not opened yet (TK-015).
-                        OptionsMenuDialog menu(
+                        // Pages 2-6 and the Dimensionamiento leaves were not opened yet (ticket TK-019).
+                        const QString montage = tr("Armadura de montaje en secciones rectangulares"),
+                                      transverse = tr("Armadura transversal"), holder = tr("Armadura portaestribos"),
+                                      skin = tr("Armadura de piel"), top = tr("Armadura superior de refuerzo"),
+                                      bottom = tr("Armadura inferior de refuerzo");
+                        std::unique_ptr<OptionsMenuDialog> menu;
+                        menu.reset(new OptionsMenuDialog(
                             tr("Opciones"), QSize(641, 537),
                             {{tr("Tablas de armado en vigas"),
-                              {tr("Armadura de montaje en secciones rectangulares"),
-                               tr("Armadura de montaje en secciones rectangulares con un ala"),
-                               tr("Armadura de montaje en secciones rectangulares con dos alas"),
-                               tr("Armadura transversal"), tr("Armadura portaestribos"), tr("Armadura de piel"),
-                               tr("Armadura superior de refuerzo"), tr("Armadura inferior de refuerzo")},
+                              {montage, tr("Armadura de montaje en secciones rectangulares con un ala"),
+                               tr("Armadura de montaje en secciones rectangulares con dos alas"), transverse, holder, skin, top, bottom},
+                              {transverse, holder, skin, top, bottom}},
+                             {tr("Disposiciones de armado"),
+                              {tr("Recubrimientos en vigas"), tr("Separación entre capas de armadura longitudinal"),
+                               tr("Selección de estribado"), tr("Longitud de anclaje en cierre de estribos"), tr("Vigas de celosía"),
+                               tr("Tipo de patilla"), tr("Biblioteca de vigas pretensadas"), tr("Redondeo de longitud de barras"),
+                               tr("Longitud máxima de una barra")},
                               {}},
-                             {tr("Disposiciones de armado"), {}, {}},
-                             {tr("Esfuerzos"), {}, {}},
-                             {tr("Dimensionamiento / Comprobación"), {}, {}},
-                             {tr("Vigas metálicas"), {}, {}},
-                             {tr("Planos"), {}, {}}},
-                            {}, true, parent);
-                        menu.exec();
+                             {tr("Esfuerzos"),
+                              {tr("Momentos mínimos a cubrir con armadura en vigas"), tr("Coeficientes para multiplicar los esfuerzos"),
+                               tr("Coeficiente de redistribución de negativos"), tr("Esfuerzos para dimensionamiento y comprobación")},
+                              {}},
+                             {tr("Dimensionamiento / Comprobación"),
+                              {tr("Armados de jácenas"), tr("Montaje"), tr("Armadura de negativos"), tr("Armadura de positivos"),
+                               tr("Anclajes"), tr("Armadura transversal"), tr("Armadura portaestribos"), tr("Armadura de piel"),
+                               tr("Consideración del armado a torsión en vigas"), tr("Despiece de armado de vigas con sismo"),
+                               tr("Ángulo de inclinación de las bielas de compresión"),
+                               tr("Tolerancias en comprobaciones de separación"), tr("Cálculo de la resistencia a cortante")},
+                              {}},
+                             {tr("Vigas metálicas"), {tr("Longitud a considerar en vigas metálicas")}, {}},
+                             {tr("Planos"), {tr("Tipo de representación"), tr("Opciones para dibujo de brochales")}, {}}},
+                            [&](const QString& leaf) {
+                                BeamTablesSettings& t = beams.tables;
+                                if (leaf == transverse) {
+                                    TransverseTableDialog dialog(t.transverse, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) t.transverse = dialog.value();
+                                } else if (leaf == holder) {
+                                    DiameterAdmissibilityDialog dialog(DiameterAdmissibilityDialog::Kind::StirrupHolder, t.stirrupHolder, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) t.stirrupHolder = dialog.value();
+                                } else if (leaf == skin) {
+                                    DiameterAdmissibilityDialog dialog(DiameterAdmissibilityDialog::Kind::Skin, t.skin, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) t.skin = dialog.value();
+                                } else if (leaf == top) {
+                                    ReinforcementBarDialog dialog(top, t.topReinforcement, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) t.topReinforcement = dialog.value();
+                                } else if (leaf == bottom) {
+                                    ReinforcementBarDialog dialog(bottom, t.bottomReinforcement, menu.get());
+                                    if (dialog.exec() == QDialog::Accepted) t.bottomReinforcement = dialog.value();
+                                }
+                            },
+                            true, parent));
+                        menu->exec();
                     } else if (caption == errors) {
                         BeamErrorsDialog dialog(beams.errors, parent);
                         if (dialog.exec() == QDialog::Accepted) beams.errors = dialog.value();
                     } else if (caption == limits) {
-                        DeflectionLimitsDialog dialog(parent);
-                        dialog.exec();
+                        DeflectionLimitsDialog dialog(beams.deflection, parent);
+                        if (dialog.exec() == QDialog::Accepted) beams.deflection = dialog.value();
                     } else if (caption == continuous) {
                         ContinuousBeamNumberingDialog dialog(beams.continuousNumbering, parent);
                         if (dialog.exec() == QDialog::Accepted) beams.continuousNumbering = dialog.value();

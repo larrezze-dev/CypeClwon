@@ -31,12 +31,18 @@ private:
     QComboBox* m_stirrupDiameter;
 };
 
-/// "Límites de flecha" (309x371): read-only; the pencil buttons of the original open editors that were not
-/// captured yet (ticket TK-015), so they are disabled.
+/// "Límites de flecha" (309x371): summary of the four materials; each pencil opens the editor of that material.
 class DeflectionLimitsDialog : public CypeDialog {
     Q_OBJECT
 public:
-    explicit DeflectionLimitsDialog(QWidget* parent = nullptr);
+    explicit DeflectionLimitsDialog(const cc::core::DeflectionLimitsSettings& initial = {}, QWidget* parent = nullptr);
+    cc::core::DeflectionLimitsSettings value() const { return m_settings; }
+
+private:
+    void rebuild();
+    void editMaterial(std::size_t index);
+    cc::core::DeflectionLimitsSettings m_settings;
+    QWidget* m_body = nullptr;
 };
 
 /// "Numeración de vigas continuas" (531x372).

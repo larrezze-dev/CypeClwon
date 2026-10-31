@@ -15,6 +15,7 @@
 
 #include "EmptyProjectWizard.h"
 #include "OptionsDialogs.h"
+#include "OptionsLeafDialogs.h"
 #include "WizardSubDialogs.h"
 
 using namespace cc::app;
@@ -327,7 +328,7 @@ TEST(OptionsDialogs, BeamErrorsDefaultsAndRoundTrip) {
     EXPECT_TRUE(other.value().compressionHook);
 }
 
-TEST(OptionsDialogs, DeflectionLimitsAreReadOnly) {
+TEST(OptionsDialogs, DeflectionLimitsSummary) {
     ensureApp();
     DeflectionLimitsDialog dialog;
     EXPECT_EQ(dialog.size(), QSize(309, 371));
@@ -425,4 +426,139 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+// ---------------------------------------------------------------- TK-019: Cimentación and beam tables
+
+TEST(OptionsLeafDialogs, CleaningAndCrackingRoundTrip) {
+    ensureApp();
+    cc::core::CleaningConcreteSettings cleaning;
+    CleaningConcreteDialog c1{cleaning};
+    EXPECT_EQ(c1.size(), QSize(277, 178));
+    EXPECT_FALSE(c1.value().footings);
+    cleaning.pileCaps = true;
+    CleaningConcreteDialog c2{cleaning};
+    EXPECT_TRUE(c2.value().pileCaps);
+    EXPECT_FALSE(c2.value().tieAndCenteringBeams);
+
+    CrackingDialog cracking{cc::core::CrackingSettings{}};
+    EXPECT_EQ(cracking.size(), QSize(589, 435));
+    const auto spins = cracking.findChildren<QDoubleSpinBox*>();
+    ASSERT_EQ(spins.size(), 2);
+    EXPECT_FALSE(spins[0]->isEnabled());  // limit disabled until the check is ticked
+    cracking.findChildren<QCheckBox*>().at(0)->setChecked(true);
+    EXPECT_TRUE(spins[0]->isEnabled());
+    EXPECT_TRUE(cracking.value().checkFootings);
+    EXPECT_DOUBLE_EQ(cracking.value().footingLimitMm, 0.30);
+}
+
+TEST(OptionsLeafDialogs, PileCapGeneralAndCenteringBeams) {
+    ensureApp();
+    PileCapOptionsDialog pileCap{cc::core::PileCapGeneralSettings{}};
+    EXPECT_EQ(pileCap.size(), QSize(428, 631));
+    auto v = pileCap.value();
+    EXPECT_DOUBLE_EQ(v.minOverhangOverPileM, 0.25);
+    EXPECT_DOUBLE_EQ(v.maxDepthM, 2.50);
+    EXPECT_DOUBLE_EQ(v.maxBarDiameterMm, 25.0);
+    EXPECT_DOUBLE_EQ(v.loadFactor, 1.50);
+    EXPECT_FALSE(v.withPileLoads);
+    EXPECT_EQ(pileCap.findChild<QTabWidget*>()->count(), 4);
+    pileCap.findChildren<QDoubleSpinBox*>().at(0)->setValue(0.30);
+    EXPECT_DOUBLE_EQ(pileCap.value().minOverhangOverPileM, 0.30);
+    buttonWithText(&pileCap, QStringLiteral("Valores de instalación"))->click();
+    EXPECT_DOUBLE_EQ(pileCap.value().minOverhangOverPileM, 0.25);
+
+    CenteringBeamDialog beam{cc::core::CenteringBeamSettings{}};
+    EXPECT_EQ(beam.size(), QSize(399, 245));
+    EXPECT_DOUBLE_EQ(beam.value().toleranceAngleDeg, 15.0);
+    EXPECT_FALSE(beam.value().minTensionGeometric);
+    EXPECT_DOUBLE_EQ(beam.value().minTensionRatio, 0.001);
+}
+
+TEST(OptionsLeafDialogs, FoundationTablesOnlyPredefinedSelectable) {
+    ensureApp();
+    FoundationTableDialog footings(FoundationTableDialog::Kind::Footings, cc::core::ReinforcementTableSource::Predefined);
+    EXPECT_EQ(footings.size(), QSize(481, 267));
+    EXPECT_EQ(footings.value(), cc::core::ReinforcementTableSource::Predefined);
+    FoundationTableDialog ties(FoundationTableDialog::Kind::TieBeams, cc::core::ReinforcementTableSource::Predefined);
+    EXPECT_EQ(ties.size(), QSize(491, 267));
+    EXPECT_EQ(ties.findChildren<QRadioButton*>().size(), 3);
+}
+
+TEST(OptionsLeafDialogs, BeamTablesDefaultsAndEditing) {
+    ensureApp();
+    cc::core::BeamTablesSettings tables;
+    TransverseTableDialog transverse{tables.transverse};
+    EXPECT_EQ(transverse.size(), QSize(343, 229));
+    bool diameters = false, spacings = false;
+    for (QLabel* l : transverse.findChildren<QLabel*>()) {
+        diameters = diameters || l->text() == QStringLiteral("Diámetros admisibles: Ø6, Ø8, Ø10, Ø12, Ø16");
+        spacings = spacings || l->text() == QStringLiteral("Separaciones (cm): 5.0, 6.0, 7.0, 8.0, ..., 30.0");
+    }
+    EXPECT_TRUE(diameters);
+    EXPECT_TRUE(spacings);
+
+    DiameterAdmissibilityDialog holder(DiameterAdmissibilityDialog::Kind::StirrupHolder, tables.stirrupHolder);
+    EXPECT_EQ(holder.size(), QSize(359, 347));
+    EXPECT_TRUE(holder.value().admissible[6]);   // O25
+    EXPECT_FALSE(holder.value().admissible[7]);  // O32
+    holder.toggleRow(7);
+    EXPECT_TRUE(holder.value().admissible[7]);
+    DiameterAdmissibilityDialog skin(DiameterAdmissibilityDialog::Kind::Skin, tables.skin);
+    EXPECT_EQ(skin.size(), QSize(229, 315));
+    EXPECT_FALSE(skin.value().admissible[0]);  // O6 not admissible for skin reinforcement
+    EXPECT_TRUE(skin.value().admissible[1]);
+    EXPECT_EQ(skin.findChildren<QCheckBox*>().size(), 0);  // only the stirrup holder has the assembly check
+
+    ReinforcementBarDialog top(QStringLiteral("Armadura superior de refuerzo"), tables.topReinforcement);
+    EXPECT_EQ(top.size(), QSize(356, 582));
+    auto v = top.value();
+    EXPECT_DOUBLE_EQ(v.minClearSpacingCm, 2.0);
+    EXPECT_FALSE(v.assemblyVsFirst[5][0]);  // montaje O20 with refuerzo O10
+    EXPECT_TRUE(v.assemblyVsFirst[5][1]);
+    EXPECT_FALSE(v.assemblyVsFirst[7][1]);  // montaje O32 with refuerzo O12
+    EXPECT_FALSE(v.firstVsSecond[4][1]);    // refuerzo O25 with O12
+    top.toggleCell(0, 0, 0);
+    EXPECT_FALSE(top.value().assemblyVsFirst[0][0]);
+}
+
+TEST(OptionsLeafDialogs, DeflectionEditorsAndSummary) {
+    ensureApp();
+    cc::core::DeflectionLimitsSettings limits;
+    EXPECT_TRUE(limits.isValid());
+    DeflectionEditorDialog concrete(QStringLiteral("Hormigón"), limits.materials[0]);
+    EXPECT_EQ(concrete.size(), QSize(405, 481));
+    EXPECT_EQ(concrete.limit(DeflectionEditorDialog::Section::Infinite, 2), 250);
+    EXPECT_EQ(concrete.limit(DeflectionEditorDialog::Section::InstantSimple, 1), 0);
+    concrete.setLimit(DeflectionEditorDialog::Section::InstantSimple, 1, 400);
+    EXPECT_EQ(concrete.value().instantSimple[1], 400);
+    EXPECT_EQ(concrete.value().damageableMonths, 3);
+    DeflectionEditorDialog rolled(QStringLiteral("Acero laminado"), limits.materials[1]);
+    EXPECT_EQ(rolled.size(), QSize(385, 356));
+    DeflectionEditorDialog cold(QStringLiteral("Acero conformado"), limits.materials[2]);
+    EXPECT_EQ(cold.size(), QSize(385, 391));
+    DeflectionEditorDialog timber(QStringLiteral("Madera"), limits.materials[3]);
+    EXPECT_EQ(timber.size(), QSize(405, 481));
+
+    // The summary dialog follows the edited values and enables one pencil per material.
+    limits.materials[1].instantSimple[1] = 300;
+    DeflectionLimitsDialog summary{limits};
+    int pencils = 0;
+    for (QToolButton* b : summary.findChildren<QToolButton*>()) pencils += b->toolTip() == QStringLiteral("Editar límites de flecha");
+    EXPECT_EQ(pencils, 4);
+    bool found = false;
+    for (QLabel* l : summary.findChildren<QLabel*>()) found = found || l->text() == QStringLiteral("Instantánea de sobrecarga: L/ 300");
+    EXPECT_TRUE(found);
+    EXPECT_EQ(summary.value().materials[1].instantSimple[1], 300);
+}
+
+TEST(OptionsSettings, FoundationAndBeamTableDefaults) {
+    cc::core::OptionsSettings o;
+    EXPECT_TRUE(o.isValid());
+    EXPECT_FALSE(o.foundation.cleaning.footings);
+    EXPECT_DOUBLE_EQ(o.foundation.cracking.footingLimitMm, 0.30);
+    EXPECT_EQ(o.beams.tables.transverse.spacingsCm.size(), 26u);
+    EXPECT_EQ(cc::app::TransverseTableDialog::summarise({1.0, 2.0}, 1).toStdString(), "1.0, 2.0");
+    o.foundation.pileCap.maxDepthM = 0.1;  // below the minimum depth
+    EXPECT_FALSE(o.isValid());
 }

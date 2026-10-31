@@ -15,6 +15,7 @@
 #include <QVBoxLayout>
 
 #include "Icons.h"
+#include "OptionsLeafDialogs.h"
 
 namespace cc::app {
 
@@ -135,30 +136,48 @@ void BeamErrorsDialog::resetToInstallationValues() { load(BeamErrorSettings{}); 
 
 // ---------------------------------------------------------------- Límites de flecha
 
-DeflectionLimitsDialog::DeflectionLimitsDialog(QWidget* parent) : CypeDialog(tr("Límites de flecha"), parent) {
+DeflectionLimitsDialog::DeflectionLimitsDialog(const DeflectionLimitsSettings& initial, QWidget* parent)
+    : CypeDialog(tr("Límites de flecha"), parent), m_settings(initial) {
     setFixedSize(309, 371);
-    auto* layout = contentLayout();
+    m_body = new QWidget(this);
+    contentLayout()->addWidget(m_body, 1);
+    rebuild();
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+void DeflectionLimitsDialog::rebuild() {
+    delete m_body->layout();
+    qDeleteAll(m_body->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly));
+    auto* layout = new QVBoxLayout(m_body);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
-    for (const DeflectionLimitGroup& group : defaultDeflectionLimits()) {
-        layout->addWidget(sectionBar(tr(group.material.c_str()), this));
+    const std::vector<DeflectionLimitGroup> groups = m_settings.groups();
+    for (std::size_t m = 0; m < groups.size(); ++m) {
+        const DeflectionLimitGroup& group = groups[m];
+        layout->addWidget(sectionBar(tr(group.material.c_str()), m_body));
         auto* row = new QHBoxLayout;
         auto* lines = new QVBoxLayout;
-        if (group.limits.empty()) {
-            lines->addWidget(new QLabel(tr("No se ha definido ningún límite de flecha."), this));
-        }
+        if (group.limits.empty()) lines->addWidget(new QLabel(tr("No se ha definido ningún límite de flecha."), m_body));
         for (const DeflectionLimit& limit : group.limits) {
-            lines->addWidget(new QLabel(QStringLiteral("%1: L/ %2").arg(tr(limit.description.c_str())).arg(limit.denominator), this));
+            lines->addWidget(new QLabel(QStringLiteral("%1: L/ %2").arg(tr(limit.description.c_str())).arg(limit.denominator), m_body));
         }
         row->addLayout(lines, 1);
-        auto* edit = new QToolButton(this);
+        auto* edit = new QToolButton(m_body);
         edit->setIcon(themedIcon(QStringLiteral("edit_pencil")));
-        edit->setEnabled(false);
-        edit->setToolTip(tr("Editor de límites pendiente de capturar en el original (ticket TK-015)."));
+        edit->setToolTip(tr("Editar límites de flecha"));
+        connect(edit, &QToolButton::clicked, this, [this, m] { editMaterial(m); });
         row->addWidget(edit, 0, Qt::AlignVCenter);
         layout->addLayout(row);
     }
     layout->addStretch(1);
-    setupFooter(tr("Aceptar"), tr("Cancelar"));
+    m_body->show();
+}
+
+void DeflectionLimitsDialog::editMaterial(std::size_t index) {
+    DeflectionEditorDialog editor(tr(DeflectionLimitsSettings::materialName(index)), m_settings.materials[index], this);
+    if (editor.exec() != QDialog::Accepted) return;
+    m_settings.materials[index] = editor.value();
+    rebuild();
 }
 
 // ---------------------------------------------------------------- Numeración de vigas continuas

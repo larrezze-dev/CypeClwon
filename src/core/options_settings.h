@@ -36,8 +36,65 @@ struct DeflectionLimitGroup {
     std::vector<DeflectionLimit> limits;
 };
 
-/// Default (read-only) deflection limits, in the order shown by the original.
+/// Editable limits of one material (the four "Límites de flecha (material)" editors). A denominator of 0 shows
+/// "----" (no limit). Combination order: Característica, Frecuente, Cuasipermanente.
+struct DeflectionLimitSet {
+    std::array<int, 2> instantSimple{0, 0};       ///< Carga permanente, Sobrecarga
+    std::array<int, 3> instantCombination{0, 0, 0};
+    std::array<int, 3> infinite{0, 0, 0};         ///< "A plazo infinito" (only when hasInfinite)
+    std::array<int, 3> active{0, 0, 0};           ///< "Activa a largo plazo"
+    int damageableMonths = 3;                      ///< "Construcción del elemento dañable" (only when hasDamageable)
+    bool hasInfinite = false, hasDamageable = false;
+    bool isValid() const;
+};
+
+/// Materials in the order of the original: Hormigón, Acero laminado, Acero conformado, Madera.
+struct DeflectionLimitsSettings {
+    std::array<DeflectionLimitSet, 4> materials;
+    DeflectionLimitsSettings();
+    static const char* materialName(std::size_t index);
+    /// Summary lines shown by the read-only "Límites de flecha" dialog.
+    std::vector<DeflectionLimitGroup> groups() const;
+    bool isValid() const;
+};
+
+/// Default deflection limits summary, in the order shown by the original.
 const std::vector<DeflectionLimitGroup>& defaultDeflectionLimits();
+
+/// Vigas > Tablas de armado: Armadura transversal, portaestribos, piel and refuerzos superior/inferior.
+struct TransverseReinforcementTable {
+    std::vector<int> diameters{6, 8, 10, 12, 16};  ///< "Diámetros admisibles" (mm)
+    std::vector<double> spacingsCm;                 ///< "Separaciones (cm)": 5.0 ... 30.0 step 1.0
+    TransverseReinforcementTable();
+    bool isValid() const;
+};
+
+/// Diameters Ø6-Ø32 with an admissible flag (portaestribos and piel).
+struct DiameterAdmissibility {
+    static const std::array<int, 8>& diameters();  ///< 6 8 10 12 16 20 25 32
+    std::array<bool, 8> admissible{};
+    bool assemblyInFlanges = false;  ///< portaestribos only: "Disponer armadura de montaje en alas"
+};
+
+/// Armadura superior/inferior de refuerzo (both tables are identical in the original).
+struct ReinforcementBarTable {
+    std::vector<int> diameters{10, 12, 16, 20, 25};  ///< "Diámetros admisibles"
+    double minClearSpacingCm = 2.0;                   ///< "Separación libre mínima entre barras"
+    /// Montaje (rows, Ø6-Ø32) x Refuerzo 1 (columns, Ø10-Ø25) and Refuerzo 1 x Refuerzo 2: true = ✓.
+    std::array<std::array<bool, 5>, 8> assemblyVsFirst{};
+    std::array<std::array<bool, 5>, 5> firstVsSecond{};
+    ReinforcementBarTable();
+    static const std::array<int, 5>& reinforcementDiameters();  ///< 10 12 16 20 25
+    bool isValid() const;
+};
+
+struct BeamTablesSettings {
+    TransverseReinforcementTable transverse;
+    DiameterAdmissibility stirrupHolder, skin;
+    ReinforcementBarTable topReinforcement, bottomReinforcement;
+    BeamTablesSettings();
+    bool isValid() const;
+};
 
 /// "Numeración de vigas continuas".
 struct ContinuousBeamNumbering {
@@ -55,9 +112,11 @@ enum class BeamNumbering { None, Consecutive, ByLevel };
 
 struct BeamOptionsSettings {
     BeamErrorSettings errors;
+    DeflectionLimitsSettings deflection;
+    BeamTablesSettings tables;
     ContinuousBeamNumbering continuousNumbering;
     BeamNumbering numbering = BeamNumbering::None;
-    bool isValid() const { return errors.isValid() && continuousNumbering.isValid(); }
+    bool isValid() const { return errors.isValid() && deflection.isValid() && tables.isValid() && continuousNumbering.isValid(); }
 };
 
 /// Uniones > Materiales.
@@ -126,11 +185,57 @@ struct JointOptionsSettings {
     bool isValid() const { return materials.isValid() && bolts.isValid() && preloaded.isValid() && basePlate.isValid(); }
 };
 
+/// Cimentación > Opciones and Tablas de armado (captures of 2026-10-31; the Zapatas aisladas and Vigas de atado
+/// option sheets, the other pile-cap tabs and the Vigas centradoras table are still ticket TK-019).
+struct CleaningConcreteSettings {
+    bool footings = false, pileCaps = false, tieAndCenteringBeams = false;
+};
+
+struct CrackingSettings {
+    bool checkFootings = false, checkBeams = false;
+    double footingLimitMm = 0.30, beamLimitMm = 0.30;
+    bool isValid() const { return footingLimitMm > 0 && beamLimitMm > 0; }
+};
+
+/// Encepados > Generales.
+struct PileCapGeneralSettings {
+    double minOverhangOverPileM = 0.25, minOverhangOverSupportM = 0.15;
+    std::string depthCriterion = "Canto mínimo según norma EHE";
+    double minDepthM = 0.20, maxDepthM = 2.50;
+    double minBarSpacingM = 0.05, maxBarDiameterMm = 25.0;
+    bool withPileLoads = false;
+    double loadFraction = 1.00, loadFactor = 1.50;
+    bool isValid() const;
+};
+
+struct CenteringBeamSettings {
+    double toleranceAngleDeg = 15.0;
+    bool stirrupsInsideFoundation = false;
+    std::string centeringType = "Ley rectangular de tensiones bajo la zapata";
+    bool minTensionGeometric = false;
+    double minTensionRatio = 0.00100;
+    bool isValid() const { return toleranceAngleDeg >= 0 && toleranceAngleDeg < 90 && minTensionRatio >= 0; }
+};
+
+/// Source of an arrangement table (Zapatas aisladas / Vigas de atado): only the predefined one is selectable.
+enum class ReinforcementTableSource { Predefined, Library, Special };
+
+struct FoundationOptionsSettings {
+    CleaningConcreteSettings cleaning;
+    CrackingSettings cracking;
+    PileCapGeneralSettings pileCap;
+    CenteringBeamSettings centeringBeams;
+    ReinforcementTableSource footingTable = ReinforcementTableSource::Predefined;
+    ReinforcementTableSource tieBeamTable = ReinforcementTableSource::Predefined;
+    bool isValid() const { return cracking.isValid() && pileCap.isValid() && centeringBeams.isValid(); }
+};
+
 /// Everything edited from the Opciones buttons of the wizard.
 struct OptionsSettings {
+    FoundationOptionsSettings foundation;
     BeamOptionsSettings beams;
     JointOptionsSettings joints;
-    bool isValid() const { return beams.isValid() && joints.isValid(); }
+    bool isValid() const { return foundation.isValid() && beams.isValid() && joints.isValid(); }
 };
 
 }  // namespace cc::core
