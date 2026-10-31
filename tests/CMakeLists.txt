@@ -1,5 +1,5 @@
 ﻿include(GoogleTest)
-add_executable(core_tests core_tests.cpp)
+add_executable(core_tests core_tests.cpp standards_tests.cpp)
 target_link_libraries(core_tests PRIVATE cc_core GTest::gtest GTest::gtest_main)
 gtest_discover_tests(core_tests)
 
@@ -27,3 +27,9 @@ add_executable(projecttype_tests projecttype_tests.cpp ${CMAKE_SOURCE_DIR}/src/a
 target_include_directories(projecttype_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(projecttype_tests PRIVATE Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(projecttype_tests)
+
+add_executable(standardsdialog_tests standardsdialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(standardsdialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(standardsdialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+gtest_discover_tests(standardsdialog_tests)

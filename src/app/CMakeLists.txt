@@ -3,6 +3,7 @@
   StartPage.cpp StartPage.h
   CypeDialog.cpp CypeDialog.h NewProjectDialog.cpp NewProjectDialog.h
   ProjectTypeDialog.cpp ProjectTypeDialog.h
+  StandardsDialog.cpp StandardsDialog.h
   ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_link_libraries(cypeclwon PRIVATE cc_core Qt6::Widgets Qt6::Svg SARibbonBar::SARibbonBar)
 

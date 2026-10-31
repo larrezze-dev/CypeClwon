@@ -243,6 +243,64 @@
     </message>
 </context>
 <context>
+    <name>cc::app::StandardsDialog</name>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="16"/>
+        <source>Selección de normas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="24"/>
+        <source>Hormigón</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="25"/>
+        <source>Acero conformado</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="26"/>
+        <source>Acero laminado</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="27"/>
+        <source>Madera</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="28"/>
+        <source>Aluminio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="53"/>
+        <source>C.E.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="53"/>
+        <source>CTE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="56"/>
+        <source>Aplica de golpe el conjunto de normas (pendiente de verificar).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="64"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/StandardsDialog.cpp" line="64"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>cc::app::StartPage</name>
     <message>
         <location filename="../src/app/StartPage.cpp" line="42"/>
