@@ -6,6 +6,7 @@
 #include "core/options_settings.h"
 #include "core/project_settings.h"
 #include "core/standards.h"
+#include "core/structure_model.h"
 #include "core/units.h"
 
 namespace cc::core {
@@ -24,6 +25,7 @@ struct Project {
     MicropileSettings micropiles;
     OptionsSettings options;
     DimensioningUnits units;  ///< "Unidades de acotación"; cm / cm / m when a file has no such section
+    StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 
 /// Header of a project file, readable without loading the project.

@@ -248,19 +248,19 @@ TEST_F(ProjectFileTest, UnknownSectionsAndFieldsAreTolerated) {
     writeZip(dir / "new.ed3",
              {{"manifest.json", manifest(1)},
               {"sections/ground.json", R"({"checkFootingSliding":true,"fieldFromTheFuture":[1,2,3]})"},
-              {"sections/nodes.json", R"({"nodes":[{"id":1,"x":0.0}]})"},
+              {"sections/future_module.json", R"({"items":[{"id":1,"x":0.0}]})"},
               {"notes.txt", "ignored"}});
     LoadResult r = loadProjectFile(dir / "new.ed3");
     ASSERT_TRUE(r.ok) << r.error;
     ASSERT_EQ(r.document.unknownSections.size(), 1u);
-    EXPECT_TRUE(r.document.unknownSections.count("nodes"));
+    EXPECT_TRUE(r.document.unknownSections.count("future_module"));
 
     // The unknown section survives a save and a second load.
     ASSERT_TRUE(saveProjectFile(dir / "resaved.ed3", r.document).ok);
     const LoadResult again = loadProjectFile(dir / "resaved.ed3");
     ASSERT_TRUE(again.ok) << again.error;
-    ASSERT_TRUE(again.document.unknownSections.count("nodes"));
-    EXPECT_EQ(again.document.unknownSections.at("nodes"), R"({"nodes":[{"id":1,"x":0.0}]})");
+    ASSERT_TRUE(again.document.unknownSections.count("future_module"));
+    EXPECT_EQ(again.document.unknownSections.at("future_module"), R"({"items":[{"id":1,"x":0.0}]})");
     EXPECT_TRUE(again.document.project.ground.checkFootingSliding);
 }
 

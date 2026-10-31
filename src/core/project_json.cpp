@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <stdexcept>
 #include <utility>
@@ -52,6 +53,11 @@ CC_ENUM(ContinuousBeamNumbering::Axis,
         {{ContinuousBeamNumbering::Axis::X, "x"}, {ContinuousBeamNumbering::Axis::Y, "y"}})
 CC_ENUM(ContinuousBeamNumbering::Sense,
         {{ContinuousBeamNumbering::Sense::Positive, "positive"}, {ContinuousBeamNumbering::Sense::Negative, "negative"}})
+CC_ENUM(MaterialKind, {{MaterialKind::Steel, "steel"},
+                       {MaterialKind::Concrete, "concrete"},
+                       {MaterialKind::Timber, "timber"},
+                       {MaterialKind::Aluminium, "aluminium"},
+                       {MaterialKind::Generic, "generic"}})
 CC_ENUM(ReinforcementTableSource, {{ReinforcementTableSource::Predefined, "predefined"},
                                    {ReinforcementTableSource::Library, "library"},
                                    {ReinforcementTableSource::Special, "special"}})
@@ -91,6 +97,14 @@ CC_STRUCT(MicropileSettings, reducedAxial, reducedAxialFactor, bucklingAnalysis,
 // --- limit_states.h / units.h ---
 CC_STRUCT(LimitStatesSettings, groundSnow, coldFormedSnow, timberSnow, hotRolledSnow, hotRolledCode)
 CC_STRUCT(DimensioningUnits, dimensions, reinforcement, lengths)
+
+// --- structure_model.h ---
+CC_STRUCT(Point3, x, y, z)
+CC_STRUCT(Node, id, position)
+CC_STRUCT(Material, id, name, kind, elasticModulusMPa, poissonRatio, densityKnM3, thermalExpansion)
+CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM4, shearAreaYM2, shearAreaZM2)
+CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted)
+CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted)
 
 // --- options_settings.h ---
 CC_STRUCT(BeamErrorSettings, compressionHook, topCompressionSteel, bottomCompressionSteel, manualShortCorbel,
@@ -175,6 +189,24 @@ Section make(const char* name, const char* title, T Project::*member, std::funct
                    [member, valid](const Project& p) { return !valid || valid(p.*member); }};
 }
 
+/// A collection of the structural model, stored as {"next": <next free id>, "items": [...]}. Whole-model consistency
+/// (references between collections) is checked by StructuralModel::validate, not here.
+template <class T>
+Section makeCollection(const char* name, const char* title, std::vector<T> StructuralModel::*items, int StructuralModel::*next) {
+    return Section{
+        name, title,
+        [items, next](const Project& p) { return json{{"next", p.structure.*next}, {"items", p.structure.*items}}.dump(2); },
+        [items, next](Project& p, const std::string& text) {
+            const json j = json::parse(text);
+            std::vector<T> loaded = j.value("items", std::vector<T>{});
+            int following = 1;
+            for (const T& item : loaded) following = std::max(following, item.id + 1);
+            p.structure.*items = std::move(loaded);
+            p.structure.*next = j.value("next", following);
+        },
+        [](const Project&) { return true; }};
+}
+
 const std::vector<Section>& sections() {
     static const std::vector<Section> all = {
         make<StandardsSelection>("standards", "Normas", &Project::standards, [](const auto& v) { return v.isValid(); }),
@@ -192,6 +224,11 @@ const std::vector<Section>& sections() {
                                 [](const auto& v) { return v.isValid(); }),
         make<OptionsSettings>("options", "Opciones", &Project::options, [](const auto& v) { return v.isValid(); }),
         make<DimensioningUnits>("units", "Unidades de acotación", &Project::units, nullptr),
+        makeCollection<Node>("nodes", "Nudos", &StructuralModel::nodes, &StructuralModel::nextNodeId),
+        makeCollection<Material>("materials", "Materiales", &StructuralModel::materials, &StructuralModel::nextMaterialId),
+        makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),
+        makeCollection<Bar>("bars", "Barras", &StructuralModel::bars, &StructuralModel::nextBarId),
+        makeCollection<Shell>("shells", "Láminas", &StructuralModel::shells, &StructuralModel::nextShellId),
     };
     return all;
 }
@@ -240,7 +277,7 @@ void loadSection(Project& project, const std::string& name, const std::string& j
 std::string validate(const Project& project) {
     for (const Section& s : sections())
         if (!s.valid(project)) return "La sección «" + std::string(s.title) + "» contiene valores no válidos.";
-    return {};
+    return project.structure.validate();
 }
 
 }  // namespace project_json

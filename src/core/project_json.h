@@ -13,7 +13,7 @@ namespace cc::core {
 /// was added still open) and unknown fields are ignored. A wrong type or an unknown enumeration value is an error.
 namespace project_json {
 
-/// Section names in the order they are written: "standards", "profiles", ... "units".
+/// Section names in the order they are written: "standards", "profiles", ... "units", "nodes", ... "shells".
 const std::vector<std::string>& sectionNames();
 
 /// True when `name` is one of sectionNames().
