@@ -279,6 +279,27 @@ TEST_F(SelectionTest, LeavingSelectionModeClearsTheSelection) {
     EXPECT_TRUE(view->selection().empty());
 }
 
+TEST_F(SelectionTest, SnapModeSnapsAndEntersPoints) {
+    view->setSelectionMode(false);
+    view->setSnapMode(true);
+    QSignalSpy changed(view.get(), &Viewport3D::snapChanged);
+    QSignalSpy entered(view.get(), &Viewport3D::pointEntered);
+    QPointF near = screenOf(*view, 4, 3) + QPointF(6, -5);
+    mouse(*view, QEvent::MouseMove, near, Qt::NoButton, Qt::NoButton);
+    EXPECT_EQ(view->currentSnap().kind, cc::core::SnapKind::Endpoint);
+    EXPECT_GE(changed.count(), 1);
+    EXPECT_EQ(view->cursorWorld(), (cc::core::Vec3{4, 0, 3}));
+    click(*view, near);
+    ASSERT_EQ(entered.count(), 1);
+    EXPECT_EQ(entered.at(0).at(0).value<cc::core::Vec3>(), (cc::core::Vec3{4, 0, 3}));
+    // Far from everything: free position on the target plane.
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 2, 1.5), Qt::NoButton, Qt::NoButton);
+    EXPECT_FALSE(view->currentSnap().snapped());
+    view->setSnapMode(false);
+    click(*view, near);
+    EXPECT_EQ(entered.count(), 1);
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

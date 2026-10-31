@@ -1,6 +1,7 @@
 #pragma once
 #include <QOpenGLWidget>
 #include <QPoint>
+#include <QMetaType>
 #include <QPointF>
 #include <optional>
 #include <vector>
@@ -8,6 +9,7 @@
 #include "core/camera.h"
 #include "core/picking.h"
 #include "core/selection.h"
+#include "core/snap.h"
 #include "core/structure_model.h"
 
 namespace cc::app {
@@ -65,6 +67,16 @@ public:
     bool windowPending() const { return m_windowStart.has_value(); }
     void cancelWindow();
 
+    /// Point-entry mode (Nudos > Nuevo, Barra...): the cursor snaps to nodes, bars and guide lines (core/snap.h), the
+    /// snap is shown as an hourglass marker with the snapped element in blue and a dimension label, and a left click
+    /// emits pointEntered() with the snapped (or free) position. Independent of the selection mode.
+    void setSnapMode(bool on);
+    bool snapMode() const { return m_snapMode; }
+    core::SnapOptions& snapOptions() { return m_snapOptions; }
+    const core::SnapResult& currentSnap() const { return m_snap; }
+    /// Position of the cursor in world coordinates: snapped when a snap applies, else on the target plane.
+    core::Vec3 cursorWorld() const;
+
     bool isOrthographic() const { return m_camera.projection == core::Camera::Projection::Orthographic; }
     void setOrthographic(bool on);
     void setStandardView(core::StandardView view);
@@ -80,6 +92,9 @@ signals:
     /// Cursor position on the target plane in world coordinates; emitted on every mouse move.
     void cursorMoved(const cc::core::Vec3& world);
     void selectionChanged();
+    void snapChanged();
+    /// Left click in snap mode: the world position entered (snapped or free) and the snap that produced it.
+    void pointEntered(const cc::core::Vec3& world, const cc::core::SnapResult& snap);
     /// Right button in selection mode: act on the selected elements.
     void actOnSelection();
     /// Status bar text of the current mode (empty when leaving selection mode).
@@ -106,6 +121,8 @@ private:
     void drawHighlight(class QPainter& painter, const core::ElementRef& e, bool selected) const;
     void drawRubberBand(class QPainter& painter) const;
     void drawNodeLabel(class QPainter& painter) const;
+    void drawSnap(class QPainter& painter) const;
+    void updateSnap(const QPointF& pos);
     core::ScreenMapper mapper() const;
     void selectionPress(class QMouseEvent* event);
     void updateHover(const QPointF& pos);
@@ -123,6 +140,12 @@ private:
     std::optional<core::ElementRef> m_hover;
     std::optional<QPointF> m_windowStart;
     QPointF m_cursor;
+    bool m_snapMode = false;
+    core::SnapOptions m_snapOptions;
+    core::SnapResult m_snap;
 };
 
 }  // namespace cc::app
+
+Q_DECLARE_METATYPE(cc::core::Vec3)
+Q_DECLARE_METATYPE(cc::core::SnapResult)

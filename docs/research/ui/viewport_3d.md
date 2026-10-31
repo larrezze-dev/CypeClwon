@@ -78,3 +78,17 @@ El nudo seleccionado es un cuadrado de contorno naranja rojizo, algo más grueso
 - Algunas acciones del ribbon solo admiten el clic directo sobre el elemento, no el modo ventana (dato del usuario). En el clon no hace falta copiarlo 1:1.
 - Con el script, el primer clic tras activar un comando parece quedar consumido (no inicia la ventana); hay que contar con ello al automatizar. Se añadió a `drive_original.ps1` un micro-movimiento real del ratón antes de cada clic, move y mclick.
 - Para automatizar una ventana: `click:A|move:B|click:B` (con un clic previo de activación).
+
+## Capturas a plantillas / imán (T-P4-04, sesión 13, capturas sn0..sn14)
+
+Comando Geometría > Nudos > Nuevo (barra de estado "Nudos - Nuevo | - LMB: Introduzca un punto."). Observado con el puntero moviéndose sobre dlg_obra.ed3 (portal N1..N4, barra N2-N3 horizontal en Z=3):
+
+| Situación | Resultado |
+|---|---|
+| Cursor libre (sn2) | Tooltip negro con coordenadas libres "187.596, -186.215, 153.756 m" (3 decimales, coma de lista y punto decimal), a +40, +43 px del cursor. Sin marcador. |
+| Cursor a ≤10 px de un nudo (sn3, sn4, sn9) | Se ajusta al nudo: tooltip con las coordenadas exactas del nudo ("0.000, 0.000, 3.000 m", "4.000, 0.000, 3.000 m"); nudo en naranja con marcador de reloj de arena (dos triángulos, contorno ocre) encima; barras que llegan al nudo y líneas guía por él resaltadas en azul (#1E90C8 aprox., 2 px); a la derecha del nudo etiqueta verde con su referencia. Arriba a la derecha caja de información de la barra: "Barra N2/N3: L. 4 m / Capa : por defecto / IPE 80 (S275 (UNE-EN 10025-2))" (opción "Mostrar la información de los elementos"). |
+| Cursor a 15 px del nudo, sobre la línea guía en Y (sn10, sn11) | Ya no se ajusta al nudo: se ajusta al punto más cercano de la línea guía: "4.000, 0.143, 3.000 m" (a 15 px) y "4.000, 0.192, 3.000 m" (a 20 px); el resto de líneas guía visibles quedan en azul; etiqueta de cota azul claro girada ("0.1428 m", "0.1915 m") con línea de cota desde el nudo. Radio del ajuste a nudo: entre 10 y 15 px. |
+| Cursor sobre una barra (sn7, sn8) | Se ajusta al punto más cercano de la barra (NO al punto medio): "1.999, 0.000, 3.000 m" en el centro visual, "0.998, 0.000, 3.000 m" a un cuarto; barra en azul, marcador de reloj de arena en el punto, cota azul claro con la distancia al nudo inicial ("1.9990 m", "0.9985 m") y línea de cota paralela a la barra. |
+| Cursor a 25 px de la barra (sn5) | Sin ajuste (coordenadas libres). Radio del ajuste a líneas: entre 20 y 25 px. |
+
+Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Capturas a plantillas** (349x246, sn12): casillas "Activar capturas (F3)" (desmarcada) y "Activar puntos de rastreo (F11)" (desmarcada); modos con icono: Punto, Extremo (marcado), Punto de inserción, Centro, Perpendicular, Paralelo, Punto medio (marcado), Intersección (marcado), Cuadrante, Más cercano (marcado), Extensión (marcado); botones Aceptar, Quitar todas, Cancelar. Con "Activar capturas" desmarcada ya se observó el ajuste a nudo, barra (más cercano) y línea guía, y NO al punto medio: parece una base siempre activa (Extremo, Más cercano, Extensión) y que el diálogo gobierna el imán de objetos adicional (inferencia, por confirmar: TK-026).

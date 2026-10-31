@@ -76,6 +76,10 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
     m_drag = actionFor(event->buttons());
     if (m_selectionMode && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) selectionPress(event);
+    if (m_snapMode && event->button() == Qt::LeftButton) {
+        updateSnap(event->position());
+        emit pointEntered(cursorWorld(), m_snap);
+    }
     event->accept();
 }
 
@@ -95,6 +99,7 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     }
     m_cursor = event->position();
     if (m_selectionMode) updateHover(m_cursor);
+    if (m_snapMode) updateSnap(m_cursor);
     emit cursorMoved(screenToTargetPlane(event->position()));
     event->accept();
 }
@@ -130,6 +135,26 @@ void Viewport3D::setStructure(const core::StructuralModel* structure) {
     clearSelection();
     update();
 }
+
+void Viewport3D::setSnapMode(bool on) {
+    if (m_snapMode == on) return;
+    m_snapMode = on;
+    m_snap = {};
+    emit snapChanged();
+    update();
+}
+
+void Viewport3D::updateSnap(const QPointF& pos) {
+    core::SnapResult snap;
+    if (m_structure) snap = core::snapCursor(*m_structure, mapper(), pos.x(), pos.y(), m_snapOptions);
+    m_cursor = pos;
+    const bool changed = snap.kind != m_snap.kind || !(snap.point == m_snap.point);
+    m_snap = snap;
+    if (changed) emit snapChanged();
+    update();
+}
+
+Vec3 Viewport3D::cursorWorld() const { return m_snap.snapped() ? m_snap.point : screenToTargetPlane(m_cursor); }
 
 core::ScreenMapper Viewport3D::mapper() const { return {&m_camera, static_cast<double>(width()), static_cast<double>(height())}; }
 
@@ -303,6 +328,70 @@ void Viewport3D::drawRubberBand(QPainter& painter) const {
     painter.setBrush(Qt::NoBrush);
 }
 
+void Viewport3D::drawSnap(QPainter& painter) const {
+    if (!m_snap.snapped() || !m_structure) return;
+    const core::ScreenMapper map = mapper();
+    const QColor blue(QStringLiteral("#1E90C8"));
+    const auto toPoint = [&](const Vec3& w, QPointF& out) { double x, y; if (!map.toScreen(w, x, y)) return false; out = QPointF(x, y); return true; };
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(blue, 2));
+    const auto drawWorldLine = [&](const Vec3& a, const Vec3& b) { QPointF pa, pb; if (toPoint(a, pa) && toPoint(b, pb)) painter.drawLine(pa, pb); };
+    const auto nodePos = [&](int id) { const core::Node* n = m_structure->findNode(id); return n ? Vec3{n->position.x, n->position.y, n->position.z} : Vec3{}; };
+    switch (m_snap.kind) {
+        case core::SnapKind::Endpoint:  // the bars that meet at the node
+            for (const core::Bar& b : m_structure->bars)
+                if (m_snap.element && (b.startNode == m_snap.element->id || b.endNode == m_snap.element->id)) drawWorldLine(nodePos(b.startNode), nodePos(b.endNode));
+            break;
+        case core::SnapKind::Nearest:
+        case core::SnapKind::Midpoint:
+            if (const core::Bar* b = m_snap.element ? m_structure->findBar(m_snap.element->id) : nullptr) drawWorldLine(nodePos(b->startNode), nodePos(b->endNode));
+            break;
+        case core::SnapKind::Extension:
+            if (m_snap.element && m_snap.axis >= 0) {
+                Vec3 axis{0, 0, 0};
+                (m_snap.axis == 0 ? axis.x : m_snap.axis == 1 ? axis.y : axis.z) = 1.0;
+                const Vec3 o = nodePos(m_snap.element->id);
+                drawWorldLine(o - axis * kGuideExtent, o + axis * kGuideExtent);
+            }
+            break;
+        case core::SnapKind::None: break;
+    }
+    QPointF p;
+    if (!toPoint(m_snap.point, p)) return;
+    // Dimension label: distance from the reference node, light blue, turned along the measured segment.
+    if (m_snap.referenceNode && m_snap.referenceDistance > 1e-9) {
+        QPointF r;
+        if (toPoint(nodePos(*m_snap.referenceNode), r)) {
+            const QPointF mid = (p + r) / 2.0;
+            double angle = std::atan2(p.y() - r.y(), p.x() - r.x()) * 180.0 / 3.14159265358979323846;
+            if (angle > 90.0) angle -= 180.0;
+            if (angle < -90.0) angle += 180.0;
+            const QString text = QString::number(m_snap.referenceDistance, 'f', 4) + QStringLiteral(" m");
+            QFont font = painter.font();
+            font.setPixelSize(12);
+            painter.setFont(font);
+            painter.save();
+            painter.translate(mid);
+            painter.rotate(angle);
+            const QRectF box(-painter.fontMetrics().horizontalAdvance(text) / 2.0 - 4, -22, painter.fontMetrics().horizontalAdvance(text) + 8, 18);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor(168, 216, 234));
+            painter.drawRect(box);
+            painter.setPen(QColor(30, 30, 30));
+            painter.drawText(box, Qt::AlignCenter, text);
+            painter.restore();
+        }
+    }
+    // Hourglass marker (two triangles) at the snapped point.
+    const QColor ochre(QStringLiteral("#8B6B1F"));
+    painter.setPen(QPen(ochre, 2));
+    painter.setBrush(Qt::NoBrush);
+    const QPointF top[3] = {p + QPointF(-6, -8), p + QPointF(6, -8), p};
+    const QPointF bottom[3] = {p + QPointF(-6, 8), p + QPointF(6, 8), p};
+    painter.drawPolygon(top, 3);
+    painter.drawPolygon(bottom, 3);
+}
+
 void Viewport3D::drawNodeLabel(QPainter& painter) const {
     if (!m_hover || m_hover->kind != core::ElementKind::Node || !m_structure) return;
     const core::Node* n = m_structure->findNode(m_hover->id);
@@ -411,6 +500,7 @@ void Viewport3D::paintGL() {
         drawRubberBand(painter);
         drawNodeLabel(painter);
     }
+    if (m_snapMode) drawSnap(painter);
     drawAxesTriad(painter);
 }
 
