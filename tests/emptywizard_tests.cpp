@@ -144,6 +144,28 @@ TEST(EmptyProjectWizard, ActionsDefaults) {
     EXPECT_FALSE(buttonWithText(&wizard, QStringLiteral("Estados límite (combinaciones)"))->isEnabled());
 }
 
+TEST(WizardSubDialogs, EnvironmentAndGround) {
+    ensureApp();
+    BeamEnvironmentDialog env{cc::core::EnvironmentSettings{}};
+    EXPECT_EQ(env.value().beams, cc::core::ExposureClass::NoRisk);
+    EXPECT_DOUBLE_EQ(env.value().maxCrackWidthMm, 0.40);
+    UsualGroundDialog ground;
+    EXPECT_EQ(ground.selectedIndex(), -1);
+    EXPECT_EQ(cc::core::usualGroundValues().size(), 8u);
+    EXPECT_TRUE(cc::core::GroundSettings::isValidStress(0.2));
+    EXPECT_FALSE(cc::core::GroundSettings::isValidStress(-1.0));
+    EXPECT_FALSE(cc::core::GroundSettings::isValidStress(50.5));
+}
+
+TEST(EmptyProjectWizard, GroundAndEnvironmentDefaults) {
+    ensureApp();
+    EmptyProjectWizard wizard;
+    EXPECT_DOUBLE_EQ(wizard.ground().persistentStressMPa, 0.200);
+    EXPECT_DOUBLE_EQ(wizard.ground().seismicStressMPa, 0.300);
+    EXPECT_FALSE(wizard.ground().checkFootingSliding);
+    EXPECT_NE(buttonWithText(&wizard, QStringLiteral("X0")), nullptr);
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

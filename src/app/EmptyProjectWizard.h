@@ -4,6 +4,7 @@
 #include "core/standards.h"
 
 class QComboBox;
+class QLineEdit;
 class QPushButton;
 class QVBoxLayout;
 
@@ -21,6 +22,8 @@ public:
     const cc::core::ProfileSettings& profiles() const { return m_profiles; }
     const cc::core::ReinforcedConcreteSettings& reinforcedConcrete() const { return m_concrete; }
     const cc::core::ActionsSettings& actions() const { return m_actions; }
+    const cc::core::EnvironmentSettings& environment() const { return m_environment; }
+    const cc::core::GroundSettings& ground() const { return m_ground; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -30,6 +33,8 @@ private:
     void buildProfiles(QVBoxLayout* layout);
     void buildReinforcedConcrete(QVBoxLayout* layout);
     void buildActions(QVBoxLayout* layout);
+    void buildEnvironment(QVBoxLayout* layout);
+    void buildGround(QVBoxLayout* layout);
     void refreshButtons();
     QComboBox* concreteCombo(const std::string& current, std::string& target);
 
@@ -37,6 +42,11 @@ private:
     cc::core::ProfileSettings m_profiles;
     cc::core::ReinforcedConcreteSettings m_concrete;
     cc::core::ActionsSettings m_actions;
+    cc::core::EnvironmentSettings m_environment;
+    cc::core::GroundSettings m_ground;
+    QPushButton* m_environmentButton = nullptr;
+    QLineEdit* m_persistentEdit = nullptr;
+    QLineEdit* m_seismicEdit = nullptr;
 
     QPushButton* m_standardsButton = nullptr;
     QPushButton* m_timberButton = nullptr;

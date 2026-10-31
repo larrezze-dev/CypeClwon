@@ -6,12 +6,15 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStyleOptionButton>
 #include <QStylePainter>
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "Icons.h"
 #include "StandardsDialog.h"
 #include "WizardSubDialogs.h"
 
@@ -73,9 +76,12 @@ EmptyProjectWizard::EmptyProjectWizard(QWidget* parent) : CypeDialog(tr("Obra va
     buildProfiles(left);
     left->addSpacing(12);
     buildActions(left);
-    left->addStretch(1);  // Opciones and Ambiente arrive with T-P2-05.
+    left->addStretch(1);  // Opciones (leaf dialogs not captured yet) arrive with T-P2-05.
+    buildEnvironment(left);
     buildReinforcedConcrete(right);
-    right->addStretch(1);  // Terreno de cimentación and Pilotes arrive with T-P2-05.
+    right->addSpacing(12);
+    buildGround(right);
+    right->addStretch(1);  // Pilotes arrive with T-P2-05.
 
     QHBoxLayout* footer = setupCustomFooter();
     auto* cancel = new QPushButton(tr("Cancelar"), this);
@@ -245,7 +251,84 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
     });
 }
 
+void EmptyProjectWizard::buildEnvironment(QVBoxLayout* layout) {
+    layout->addWidget(sectionHeader(tr("Ambiente"), this));
+    auto* row = new QHBoxLayout;
+    row->addWidget(new QLabel(tr("Vigas"), this));
+    m_environmentButton = new QPushButton(this);
+    row->addWidget(m_environmentButton, 1);
+    layout->addLayout(row);
+    connect(m_environmentButton, &QPushButton::clicked, this, [this] {
+        BeamEnvironmentDialog dialog(m_environment, this);
+        if (dialog.exec() != QDialog::Accepted) return;
+        m_environment = dialog.value();
+        refreshButtons();
+    });
+}
+
+void EmptyProjectWizard::buildGround(QVBoxLayout* layout) {
+    layout->addWidget(sectionHeader(tr("Terreno de cimentación"), this));
+    auto* sliding = new QCheckBox(tr("Verificar deslizamiento de zapatas"), this);
+    sliding->setChecked(m_ground.checkFootingSliding);
+    connect(sliding, &QCheckBox::toggled, this, [this](bool on) { m_ground.checkFootingSliding = on; });
+    layout->addWidget(sliding);
+    layout->addWidget(new QLabel(tr("Tensiones admisibles del terreno"), this));
+
+    auto* grid = new QGridLayout;
+    grid->setColumnStretch(0, 1);
+    struct Row {
+        QString label;
+        double* target;
+        QLineEdit** edit;
+    };
+    const Row rows[] = {{tr("Situaciones persistentes (A2 - Conjunto C)"), &m_ground.persistentStressMPa, &m_persistentEdit},
+                        {tr("Situaciones sísmicas y accidentales (A2 - Conjunto C)"), &m_ground.seismicStressMPa, &m_seismicEdit}};
+    int r = 0;
+    for (const Row& row : rows) {
+        auto* edit = new QLineEdit(QString::number(*row.target, 'f', 3), this);
+        edit->setFixedWidth(64);
+        edit->setAlignment(Qt::AlignRight);
+        *row.edit = edit;
+        const QString label = row.label;
+        double* target = row.target;
+        // Out-of-range or non-numeric input shows the "Aviso" message and restores the previous value.
+        connect(edit, &QLineEdit::editingFinished, this, [this, edit, label, target] {
+            bool ok = false;
+            const double value = edit->text().replace(',', '.').toDouble(&ok);
+            if (ok && GroundSettings::isValidStress(value)) {
+                *target = value;
+            } else {
+                QMessageBox::warning(this, tr("Aviso"),
+                                     tr("El valor de '%1' debe estar entre %2 y %3.")
+                                         .arg(label)
+                                         .arg(GroundSettings::kMinStress, 0, 'f', 3)
+                                         .arg(GroundSettings::kMaxStress, 0, 'f', 3));
+            }
+            edit->setText(QString::number(*target, 'f', 3));
+        });
+        grid->addWidget(new QLabel(row.label, this), r, 0);
+        grid->addWidget(edit, r, 1);
+        grid->addWidget(new QLabel(tr("MPa"), this), r, 2);
+        ++r;
+    }
+    auto* import = new QToolButton(this);
+    import->setIcon(themedIcon(QStringLiteral("arrow_left_blue")));
+    import->setToolTip(tr("Importar valores usuales de proyecto"));
+    grid->addWidget(import, 0, 3, 2, 1);
+    layout->addLayout(grid);
+    connect(import, &QToolButton::clicked, this, [this] {
+        UsualGroundDialog dialog(this);
+        if (dialog.exec() != QDialog::Accepted || dialog.selectedIndex() < 0) return;
+        const auto& usual = usualGroundValues()[static_cast<std::size_t>(dialog.selectedIndex())];
+        m_ground.persistentStressMPa = usual.persistent;
+        m_ground.seismicStressMPa = usual.seismic;
+        m_persistentEdit->setText(QString::number(usual.persistent, 'f', 3));
+        m_seismicEdit->setText(QString::number(usual.seismic, 'f', 3));
+    });
+}
+
 void EmptyProjectWizard::refreshButtons() {
+    m_environmentButton->setText(qs(m_environment.beamsSummary()));
     m_standardsButton->setText(qs(m_standards.summary()));
     m_timberButton->setText(qs(m_profiles.timber.summary()));
     m_aluminiumButton->setText(qs(m_profiles.aluminium.summary()));

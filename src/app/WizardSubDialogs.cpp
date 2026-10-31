@@ -583,4 +583,71 @@ ConstructionProcessDialog::ConstructionProcessDialog(double days, QWidget* paren
 double ConstructionProcessDialog::days() const { return m_days->value(); }
 void ConstructionProcessDialog::resetToInstallationValues() { m_days->setValue(ActionsSettings{}.formworkRemovalDays); }
 
+// ---------------------------------------------------------------- Ambiente
+
+BeamEnvironmentDialog::BeamEnvironmentDialog(const EnvironmentSettings& initial, QWidget* parent)
+    : CypeDialog(tr("Vigas"), parent), m_base(initial) {
+    setFixedSize(442, 385);
+    auto* exposure = new QGroupBox(tr("Clase de exposición"), this);
+    auto* layout = new QVBoxLayout(exposure);
+    m_classes = new QButtonGroup(this);
+    const QString names[] = {tr("Sin riesgo de ataque por corrosión"), tr("Corrosión provocada por carbonatación"),
+                             tr("Corrosión provocada por cloruros"), tr("Corrosión inducida por cloruros de agua marina"),
+                             tr("Ataque por congelación y deshielo"), tr("Ataque químico")};
+    for (int i = 0; i < 6; ++i) {
+        auto* radio = new QRadioButton(names[i], exposure);
+        radio->setChecked(i == static_cast<int>(initial.beams));
+        radio->setEnabled(i == 0);  // other classes: sub-options not captured yet (TK-011)
+        m_classes->addButton(radio, i);
+        layout->addWidget(radio);
+    }
+    contentLayout()->addWidget(exposure);
+
+    auto* designation = new QGroupBox(tr("Designación"), this);
+    auto* designationLayout = new QVBoxLayout(designation);
+    auto* x0 = new QRadioButton(QStringLiteral("X0"), designation);
+    x0->setChecked(true);
+    designationLayout->addWidget(x0);
+    contentLayout()->addWidget(designation);
+
+    auto* cracking = new QGroupBox(tr("Fisuración"), this);
+    auto* crackingLayout = new QHBoxLayout(cracking);
+    crackingLayout->addWidget(new QLabel(tr("Abertura máxima de fisura"), cracking));
+    auto* width = new QLabel(QString::number(initial.maxCrackWidthMm, 'f', 2) + tr(" mm"), cracking);
+    crackingLayout->addWidget(width);
+    crackingLayout->addStretch(1);
+    contentLayout()->addWidget(cracking);
+    contentLayout()->addStretch(1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+EnvironmentSettings BeamEnvironmentDialog::value() const {
+    EnvironmentSettings s = m_base;
+    s.beams = static_cast<ExposureClass>(m_classes->checkedId());
+    return s;
+}
+
+// ---------------------------------------------------------------- Valores usuales del terreno
+
+UsualGroundDialog::UsualGroundDialog(QWidget* parent) : CypeDialog(tr("Importar valores usuales de proyecto"), parent) {
+    setFixedSize(530, 296);
+    const auto& rows = usualGroundValues();
+    m_table = new QTableWidget(static_cast<int>(rows.size()), 3, this);
+    m_table->setHorizontalHeaderLabels({tr("Tipo de terreno"), tr("S1 (C) (MPa)"), tr("S2 (C) (MPa)")});
+    m_table->verticalHeader()->hide();
+    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_table->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    for (int r = 0; r < static_cast<int>(rows.size()); ++r) {
+        m_table->setItem(r, 0, new QTableWidgetItem(tr(rows[r].type)));
+        m_table->setItem(r, 1, new QTableWidgetItem(QString::number(rows[r].persistent, 'f', 3)));
+        m_table->setItem(r, 2, new QTableWidgetItem(QString::number(rows[r].seismic, 'f', 3)));
+    }
+    contentLayout()->addWidget(m_table);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+int UsualGroundDialog::selectedIndex() const { return m_table->currentRow(); }
+
 }  // namespace cc::app

@@ -114,4 +114,33 @@ struct ActionsSettings {
     bool isValid() const;
 };
 
+/// Exposure class for beams ("Ambiente" > Vigas). Only X0 (no corrosion risk) has a verified designation; the
+/// other classes appear disabled in the dialog until their sub-options are captured (ticket TK-011).
+enum class ExposureClass { NoRisk, Carbonation, Chlorides, SeaWaterChlorides, FreezeThaw, Chemical };
+
+struct EnvironmentSettings {
+    ExposureClass beams = ExposureClass::NoRisk;
+    double maxCrackWidthMm = 0.40;  ///< read-only in the original
+    std::string beamsSummary() const;  ///< button text, "X0" for NoRisk
+    bool isValid() const { return beams == ExposureClass::NoRisk; }
+};
+
+/// One row of "Importar valores usuales de proyecto" (MPa).
+struct UsualGround {
+    const char* type;
+    double persistent;
+    double seismic;
+};
+const std::vector<UsualGround>& usualGroundValues();
+
+/// "Terreno de cimentación" section.
+struct GroundSettings {
+    bool checkFootingSliding = false;
+    double persistentStressMPa = 0.200;  ///< Situaciones persistentes (A2 - Conjunto C)
+    double seismicStressMPa = 0.300;     ///< Situaciones sísmicas y accidentales (A2 - Conjunto C)
+    static constexpr double kMinStress = 0.001, kMaxStress = 50.0;
+    static bool isValidStress(double value);
+    bool isValid() const { return isValidStress(persistentStressMPa) && isValidStress(seismicStressMPa); }
+};
+
 }  // namespace cc::core

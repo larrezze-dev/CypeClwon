@@ -186,6 +186,79 @@
     </message>
 </context>
 <context>
+    <name>cc::app::BeamEnvironmentDialog</name>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="589"/>
+        <source>Vigas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="591"/>
+        <source>Clase de exposición</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="594"/>
+        <source>Sin riesgo de ataque por corrosión</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="594"/>
+        <source>Corrosión provocada por carbonatación</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="595"/>
+        <source>Corrosión provocada por cloruros</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="595"/>
+        <source>Corrosión inducida por cloruros de agua marina</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="596"/>
+        <source>Ataque por congelación y deshielo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="596"/>
+        <source>Ataque químico</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="606"/>
+        <source>Designación</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="613"/>
+        <source>Fisuración</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="615"/>
+        <source>Abertura máxima de fisura</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="616"/>
+        <source> mm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="621"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="621"/>
+        <source>Cancelar</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>cc::app::ConstructionProcessDialog</name>
     <message>
         <location filename="../src/app/WizardSubDialogs.cpp" line="565"/>
@@ -316,148 +389,203 @@
 <context>
     <name>cc::app::EmptyProjectWizard</name>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="49"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="52"/>
         <source>Obra vacía</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="53"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="56"/>
         <source>&lt;b&gt;Normas:&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="81"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="87"/>
         <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="82"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="88"/>
         <source>&lt; Anterior</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="83"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="89"/>
         <source>Siguiente &gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="84"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="90"/>
         <source>Terminar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="112"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="118"/>
         <source>Perfiles</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="116"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="122"/>
         <source>Biblioteca de aceros de usuario</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="132"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="138"/>
         <source>Acero laminado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="134"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="140"/>
         <source>Acero conformado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="137"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="143"/>
         <source>Madera</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="147"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="153"/>
         <source>Aluminio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="157"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="163"/>
         <source>Hormigón</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="163"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="169"/>
         <source>Hormigón armado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="167"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="173"/>
         <source>Hormigón para pilares</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="168"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="174"/>
         <source>Hormigón para vigas de forjado</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="169"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="175"/>
         <source>Hormigón para elementos de cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="176"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="182"/>
         <source>Acero de barras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="179"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="185"/>
         <source>Características del árido</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="186"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="192"/>
         <source>Recubrimientos</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="187"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="193"/>
         <source>Mermas de acero</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="217"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="223"/>
         <source>Acciones</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="218"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="224"/>
         <source>Con sismo dinámico</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="228"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="234"/>
         <source>Resistencia al fuego</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="232"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="238"/>
         <source>Estados límite (combinaciones)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="234"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="240"/>
         <source>Disponible próximamente.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="235"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="241"/>
         <source>Hipótesis adicionales</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="236"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="242"/>
         <source>Cimentación</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/app/EmptyProjectWizard.cpp" line="242"/>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="248"/>
         <source>Proceso constructivo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="255"/>
+        <source>Ambiente</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="257"/>
+        <source>Vigas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="270"/>
+        <source>Terreno de cimentación</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="271"/>
+        <source>Verificar deslizamiento de zapatas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="275"/>
+        <source>Tensiones admisibles del terreno</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="284"/>
+        <source>Situaciones persistentes (A2 - Conjunto C)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="285"/>
+        <source>Situaciones sísmicas y accidentales (A2 - Conjunto C)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="301"/>
+        <source>Aviso</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="302"/>
+        <source>El valor de &apos;%1&apos; debe estar entre %2 y %3.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="311"/>
+        <source>MPa</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/EmptyProjectWizard.cpp" line="316"/>
+        <source>Importar valores usuales de proyecto</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1106,6 +1234,39 @@
     <message>
         <location filename="../src/app/WizardSubDialogs.cpp" line="142"/>
         <source>Clase de servicio %1: descripción pendiente de verificar.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>cc::app::UsualGroundDialog</name>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="632"/>
+        <source>Importar valores usuales de proyecto</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="636"/>
+        <source>Tipo de terreno</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="636"/>
+        <source>S1 (C) (MPa)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="636"/>
+        <source>S2 (C) (MPa)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="648"/>
+        <source>Aceptar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/app/WizardSubDialogs.cpp" line="648"/>
+        <source>Cancelar</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

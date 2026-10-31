@@ -138,6 +138,18 @@ bool WasteSettings::isValid() const {
     return true;
 }
 
+std::string EnvironmentSettings::beamsSummary() const { return "X0"; }
+
+const std::vector<UsualGround>& usualGroundValues() {
+    static const std::vector<UsualGround> v = {
+        {"Grava", 0.294, 0.412},         {"Arena densa", 0.245, 0.343}, {"Arena semidensa", 0.196, 0.275},
+        {"Arena suelta", 0.098, 0.137},  {"Limo", 0.118, 0.165},        {"Arcilla dura", 0.245, 0.343},
+        {"Arcilla semidura", 0.147, 0.206}, {"Arcilla blanda", 0.098, 0.137}};
+    return v;
+}
+
+bool GroundSettings::isValidStress(double value) { return inRange(value, kMinStress, kMaxStress); }
+
 bool ActionsSettings::isValid() const {
     return inRange(formworkRemovalDays, kMinDays, kMaxDays) && static_cast<int>(steelFire) >= 0 &&
            static_cast<int>(steelFire) <= 2;

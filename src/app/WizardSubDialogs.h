@@ -9,6 +9,7 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
+class QTableWidget;
 
 namespace cc::app {
 
@@ -180,6 +181,30 @@ protected:
 
 private:
     QDoubleSpinBox* m_days;
+};
+
+/// "Vigas" environment dialog (442x385): exposure class, designation and cracking.
+class BeamEnvironmentDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit BeamEnvironmentDialog(const cc::core::EnvironmentSettings& initial, QWidget* parent = nullptr);
+    cc::core::EnvironmentSettings value() const;
+
+private:
+    QButtonGroup* m_classes;
+    cc::core::EnvironmentSettings m_base;
+};
+
+/// "Importar valores usuales de proyecto" (530x296): pick a ground type to fill both admissible stresses.
+class UsualGroundDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit UsualGroundDialog(QWidget* parent = nullptr);
+    /// Selected row of usualGroundValues(), or -1.
+    int selectedIndex() const;
+
+private:
+    QTableWidget* m_table;
 };
 
 }  // namespace cc::app
