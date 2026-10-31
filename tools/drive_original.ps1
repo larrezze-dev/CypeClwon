@@ -89,9 +89,10 @@ try {
                        $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
                        $x1 = [int]$a[1]; $y1 = [int]$a[2]; $x2 = [int]$a[3]; $y2 = [int]$a[4]
                        [void][D]::SetCursorPos($r.L + $x1, $r.T + $y1); Start-Sleep -Milliseconds 200
+                       [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120
                        [D]::mouse_event($f[0], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
-                       for ($i = 1; $i -le 10; $i++) { [void][D]::SetCursorPos($r.L + $x1 + [int](($x2 - $x1) * $i / 10), $r.T + $y1 + [int](($y2 - $y1) * $i / 10)); Start-Sleep -Milliseconds 40 }
-                       Start-Sleep -Milliseconds 200; [D]::mouse_event($f[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
+                       for ($i = 1; $i -le 25; $i++) { [void][D]::SetCursorPos($r.L + $x1 + [int](($x2 - $x1) * $i / 25), $r.T + $y1 + [int](($y2 - $y1) * $i / 25)); Start-Sleep -Milliseconds 60 }
+                       Start-Sleep -Milliseconds 300; if ($a.Count -gt 5) { SShot $p $a[5] }; [D]::mouse_event($f[1], 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'mclick' { $a = $arg.Split(','); $vk = @{ctrl=0x11; shift=0x10}[$a[0]]; $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
                        [void][D]::SetCursorPos($r.L + [int]$a[1], $r.T + [int]$a[2]); Start-Sleep -Milliseconds 150
                        [D]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
