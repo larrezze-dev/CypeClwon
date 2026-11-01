@@ -4,3 +4,6 @@ out/
 *.user
 CMakeUserPresets.json
 vcpkg_installed/
+
+# Manual captures dropped by the user for research
+CypeClwonTemp/
