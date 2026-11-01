@@ -71,8 +71,13 @@ target_include_directories(units_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/ap
 target_link_libraries(units_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(units_dialog_tests)
 
-add_executable(leftpanel_tests leftpanel_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LeftPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/DisplayOptionsPanel.cpp
+add_executable(leftpanel_tests leftpanel_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LeftPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/DisplayOptionsPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/LayersPanel.cpp
   ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
 target_include_directories(leftpanel_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(leftpanel_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(leftpanel_tests)
+
+add_executable(layers_panel_tests layers_panel_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LayersPanel.cpp)
+target_include_directories(layers_panel_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(layers_panel_tests PRIVATE cc_core Qt6::Widgets Qt6::Test GTest::gtest)
+gtest_discover_tests(layers_panel_tests)

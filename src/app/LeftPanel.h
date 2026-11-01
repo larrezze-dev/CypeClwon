@@ -7,6 +7,7 @@ class QToolButton;
 namespace cc::app {
 
 class DisplayOptionsPanel;
+class LayersPanel;
 
 /// One section of the left panel: a header (title, chevron that folds the content, x that closes the section) above a
 /// content widget (reference: docs/screenshots/tp2_combo_open.png).
@@ -30,7 +31,7 @@ private:
 };
 
 /// Left panel of the main window: Etiquetas, Categorías and Opciones de visualización stacked in a vertical splitter
-/// with dotted handles. Etiquetas and Categorías are empty placeholders until T-P4-06 / T-P4-07.
+/// with dotted handles. Etiquetas holds the LayersPanel (T-P4-06); Categorías is an empty placeholder until T-P4-07.
 class LeftPanel : public QWidget {
     Q_OBJECT
 public:
@@ -42,6 +43,7 @@ public:
     PanelSection* categoriesSection() const { return m_categories; }
     PanelSection* displaySection() const { return m_display; }
     DisplayOptionsPanel* displayOptions() const { return m_displayOptions; }
+    LayersPanel* layersPanel() const { return m_layersPanel; }
     QSplitter* splitter() const { return m_splitter; }
 
 private:
@@ -50,6 +52,7 @@ private:
     PanelSection* m_categories;
     PanelSection* m_display;
     DisplayOptionsPanel* m_displayOptions;
+    LayersPanel* m_layersPanel;
 };
 
 }  // namespace cc::app

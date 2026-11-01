@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 
 #include "DisplayOptionsPanel.h"
+#include "LayersPanel.h"
 
 namespace cc::app {
 
@@ -80,7 +81,8 @@ LeftPanel::LeftPanel(QWidget* parent) : QWidget(parent) {
     m_splitter->setChildrenCollapsible(false);
     m_splitter->setHandleWidth(8);
 
-    m_labels = new PanelSection(tr("Etiquetas"), new QWidget, m_splitter);          // filled by T-P4-06
+    m_layersPanel = new LayersPanel;
+    m_labels = new PanelSection(tr("Etiquetas"), m_layersPanel, m_splitter);
     m_categories = new PanelSection(tr("Categorías"), new QWidget, m_splitter);     // filled by T-P4-07 (TK-028)
     m_displayOptions = new DisplayOptionsPanel;
     m_display = new PanelSection(tr("Opciones de visualización"), m_displayOptions, m_splitter);
