@@ -110,3 +110,10 @@ Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Captura
 - **Chevron de sección**: pliega la sección a su cabecera (el chevron pasa a ^) y el espacio sobrante va a Categorías; el divisor de las secciones se reajusta (`op7_chevron_opciones.png`). **×**: oculta la sección por completo; las otras ocupan su sitio (`oe3_close_opciones.png`). No se ha averiguado cómo se reabre (¿Ventana > Seleccionar ventana?, `oe4_ventana_tab.png`).
 - **Caja de información** (`oe1_bar.png`, `oe2_node.png`): en el ajuste a nudo muestra también la barra que llega ("Barra N2/N3"); la cota "1.9990 m" se dibuja girada sobre la barra.
 - **"Sobre el elemento"**: no se pudo seleccionar en el combo (el clic en la lista no cambió el valor); sin resolver.
+
+### Reintentos (sesión 14, capturas r1..r15)
+
+- **Persistencia**: cambiar opciones (láminas con relleno, "Elementos considerados en el análisis") y cerrar con Alt+F4 muestra "¿Desea grabar la obra?" (Sí/No/Cancelar): las opciones cuentan como modificación de la obra. Tras cerrar con No y reabrir, todo vuelve a los valores por defecto (`r11_relaunch.png`). Conclusión: **no son preferencias de usuario; se guardan con la obra** (por confirmar con Guardar + reabrir sobre una copia, no hecho para no tocar archivos del original).
+- **Reabrir secciones cerradas**: Ventana > "Seleccionar ventana" solo mostró su tooltip (no se abrió ningún menú con el script); no hay evidencia de que reabra paneles. Sin resolver.
+- **"Sobre el elemento"**: con ratón (con y sin movimiento previo) y con teclado la lista desplegable del combo no se deja elegir desde el script (la lista se abre, pero el clic/teclado no cambia el valor; el foco acaba en otro combo: un `{DOWN}` cambió "Elementos considerados en el análisis" a "Pandeo"). Sin resolver; habría que hacerlo a mano o con SendInput real.
+- Con la opción por defecto, la caja de barra sale en la esquina incluso con el ajuste en mitad de la barra, y la cota "1.9925 m" gira sobre la barra (`r14_bar_onelement.png`).
