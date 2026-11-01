@@ -18,3 +18,11 @@ Tabla: columnas **Referencia | Activa | Color | cubo | ojo | candado**. Fila ini
 | Icono de opciones | Tooltip "Asignar elementos a etiquetas". Es una HERRAMIENTA: barra de estado "Herramientas - Asignar elementos a etiquetas | - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados." Abre una ventana "Propiedades - Selección" con la casilla "Barras". Esc no la cancela. |
 
 Sin comprobar: borrar "por defecto"; borrar una capa con elementos; qué hace el cubo; cómo se elige la capa en la ventana "Propiedades - Selección"; efecto de la capa activa al crear barras; efecto de ojo/candado/color sobre el viewport.
+
+## Ronda 2 (2026-11-01, capturas p*, q*, r*, s*, t*)
+
+- **Cubo**: sin tooltip (no sale tras 3,5 s de hover). Significado aún sin determinar.
+- **Borrar "por defecto"**: se puede. Misma pregunta "¿Desea borrar la capa 'por defecto'?" (Sí/No; Esc = No). Tras Sí desaparece y la capa restante pasa a ser la activa.
+- **Borrar la última capa**: aviso (título "Aviso", botón Aceptar) "Debe definir, al menos, una capa." y no se borra. Por tanto el modelo del original NO exige la capa "por defecto", solo al menos una capa.
+- **Nombre de `+`**: tras borrar "por defecto" y quedar solo "Nueva capa 2", `+` creó "Nueva capa 3" (no "2"): el número es el de capas tras añadir, saltando los nombres ya usados.
+- **Herramienta "Asignar elementos a etiquetas"**: al pulsarla aparece sola la ventana "Propiedades - Selección" (casilla "Barras", resto vacío). El script no consigue cerrarla (X no responde) ni seleccionar con ventana de dos clics en el visor; sin resolver, se pide ayuda manual.

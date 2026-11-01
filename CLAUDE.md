@@ -143,3 +143,8 @@ Este programa es para mi uso personal, pero estará en un repositorio de Github.
 - No te quedes en silencio sin motivo.
 - Si esperas el resultado de alguna tarea en segundo plano, pon un aviso en MAYÚSCULAS (por ejemplo: "ESPERANDO TAREA EN SEGUNDO PLANO: <qué tarea>").
 - Antes de lanzar cualquier aplicación para capturar pantalla (la original o el clon), AVISA al usuario para que libere el workspace (pantalla) y espera su OK explícito antes de lanzarla. No lances aplicaciones con ventana sin ese OK.
+
+## Obras de prueba
+
+- Puedes crear, modificar, guardar y borrar obras (ficheros .ed3 y similares) cuando sea necesario y ayude al desarrollo, tanto con el original como con el clon. Trabaja preferentemente sobre copias dentro de la carpeta del proyecto (p. ej. docs/sample_project/) y nunca fuera de ella.
+- Si necesitas que el usuario haga algo manualmente (abrir una lista desplegable, elegir en un diálogo que el script no sabe manejar, etc.), pídeselo de inmediato indicando qué hacer y dónde capturar.
