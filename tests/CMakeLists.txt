@@ -1,5 +1,5 @@
 ﻿include(GoogleTest)
-add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp units_tests.cpp project_file_tests.cpp structure_model_tests.cpp general_data_tests.cpp camera_tests.cpp selection_tests.cpp snap_tests.cpp)
+add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp units_tests.cpp project_file_tests.cpp structure_model_tests.cpp general_data_tests.cpp camera_tests.cpp selection_tests.cpp snap_tests.cpp display_options_tests.cpp)
 target_compile_definitions(core_tests PRIVATE CC_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 target_link_libraries(core_tests PRIVATE cc_core miniz::miniz GTest::gtest GTest::gtest_main)
 gtest_discover_tests(core_tests)
@@ -70,3 +70,9 @@ add_executable(units_dialog_tests units_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src
 target_include_directories(units_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(units_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(units_dialog_tests)
+
+add_executable(leftpanel_tests leftpanel_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LeftPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/DisplayOptionsPanel.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+target_include_directories(leftpanel_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(leftpanel_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
+gtest_discover_tests(leftpanel_tests)

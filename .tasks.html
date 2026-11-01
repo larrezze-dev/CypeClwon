@@ -13,13 +13,13 @@ tr.ok td:nth-child(4){color:var(--ok)}tr.wip td:nth-child(4){color:var(--wip)}
 details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 .tw{overflow-x:auto}
 </style></head><body>
-<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-10-31 22:28 Â· generado desde .tasks.md</div>
-<div class="kpi"><div><b>33.3%</b>completado</div><div><b>39</b>finalizadas</div><div><b>4</b>en marcha</div><div><b>74</b>pendientes</div><div><b>117</b>tareas</div></div>
+<h1>CypeClwon â€“ Clon de CYPE 3D</h1><div class="mut">Actualizado 2026-11-01 19:17 Â· generado desde .tasks.md</div>
+<div class="kpi"><div><b>33.3%</b>completado</div><div><b>39</b>finalizadas</div><div><b>5</b>en marcha</div><div><b>73</b>pendientes</div><div><b>117</b>tareas</div></div>
 <h2>Avance por fase</h2><table><tr><td>F0 Â· InvestigaciÃ³n y plan</td><td><div class='bar'><i class='d' style='width:81%'></i><i class='w' style='width:12%'></i></div></td><td>13/16</td></tr>
 <tr><td>F1 Â· Esqueleto GUI</td><td><div class='bar'><i class='d' style='width:100%'></i><i class='w' style='width:0%'></i></div></td><td>9/9</td></tr>
 <tr><td>F2 Â· Inicio y asistentes</td><td><div class='bar'><i class='d' style='width:78%'></i><i class='w' style='width:0%'></i></div></td><td>7/9</td></tr>
 <tr><td>F3 Â· Modelo y ficheros</td><td><div class='bar'><i class='d' style='width:100%'></i><i class='w' style='width:0%'></i></div></td><td>6/6</td></tr>
-<tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:40%'></i><i class='w' style='width:0%'></i></div></td><td>4/10</td></tr>
+<tr><td>F4 Â· Viewport 3D</td><td><div class='bar'><i class='d' style='width:40%'></i><i class='w' style='width:20%'></i></div></td><td>4/10</td></tr>
 <tr><td>F5 Â· GeometrÃ­a</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/11</td></tr>
 <tr><td>F6 Â· Propiedades</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/7</td></tr>
 <tr><td>F7 Â· Cargas</td><td><div class='bar'><i class='d' style='width:0%'></i><i class='w' style='width:0%'></i></div></td><td>0/7</td></tr>
@@ -84,7 +84,7 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <tr class='wip'><td>T-P4-05</td><td>F4</td><td>Tooltips de coordenadas y posici&#243;n configurable</td><td>[o]</td><td>HECHO en el widget el 2026-10-31 (sesi&#243;n 14), 232/232 tests (7 nuevos). Viewport3D: tooltip de coordenadas en modo im&#225;n (fondo gris oscuro, texto blanco, &quot;187.596, -186.215, 153.756 m&quot;, a +40,+43 px del cursor, se voltea si se saldr&#237;a del &#225;rea; muestra el punto ajustado v&#237;a cursorWorld(); solo con el cursor dentro), caja de informaci&#243;n de barra de 3 filas arriba a la derecha como en sn3 (&quot;Barra N2/N3: L. 4 m&quot; en negrita / &quot;Capa : por defecto&quot; / &quot;IPE 80 (S275 (UNE-EN 10025-2))&quot;; barra ajustada, barra que llega al nudo ajustado, o barra bajo el cursor en modo selecci&#243;n; opci&#243;n setShowElementInfo), y posici&#243;n configurable de la informaci&#243;n anclada (etiqueta de nudo y caja de barra) con TooltipPosition, que tiene las DOS opciones reales del combo del original (capturado en tp2_combo_open.png): &quot;En la esquina superior derecha&quot; y &quot;Sobre el elemento&quot; (caja centrada sobre el elemento). PENDIENTE (TK-027): conectar con el panel Opciones de visualizaci&#243;n (T-P4-08), mostrar el tooltip tambi&#233;n sin comando activo y verificaci&#243;n visual del clon.</td></tr>
 <tr class='todo'><td>T-P4-06</td><td>F4</td><td>Panel Etiquetas (capas)</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P4-07</td><td>F4</td><td>Panel Categor&#237;as (visibilidad/bloqueo)</td><td>[ ]</td><td></td></tr>
-<tr class='todo'><td>T-P4-08</td><td>F4</td><td>Panel Opciones de visualizaci&#243;n</td><td>[ ]</td><td></td></tr>
+<tr class='wip'><td>T-P4-08</td><td>F4</td><td>Panel Opciones de visualizaci&#243;n</td><td>[o]</td><td>HECHO el 2026-10-31: LeftPanel (382 px, divisor vertical con tiradores &quot;....&quot;, secciones plegables y cerrables) visible solo con obra abierta; Etiquetas y Categor&#237;as vac&#237;as (T-P4-06/07); DisplayOptionsPanel + core::DisplayOptions (defaults del original, validaci&#243;n &gt;0 sin m&#225;ximos, JSON, solo en memoria por sesi&#243;n); cableado a Viewport3D de informaci&#243;n de elementos, posici&#243;n de tooltips y nuevo setFillShells (l&#225;minas sin relleno por defecto, corrige fallo de fidelidad). Resto (textos, ejes locales, cargas, nudos, Categor&#237;as) en TK-028.</td></tr>
 <tr class='todo'><td>T-P4-09</td><td>F4</td><td>Barra vertical de vistas y barra de zoom/encuadre</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P4-10</td><td>F4</td><td>Pesta&#241;as Estructura / Cimentaci&#243;n</td><td>[ ]</td><td></td></tr>
 <tr class='todo'><td>T-P5-01</td><td>F5</td><td>Planos de trabajo (Geometr&#237;a &gt; Planos)</td><td>[ ]</td><td></td></tr>

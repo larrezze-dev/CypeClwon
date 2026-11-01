@@ -1,4 +1,9 @@
 ﻿#include "MainWindow.h"
+#include "DisplayOptionsPanel.h"
+#include "LeftPanel.h"
+#include <QHBoxLayout>
+#include <QMdiArea>
+#include <QMdiSubWindow>
 
 #include <QCloseEvent>
 #include <QDir>
@@ -86,7 +91,21 @@ void MainWindow::createWorkArea() {
     m_workArea = new WorkArea(m_stack);
     m_stack->addWidget(m_startPage);
     m_stack->addWidget(m_workArea);
-    setCentralWidget(m_stack);
+    // Left panel (Etiquetas / Categorías / Opciones de visualización) beside the stack; visible only with a project open.
+    auto* central = new QWidget(this);
+    auto* centralLayout = new QHBoxLayout(central);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+    m_leftPanel = new LeftPanel(central);
+    centralLayout->addWidget(m_leftPanel);
+    centralLayout->addWidget(m_stack, 1);
+    setCentralWidget(central);
+    // Session-only display options (TK-028: per project or per user is not verified).
+    connect(m_leftPanel->displayOptions(), &DisplayOptionsPanel::optionsChanged, this,
+            [this](const cc::core::DisplayOptions& options) {
+                for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+                    if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
+            });
     setProjectOpen(false);
 
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
@@ -312,10 +331,12 @@ void MainWindow::setProjectOpen(bool open) {
             if (text.isEmpty()) statusBar()->clearMessage();
             else statusBar()->showMessage(text);
         });
+        DisplayOptionsPanel::applyTo(*viewport, m_leftPanel->displayOptions()->options());
         m_workArea->addDocumentWindow(tr("3D"), viewport);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }
+    m_leftPanel->setVisible(open);
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.
     ribbonBar()->setMinimumMode(!open);

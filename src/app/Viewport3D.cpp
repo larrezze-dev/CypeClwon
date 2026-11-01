@@ -1,4 +1,4 @@
-#include "Viewport3D.h"
+﻿#include "Viewport3D.h"
 
 #include <QFont>
 #include <QFontMetrics>
@@ -257,6 +257,12 @@ void Viewport3D::setTooltipPosition(TooltipPosition position) {
     update();
 }
 
+void Viewport3D::setFillShells(bool on) {
+    if (m_fillShells == on) return;
+    m_fillShells = on;
+    update();
+}
+
 void Viewport3D::setShowElementInfo(bool on) {
     if (m_showElementInfo == on) return;
     m_showElementInfo = on;
@@ -404,7 +410,7 @@ void Viewport3D::drawStructure(QPainter& painter) const {
         }
         if (poly.size() < 3 || poly.size() != static_cast<int>(shell.nodeIds.size())) continue;
         painter.setPen(QPen(QColor(60, 60, 60), 1));
-        painter.setBrush(QColor(120, 160, 200, 60));
+        painter.setBrush(m_fillShells ? QBrush(QColor(120, 160, 200, 60)) : QBrush(Qt::NoBrush));
         painter.drawPolygon(poly);
     }
     painter.setBrush(Qt::NoBrush);

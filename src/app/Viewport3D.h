@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <QEnterEvent>
 #include <QOpenGLWidget>
 #include <QPoint>
@@ -93,6 +93,10 @@ public:
     void setTooltipPosition(TooltipPosition position);
     TooltipPosition tooltipPosition() const { return m_tooltipPosition; }
     /// "Mostrar la información de los elementos": the bar information box (snap mode and bar hover).
+    /// "Dibujar las láminas con relleno": shells are drawn filled (true) or as an outline only (false, original default).
+    void setFillShells(bool on);
+    bool fillShells() const { return m_fillShells; }
+
     void setShowElementInfo(bool on);
     bool showElementInfo() const { return m_showElementInfo; }
     /// Bar the information box describes: the snapped bar (or a bar meeting at the snapped node) in snap mode, the
@@ -189,6 +193,7 @@ private:
     core::SnapResult m_snap;
     TooltipPosition m_tooltipPosition = TooltipPosition::TopRightCorner;
     bool m_showElementInfo = true;
+    bool m_fillShells = false;
     bool m_cursorInside = false;
 };
 

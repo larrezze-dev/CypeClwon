@@ -13,6 +13,7 @@ class QStackedWidget;
 
 namespace cc::app {
 
+class LeftPanel;
 class SessionBar;
 class StartPage;
 class WorkArea;
@@ -81,6 +82,7 @@ private:
     QAction* m_unitsAction = nullptr;
 
     SessionBar* m_sessionBar = nullptr;
+    LeftPanel* m_leftPanel = nullptr;
     WorkArea* m_workArea = nullptr;
     StartPage* m_startPage = nullptr;
     cc::core::RecentFiles m_recent;
