@@ -391,3 +391,13 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+TEST(Viewport3DLayers, BarInfoShowsTheLayerNames) {
+    cc::core::StructuralModel model;
+    const int a = model.addNode({0, 0, 0}), b = model.addNode({4, 0, 0});
+    const int bar = model.addBar(a, b);
+    EXPECT_EQ(Viewport3D::barInfoLines(model, bar)[1], QStringLiteral("Capa : por defecto"));
+    const int other = model.addLayer("Nueva capa 2");
+    ASSERT_TRUE(model.assignLayers({bar}, {}, {other}, cc::core::LayerOperation::Assign));
+    EXPECT_EQ(Viewport3D::barInfoLines(model, bar)[1], QStringLiteral("Capa : por defecto y Nueva capa 2"));
+}

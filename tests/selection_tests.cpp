@@ -161,3 +161,20 @@ TEST(Picking, EmptyViewportPicksNothing) {
     EXPECT_FALSE(pickAt(f.model, f.map, {}, 0, 0));
     EXPECT_TRUE(pickRect(f.model, f.map, {}, -10, -10, 10, 10).empty());
 }
+
+TEST(SelectionLayers, HiddenLayerElementsCannotBePicked) {
+    Fixture f;
+    const int hidden = f.model.addLayer("oculta");
+    ASSERT_TRUE(f.model.assignLayers({3}, {1}, {hidden}, LayerOperation::Replace));
+    f.model.findLayer(hidden)->visible = false;
+    const Px lintel = f.at(2, 3), plate = f.at(7, 1.5);
+    EXPECT_FALSE(pickAt(f.model, f.map, {}, lintel.x, lintel.y));
+    EXPECT_FALSE(pickAt(f.model, f.map, {}, plate.x, plate.y));
+    const auto rect = pickRect(f.model, f.map, {}, 0, 0, 800, 600);  // window over everything
+    for (const ElementRef& e : rect) {
+        EXPECT_FALSE(e.kind == ElementKind::Bar && e.id == 3);
+        EXPECT_FALSE(e.kind == ElementKind::Shell);
+    }
+    f.model.findLayer(hidden)->visible = true;
+    EXPECT_TRUE(pickAt(f.model, f.map, {}, lintel.x, lintel.y));
+}

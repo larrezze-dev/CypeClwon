@@ -313,7 +313,7 @@ QStringList Viewport3D::barInfoLines(const core::StructuralModel& structure, int
                  .arg(bar->startNode)
                  .arg(bar->endNode)
                  .arg(QString::number(length, 'g', 6).replace('.', ','));
-    lines << QStringLiteral("Capa : por defecto");  // layers arrive with T-P4-06
+    lines << QStringLiteral("Capa : %1").arg(QString::fromStdString(structure.layerNames(bar->layerIds)));
     if (const core::CrossSection* section = structure.findSection(bar->sectionId)) {
         QString text = QString::fromStdString(section->name);
         if (const core::Material* material = structure.findMaterial(bar->materialId))
@@ -417,10 +417,16 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     }
 }
 
+namespace {
+/// Layer colour 0xRRGGBB; the original draws black elements with its dark grey default.
+QColor layerColour(unsigned rgb) { return rgb == 0 ? QColor(32, 32, 32) : QColor::fromRgb(rgb); }
+}  // namespace
+
 void Viewport3D::drawStructure(QPainter& painter) const {
     if (!m_structure) return;
     const core::ScreenMapper map = mapper();
     for (const core::Shell& shell : m_structure->shells) {
+        if (!m_structure->elementVisible(shell.layerIds)) continue;  // layer hidden with the eye
         QPolygonF poly;
         for (int id : shell.nodeIds) {
             const core::Node* n = m_structure->findNode(id);
@@ -428,18 +434,30 @@ void Viewport3D::drawStructure(QPainter& painter) const {
             if (n && map.toScreen(n->position, x, y)) poly << QPointF(x, y);
         }
         if (poly.size() < 3 || poly.size() != static_cast<int>(shell.nodeIds.size())) continue;
-        painter.setPen(QPen(QColor(60, 60, 60), 1));
-        painter.setBrush(m_fillShells ? QBrush(QColor(120, 160, 200, 60)) : QBrush(Qt::NoBrush));
+        const QColor colour = layerColour(m_structure->elementColor(shell.layerIds));
+        const bool rendered = m_structure->elementRendered(shell.layerIds);
+        painter.setPen(QPen(colour, 1));
+        if (rendered) {  // cube of the layer: solid
+            QColor fill = colour.lightnessF() < 0.2 ? QColor(120, 160, 200) : colour;
+            fill.setAlpha(170);
+            painter.setBrush(fill);
+        } else {
+            painter.setBrush(m_fillShells ? QBrush(QColor(120, 160, 200, 60)) : QBrush(Qt::NoBrush));
+        }
         painter.drawPolygon(poly);
     }
     painter.setBrush(Qt::NoBrush);
-    painter.setPen(QPen(QColor(32, 32, 32), 1.5));
     for (const core::Bar& bar : m_structure->bars) {
+        if (!m_structure->elementVisible(bar.layerIds)) continue;
         const core::Node* a = m_structure->findNode(bar.startNode);
         const core::Node* b = m_structure->findNode(bar.endNode);
         double ax, ay, bx, by;
-        if (a && b && map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by))
-            painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
+        if (!(a && b && map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by))) continue;
+        const QColor colour = layerColour(m_structure->elementColor(bar.layerIds));
+        // Wireframe: thin line; rendered layer: the profile drawn solid (thick stroke), both in the layer colour.
+        const bool rendered = m_structure->elementRendered(bar.layerIds);
+        painter.setPen(QPen(colour, rendered ? 7.0 : 1.5, Qt::SolidLine, rendered ? Qt::FlatCap : Qt::SquareCap));
+        painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
     }
 }
 

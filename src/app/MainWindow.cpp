@@ -34,6 +34,7 @@
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include <QMdiArea>
+#include "LayersPanel.h"
 #include "Viewport3D.h"
 #include "WorkArea.h"
 #include "core/general_data.h"
@@ -106,6 +107,22 @@ void MainWindow::createWorkArea() {
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
                     if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
             });
+    // Etiquetas: eye, padlock, colour and cube act on every 3D window; the assign tool turns the viewport into a selection
+    // surface (LMB selects bars and shells, RMB opens "Asignar elementos a etiquetas").
+    connect(m_leftPanel->layersPanel(), &LayersPanel::layersChanged, this, [this] {
+        for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+            if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) {
+                viewport->clearSelection();  // a layer may have just been hidden
+                viewport->update();
+            }
+    });
+    connect(m_leftPanel->layersPanel(), &LayersPanel::assignToolToggled, this, [this](bool on) {
+        for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+            if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) {
+                viewport->setSelectionFilter({false, true, true});
+                viewport->setSelectionMode(on);
+            }
+    });
     setProjectOpen(false);
 
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
@@ -321,12 +338,20 @@ void MainWindow::setProjectOpen(bool open) {
         m_document.reset();
         m_projectPath.clear();
     }
+    m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+    m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
     // The 3D window lives as long as the project: opened with it, closed with it.
     if (open && m_workArea->windowCount() == 0) {
         auto* viewport = new Viewport3D;
         if (m_document) viewport->setStructure(&m_document->project.structure);
+        connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] {
+            if (!m_leftPanel->layersPanel()->assignToolButton()->isChecked() || viewport->selection().empty()) return;
+            m_leftPanel->layersPanel()->assignTo(viewport->selection().ids(cc::core::ElementKind::Bar),
+                                                 viewport->selection().ids(cc::core::ElementKind::Shell));
+            viewport->update();
+        });
         connect(viewport, &Viewport3D::statusHint, this, [this](const QString& text) {
             if (text.isEmpty()) statusBar()->clearMessage();
             else statusBar()->showMessage(text);

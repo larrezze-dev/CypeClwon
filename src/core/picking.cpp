@@ -104,6 +104,7 @@ std::optional<ElementRef> pickAt(const StructuralModel& model, const ScreenMappe
         double best = options.barTolerancePx;
         std::optional<ElementRef> hit;
         for (const Bar& b : model.bars) {
+            if (!model.elementVisible(b.layerIds)) continue;  // hidden layer
             P2 pa, pb;
             if (!barEnds(model, map, b, pa, pb)) continue;
             const double d = distanceToSegment(cursor, pa, pb);
@@ -117,7 +118,7 @@ std::optional<ElementRef> pickAt(const StructuralModel& model, const ScreenMappe
     if (filter.shells) {
         std::vector<P2> poly;
         for (const Shell& s : model.shells)
-            if (shellPolygon(model, map, s, poly) && pointInPolygon(cursor, poly)) return ElementRef{ElementKind::Shell, s.id};
+            if (model.elementVisible(s.layerIds) && shellPolygon(model, map, s, poly) && pointInPolygon(cursor, poly)) return ElementRef{ElementKind::Shell, s.id};
     }
     return std::nullopt;
 }
@@ -135,6 +136,7 @@ std::vector<ElementRef> pickRect(const StructuralModel& model, const ScreenMappe
     }
     if (filter.bars) {
         for (const Bar& b : model.bars) {
+            if (!model.elementVisible(b.layerIds)) continue;  // hidden layer
             P2 pa, pb;
             if (!barEnds(model, map, b, pa, pb)) continue;
             const bool hit = window ? (inside(r, pa) && inside(r, pb)) : segmentTouches(r, pa, pb);
@@ -144,7 +146,7 @@ std::vector<ElementRef> pickRect(const StructuralModel& model, const ScreenMappe
     if (filter.shells) {
         std::vector<P2> poly;
         for (const Shell& s : model.shells) {
-            if (!shellPolygon(model, map, s, poly)) continue;
+            if (!model.elementVisible(s.layerIds) || !shellPolygon(model, map, s, poly)) continue;
             bool hit;
             if (window) {
                 hit = std::all_of(poly.begin(), poly.end(), [&](const P2& p) { return inside(r, p); });
