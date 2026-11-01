@@ -198,9 +198,9 @@ Project projectWithStructure() {
 
 TEST(StructureProject, SectionsAreRegisteredAfterTheExistingOnes) {
     const auto& names = project_json::sectionNames();
-    ASSERT_GE(names.size(), 5u);
-    EXPECT_EQ(names[names.size() - 5], "nodes");
-    EXPECT_EQ(names.back(), "shells");
+    ASSERT_GE(names.size(), 6u);
+    EXPECT_EQ(names[names.size() - 6], "nodes");
+    EXPECT_EQ(names.back(), "layers");
     EXPECT_EQ(project_json::sectionTitle("cross_sections"), "Secciones");
 }
 
@@ -268,4 +268,115 @@ TEST(StructureProject, FileRoundTripAndOldFilesWithoutStructure) {
     ASSERT_TRUE(e.ok) << e.error;
     EXPECT_TRUE(e.document.project.structure.empty());
     fs::remove_all(dir);
+}
+
+// --- layers (T-P4-06) ---
+
+TEST(Layers, StartWithTheActiveDefaultLayer) {
+    StructuralModel m;
+    ASSERT_EQ(m.layers.size(), 1u);
+    EXPECT_EQ(m.layers[0].id, kDefaultLayerId);
+    EXPECT_EQ(m.layers[0].name, "por defecto");
+    EXPECT_EQ(m.activeLayerId(), kDefaultLayerId);
+    EXPECT_TRUE(m.empty());
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, AddRenameAndNameRules) {
+    StructuralModel m;
+    const int a = m.addLayer("Pilares", 0xFF0000);
+    ASSERT_NE(a, 0);
+    EXPECT_EQ(m.findLayer(a)->color, 0xFF0000u);
+    EXPECT_EQ(m.addLayer("pilares"), 0);  // case-insensitive duplicate
+    EXPECT_EQ(m.addLayer(""), 0);
+    const int b = m.addLayer("Vigas");
+    EXPECT_FALSE(m.renameLayer(b, "PILARES"));
+    EXPECT_TRUE(m.renameLayer(b, "Vigas 1"));
+    EXPECT_TRUE(m.renameLayer(b, "VIGAS 1"));  // renaming to its own name (other case) is fine
+    EXPECT_FALSE(m.renameLayer(99, "x"));
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, ActiveLayerIsUnique) {
+    StructuralModel m;
+    const int a = m.addLayer("A");
+    EXPECT_TRUE(m.setActiveLayer(a));
+    EXPECT_EQ(m.activeLayerId(), a);
+    EXPECT_FALSE(m.findLayer(kDefaultLayerId)->active);
+    EXPECT_FALSE(m.setActiveLayer(99));
+    EXPECT_EQ(m.activeLayerId(), a);
+}
+
+TEST(Layers, RemoveMovesElementsToDefaultAndKeepsDefault) {
+    StructuralModel m = simpleFrame();
+    const int a = m.addLayer("A");
+    m.bars[0].layerId = a;
+    m.setActiveLayer(a);
+    EXPECT_FALSE(m.removeLayer(kDefaultLayerId));
+    EXPECT_FALSE(m.removeLayer(99));
+    EXPECT_TRUE(m.removeLayer(a));
+    EXPECT_EQ(m.bars[0].layerId, kDefaultLayerId);
+    EXPECT_EQ(m.activeLayerId(), kDefaultLayerId);
+    EXPECT_EQ(m.layers.size(), 1u);
+    EXPECT_EQ(m.addLayer("B"), a + 1);  // ids are never reused
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, MoveChangesOrderNotIds) {
+    StructuralModel m;
+    const int a = m.addLayer("A");
+    const int b = m.addLayer("B");
+    EXPECT_FALSE(m.moveLayer(kDefaultLayerId, -1));
+    EXPECT_FALSE(m.moveLayer(b, 1));
+    EXPECT_FALSE(m.moveLayer(b, 2));
+    EXPECT_TRUE(m.moveLayer(b, -1));
+    EXPECT_EQ(m.layers[1].id, b);
+    EXPECT_EQ(m.layers[2].id, a);
+    EXPECT_TRUE(m.moveLayer(kDefaultLayerId, 1));
+    EXPECT_EQ(m.layers[0].id, b);
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, VisibilityLockAndUnknownLayerFallBack) {
+    StructuralModel m;
+    const int a = m.addLayer("A");
+    m.findLayer(a)->visible = false;
+    m.findLayer(a)->locked = true;
+    EXPECT_FALSE(m.layerVisible(a));
+    EXPECT_TRUE(m.layerLocked(a));
+    EXPECT_TRUE(m.layerVisible(99));  // unknown -> default layer
+    EXPECT_FALSE(m.layerLocked(99));
+    EXPECT_EQ(m.layerName(99), "por defecto");
+    EXPECT_EQ(m.layerName(a), "A");
+}
+
+TEST(Layers, ValidateRejectsBrokenLayers) {
+    StructuralModel m = simpleFrame();
+    m.bars[0].layerId = 7;
+    EXPECT_NE(m.validate(), "");
+    m.bars[0].layerId = kDefaultLayerId;
+    m.layers[0].active = false;
+    EXPECT_NE(m.validate(), "");
+    m.layers[0].active = true;
+    m.layers.push_back(Layer{2, "POR DEFECTO", 0, false, true, false});
+    m.nextLayerId = 3;
+    EXPECT_NE(m.validate(), "");  // duplicate name
+    m.layers.clear();
+    EXPECT_NE(m.validate(), "");
+}
+
+TEST(Layers, JsonRoundTripKeepsOrderAndOldFilesGetDefaults) {
+    Project original;
+    original.structure = simpleFrame();
+    const int a = original.structure.addLayer("Pilares", 0x123456);
+    original.structure.bars[0].layerId = a;
+    original.structure.setActiveLayer(a);
+    original.structure.moveLayer(a, -1);
+    Project loaded;
+    project_json::loadSection(loaded, "layers", project_json::dumpSection(original, "layers"));
+    EXPECT_EQ(loaded.structure.layers, original.structure.layers);
+    EXPECT_EQ(loaded.structure.nextLayerId, original.structure.nextLayerId);
+    Project bars;
+    project_json::loadSection(bars, "bars", R"({"items":[{"id":1,"startNode":1,"endNode":2}],"next":2})");
+    EXPECT_EQ(bars.structure.bars[0].layerId, kDefaultLayerId);  // file written before layers existed
 }

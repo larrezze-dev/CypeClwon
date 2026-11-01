@@ -60,6 +60,22 @@ struct CrossSection {
     bool operator==(const CrossSection&) const = default;
 };
 
+/// Layer ("etiqueta" in the original application). Layer 1, "por defecto", always exists and cannot be removed.
+/// Provisional semantics, pending verification in the original (see TK-029): `active` marks the layer that receives
+/// newly created elements (only one layer is active at a time); `visible` / `locked` are the eye and padlock columns.
+struct Layer {
+    int id = 0;
+    std::string name;
+    unsigned color = 0x000000;  ///< 0xRRGGBB
+    bool active = false;
+    bool visible = true;
+    bool locked = false;
+    bool operator==(const Layer&) const = default;
+};
+
+inline constexpr int kDefaultLayerId = 1;
+inline constexpr const char* kDefaultLayerName = "por defecto";
+
 /// Straight bar between two nodes. materialId / sectionId 0 mean "not assigned yet" (a freshly drawn bar).
 struct Bar {
     int id = 0;
@@ -69,6 +85,7 @@ struct Bar {
     int sectionId = 0;
     double rollAngleDeg = 0.0;   ///< rotation of the local axes about the bar axis (x)
     bool xAxisInverted = false;  ///< "invertir eje x": swaps the start and end of the local axes
+    int layerId = kDefaultLayerId;
     bool operator==(const Bar&) const = default;
 };
 
@@ -79,6 +96,7 @@ struct Shell {
     double thicknessM = 0.0;
     int materialId = 0;
     bool zAxisInverted = false;  ///< "invertir z": flips the local normal
+    int layerId = kDefaultLayerId;
     bool operator==(const Shell&) const = default;
 };
 
@@ -89,6 +107,7 @@ public:
     std::vector<CrossSection> sections;
     std::vector<Bar> bars;
     std::vector<Shell> shells;
+    std::vector<Layer> layers{Layer{kDefaultLayerId, kDefaultLayerName, 0x000000, true, true, false}};
 
     // Next free id of each collection. Public so the file loader can restore them; use the add* functions otherwise.
     int nextNodeId = 1;
@@ -96,6 +115,7 @@ public:
     int nextSectionId = 1;
     int nextBarId = 1;
     int nextShellId = 1;
+    int nextLayerId = kDefaultLayerId + 1;
 
     // --- lookup (nullptr when absent) ---
     const Node* findNode(int id) const;
@@ -103,6 +123,8 @@ public:
     const CrossSection* findSection(int id) const;
     const Bar* findBar(int id) const;
     const Shell* findShell(int id) const;
+    const Layer* findLayer(int id) const;
+    Layer* findLayer(int id);
     Node* findNode(int id);
     Bar* findBar(int id);
     Shell* findShell(int id);
@@ -118,6 +140,28 @@ public:
     bool insertNode(const Node& node);
     bool insertBar(const Bar& bar);
     bool insertShell(const Shell& shell);
+
+    // --- layers ---
+    /// Adds a layer; 0 when the name is empty or already used (names compare case-insensitively).
+    int addLayer(const std::string& name, unsigned color = 0x000000);
+    /// Removes a layer after moving its bars and shells to the default layer. False for the default layer or an
+    /// unknown id. When the removed layer was the active one, the default layer becomes active.
+    bool removeLayer(int id);
+    /// Makes `id` the only active layer; false when it does not exist.
+    bool setActiveLayer(int id);
+    /// Renames a layer; false when the name is empty, used by another layer, or the id is unknown.
+    bool renameLayer(int id, const std::string& name);
+    /// Moves a layer one position up (-1) or down (+1) in the list; false at the ends or for an unknown id. Ids are
+    /// unchanged, so unlike the other collections `layers` is ordered by position, not by id.
+    bool moveLayer(int id, int direction);
+    /// Id of the active layer (the default layer when none is flagged).
+    int activeLayerId() const;
+    /// Name of a layer, or the default name when the id is unknown.
+    std::string layerName(int id) const;
+    /// True when the layer is visible / locked (unknown layers count as the default layer).
+    bool layerVisible(int id) const;
+    bool layerLocked(int id) const;
+    bool layerNameTaken(const std::string& name, int exceptId) const;
 
     // --- deletion: false when the object does not exist or is still referenced (see the cascade helpers) ---
     bool removeBar(int id);

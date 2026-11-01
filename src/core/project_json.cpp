@@ -103,8 +103,9 @@ CC_STRUCT(Point3, x, y, z)
 CC_STRUCT(Node, id, position)
 CC_STRUCT(Material, id, name, kind, elasticModulusMPa, poissonRatio, densityKnM3, thermalExpansion)
 CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM4, shearAreaYM2, shearAreaZM2)
-CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted)
-CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted)
+CC_STRUCT(Layer, id, name, color, active, visible, locked)
+CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerId)
+CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerId)
 
 // --- options_settings.h ---
 CC_STRUCT(BeamErrorSettings, compressionHook, topCompressionSteel, bottomCompressionSteel, manualShortCorbel,
@@ -229,6 +230,7 @@ const std::vector<Section>& sections() {
         makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),
         makeCollection<Bar>("bars", "Barras", &StructuralModel::bars, &StructuralModel::nextBarId),
         makeCollection<Shell>("shells", "Láminas", &StructuralModel::shells, &StructuralModel::nextShellId),
+        makeCollection<Layer>("layers", "Capas", &StructuralModel::layers, &StructuralModel::nextLayerId),
     };
     return all;
 }

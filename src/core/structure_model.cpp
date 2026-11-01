@@ -1,6 +1,7 @@
 #include "core/structure_model.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 
 namespace cc::core {
@@ -193,6 +194,96 @@ std::vector<int> StructuralModel::shellsUsingNode(int nodeId) const {
     return out;
 }
 
+namespace {
+bool sameName(const std::string& a, const std::string& b) {
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](unsigned char x, unsigned char y) {
+               return std::tolower(x) == std::tolower(y);
+           });
+}
+}  // namespace
+
+const Layer* StructuralModel::findLayer(int id) const {
+    for (const Layer& l : layers)
+        if (l.id == id) return &l;
+    return nullptr;
+}
+
+Layer* StructuralModel::findLayer(int id) {
+    return const_cast<Layer*>(static_cast<const StructuralModel*>(this)->findLayer(id));
+}
+
+bool StructuralModel::layerNameTaken(const std::string& name, int exceptId) const {
+    for (const Layer& l : layers)
+        if (l.id != exceptId && sameName(l.name, name)) return true;
+    return false;
+}
+
+int StructuralModel::addLayer(const std::string& name, unsigned color) {
+    if (name.empty() || layerNameTaken(name, 0)) return 0;
+    Layer layer;
+    layer.id = nextLayerId++;
+    layer.name = name;
+    layer.color = color & 0xFFFFFF;
+    layers.push_back(layer);
+    return layer.id;
+}
+
+bool StructuralModel::removeLayer(int id) {
+    if (id == kDefaultLayerId || !findLayer(id)) return false;
+    const bool wasActive = findLayer(id)->active;
+    for (Bar& b : bars)
+        if (b.layerId == id) b.layerId = kDefaultLayerId;
+    for (Shell& s : shells)
+        if (s.layerId == id) s.layerId = kDefaultLayerId;
+    layers.erase(std::remove_if(layers.begin(), layers.end(), [id](const Layer& l) { return l.id == id; }), layers.end());
+    if (wasActive) setActiveLayer(kDefaultLayerId);
+    return true;
+}
+
+bool StructuralModel::setActiveLayer(int id) {
+    if (!findLayer(id)) return false;
+    for (Layer& l : layers) l.active = l.id == id;
+    return true;
+}
+
+bool StructuralModel::renameLayer(int id, const std::string& name) {
+    Layer* l = findLayer(id);
+    if (!l || name.empty() || layerNameTaken(name, id)) return false;
+    l->name = name;
+    return true;
+}
+
+bool StructuralModel::moveLayer(int id, int direction) {
+    auto it = std::find_if(layers.begin(), layers.end(), [id](const Layer& l) { return l.id == id; });
+    if (it == layers.end() || (direction != -1 && direction != 1)) return false;
+    if (direction < 0 ? it == layers.begin() : it + 1 == layers.end()) return false;
+    std::iter_swap(it, it + direction);
+    return true;
+}
+
+int StructuralModel::activeLayerId() const {
+    for (const Layer& l : layers)
+        if (l.active) return l.id;
+    return kDefaultLayerId;
+}
+
+std::string StructuralModel::layerName(int id) const {
+    const Layer* l = findLayer(id);
+    return l ? l->name : kDefaultLayerName;
+}
+
+bool StructuralModel::layerVisible(int id) const {
+    const Layer* l = findLayer(id);
+    if (!l) l = findLayer(kDefaultLayerId);
+    return !l || l->visible;
+}
+
+bool StructuralModel::layerLocked(int id) const {
+    const Layer* l = findLayer(id);
+    if (!l) l = findLayer(kDefaultLayerId);
+    return l && l->locked;
+}
+
 double StructuralModel::barLength(int barId) const {
     const Bar* bar = findBar(barId);
     if (!bar) return 0.0;
@@ -211,6 +302,20 @@ std::string StructuralModel::validate() const {
         !counterAhead(bars, nextBarId) || !counterAhead(shells, nextShellId))
         return "El contador de identificadores del modelo es incoherente.";
 
+    if (!findLayer(kDefaultLayerId)) return "Falta la capa «por defecto».";
+    {
+        int active = 0;
+        for (std::size_t i = 0; i < layers.size(); ++i) {
+            const Layer& l = layers[i];
+            if (l.id <= 0 || l.id >= nextLayerId || l.name.empty() || l.color > 0xFFFFFF)
+                return "La capa " + std::to_string(l.id) + " no es válida.";
+            for (std::size_t j = 0; j < i; ++j)
+                if (layers[j].id == l.id || sameName(layers[j].name, l.name))
+                    return "La capa " + std::to_string(l.id) + " está duplicada.";
+            if (l.active) ++active;
+        }
+        if (active != 1) return "Debe haber exactamente una capa activa.";
+    }
     for (const Node& n : nodes)
         if (!finite(n.position)) return "El nudo " + std::to_string(n.id) + " tiene coordenadas no válidas.";
 
@@ -233,6 +338,7 @@ std::string StructuralModel::validate() const {
         if (distance(a->position, e->position) < kMinBarLengthM) return name + " tiene longitud nula.";
         if (b.materialId != 0 && !findMaterial(b.materialId)) return name + " hace referencia a un material que no existe.";
         if (b.sectionId != 0 && !findSection(b.sectionId)) return name + " hace referencia a una sección que no existe.";
+        if (!findLayer(b.layerId)) return name + " hace referencia a una capa que no existe.";
         if (!std::isfinite(b.rollAngleDeg)) return name + " tiene un ángulo de giro no válido.";
     }
     for (const Shell& s : shells) {
@@ -243,6 +349,7 @@ std::string StructuralModel::validate() const {
             for (std::size_t j = 0; j < i; ++j)
                 if (s.nodeIds[i] == s.nodeIds[j]) return name + " repite un nudo.";
         }
+        if (!findLayer(s.layerId)) return name + " hace referencia a una capa que no existe.";
         if (!positiveFinite(s.thicknessM)) return name + " tiene un espesor no válido.";
         if (s.materialId != 0 && !findMaterial(s.materialId)) return name + " hace referencia a un material que no existe.";
     }
