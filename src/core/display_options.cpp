@@ -9,8 +9,9 @@ namespace cc::core {
 using json = nlohmann::json;
 
 bool isValid(const DisplayOptions& options) {
-    return std::isfinite(options.nodeSizeCm) && options.nodeSizeCm > 0 && std::isfinite(options.textSizePercent) &&
-           options.textSizePercent > 0;
+    return std::isfinite(options.nodeSizeCm) && options.nodeSizeCm >= kNodeSizeMinCm && options.nodeSizeCm <= kNodeSizeMaxCm &&
+           std::isfinite(options.textSizePercent) && options.textSizePercent >= kTextSizeMinPercent &&
+           options.textSizePercent <= kTextSizeMaxPercent;
 }
 
 std::string toJson(const DisplayOptions& o) {

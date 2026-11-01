@@ -20,7 +20,6 @@ using core::Vec3;
 namespace {
 constexpr double kGuideExtent = 1e5;  // the long guide lines are effectively infinite
 constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on screen
-constexpr double kNodeHalf = 7.0;     // blue node squares are ~14 px wide, constant with the zoom
 const QColor kNodeBlue(QStringLiteral("#0066CC"));
 const QColor kHighlight(QStringLiteral("#DA8735"));
 
@@ -135,6 +134,12 @@ void Viewport3D::setStructure(const core::StructuralModel* structure) {
     m_hover.reset();
     m_windowStart.reset();
     clearSelection();
+    update();
+}
+
+void Viewport3D::setNodeSizeCm(double cm) {
+    if (!(cm > 0.0) || m_nodeSizeCm == cm) return;
+    m_nodeSizeCm = cm;
     update();
 }
 
@@ -431,7 +436,7 @@ void Viewport3D::drawNodes(QPainter& painter) const {
     painter.setPen(QPen(kNodeBlue, 1));
     for (const core::Node& n : m_structure->nodes) {
         double x, y;
-        if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - kNodeHalf, y - kNodeHalf, 2 * kNodeHalf, 2 * kNodeHalf));
+        if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
     }
 }
 
@@ -445,7 +450,7 @@ void Viewport3D::drawHighlight(QPainter& painter, const core::ElementRef& e, boo
     switch (e.kind) {
         case core::ElementKind::Node: {
             const core::Node* n = m_structure->findNode(e.id);
-            if (n && map.toScreen(n->position, x, y)) painter.drawRect(QRectF(x - kNodeHalf, y - kNodeHalf, 2 * kNodeHalf, 2 * kNodeHalf));
+            if (n && map.toScreen(n->position, x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
             break;
         }
         case core::ElementKind::Bar: {

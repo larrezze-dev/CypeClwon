@@ -367,6 +367,14 @@ TEST_F(SelectionTest, HoveredBarFeedsTheInfoBoxInSelectionMode) {
     EXPECT_EQ(view->infoBarId(), model.bars[2].id);
 }
 
+TEST_F(SelectionTest, NodeSquareFollowsTheNodeSizeOption) {
+    EXPECT_NEAR(view->nodeSquarePixels(), 13.5, 1e-9);  // 15 cm: ~14 px as in the original
+    view->setNodeSizeCm(40.0);
+    EXPECT_NEAR(view->nodeSquarePixels(), 36.0, 1e-9);  // original measured ~35 px
+    view->setNodeSizeCm(-3.0);  // ignored
+    EXPECT_EQ(view->nodeSizeCm(), 40.0);
+}
+
 TEST_F(SelectionTest, TooltipPositionIsConfigurable) {
     EXPECT_EQ(view->tooltipPosition(), cc::app::TooltipPosition::TopRightCorner);
     view->setTooltipPosition(cc::app::TooltipPosition::OnElement);

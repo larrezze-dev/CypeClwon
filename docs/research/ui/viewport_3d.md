@@ -102,3 +102,11 @@ Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Captura
 - Combo "Posición de los tooltips" (captura `tp2_combo_open.png`, sesión 14): solo dos entradas, **"En la esquina superior derecha"** (por defecto) y **"Sobre el elemento"**. El clon las modela como `TooltipPosition::TopRightCorner` / `OnElement`.
 - Hallazgo: el tooltip de coordenadas (p. ej. "186.629, -186.946, 154.044 m") aparece también en la pestaña Obra, sin ningún comando activo, a ~(+40,+43) px del cursor (`tp1_after_esc.png`, `tp2_combo_open.png`). Pendiente en TK-027.
 - `tools/drive_original.ps1`: nuevo paso `fshot:name` (pantalla completa sin cambiar el foco), necesario para capturar listas desplegables, que son ventanas aparte y se cerraban con `sshot`.
+
+### Panel Opciones de visualización: pruebas en el original (sesión 14, capturas op1..op9, oe0..oe4)
+
+- **Límites de los campos** (el original rechaza el valor, muestra un tooltip y conserva el anterior): "Dimensiones de los nudos" 1.0–1000.0 cm ("Debe estar entre 1.0 y 1000.0."), "Tamaño de los textos" 10.0–1000.0 % ("Debe estar entre 10.0 % y 1000.0 %."). 40 se acepta.
+- **Tamaño del nudo**: sí lo gobierna. 15 cm ≈ 14 px, 40 cm ≈ 35 px (≈0.9 px/cm), constante con el zoom (`op1_nodes40.png`).
+- **Chevron de sección**: pliega la sección a su cabecera (el chevron pasa a ^) y el espacio sobrante va a Categorías; el divisor de las secciones se reajusta (`op7_chevron_opciones.png`). **×**: oculta la sección por completo; las otras ocupan su sitio (`oe3_close_opciones.png`). No se ha averiguado cómo se reabre (¿Ventana > Seleccionar ventana?, `oe4_ventana_tab.png`).
+- **Caja de información** (`oe1_bar.png`, `oe2_node.png`): en el ajuste a nudo muestra también la barra que llega ("Barra N2/N3"); la cota "1.9990 m" se dibuja girada sobre la barra.
+- **"Sobre el elemento"**: no se pudo seleccionar en el combo (el clic en la lista no cambió el valor); sin resolver.

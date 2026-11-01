@@ -94,6 +94,12 @@ public:
     TooltipPosition tooltipPosition() const { return m_tooltipPosition; }
     /// "Mostrar la información de los elementos": the bar information box (snap mode and bar hover).
     /// "Dibujar las láminas con relleno": shells are drawn filled (true) or as an outline only (false, original default).
+    /// "Dimensiones de los nudos": the blue/orange node square follows it, constant with the zoom (original: 15 cm ->
+    /// ~14 px, 40 cm -> ~35 px, i.e. ~0.9 px per cm; captures op1_node_zoom.png).
+    void setNodeSizeCm(double cm);
+    double nodeSizeCm() const { return m_nodeSizeCm; }
+    double nodeSquarePixels() const { return m_nodeSizeCm * 0.9; }
+    double nodeHalf() const { return nodeSquarePixels() / 2.0; }
     void setFillShells(bool on);
     bool fillShells() const { return m_fillShells; }
 
@@ -194,6 +200,7 @@ private:
     TooltipPosition m_tooltipPosition = TooltipPosition::TopRightCorner;
     bool m_showElementInfo = true;
     bool m_fillShells = false;
+    double m_nodeSizeCm = 15.0;
     bool m_cursorInside = false;
 };
 

@@ -25,8 +25,19 @@ TEST(DisplayOptions, SizesMustBePositiveAndFinite) {
     EXPECT_FALSE(isValid(o));
     o.nodeSizeCm = -1;
     EXPECT_FALSE(isValid(o));
-    o.nodeSizeCm = 1e6;  // no upper limit is imposed (original's limits unverified)
+    o.nodeSizeCm = 0.5;  // below the original's minimum of 1.0 cm
+    EXPECT_FALSE(isValid(o));
+    o.nodeSizeCm = 1000.1;
+    EXPECT_FALSE(isValid(o));
+    o.nodeSizeCm = 1000.0;
     EXPECT_TRUE(isValid(o));
+    o.nodeSizeCm = 1.0;
+    EXPECT_TRUE(isValid(o));
+    o.textSizePercent = 9.9;
+    EXPECT_FALSE(isValid(o));
+    o.textSizePercent = 1000.0;
+    EXPECT_TRUE(isValid(o));
+    o.textSizePercent = 100.0;
     o.textSizePercent = std::numeric_limits<double>::quiet_NaN();
     EXPECT_FALSE(isValid(o));
 }

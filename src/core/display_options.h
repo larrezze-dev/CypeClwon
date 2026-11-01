@@ -23,8 +23,12 @@ struct DisplayOptions {
     bool operator==(const DisplayOptions&) const = default;
 };
 
-/// Conservative validation: sizes must be finite and > 0. The original's maximum values are not verified, so none is
-/// imposed (TK-028).
+/// Limits of the numeric fields, verified in the original (op2..op6 captures: "Debe estar entre 1.0 y 1000.0." and
+/// "Debe estar entre 10.0 % y 1000.0 %.").
+constexpr double kNodeSizeMinCm = 1.0, kNodeSizeMaxCm = 1000.0;
+constexpr double kTextSizeMinPercent = 10.0, kTextSizeMaxPercent = 1000.0;
+
+/// Sizes must be finite and inside the original's limits.
 bool isValid(const DisplayOptions& options);
 
 /// JSON text of `options` (enumeration stored by name).

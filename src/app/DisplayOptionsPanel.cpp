@@ -80,13 +80,15 @@ DisplayOptionsPanel::DisplayOptionsPanel(QWidget* parent) : QWidget(parent) {
     m_shells = addCheck(3, Marker::Shell, tr("Dibujar las láminas con relleno"), m_options.fillShells, "fillShells");
     m_loads = addCheck(4, Marker::Loads, tr("Dibujar las cargas con relleno"), m_options.fillLoads, "fillLoads");
 
-    auto addSpin = [&](int row, const QString& label, const QString& unit, double value, const char* name) {
+    auto addSpin = [&](int row, const QString& label, const QString& unit, double value, const char* name, double minimum, double maximum) {
         auto* spin = new QDoubleSpinBox(this);
         spin->setObjectName(QString::fromLatin1(name));
         spin->setDecimals(1);
         spin->setSingleStep(0.1);
-        spin->setMinimum(0.1);  // smallest positive value at one decimal; no maximum is verified (the widget needs one)
-        spin->setMaximum(1e6);
+        spin->setMinimum(minimum);  // limits verified in the original; it rejects out-of-range input and keeps the old value
+        spin->setMaximum(maximum);
+        spin->setKeyboardTracking(false);
+        spin->setToolTip(tr("Debe estar entre %1 y %2.").arg(QString::number(minimum, 'f', 1), QString::number(maximum, 'f', 1)));
         spin->setValue(value);
         spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
         spin->setAlignment(Qt::AlignRight);
@@ -97,8 +99,8 @@ DisplayOptionsPanel::DisplayOptionsPanel(QWidget* parent) : QWidget(parent) {
         connect(spin, &QDoubleSpinBox::valueChanged, this, &DisplayOptionsPanel::readControls);
         return spin;
     };
-    m_nodeSize = addSpin(5, tr("Dimensiones de los nudos"), tr("cm"), m_options.nodeSizeCm, "nodeSize");
-    m_textSize = addSpin(6, tr("Tamaño de los textos"), tr("%"), m_options.textSizePercent, "textSize");
+    m_nodeSize = addSpin(5, tr("Dimensiones de los nudos"), tr("cm"), m_options.nodeSizeCm, "nodeSize", core::kNodeSizeMinCm, core::kNodeSizeMaxCm);
+    m_textSize = addSpin(6, tr("Tamaño de los textos"), tr("%"), m_options.textSizePercent, "textSize", core::kTextSizeMinPercent, core::kTextSizeMaxPercent);
 
     m_tooltip = new QComboBox(this);
     m_tooltip->setObjectName(QStringLiteral("tooltipPosition"));
@@ -147,6 +149,7 @@ void DisplayOptionsPanel::setOptions(const cc::core::DisplayOptions& options) {
 void DisplayOptionsPanel::applyTo(Viewport3D& viewport, const cc::core::DisplayOptions& options) {
     viewport.setShowElementInfo(options.showElementInfo);
     viewport.setFillShells(options.fillShells);
+    viewport.setNodeSizeCm(options.nodeSizeCm);
     viewport.setTooltipPosition(options.tooltipPlacement == TooltipPlacement::OnElement ? TooltipPosition::OnElement
                                                                                        : TooltipPosition::TopRightCorner);
 }
