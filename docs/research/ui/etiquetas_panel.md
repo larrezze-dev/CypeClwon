@@ -26,3 +26,13 @@ Sin comprobar: borrar "por defecto"; borrar una capa con elementos; qué hace el
 - **Borrar la última capa**: aviso (título "Aviso", botón Aceptar) "Debe definir, al menos, una capa." y no se borra. Por tanto el modelo del original NO exige la capa "por defecto", solo al menos una capa.
 - **Nombre de `+`**: tras borrar "por defecto" y quedar solo "Nueva capa 2", `+` creó "Nueva capa 3" (no "2"): el número es el de capas tras añadir, saltando los nombres ya usados.
 - **Herramienta "Asignar elementos a etiquetas"**: al pulsarla aparece sola la ventana "Propiedades - Selección" (casilla "Barras", resto vacío). El script no consigue cerrarla (X no responde) ni seleccionar con ventana de dos clics en el visor; sin resolver, se pide ayuda manual.
+
+## Ronda 3: capturas manuales del usuario (docs/screenshots/u01..u11_user_layers.png)
+
+- **Cambiar el color** de una capa: el diálogo "Selección del color" cambia la columna Color (probado con rojo).
+- **Herramienta "Asignar elementos a etiquetas"** (icono de la barra): LMB selecciona una barra (aparece naranja); RMB sobre la selección abre el diálogo **"Asignar elementos a etiquetas"** (con la ventana "Propiedades - Selección" detrás, que lista "Barras"):
+  - Grupo **Operación**: radios `Asignar` / `Reemplazar` (por defecto) / `Eliminar`.
+  - Grupo **Etiquetas**: tabla `Seleccionado` (casilla) | `Referencia` con una fila por capa. Botones `Aceptar` / `Cancelar`.
+- **Un elemento puede pertenecer a varias capas.** La caja de información de la barra muestra "Pieza (N2/N3): L. 4 m / Capa : por defecto y Nueva capa 2 / IPE 80 (S275 (UNE-EN 10025-2))" tras `Asignar` y "Capa : Nueva capa 2" tras `Reemplazar` (las barras nuevas nacen en "por defecto").
+- Con la herramienta no activa, el tooltip negro de coordenadas ("184.323, -188.776, 154.627 m") sí sale en la pestaña Obra junto al cursor (confirma TK-027 a).
+- Sin capturas del usuario aún: efecto del cubo, del ojo, del candado y del color sobre las barras en el visor; qué pasa al borrar una capa con elementos.
