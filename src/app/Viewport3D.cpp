@@ -325,10 +325,15 @@ QStringList Viewport3D::barInfoLines(const core::StructuralModel& structure, int
 
 QRectF Viewport3D::anchoredRect(const QSizeF& size, const QSizeF& area, TooltipPosition position, const QPointF& anchor) {
     if (position == TooltipPosition::TopRightCorner) return QRectF(QPointF(area.width() - size.width(), 0.0), size);
-    constexpr double kGap = 12.0;  // space between the element and the box
-    const double x = std::clamp(anchor.x() - size.width() / 2.0, 0.0, std::max(0.0, area.width() - size.width()));
-    const double y = std::clamp(anchor.y() - kGap - size.height(), 0.0, std::max(0.0, area.height() - size.height()));
-    return QRectF(QPointF(x, y), size);
+    // Original ("Sobre el elemento", user_sobre_elemento_barra.png): a callout whose bottom-left corner sits ~32 px to
+    // the right of and just above the element; flipped to the left or below when it would leave the area.
+    constexpr double kDx = 32.0, kDy = 2.0;
+    double x = anchor.x() + kDx;
+    if (x + size.width() > area.width()) x = anchor.x() - kDx - size.width();
+    double y = anchor.y() + kDy - size.height();
+    if (y < 0.0) y = anchor.y() - kDy + 24.0;
+    return QRectF(QPointF(std::clamp(x, 0.0, std::max(0.0, area.width() - size.width())),
+                          std::clamp(y, 0.0, std::max(0.0, area.height() - size.height()))), size);
 }
 
 QPointF Viewport3D::infoAnchor(const std::optional<int>& barId) const {
@@ -393,6 +398,15 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     painter.setBrush(Qt::white);
     painter.setPen(QPen(QColor(190, 190, 190), 1));  // original: white table, one grey-ruled row per line
     painter.drawRect(box);
+    if (m_tooltipPosition == TooltipPosition::OnElement) {  // callout tail pointing at the element
+        const QPointF tip = infoAnchor(id);
+        const bool right = box.left() > tip.x();
+        const double edge = right ? box.left() : box.right();
+        const QPointF tail[3] = {{edge, box.bottom() - 18}, {edge, box.bottom() - 2}, {tip.x() + (right ? 2 : -2), tip.y() - 2}};
+        painter.setPen(QPen(QColor(190, 190, 190), 1));
+        painter.setBrush(Qt::white);
+        painter.drawPolygon(tail, 3);
+    }
     for (int i = 0; i < lines.size(); ++i) {
         const QRectF row(box.left(), box.top() + i * kRow, box.width(), kRow);
         if (i > 0) painter.drawLine(row.topLeft(), row.topRight());

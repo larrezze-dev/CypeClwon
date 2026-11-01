@@ -117,3 +117,9 @@ Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Captura
 - **Reabrir secciones cerradas**: Ventana > "Seleccionar ventana" solo mostró su tooltip (no se abrió ningún menú con el script); no hay evidencia de que reabra paneles. Sin resolver.
 - **"Sobre el elemento"**: con ratón (con y sin movimiento previo) y con teclado la lista desplegable del combo no se deja elegir desde el script (la lista se abre, pero el clic/teclado no cambia el valor; el foco acaba en otro combo: un `{DOWN}` cambió "Elementos considerados en el análisis" a "Pandeo"). Sin resolver; habría que hacerlo a mano o con SendInput real.
 - Con la opción por defecto, la caja de barra sale en la esquina incluso con el ajuste en mitad de la barra, y la cota "1.9925 m" gira sobre la barra (`r14_bar_onelement.png`).
+
+### "Sobre el elemento" (capturas del usuario, sesión 14: `user_combo_sobre_elemento.png`, `user_sobre_elemento_barra.png`)
+
+- Al elegir "Sobre el elemento" la caja de información de la barra pasa de la esquina a un **bocadillo** situado arriba a la derecha del punto ajustado: esquina inferior izquierda ~32 px a la derecha y ~2 px por encima del punto, con una pequeña cola que apunta a él. Mismo contenido de tres filas.
+- El **tooltip de coordenadas no cambia**: sigue a ~(+40,+43) px del cursor. Por tanto la opción solo gobierna la caja de información (y, por analogía, la etiqueta de nudo).
+- El resto (cota girada "1.7488 m", marcador de reloj de arena, barra en azul) es igual que con la esquina. Captura adicional: el tooltip del comando Nuevo muestra un texto de ayuda largo con "Pulse 'F1' alternativamente para mostrar u ocultar los textos de ayuda" (`user` captura 193236, pendiente de investigar como función de ayuda).

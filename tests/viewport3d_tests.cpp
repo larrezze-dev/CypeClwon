@@ -309,10 +309,13 @@ TEST(ViewportTooltips, AnchoredBoxesSitInTheCornerOrAboveTheElement) {
     const QSizeF size(100, 50), area(800, 600);
     using cc::app::TooltipPosition;
     EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::TopRightCorner), QRectF(700, 0, 100, 50));
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {400, 300}), QRectF(350, 238, 100, 50));
-    // Near the edges the box is kept inside the area.
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {5, 10}), QRectF(0, 0, 100, 50));
-    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {795, 590}), QRectF(700, 528, 100, 50));
+    // Callout: bottom-left corner 32 px right of and 2 px above the element (measured in the original).
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {400, 300}), QRectF(432, 252, 100, 50));
+    // Near the right edge it flips to the left; near the top it goes below; always inside the area.
+    EXPECT_EQ(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {790, 300}), QRectF(658, 252, 100, 50));
+    const QRectF top = Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {400, 10});
+    EXPECT_GE(top.top(), 0.0);
+    EXPECT_TRUE(QRectF(QPointF(0, 0), area).contains(Viewport3D::anchoredRect(size, area, TooltipPosition::OnElement, {795, 590})));
 }
 
 TEST(ViewportTooltips, CoordinateTooltipFollowsTheCursorAndStaysInside) {
