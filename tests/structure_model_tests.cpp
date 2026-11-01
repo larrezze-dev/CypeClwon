@@ -272,11 +272,26 @@ TEST(StructureProject, FileRoundTripAndOldFilesWithoutStructure) {
 
 // --- layers (T-P4-06) ---
 
-TEST(Layers, StartWithTheActiveDefaultLayer) {
+namespace {
+/// simpleFrame() plus a second bar and a shell, so layer operations have several elements to work with.
+StructuralModel frameWithShell(int& bar2, int& shell) {
+    StructuralModel m = simpleFrame();
+    const int c = m.addNode({3, 0, 3});
+    const int d = m.addNode({3, 0, 0});
+    bar2 = m.addBar(m.nodes[1].id, c, 1, 1);
+    shell = m.addShell({m.nodes[0].id, m.nodes[1].id, c, d}, 0.2);
+    EXPECT_NE(bar2, 0);
+    EXPECT_NE(shell, 0);
+    return m;
+}
+}  // namespace
+
+TEST(Layers, StartWithOneActiveLayer) {
     StructuralModel m;
     ASSERT_EQ(m.layers.size(), 1u);
     EXPECT_EQ(m.layers[0].id, kDefaultLayerId);
     EXPECT_EQ(m.layers[0].name, "por defecto");
+    EXPECT_FALSE(m.layers[0].rendered);
     EXPECT_EQ(m.activeLayerId(), kDefaultLayerId);
     EXPECT_TRUE(m.empty());
     EXPECT_EQ(m.validate(), "");
@@ -292,33 +307,109 @@ TEST(Layers, AddRenameAndNameRules) {
     const int b = m.addLayer("Vigas");
     EXPECT_FALSE(m.renameLayer(b, "PILARES"));
     EXPECT_TRUE(m.renameLayer(b, "Vigas 1"));
-    EXPECT_TRUE(m.renameLayer(b, "VIGAS 1"));  // renaming to its own name (other case) is fine
+    EXPECT_TRUE(m.renameLayer(b, "VIGAS 1"));  // its own name in another case is fine
     EXPECT_FALSE(m.renameLayer(99, "x"));
     EXPECT_EQ(m.validate(), "");
 }
 
-TEST(Layers, ActiveLayerIsUnique) {
+TEST(Layers, SuggestedNameFollowsTheOriginal) {
     StructuralModel m;
+    EXPECT_EQ(m.suggestedLayerName(), "Nueva capa 2");  // "+" on a fresh model
+    m.addLayer(m.suggestedLayerName());
+    EXPECT_EQ(m.suggestedLayerName(), "Nueva capa 3");
+    // Only "Nueva capa 2" left after deleting "por defecto": the next one is 3, not the taken 2.
+    ASSERT_TRUE(m.removeLayer(kDefaultLayerId, LayerRemoval::MoveElements, 2));
+    EXPECT_EQ(m.suggestedLayerName(), "Nueva capa 3");
+}
+
+TEST(Layers, ActiveLayerIsUniqueAndNewElementsGoThere) {
+    int bar2 = 0, shell = 0;
+    StructuralModel m = frameWithShell(bar2, shell);
     const int a = m.addLayer("A");
     EXPECT_TRUE(m.setActiveLayer(a));
     EXPECT_EQ(m.activeLayerId(), a);
     EXPECT_FALSE(m.findLayer(kDefaultLayerId)->active);
     EXPECT_FALSE(m.setActiveLayer(99));
-    EXPECT_EQ(m.activeLayerId(), a);
+    const int bar3 = m.addBar(m.nodes[0].id, m.nodes[2].id);
+    ASSERT_NE(bar3, 0);
+    EXPECT_EQ(m.findBar(bar3)->layerIds, std::vector<int>{a});
+    EXPECT_EQ(m.findBar(bar2)->layerIds, std::vector<int>{kDefaultLayerId});
+    EXPECT_EQ(m.validate(), "");
 }
 
-TEST(Layers, RemoveMovesElementsToDefaultAndKeepsDefault) {
-    StructuralModel m = simpleFrame();
+TEST(Layers, RemoveMovesOrphanedElementsToTheChosenLayer) {
+    int bar2 = 0, shell = 0;
+    StructuralModel m = frameWithShell(bar2, shell);
     const int a = m.addLayer("A");
-    m.bars[0].layerId = a;
-    m.setActiveLayer(a);
-    EXPECT_FALSE(m.removeLayer(kDefaultLayerId));
+    const int b = m.addLayer("B");
+    ASSERT_TRUE(m.assignLayers({bar2}, {shell}, {a}, LayerOperation::Replace));
+    EXPECT_EQ(m.layerUsage(a), 2);
+    EXPECT_FALSE(m.removeLayer(a, LayerRemoval::MoveElements, 0));   // no target
+    EXPECT_FALSE(m.removeLayer(a, LayerRemoval::MoveElements, a));   // same layer
+    EXPECT_FALSE(m.removeLayer(a, LayerRemoval::MoveElements, 99));  // unknown target
     EXPECT_FALSE(m.removeLayer(99));
-    EXPECT_TRUE(m.removeLayer(a));
-    EXPECT_EQ(m.bars[0].layerId, kDefaultLayerId);
-    EXPECT_EQ(m.activeLayerId(), kDefaultLayerId);
+    EXPECT_TRUE(m.removeLayer(a, LayerRemoval::MoveElements, b));
+    EXPECT_EQ(m.findBar(bar2)->layerIds, std::vector<int>{b});
+    EXPECT_EQ(m.findShell(shell)->layerIds, std::vector<int>{b});
+    EXPECT_EQ(m.layerUsage(b), 2);
+    EXPECT_EQ(m.addLayer("C"), b + 1);  // ids are never reused
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, RemoveCanDeleteTheElementsOfTheLayer) {
+    int bar2 = 0, shell = 0;
+    StructuralModel m = frameWithShell(bar2, shell);
+    const int a = m.addLayer("A");
+    const int b = m.addLayer("B");
+    ASSERT_TRUE(m.assignLayers({bar2}, {shell}, {a}, LayerOperation::Replace));
+    ASSERT_TRUE(m.assignLayers({m.bars[0].id}, {}, {a, b}, LayerOperation::Replace));  // bar 1 also in B
+    EXPECT_TRUE(m.removeLayer(a, LayerRemoval::DeleteElements));
+    EXPECT_EQ(m.findBar(bar2), nullptr);
+    EXPECT_EQ(m.findShell(shell), nullptr);
+    ASSERT_NE(m.findBar(1), nullptr);  // it keeps layer B, so it survives
+    EXPECT_EQ(m.findBar(1)->layerIds, std::vector<int>{b});
+    EXPECT_EQ(m.nodes.size(), 4u);     // nodes are never deleted by a layer
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, TheLastLayerCannotBeRemovedAndDefaultIsNotSpecial) {
+    StructuralModel m = simpleFrame();
+    EXPECT_FALSE(m.removeLayer(kDefaultLayerId, LayerRemoval::DeleteElements));  // "Debe definir, al menos, una capa."
+    const int a = m.addLayer("A");
+    m.setActiveLayer(kDefaultLayerId);
+    EXPECT_TRUE(m.removeLayer(kDefaultLayerId, LayerRemoval::MoveElements, a));
     EXPECT_EQ(m.layers.size(), 1u);
-    EXPECT_EQ(m.addLayer("B"), a + 1);  // ids are never reused
+    EXPECT_EQ(m.activeLayerId(), a);  // the remaining layer becomes the active one
+    EXPECT_EQ(m.bars[0].layerIds, std::vector<int>{a});
+    EXPECT_FALSE(m.removeLayer(a));
+    EXPECT_EQ(m.validate(), "");
+}
+
+TEST(Layers, AssignReplaceAndRemoveOperations) {
+    int bar2 = 0, shell = 0;
+    StructuralModel m = frameWithShell(bar2, shell);
+    const int a = m.addLayer("A");
+    const int b = m.addLayer("B");
+    EXPECT_FALSE(m.assignLayers({}, {}, {a}, LayerOperation::Assign));         // nothing selected
+    EXPECT_FALSE(m.assignLayers({bar2}, {}, {}, LayerOperation::Assign));      // no layer ticked
+    EXPECT_FALSE(m.assignLayers({bar2}, {}, {99}, LayerOperation::Assign));    // unknown layer
+    EXPECT_FALSE(m.assignLayers({99}, {}, {a}, LayerOperation::Assign));       // unknown bar
+    EXPECT_EQ(m.findBar(bar2)->layerIds, std::vector<int>{kDefaultLayerId});   // untouched after failures
+
+    ASSERT_TRUE(m.assignLayers({bar2}, {shell}, {b, a}, LayerOperation::Assign));
+    EXPECT_EQ(m.findBar(bar2)->layerIds, (std::vector<int>{kDefaultLayerId, a, b}));  // sorted
+    EXPECT_EQ(m.layerNames(m.findBar(bar2)->layerIds), "por defecto, A y B");
+    ASSERT_TRUE(m.assignLayers({bar2}, {}, {a}, LayerOperation::Replace));
+    EXPECT_EQ(m.findBar(bar2)->layerIds, std::vector<int>{a});
+    EXPECT_EQ(m.layerNames(m.findBar(bar2)->layerIds), "A");
+    ASSERT_TRUE(m.assignLayers({bar2}, {shell}, {a, b}, LayerOperation::Remove));
+    EXPECT_EQ(m.findShell(shell)->layerIds, std::vector<int>{kDefaultLayerId});
+    // Removing the only layer leaves the element on the active layer rather than on no layer.
+    m.setActiveLayer(b);
+    ASSERT_TRUE(m.assignLayers({bar2}, {}, {a}, LayerOperation::Replace));
+    ASSERT_TRUE(m.assignLayers({bar2}, {}, {a}, LayerOperation::Remove));
+    EXPECT_EQ(m.findBar(bar2)->layerIds, std::vector<int>{b});
+    EXPECT_EQ(m.layerNames({a, b}), "A y B");
     EXPECT_EQ(m.validate(), "");
 }
 
@@ -337,46 +428,61 @@ TEST(Layers, MoveChangesOrderNotIds) {
     EXPECT_EQ(m.validate(), "");
 }
 
-TEST(Layers, VisibilityLockAndUnknownLayerFallBack) {
+TEST(Layers, ElementFlagsAndColourFollowTheirLayers) {
     StructuralModel m;
-    const int a = m.addLayer("A");
+    const int a = m.addLayer("A", 0xFF0000);
+    const int b = m.addLayer("B", 0x00FF00);
+    EXPECT_TRUE(m.elementVisible({a}));
     m.findLayer(a)->visible = false;
-    m.findLayer(a)->locked = true;
-    EXPECT_FALSE(m.layerVisible(a));
-    EXPECT_TRUE(m.layerLocked(a));
-    EXPECT_TRUE(m.layerVisible(99));  // unknown -> default layer
-    EXPECT_FALSE(m.layerLocked(99));
-    EXPECT_EQ(m.layerName(99), "por defecto");
-    EXPECT_EQ(m.layerName(a), "A");
+    EXPECT_FALSE(m.elementVisible({a}));
+    EXPECT_TRUE(m.elementVisible({a, b}));  // visible while any layer is
+    m.findLayer(b)->locked = true;
+    EXPECT_FALSE(m.elementLocked({a}));
+    EXPECT_TRUE(m.elementLocked({a, b}));
+    m.findLayer(a)->rendered = true;
+    EXPECT_TRUE(m.elementRendered({a, b}));
+    EXPECT_FALSE(m.elementRendered({b}));
+    EXPECT_EQ(m.elementColor({a, b}), 0xFF0000u);  // first in list order
+    EXPECT_EQ(m.layerName(99), "por defecto");     // unknown id -> first layer
+    EXPECT_TRUE(m.moveLayer(b, -1));
+    EXPECT_TRUE(m.moveLayer(b, -1));
+    EXPECT_EQ(m.elementColor({a, b}), 0x00FF00u);
 }
 
 TEST(Layers, ValidateRejectsBrokenLayers) {
     StructuralModel m = simpleFrame();
-    m.bars[0].layerId = 7;
+    m.bars[0].layerIds = {7};
     EXPECT_NE(m.validate(), "");
-    m.bars[0].layerId = kDefaultLayerId;
+    m.bars[0].layerIds = {};
+    EXPECT_NE(m.validate(), "");
+    m.bars[0].layerIds = {kDefaultLayerId, kDefaultLayerId};
+    EXPECT_NE(m.validate(), "");
+    m.bars[0].layerIds = {kDefaultLayerId};
     m.layers[0].active = false;
     EXPECT_NE(m.validate(), "");
     m.layers[0].active = true;
-    m.layers.push_back(Layer{2, "POR DEFECTO", 0, false, true, false});
+    m.layers.push_back(Layer{2, "POR DEFECTO", 0, false, true, false, false});
     m.nextLayerId = 3;
     EXPECT_NE(m.validate(), "");  // duplicate name
     m.layers.clear();
     EXPECT_NE(m.validate(), "");
 }
 
-TEST(Layers, JsonRoundTripKeepsOrderAndOldFilesGetDefaults) {
+TEST(Layers, JsonRoundTripKeepsOrderMembershipAndOldFilesGetDefaults) {
     Project original;
     original.structure = simpleFrame();
     const int a = original.structure.addLayer("Pilares", 0x123456);
-    original.structure.bars[0].layerId = a;
+    original.structure.findLayer(a)->rendered = true;
+    ASSERT_TRUE(original.structure.assignLayers({1}, {}, {a}, LayerOperation::Assign));
     original.structure.setActiveLayer(a);
     original.structure.moveLayer(a, -1);
     Project loaded;
     project_json::loadSection(loaded, "layers", project_json::dumpSection(original, "layers"));
+    project_json::loadSection(loaded, "bars", project_json::dumpSection(original, "bars"));
     EXPECT_EQ(loaded.structure.layers, original.structure.layers);
     EXPECT_EQ(loaded.structure.nextLayerId, original.structure.nextLayerId);
+    EXPECT_EQ(loaded.structure.bars[0].layerIds, (std::vector<int>{kDefaultLayerId, a}));
     Project bars;
     project_json::loadSection(bars, "bars", R"({"items":[{"id":1,"startNode":1,"endNode":2}],"next":2})");
-    EXPECT_EQ(bars.structure.bars[0].layerId, kDefaultLayerId);  // file written before layers existed
+    EXPECT_EQ(bars.structure.bars[0].layerIds, std::vector<int>{kDefaultLayerId});  // file written before layers existed
 }

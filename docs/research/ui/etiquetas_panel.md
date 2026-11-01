@@ -36,3 +36,10 @@ Sin comprobar: borrar "por defecto"; borrar una capa con elementos; qué hace el
 - **Un elemento puede pertenecer a varias capas.** La caja de información de la barra muestra "Pieza (N2/N3): L. 4 m / Capa : por defecto y Nueva capa 2 / IPE 80 (S275 (UNE-EN 10025-2))" tras `Asignar` y "Capa : Nueva capa 2" tras `Reemplazar` (las barras nuevas nacen en "por defecto").
 - Con la herramienta no activa, el tooltip negro de coordenadas ("184.323, -188.776, 154.627 m") sí sale en la pestaña Obra junto al cursor (confirma TK-027 a).
 - Sin capturas del usuario aún: efecto del cubo, del ojo, del candado y del color sobre las barras en el visor; qué pasa al borrar una capa con elementos.
+
+## Directrices del usuario (2026-11-01) y su reflejo en el clon
+
+- **Cubo** = la capa pasa de la vista de líneas a la vista "renderizada" (perfiles sólidos); cada capa tiene su tipo de visualización según el cubo (captura `u12_user_layers_rendered.png`: viga roja renderizada).
+- **Ojo**: oculta los elementos de la capa en el visor. **Candado**: no permite cambios en los objetos de la capa. **Color**: wireframe y render usan el color de la capa.
+- **Borrar una capa con elementos**: lanzar un diálogo que pregunte si **borrar los elementos asignados** o **moverlos a otra capa** (a elegir).
+- Modelo (core, `Layer.rendered`, `Bar/Shell::layerIds`, `removeLayer(id, mode, moveTo)`, `assignLayers`): implementado y probado. Reglas elegidas sin verificar: elemento visible/bloqueado/renderizado si CUALQUIERA de sus capas lo está; color de la primera capa (orden de lista); al quitar su última capa con Eliminar vuelve a la capa activa; elementos con otras capas solo pierden la pertenencia al borrar.

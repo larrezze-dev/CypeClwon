@@ -103,9 +103,9 @@ CC_STRUCT(Point3, x, y, z)
 CC_STRUCT(Node, id, position)
 CC_STRUCT(Material, id, name, kind, elasticModulusMPa, poissonRatio, densityKnM3, thermalExpansion)
 CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM4, shearAreaYM2, shearAreaZM2)
-CC_STRUCT(Layer, id, name, color, active, visible, locked)
-CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerId)
-CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerId)
+CC_STRUCT(Layer, id, name, color, active, visible, locked, rendered)
+CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
+CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerIds)
 
 // --- options_settings.h ---
 CC_STRUCT(BeamErrorSettings, compressionHook, topCompressionSteel, bottomCompressionSteel, manualShortCorbel,
