@@ -2,6 +2,8 @@
 #include <map>
 #include <string>
 
+#include "core/categories.h"
+#include "core/display_options.h"
 #include "core/limit_states.h"
 #include "core/options_settings.h"
 #include "core/project_settings.h"
@@ -25,6 +27,8 @@ struct Project {
     MicropileSettings micropiles;
     OptionsSettings options;
     DimensioningUnits units;  ///< "Unidades de acotación"; cm / cm / m when a file has no such section
+    DisplayOptions display;        ///< "Opciones de visualización"; stored with the project like the original
+    CategorySettings categories;   ///< "Categorías" panel state
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 

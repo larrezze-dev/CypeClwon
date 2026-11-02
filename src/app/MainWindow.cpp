@@ -139,15 +139,21 @@ void MainWindow::createWorkArea() {
     });
     outerLayout->addWidget(m_modeTabs);
     setCentralWidget(central);
-    // Session-only display options (TK-028: per project or per user is not verified).
+    // View settings are stored with the project (verified in the original: closing without saving restores defaults).
     connect(m_leftPanel->displayOptions(), &DisplayOptionsPanel::optionsChanged, this,
             [this](const cc::core::DisplayOptions& options) {
+                if (m_document && !(m_document->project.display == options))
+                    m_undo.push(std::make_unique<cc::core::EditViewSettingsCommand>(
+                        m_document->project, options, m_document->project.categories));
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
                     if (auto* viewport = viewportOf(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
             });
     // Categorías: visibility and layer colours act on every 3D window (session-only, like the display options).
     connect(m_leftPanel->categoriesPanel(), &CategoriesPanel::settingsChanged, this,
             [this](const cc::core::CategorySettings& settings) {
+                if (m_document && !(m_document->project.categories == settings))
+                    m_undo.push(std::make_unique<cc::core::EditViewSettingsCommand>(
+                        m_document->project, m_document->project.display, settings));
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
                     if (auto* viewport = viewportOf(sub->widget())) viewport->setCategorySettings(settings);
             });
@@ -181,7 +187,10 @@ void MainWindow::createWorkArea() {
     connect(m_saveAsAction, &QAction::triggered, this, [this] { saveProjectAs(); });
     connect(m_undoAction, &QAction::triggered, this, [this] { m_undo.undo(); });
     connect(m_redoAction, &QAction::triggered, this, [this] { m_undo.redo(); });
-    m_undo.setChangeCallback([this] { refreshUndoActions(); });
+    m_undo.setChangeCallback([this] {
+        refreshUndoActions();
+        syncViewSettings();
+    });
     loadRecentFiles();
 }
 
@@ -366,6 +375,18 @@ void MainWindow::editGeneralData() {
     m_undo.push(std::make_unique<cc::core::EditGeneralDataCommand>(project, edited));
 }
 
+void MainWindow::syncViewSettings() {
+    if (!m_document) return;
+    const cc::core::Project& project = m_document->project;
+    m_leftPanel->displayOptions()->setOptions(project.display);
+    m_leftPanel->categoriesPanel()->setSettings(project.categories);
+    for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+        if (auto* viewport = viewportOf(sub->widget())) {
+            DisplayOptionsPanel::applyTo(*viewport, project.display);
+            viewport->setCategorySettings(project.categories);
+        }
+}
+
 void MainWindow::refreshUndoActions() {
     const auto describe = [](QAction* action, const QString& verb, const std::string& text, bool enabled) {
         action->setEnabled(enabled);
@@ -386,6 +407,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
+    syncViewSettings();  // view settings travel with the project
     // The 3D window lives as long as the project: opened with it, closed with it.
     if (open && m_workArea->windowCount() == 0) {
         auto* frame = new ViewportFrame;

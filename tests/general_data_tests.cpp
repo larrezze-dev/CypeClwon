@@ -88,3 +88,34 @@ TEST(GeneralData, EditUnitsCommandChangesOnlyTheDisplayUnitsAndUndoes) {
     stack.redo();
     EXPECT_EQ(p.units, mm);
 }
+
+TEST(GeneralData, ViewSettingsAreStoredWithTheProjectAndUndoable) {
+    Project p;
+    DisplayOptions d = p.display;
+    d.nodeSizeCm = 30;
+    d.tooltipPlacement = TooltipPlacement::OnElement;
+    CategorySettings c = p.categories;
+    c.visible[static_cast<int>(Category::Beams)] = false;
+    c.analysis = AnalysisElements::Buckling;
+    EditViewSettingsCommand command(p, d, c);
+    command.redo();
+    EXPECT_EQ(p.display.nodeSizeCm, 30);
+    EXPECT_FALSE(p.categories.isVisible(Category::Beams));
+
+    Project loaded;
+    project_json::loadSection(loaded, "display_options", project_json::dumpSection(p, "display_options"));
+    project_json::loadSection(loaded, "categories", project_json::dumpSection(p, "categories"));
+    EXPECT_EQ(loaded.display, p.display);
+    EXPECT_EQ(loaded.categories, p.categories);
+    EXPECT_EQ(project_json::validate(loaded), "");
+
+    command.undo();
+    EXPECT_EQ(p.display, DisplayOptions{});
+    EXPECT_EQ(p.categories, CategorySettings{});
+}
+
+TEST(GeneralData, CorruptViewSectionsAreRejected) {
+    Project p;
+    EXPECT_THROW(project_json::loadSection(p, "display_options", "{\"nodeSizeCm\": -5}"), std::runtime_error);
+    EXPECT_THROW(project_json::loadSection(p, "categories", "[1]"), std::runtime_error);
+}

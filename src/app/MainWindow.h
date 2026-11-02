@@ -80,6 +80,8 @@ private:
     void refreshRecentFiles();
     void openRecentFile(const QString& path);
     void refreshUndoActions();
+    /// Shows the project's view settings in the left panel and applies them to the 3D windows.
+    void syncViewSettings();
     /// Obra > Datos generales: edits the settings of the open project as one undoable step.
     void editGeneralData();
     /// Obra > Unidades de acotación.

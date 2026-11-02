@@ -43,4 +43,11 @@ void EditGeneralDataCommand::undo() { applyGeneralData(m_project, m_before); }
 EditUnitsCommand::EditUnitsCommand(Project& project, DimensioningUnits newUnits)
     : m_project(project), m_before(project.units), m_after(newUnits) {}
 
+EditViewSettingsCommand::EditViewSettingsCommand(Project& project, DisplayOptions newDisplay, CategorySettings newCategories)
+    : m_project(project),
+      m_beforeDisplay(project.display),
+      m_afterDisplay(newDisplay),
+      m_beforeCategories(project.categories),
+      m_afterCategories(newCategories) {}
+
 }  // namespace cc::core

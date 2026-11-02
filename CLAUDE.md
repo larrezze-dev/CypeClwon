@@ -37,6 +37,10 @@ Para que el usuario pueda realizar un seguimiento proactivo del desarrollo del p
 
 Con base al archivo .tasks.md controla el desarrollo del proyecto mirando las tareas no finalizadas. Elige con cual trabajar en función de lo que la lógica de desarrollo tenga sentido. Siempre usando el mcp REA cuando sea necesario.
 
+### Regla de cierre de tareas
+
+Hay que cerrar las tareas. Quedan pendientes (`[o]` o `[ ]`) única y exclusivamente, sin excepción, las tareas o partes de tarea que dependen de módulos aún no desarrollados; en ese caso se documentan en .tickets.md asociándolas al módulo del que dependen. Todo lo demás (verificaciones visuales, investigación en el original, detalles menores, persistencia posible, etc.) debe completarse antes de pasar a otra tarea.
+
 
 ## Lenguaje de programación
 

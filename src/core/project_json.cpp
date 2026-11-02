@@ -225,6 +225,22 @@ const std::vector<Section>& sections() {
                                 [](const auto& v) { return v.isValid(); }),
         make<OptionsSettings>("options", "Opciones", &Project::options, [](const auto& v) { return v.isValid(); }),
         make<DimensioningUnits>("units", "Unidades de acotación", &Project::units, nullptr),
+        Section{"display_options", "Opciones de visualización",
+                [](const Project& p) { return toJson(p.display); },
+                [](Project& p, const std::string& text) {
+                    const auto parsed = displayOptionsFromJson(text);
+                    if (!parsed) throw std::invalid_argument("valores no válidos");
+                    p.display = *parsed;
+                },
+                [](const Project& p) { return isValid(p.display); }},
+        Section{"categories", "Categorías",
+                [](const Project& p) { return toJson(p.categories); },
+                [](Project& p, const std::string& text) {
+                    const auto parsed = categorySettingsFromJson(text);
+                    if (!parsed) throw std::invalid_argument("valores no válidos");
+                    p.categories = *parsed;
+                },
+                [](const Project&) { return true; }},
         makeCollection<Node>("nodes", "Nudos", &StructuralModel::nodes, &StructuralModel::nextNodeId),
         makeCollection<Material>("materials", "Materiales", &StructuralModel::materials, &StructuralModel::nextMaterialId),
         makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),

@@ -56,4 +56,18 @@ private:
     DimensioningUnits m_after;
 };
 
+/// Undoable change of the view settings stored with the project ("Opciones de visualización" and "Categorías").
+class EditViewSettingsCommand : public UndoCommand {
+public:
+    EditViewSettingsCommand(Project& project, DisplayOptions newDisplay, CategorySettings newCategories);
+    void redo() override { m_project.display = m_afterDisplay; m_project.categories = m_afterCategories; }
+    void undo() override { m_project.display = m_beforeDisplay; m_project.categories = m_beforeCategories; }
+    std::string text() const override { return "Opciones de visualización"; }
+
+private:
+    Project& m_project;
+    DisplayOptions m_beforeDisplay, m_afterDisplay;
+    CategorySettings m_beforeCategories, m_afterCategories;
+};
+
 }  // namespace cc::core
