@@ -241,6 +241,14 @@ const std::vector<Section>& sections() {
                     p.categories = *parsed;
                 },
                 [](const Project&) { return true; }},
+        Section{"work_planes", "Planos",
+                [](const Project& p) { return toJson(p.workPlanes); },
+                [](Project& p, const std::string& text) {
+                    const auto parsed = workPlanesFromJson(text);
+                    if (!parsed) throw std::invalid_argument("valores no válidos");
+                    p.workPlanes = *parsed;
+                },
+                [](const Project& p) { return p.workPlanes.isValid(); }},
         makeCollection<Node>("nodes", "Nudos", &StructuralModel::nodes, &StructuralModel::nextNodeId),
         makeCollection<Material>("materials", "Materiales", &StructuralModel::materials, &StructuralModel::nextMaterialId),
         makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),

@@ -50,4 +50,7 @@ EditViewSettingsCommand::EditViewSettingsCommand(Project& project, DisplayOption
       m_beforeCategories(project.categories),
       m_afterCategories(newCategories) {}
 
+EditWorkPlanesCommand::EditWorkPlanesCommand(Project& project, WorkPlanes newPlanes, WorkPlanesEdit kind)
+    : m_project(project), m_before(project.workPlanes), m_after(std::move(newPlanes)), m_kind(kind) {}
+
 }  // namespace cc::core

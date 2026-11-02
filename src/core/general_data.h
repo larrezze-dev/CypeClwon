@@ -70,4 +70,22 @@ private:
     CategorySettings m_beforeCategories, m_afterCategories;
 };
 
+/// Which part of "Planos" an EditWorkPlanesCommand changes; it only names the entry of the undo menu.
+enum class WorkPlanesEdit { Grid, Levels };
+
+/// Undoable change of the work planes (Geometria > Planos > Rejilla / Niveles): text "Rejilla" or "Niveles".
+class EditWorkPlanesCommand : public UndoCommand {
+public:
+    EditWorkPlanesCommand(Project& project, WorkPlanes newPlanes, WorkPlanesEdit kind);
+    void redo() override { m_project.workPlanes = m_after; }
+    void undo() override { m_project.workPlanes = m_before; }
+    std::string text() const override { return m_kind == WorkPlanesEdit::Grid ? "Rejilla" : "Niveles"; }
+
+private:
+    Project& m_project;
+    WorkPlanes m_before;
+    WorkPlanes m_after;
+    WorkPlanesEdit m_kind;
+};
+
 }  // namespace cc::core

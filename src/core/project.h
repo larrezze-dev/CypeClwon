@@ -10,6 +10,7 @@
 #include "core/standards.h"
 #include "core/structure_model.h"
 #include "core/units.h"
+#include "core/work_planes.h"
 
 namespace cc::core {
 
@@ -29,6 +30,7 @@ struct Project {
     DimensioningUnits units;  ///< "Unidades de acotación"; cm / cm / m when a file has no such section
     DisplayOptions display;        ///< "Opciones de visualización"; stored with the project like the original
     CategorySettings categories;   ///< "Categorías" panel state
+    WorkPlanes workPlanes;         ///< "Planos": grid lines, levels and plane groups (section work_planes)
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 
