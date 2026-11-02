@@ -421,3 +421,124 @@ TEST(Viewport3DLayers, BarInfoShowsTheLayerNames) {
     ASSERT_TRUE(model.assignLayers({bar}, {}, {other}, cc::core::LayerOperation::Assign));
     EXPECT_EQ(Viewport3D::barInfoLines(model, bar)[1], QStringLiteral("Capa : por defecto y Nueva capa 2"));
 }
+
+// --- View history, framing and modes (T-P4-09) ---------------------------------------------------------------------------
+TEST_F(ViewportTest, PresetCommitsHistoryAndPreviousViewRestores) {
+    const auto before = view->camera().view();
+    EXPECT_FALSE(view->canGoPrevious());
+    ASSERT_TRUE(view->applyProjectionPreset(1));  // plan view
+    EXPECT_EQ(view->camera().pitchDeg, 90.0);
+    EXPECT_TRUE(view->canGoPrevious());
+    ASSERT_TRUE(view->previousView());
+    EXPECT_EQ(view->camera().view(), before);
+    EXPECT_FALSE(view->canGoPrevious());
+    EXPECT_FALSE(view->previousView());
+}
+
+TEST_F(ViewportTest, UnavailablePresetLeavesHistoryAlone) {
+    EXPECT_FALSE(view->applyProjectionPreset(6));
+    EXPECT_FALSE(view->canGoPrevious());
+}
+
+TEST_F(ViewportTest, WheelPanAndOrbitGesturesAreOneHistoryEntryEach) {
+    wheel(*view, {400, 300}, 120);
+    EXPECT_EQ(view->historySize(), 1);
+    drag(*view, Qt::MiddleButton, {100, 100}, {160, 130});
+    EXPECT_EQ(view->historySize(), 2);
+    view->setLeftDragAction(DragAction::Orbit);
+    drag(*view, Qt::LeftButton, {100, 100}, {140, 100});
+    EXPECT_EQ(view->historySize(), 3);
+    while (view->previousView()) {}
+    EXPECT_EQ(view->camera().view(), cc::core::Camera{}.view());
+}
+
+TEST_F(ViewportTest, ClickWithoutMovementDoesNotPushHistory) {
+    drag(*view, Qt::MiddleButton, {100, 100}, {100, 100});
+    EXPECT_EQ(view->historySize(), 0);
+}
+
+TEST_F(ViewportTest, HistoryIsBounded) {
+    for (int i = 0; i < Viewport3D::kMaxViewHistory + 20; ++i) wheel(*view, {400, 300}, i % 2 ? -120 : 120);
+    EXPECT_EQ(view->historySize(), Viewport3D::kMaxViewHistory);
+}
+
+TEST_F(ViewportTest, FrameAllCentresOnTheNodes) {
+    view->setNodes({{0, 0, 0}, {10, 4, 6}});
+    view->frameAll();
+    const auto& c = view->camera();
+    EXPECT_NEAR(c.target.x, 5.0, 1e-9);
+    EXPECT_NEAR(c.target.y, 2.0, 1e-9);
+    EXPECT_NEAR(c.target.z, 3.0, 1e-9);
+    EXPECT_GT(c.distance, 0.0);
+    for (const auto& n : view->nodes()) {  // every node is inside the viewport
+        QPointF s;
+        ASSERT_TRUE(view->worldToScreen(n, s));
+        EXPECT_GE(s.x(), 0.0);
+        EXPECT_LE(s.x(), view->width());
+        EXPECT_GE(s.y(), 0.0);
+        EXPECT_LE(s.y(), view->height());
+    }
+    EXPECT_TRUE(view->canGoPrevious());
+}
+
+TEST_F(ViewportTest, FrameAllWithoutNodesRestoresTheDefaultView) {
+    wheel(*view, {400, 300}, 240);
+    view->frameAll();
+    EXPECT_EQ(view->camera().view(), cc::core::Camera{}.view());
+}
+
+TEST_F(ViewportTest, DoubleWindowIsTwiceAsFarAsTheFullWindow) {
+    view->setNodes({{0, 0, 0}, {10, 4, 6}});
+    view->frameAll();
+    const double full = view->camera().distance;
+    const auto target = view->camera().target;
+    view->doubleWindow();
+    EXPECT_NEAR(view->camera().distance, 2.0 * full, 1e-9);
+    EXPECT_EQ(view->camera().target, target);
+}
+
+TEST_F(ViewportTest, MiddleDoubleClickFramesAll) {
+    view->setNodes({{0, 0, 0}, {10, 4, 6}});
+    mouse(*view, QEvent::MouseButtonDblClick, {200, 200}, Qt::MiddleButton, Qt::MiddleButton);
+    EXPECT_NEAR(view->camera().target.x, 5.0, 1e-9);
+}
+
+TEST_F(ViewportTest, ZoomMarkClickZoomsInCentredOnThePoint) {
+    view->setZoomMarkMode(true);
+    const double distance = view->camera().distance;
+    const QPointF click(300, 200);
+    const auto world = view->screenToTargetPlane(click);
+    mouse(*view, QEvent::MouseButtonPress, click, Qt::LeftButton, Qt::LeftButton);
+    mouse(*view, QEvent::MouseButtonRelease, click, Qt::LeftButton, Qt::NoButton);
+    EXPECT_NEAR(view->camera().distance, distance / Viewport3D::kZoomMarkFactor, 1e-9);
+    EXPECT_NEAR(view->camera().target.x, world.x, 1e-9);
+    EXPECT_NEAR(view->camera().target.y, world.y, 1e-9);
+    EXPECT_NEAR(view->camera().target.z, world.z, 1e-9);
+    EXPECT_EQ(view->historySize(), 1);
+}
+
+TEST_F(ViewportTest, ZoomMarkOffDoesNotZoomOnClick) {
+    const double distance = view->camera().distance;
+    mouse(*view, QEvent::MouseButtonPress, {300, 200}, Qt::LeftButton, Qt::LeftButton);
+    mouse(*view, QEvent::MouseButtonRelease, {300, 200}, Qt::LeftButton, Qt::NoButton);
+    EXPECT_EQ(view->camera().distance, distance);
+}
+
+TEST_F(ViewportTest, PanToolDragMovesTheViewWithTheLeftButton) {
+    view->setLeftDragAction(DragAction::Pan);
+    const auto target = view->camera().target;
+    drag(*view, Qt::LeftButton, {100, 100}, {160, 130});
+    EXPECT_FALSE(view->camera().target == target);
+}
+
+TEST_F(ViewportTest, RotationModesEmitSignalsOnlyOnChange) {
+    QSignalSpy point(view.get(), &Viewport3D::rotateAroundPointChanged);
+    QSignalSpy camera(view.get(), &Viewport3D::rotateAroundCameraChanged);
+    view->setRotateAroundPoint(true);
+    view->setRotateAroundPoint(true);
+    view->setRotateAroundCamera(true);
+    EXPECT_EQ(point.count(), 1);
+    EXPECT_EQ(camera.count(), 1);
+    EXPECT_TRUE(view->rotateAroundPoint());
+    EXPECT_TRUE(view->rotateAroundCamera());
+}

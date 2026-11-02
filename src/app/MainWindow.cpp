@@ -36,7 +36,10 @@
 #include "StartPage.h"
 #include <QMdiArea>
 #include "LayersPanel.h"
+#include "ViewBar.h"
+#include "ViewIcons.h"
 #include "Viewport3D.h"
+#include <QActionGroup>
 #include "WorkArea.h"
 #include "core/general_data.h"
 #include "core/project.h"
@@ -72,6 +75,14 @@ cc::core::Project projectFrom(const EmptyProjectWizard& wizard, const cc::core::
 }
 }  // namespace
 
+namespace {
+/// The viewport of a 3D child window (its content is a ViewportFrame; a bare Viewport3D is accepted too).
+Viewport3D* viewportOf(QWidget* content) {
+    if (auto* frame = qobject_cast<ViewportFrame*>(content)) return frame->viewport();
+    return qobject_cast<Viewport3D*>(content);
+}
+}  // namespace
+
 MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     setWindowIcon(QIcon(QStringLiteral(":/icons/app_logo.svg")));
     setWindowTitle(QStringLiteral("%1 v%2")
@@ -83,6 +94,7 @@ MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     buildRibbonTabs();
     applyTitleBarStyle();
     createQuickAccessBar();
+    createZoomToolbar();
     createStatusBar();
     createWorkArea();
 }
@@ -106,26 +118,26 @@ void MainWindow::createWorkArea() {
     connect(m_leftPanel->displayOptions(), &DisplayOptionsPanel::optionsChanged, this,
             [this](const cc::core::DisplayOptions& options) {
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
-                    if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
+                    if (auto* viewport = viewportOf(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
             });
     // Categorías: visibility and layer colours act on every 3D window (session-only, like the display options).
     connect(m_leftPanel->categoriesPanel(), &CategoriesPanel::settingsChanged, this,
             [this](const cc::core::CategorySettings& settings) {
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
-                    if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) viewport->setCategorySettings(settings);
+                    if (auto* viewport = viewportOf(sub->widget())) viewport->setCategorySettings(settings);
             });
     // Etiquetas: eye, padlock, colour and cube act on every 3D window; the assign tool turns the viewport into a selection
     // surface (LMB selects bars and shells, RMB opens "Asignar elementos a etiquetas").
     connect(m_leftPanel->layersPanel(), &LayersPanel::layersChanged, this, [this] {
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
-            if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) {
+            if (auto* viewport = viewportOf(sub->widget())) {
                 viewport->clearSelection();  // a layer may have just been hidden
                 viewport->update();
             }
     });
     connect(m_leftPanel->layersPanel(), &LayersPanel::assignToolToggled, this, [this](bool on) {
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
-            if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) {
+            if (auto* viewport = viewportOf(sub->widget())) {
                 viewport->setSelectionFilter({false, true, true});
                 viewport->setSelectionMode(on);
             }
@@ -351,7 +363,9 @@ void MainWindow::setProjectOpen(bool open) {
     refreshUndoActions();
     // The 3D window lives as long as the project: opened with it, closed with it.
     if (open && m_workArea->windowCount() == 0) {
-        auto* viewport = new Viewport3D;
+        auto* frame = new ViewportFrame;
+        Viewport3D* viewport = frame->viewport();
+        applyViewTool(viewport);
         if (m_document) viewport->setStructure(&m_document->project.structure);
         connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] {
             if (!m_leftPanel->layersPanel()->assignToolButton()->isChecked() || viewport->selection().empty()) return;
@@ -365,11 +379,12 @@ void MainWindow::setProjectOpen(bool open) {
         });
         DisplayOptionsPanel::applyTo(*viewport, m_leftPanel->displayOptions()->options());
         viewport->setCategorySettings(m_leftPanel->categoriesPanel()->settings());
-        m_workArea->addDocumentWindow(tr("3D"), viewport);
+        m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }
     m_leftPanel->setVisible(open);
+    updateViewActions();
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.
     ribbonBar()->setMinimumMode(!open);
@@ -391,7 +406,7 @@ void MainWindow::createQuickAccessBar() {
     auto make = [this](const QString& icon, const QString& text, const QString& tip, const QKeySequence& key) {
         auto* action = new QAction(themedIcon(icon), text, this);
         action->setStatusTip(tip);
-        action->setToolTip(QStringLiteral("%1 (%2)").arg(text, key.toString(QKeySequence::NativeText)));
+        action->setToolTip(key.isEmpty() ? text : QStringLiteral("%1 (%2)").arg(text, key.toString(QKeySequence::NativeText)));
         action->setShortcut(key);
         action->setEnabled(false);
         return action;
@@ -404,7 +419,7 @@ void MainWindow::createQuickAccessBar() {
     addAction(m_saveAsAction);
     m_undoAction = make(QStringLiteral("undo"), tr("Deshacer"), tr("Deshace la última acción."), QKeySequence::Undo);
     m_redoAction = make(QStringLiteral("redo"), tr("Rehacer"), tr("Rehace la última acción deshecha."), QKeySequence::Redo);
-    m_printAction = make(QStringLiteral("print"), tr("Imprimir"), tr("Imprime la vista activa."), QKeySequence::Print);
+    m_printAction = make(QStringLiteral("print"), tr("Imprimir"), tr("Imprime la vista activa."), QKeySequence());  // Ctrl+P is "Ventana anterior"
     SARibbonQuickAccessBar* bar = ribbonBar()->quickAccessBar();
     for (QAction* action : {m_saveAction, m_undoAction, m_redoAction, m_printAction}) {
         bar->addAction(action);
@@ -412,6 +427,78 @@ void MainWindow::createQuickAccessBar() {
 }
 
 void MainWindow::createStatusBar() {
+}
+
+Viewport3D* MainWindow::activeViewport() const {
+    QMdiSubWindow* sub = m_workArea ? m_workArea->mdiArea()->activeSubWindow() : nullptr;
+    return sub ? viewportOf(sub->widget()) : nullptr;
+}
+
+void MainWindow::createZoomToolbar() {
+    // Group of the top bar at x = 1310...1499 in the original (docs/research/ui/viewport_3d.md): beside the ribbon tabs.
+    const auto make = [this](ZoomToolIcon icon, const QString& text, const QString& tip, const QKeySequence& key, bool checkable) {
+        auto* action = new QAction(zoomToolIcon(icon), text, this);
+        action->setToolTip(tip);
+        action->setStatusTip(tip);
+        action->setShortcut(key);
+        action->setCheckable(checkable);
+        action->setEnabled(false);
+        return action;
+    };
+    m_previousViewAction = make(ZoomToolIcon::PreviousWindow, tr("Ventana anterior"), tr("Ventana anterior (Ctrl+P): recuperar la vista de dibujo anterior"),
+                                QKeySequence(Qt::CTRL | Qt::Key_P), false);
+    m_fullViewAction = make(ZoomToolIcon::FullWindow, tr("Ventana completa"), tr("Ventana completa (Ctrl+W): visualizar todo el dibujo; también doble clic con el botón central"),
+                            QKeySequence(Qt::CTRL | Qt::Key_W), false);
+    m_doubleViewAction = make(ZoomToolIcon::DoubleWindow, tr("Ventana doble"), tr("Ventana doble: ampliar al doble el tamaño de la vista respecto a 'Ventana completa'"),
+                              QKeySequence(), false);
+    m_redrawAction = make(ZoomToolIcon::Redraw, tr("Redibujar"), tr("Redibujar (Ctrl+R)"), QKeySequence(Qt::CTRL | Qt::Key_R), false);
+    m_zoomMarkAction = make(ZoomToolIcon::ZoomMark, tr("Marcar zoom"), tr("Marcar zoom (Ctrl+M): ampliación pulsando sobre el dibujo; la rueda amplía y reduce"),
+                            QKeySequence(Qt::CTRL | Qt::Key_M), true);
+    m_moveImageAction = make(ZoomToolIcon::MoveImage, tr("Mover imagen"), tr("Mover imagen: pulsar y arrastrar con forma de mano; también botón central"),
+                             QKeySequence(), true);
+    m_orbitAction = make(ZoomToolIcon::Orbit3D, tr("Órbita 3D"),
+                         tr("Órbita 3D: girar alrededor del pivote; con la opción 'Rotación alrededor de un punto' marcada el pivote es el punto bajo el cursor; F1 muestra/oculta los textos de ayuda"),
+                         QKeySequence(), true);
+    // Mover imagen, Órbita 3D and Marcar zoom are tools of the left mouse button: only one at a time, or none.
+    m_viewTools = new QActionGroup(this);
+    m_viewTools->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+    for (QAction* a : {m_zoomMarkAction, m_moveImageAction, m_orbitAction}) m_viewTools->addAction(a);
+
+    SARibbonButtonGroupWidget* group = ribbonBar()->rightButtonGroup();
+    for (QAction* a : {m_previousViewAction, m_fullViewAction, m_doubleViewAction, m_redrawAction, m_zoomMarkAction, m_moveImageAction,
+                       m_orbitAction}) {
+        group->addAction(a);
+        addAction(a);  // shortcuts also work while the ribbon group is hidden
+    }
+    if (m_printAction) group->addAction(m_printAction);  // "Imprimir la vista actual" ends the group
+
+    connect(m_previousViewAction, &QAction::triggered, this, [this] { if (auto* v = activeViewport()) v->previousView(); });
+    connect(m_fullViewAction, &QAction::triggered, this, [this] { if (auto* v = activeViewport()) v->frameAll(); });
+    connect(m_doubleViewAction, &QAction::triggered, this, [this] { if (auto* v = activeViewport()) v->doubleWindow(); });
+    connect(m_redrawAction, &QAction::triggered, this, [this] { if (auto* v = activeViewport()) v->update(); });
+    connect(m_viewTools, &QActionGroup::triggered, this, [this] {
+        for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+            if (Viewport3D* v = viewportOf(sub->widget())) applyViewTool(v);
+    });
+}
+
+void MainWindow::applyViewTool(Viewport3D* viewport) const {
+    viewport->setZoomMarkMode(m_zoomMarkAction->isChecked());
+    viewport->setLeftDragAction(m_orbitAction->isChecked() ? DragAction::Orbit : m_moveImageAction->isChecked() ? DragAction::Pan : DragAction::None);
+}
+
+void MainWindow::updateViewActions() {
+    Viewport3D* v = activeViewport();
+    const bool on = m_projectOpen && v != nullptr;
+    for (QAction* a : {m_previousViewAction, m_fullViewAction, m_doubleViewAction, m_redrawAction, m_zoomMarkAction, m_moveImageAction,
+                       m_orbitAction})
+        a->setEnabled(on);
+    if (on) m_previousViewAction->setEnabled(v->canGoPrevious());
+    if (v) {
+        // The history button follows the active viewport.
+        disconnect(m_historyConnection);
+        m_historyConnection = connect(v, &Viewport3D::historyChanged, this, [this, v] { m_previousViewAction->setEnabled(v->canGoPrevious()); });
+    }
 }
 
 void MainWindow::applyTitleBarStyle() {

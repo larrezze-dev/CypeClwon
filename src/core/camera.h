@@ -30,6 +30,26 @@ struct Ray {
 
 enum class StandardView { Top, Bottom, Front, Back, Left, Right, Isometric };
 
+/// One cell of the "Proyección" palette of the vertical view bar (docs/research/ui/barra_vertical_vistas.md).
+struct ProjectionPreset {
+    double yawDeg = 0.0;
+    double pitchDeg = 0.0;
+    bool available = true;  ///< false: the original shows a view that needs a camera roll (not modelled), see TK-030
+};
+
+/// The 22 cells of the palette in reading order (3 columns, the last one centred). Indices are 0-based.
+inline constexpr int kProjectionPresetCount = 22;
+const std::array<ProjectionPreset, kProjectionPresetCount>& projectionPresets();
+
+/// Where the camera is: what "Ventana anterior" stores and restores (the projection type is not part of it).
+struct CameraView {
+    Vec3 target;
+    double distance = 20.0;
+    double yawDeg = 45.0;
+    double pitchDeg = 30.0;
+    bool operator==(const CameraView&) const = default;
+};
+
 /// Orbital camera of the 3D viewport. World axes as in the original: Z up, X and Y in the horizontal plane.
 ///
 /// The camera looks at `target` from `distance` away. `yawDeg` is the azimuth about Z and `pitchDeg` the elevation:
@@ -73,6 +93,12 @@ public:
 
     void setStandardView(StandardView view);
     void setProjection(Projection p) { projection = p; }
+    /// Applies the palette cell `index` (0-based): changes yaw and pitch only. False (nothing changes) when the index is
+    /// out of range or the cell is not available.
+    bool setPreset(int index);
+
+    CameraView view() const { return {target, distance, yawDeg, pitchDeg}; }
+    void setView(const CameraView& v) { target = v.target; distance = v.distance; yawDeg = v.yawDeg; pitchDeg = v.pitchDeg; }
 
     /// Centres on the box and moves back until it fits the viewport. A degenerate box (a point) uses `distance` 1.
     void frameBox(const Vec3& min, const Vec3& max, double aspect);

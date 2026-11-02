@@ -137,6 +137,35 @@ public:
     void setOrthographic(bool on);
     void setStandardView(core::StandardView view);
 
+    // --- View bar and zoom toolbar (T-P4-09) -------------------------------------------------------------------------
+    /// "Proyección" palette: applies the 0-based cell `index` (yaw and pitch only). False when it is unavailable.
+    bool applyProjectionPreset(int index);
+    /// "Ventana completa": centres on the bounding box of the nodes and fits it; without any node the default view
+    /// (isometric, target at the origin) is restored. Remembered as the reference of "Ventana doble".
+    void frameAll();
+    /// "Ventana doble": the original's tooltip says "ampliar al doble el tamaño de la vista respecto a 'Ventana completa'".
+    /// Interpretation (not verified in the original, TK-031): the full window with the camera twice as far, i.e. the
+    /// model at half its "Ventana completa" size, centred.
+    void doubleWindow();
+    /// "Ventana anterior": restores the view before the last zoom / pan / orbit / preset / frame gesture.
+    bool previousView();
+    bool canGoPrevious() const { return !m_history.empty(); }
+    int historySize() const { return static_cast<int>(m_history.size()); }
+    /// Records the end of a view gesture: the view in force before it goes onto the (bounded) history.
+    void commitView();
+    static constexpr int kMaxViewHistory = 50;
+    /// "Marcar zoom": while on, a left click zooms in x2 centred on the clicked point (the mode stays on until switched
+    /// off; the original's exact behaviour is unverified).
+    void setZoomMarkMode(bool on);
+    bool zoomMarkMode() const { return m_zoomMark; }
+    static constexpr double kZoomMarkFactor = 2.0;
+    /// "Rotación alrededor de un punto" / "... de la cámara": the state of the two buttons of the view bar. The orbit
+    /// pivot is still the camera target (TK-032: pivot under the cursor, rotation about the camera axis).
+    void setRotateAroundPoint(bool on);
+    bool rotateAroundPoint() const { return m_rotateAroundPoint; }
+    void setRotateAroundCamera(bool on);
+    bool rotateAroundCamera() const { return m_rotateAroundCamera; }
+
     /// Screen position (widget pixels, y down) of a world point; false when it cannot be seen (behind the camera).
     bool worldToScreen(const core::Vec3& world, QPointF& screen) const;
     /// World point under a widget position on the plane through the camera target.
@@ -145,6 +174,10 @@ public:
 signals:
     void cameraChanged();
     void projectionChanged(bool orthographic);
+    void historyChanged();
+    void zoomMarkModeChanged(bool on);
+    void rotateAroundPointChanged(bool on);
+    void rotateAroundCameraChanged(bool on);
     /// Cursor position on the target plane in world coordinates; emitted on every mouse move.
     void cursorMoved(const cc::core::Vec3& world);
     void selectionChanged();
@@ -161,6 +194,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void leaveEvent(QEvent* event) override;
@@ -211,6 +245,14 @@ private:
     bool m_fillShells = false;
     double m_nodeSizeCm = 15.0;
     bool m_cursorInside = false;
+
+    void notifyCameraChanged();
+    void fitAll();  ///< the camera part of frameAll(), without history
+    std::optional<core::CameraView> m_committed;  ///< view at the end of the previous gesture
+    std::vector<core::CameraView> m_history;
+    bool m_zoomMark = false;
+    bool m_rotateAroundPoint = false;
+    bool m_rotateAroundCamera = false;
 };
 
 }  // namespace cc::app

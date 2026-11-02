@@ -76,6 +76,32 @@ void Camera::setStandardView(StandardView view) {
     }
 }
 
+const std::array<ProjectionPreset, kProjectionPresetCount>& projectionPresets() {
+    // Rows 1-2: front/top/right and back/bottom/left. Row 3 (cells 7-9) needs a camera roll and 20-22 are not fixed yet
+    // (TK-030): unavailable. Rows 4-6: axonometrics from above (yaw 300/315/330, pitch 45), from above with X towards the
+    // viewer (cell 14 is the default isometric view, yaw 45 / pitch 30) and from below.
+    static const std::array<ProjectionPreset, kProjectionPresetCount> table = {{
+        {0, 0, true},      {0, 90, true},     {90, 0, true},
+        {180, 0, true},    {180, -90, true},  {270, 0, true},
+        {0, 0, false},     {0, 90, false},    {90, 0, false},
+        {300, 45, true},   {315, 45, true},   {330, 45, true},
+        {30, 35, true},    {45, 30, true},    {60, 35, true},
+        {300, -45, true},  {315, -45, true},  {330, -45, true},
+        {0, -90, true},    {0, 0, false},     {0, 0, false},
+        {0, 0, false},
+    }};
+    return table;
+}
+
+bool Camera::setPreset(int index) {
+    if (index < 0 || index >= kProjectionPresetCount) return false;
+    const ProjectionPreset& p = projectionPresets()[static_cast<std::size_t>(index)];
+    if (!p.available) return false;
+    yawDeg = p.yawDeg;
+    pitchDeg = p.pitchDeg;
+    return true;
+}
+
 void Camera::frameBox(const Vec3& min, const Vec3& max, double aspect) {
     target = (min + max) * 0.5;
     const double radius = length(max - min) * 0.5;

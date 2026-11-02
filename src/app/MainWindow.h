@@ -8,12 +8,14 @@
 #include <QString>
 
 class QAction;
+class QActionGroup;
 class QCloseEvent;
 class QStackedWidget;
 
 namespace cc::app {
 
 class LeftPanel;
+class Viewport3D;
 class SessionBar;
 class StartPage;
 class WorkArea;
@@ -25,6 +27,13 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
     WorkArea* workArea() const { return m_workArea; }
+    QAction* previousViewAction() const { return m_previousViewAction; }
+    QAction* fullViewAction() const { return m_fullViewAction; }
+    QAction* doubleViewAction() const { return m_doubleViewAction; }
+    QAction* redrawAction() const { return m_redrawAction; }
+    QAction* zoomMarkAction() const { return m_zoomMarkAction; }
+    QAction* moveImageAction() const { return m_moveImageAction; }
+    QAction* orbitAction() const { return m_orbitAction; }
     StartPage* startPage() const { return m_startPage; }
 
     /// Switches between the start screen (no project open) and the ribbon + work area.
@@ -54,6 +63,12 @@ private:
     void placeSessionBar();
     void createQuickAccessBar();
     void createStatusBar();
+    /// Zoom / framing group of the top bar (Ventana anterior ... Órbita 3D), at the right of the ribbon tabs.
+    void createZoomToolbar();
+    Viewport3D* activeViewport() const;
+    /// Enables the zoom group when a 3D window is active and applies the active tool to every 3D window.
+    void updateViewActions();
+    void applyViewTool(Viewport3D* viewport) const;
     void createWorkArea();
     void newProject();
     void openFileManager();
@@ -80,6 +95,15 @@ private:
     QAction* m_saveAsAction = nullptr;
     QAction* m_generalDataAction = nullptr;
     QAction* m_unitsAction = nullptr;
+    QAction* m_previousViewAction = nullptr;
+    QAction* m_fullViewAction = nullptr;
+    QAction* m_doubleViewAction = nullptr;
+    QAction* m_redrawAction = nullptr;
+    QAction* m_zoomMarkAction = nullptr;
+    QAction* m_moveImageAction = nullptr;
+    QAction* m_orbitAction = nullptr;
+    QActionGroup* m_viewTools = nullptr;
+    QMetaObject::Connection m_historyConnection;
 
     SessionBar* m_sessionBar = nullptr;
     LeftPanel* m_leftPanel = nullptr;

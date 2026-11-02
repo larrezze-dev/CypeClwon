@@ -201,3 +201,73 @@ TEST(Camera, MatrixMultiplicationAndIdentity) {
     const Mat4 same = vp * Mat4{};
     for (std::size_t i = 0; i < 16; ++i) EXPECT_DOUBLE_EQ(vp.m[i], same.m[i]);
 }
+
+TEST(CameraPresets, TableHasTwentyTwoCellsAndSixUnavailable) {
+    const auto& presets = projectionPresets();
+    ASSERT_EQ(presets.size(), 22u);
+    int unavailable = 0;
+    for (const auto& p : presets) unavailable += p.available ? 0 : 1;
+    EXPECT_EQ(unavailable, 6);
+    for (int i : {6, 7, 8, 19, 20, 21}) EXPECT_FALSE(presets[static_cast<std::size_t>(i)].available) << i;
+}
+
+TEST(CameraPresets, FirstSixAreTheOrthogonalViews) {
+    Camera c;
+    ASSERT_TRUE(c.setPreset(0));
+    expectNear(c.forward(), {0, 1, 0});
+    ASSERT_TRUE(c.setPreset(1));
+    expectNear(c.forward(), {0, 0, -1});
+    expectNear(c.up(), {0, 1, 0});
+    ASSERT_TRUE(c.setPreset(2));
+    expectNear(c.forward(), {-1, 0, 0});
+    ASSERT_TRUE(c.setPreset(3));
+    expectNear(c.right(), {-1, 0, 0});
+    ASSERT_TRUE(c.setPreset(4));
+    expectNear(c.forward(), {0, 0, 1});
+    expectNear(c.up(), {0, 1, 0});
+    ASSERT_TRUE(c.setPreset(5));
+    expectNear(c.forward(), {1, 0, 0});
+    ASSERT_TRUE(c.setPreset(18));
+    expectNear(c.forward(), {0, 0, 1});
+    expectNear(c.up(), {0, -1, 0});
+}
+
+TEST(CameraPresets, CellFourteenIsTheDefaultView) {
+    Camera def;
+    Camera c;
+    c.yawDeg = 10;
+    c.pitchDeg = -20;
+    ASSERT_TRUE(c.setPreset(13));
+    EXPECT_EQ(c.yawDeg, def.yawDeg);
+    EXPECT_EQ(c.pitchDeg, def.pitchDeg);
+}
+
+TEST(CameraPresets, UnavailableOrInvalidCellsChangeNothing) {
+    Camera c;
+    const CameraView before = c.view();
+    for (int i : {6, 7, 8, 19, 20, 21, -1, 22, 100}) {
+        EXPECT_FALSE(c.setPreset(i)) << i;
+        EXPECT_EQ(c.view(), before);
+    }
+}
+
+TEST(CameraPresets, PresetKeepsTargetAndDistance) {
+    Camera c;
+    c.target = {1, 2, 3};
+    c.distance = 7;
+    ASSERT_TRUE(c.setPreset(11));
+    EXPECT_EQ(c.target, (Vec3{1, 2, 3}));
+    EXPECT_EQ(c.distance, 7);
+}
+
+TEST(CameraPresets, ViewRoundTrip) {
+    Camera c;
+    c.target = {4, 5, 6};
+    c.distance = 3;
+    c.yawDeg = 12;
+    c.pitchDeg = -7;
+    const CameraView v = c.view();
+    Camera d;
+    d.setView(v);
+    EXPECT_EQ(d.view(), v);
+}

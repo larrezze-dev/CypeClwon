@@ -7,6 +7,7 @@
 #include <QTranslator>
 
 #include "MainWindow.h"
+#include "ViewBar.h"
 #include "Viewport3D.h"
 #include "NewProjectDialog.h"
 #include "EmptyProjectWizard.h"
@@ -85,7 +86,7 @@ int main(int argc, char* argv[]) {
     const int demoWindows = parser.value(demoOpt).toInt();
     if (demoWindows > 0) window.setProjectOpen(true);  // opens the first 3D window
     for (int i = 1; i < demoWindows; ++i) {
-        window.workArea()->addDocumentWindow(QStringLiteral("3D"), new cc::app::Viewport3D);
+        window.workArea()->addDocumentWindow(QStringLiteral("3D"), new cc::app::ViewportFrame);
     }
     window.show();
     if (!parser.positionalArguments().isEmpty()) window.openProjectFile(parser.positionalArguments().first());

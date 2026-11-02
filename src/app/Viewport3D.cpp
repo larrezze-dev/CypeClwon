@@ -47,9 +47,90 @@ void Viewport3D::setOrthographic(bool on) {
 }
 
 void Viewport3D::setStandardView(core::StandardView view) {
+    if (!m_committed) m_committed = m_camera.view();
     m_camera.setStandardView(view);
+    commitView();
+    notifyCameraChanged();
+}
+
+void Viewport3D::notifyCameraChanged() {
     emit cameraChanged();
     update();
+}
+
+void Viewport3D::commitView() {
+    const core::CameraView now = m_camera.view();
+    if (!m_committed) m_committed = now;
+    if (*m_committed == now) return;
+    m_history.push_back(*m_committed);
+    if (static_cast<int>(m_history.size()) > kMaxViewHistory) m_history.erase(m_history.begin());
+    m_committed = now;
+    emit historyChanged();
+}
+
+bool Viewport3D::previousView() {
+    if (m_history.empty()) return false;
+    m_camera.setView(m_history.back());
+    m_committed = m_history.back();
+    m_history.pop_back();
+    emit historyChanged();
+    notifyCameraChanged();
+    return true;
+}
+
+bool Viewport3D::applyProjectionPreset(int index) {
+    if (!m_committed) m_committed = m_camera.view();
+    if (!m_camera.setPreset(index)) return false;
+    commitView();
+    notifyCameraChanged();
+    return true;
+}
+
+void Viewport3D::fitAll() {
+    if (m_nodes.empty()) {
+        const core::Camera defaults;
+        m_camera.setView(defaults.view());
+        return;
+    }
+    Vec3 lo = m_nodes.front(), hi = m_nodes.front();
+    for (const Vec3& n : m_nodes) {
+        lo = {std::min(lo.x, n.x), std::min(lo.y, n.y), std::min(lo.z, n.z)};
+        hi = {std::max(hi.x, n.x), std::max(hi.y, n.y), std::max(hi.z, n.z)};
+    }
+    m_camera.frameBox(lo, hi, aspect());
+}
+
+void Viewport3D::frameAll() {
+    if (!m_committed) m_committed = m_camera.view();
+    fitAll();
+    commitView();
+    notifyCameraChanged();
+}
+
+void Viewport3D::doubleWindow() {
+    if (!m_committed) m_committed = m_camera.view();
+    fitAll();
+    m_camera.distance = std::clamp(m_camera.distance * 2.0, Camera::kMinDistance, Camera::kMaxDistance);
+    commitView();
+    notifyCameraChanged();
+}
+
+void Viewport3D::setZoomMarkMode(bool on) {
+    if (m_zoomMark == on) return;
+    m_zoomMark = on;
+    emit zoomMarkModeChanged(on);
+}
+
+void Viewport3D::setRotateAroundPoint(bool on) {
+    if (m_rotateAroundPoint == on) return;
+    m_rotateAroundPoint = on;
+    emit rotateAroundPointChanged(on);
+}
+
+void Viewport3D::setRotateAroundCamera(bool on) {
+    if (m_rotateAroundCamera == on) return;
+    m_rotateAroundCamera = on;
+    emit rotateAroundCameraChanged(on);
 }
 
 bool Viewport3D::worldToScreen(const Vec3& world, QPointF& screen) const {
@@ -75,6 +156,15 @@ DragAction Viewport3D::actionFor(Qt::MouseButtons buttons) const {
 void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
     m_drag = actionFor(event->buttons());
+    if (!m_committed) m_committed = m_camera.view();
+    if (m_zoomMark && event->button() == Qt::LeftButton && width() > 0 && height() > 0) {
+        m_camera.target = screenToTargetPlane(event->position());  // centre on the clicked point, then come closer
+        m_camera.distance = std::clamp(m_camera.distance / kZoomMarkFactor, Camera::kMinDistance, Camera::kMaxDistance);
+        commitView();
+        notifyCameraChanged();
+        event->accept();
+        return;
+    }
     if (m_selectionMode && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) selectionPress(event);
     if (m_snapMode && event->button() == Qt::LeftButton) {
         updateSnap(event->position());
@@ -106,17 +196,29 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void Viewport3D::mouseReleaseEvent(QMouseEvent* event) {
+    const DragAction finished = m_drag;
     m_drag = actionFor(event->buttons());
+    if (finished != DragAction::None && m_drag == DragAction::None) commitView();
     event->accept();
+}
+
+void Viewport3D::mouseDoubleClickEvent(QMouseEvent* event) {
+    if (event->button() == Qt::MiddleButton) {  // "Ventana completa": also a double click with the middle button
+        frameAll();
+        event->accept();
+        return;
+    }
+    QOpenGLWidget::mouseDoubleClickEvent(event);
 }
 
 void Viewport3D::wheelEvent(QWheelEvent* event) {
     const double notches = event->angleDelta().y() / 120.0;
     if (notches != 0.0 && width() > 0 && height() > 0) {
         const QPointF p = event->position();
+        if (!m_committed) m_committed = m_camera.view();
         m_camera.zoomAt(notches, 2.0 * p.x() / width() - 1.0, 1.0 - 2.0 * p.y() / height(), aspect());
-        emit cameraChanged();
-        update();
+        commitView();
+        notifyCameraChanged();
     }
     event->accept();
 }

@@ -16,6 +16,11 @@ target_include_directories(viewport3d_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(viewport3d_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(viewport3d_tests)
 
+add_executable(viewbar_tests viewbar_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewBar.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewIcons.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+target_include_directories(viewbar_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(viewbar_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
+gtest_discover_tests(viewbar_tests)
+
 add_executable(startpage_tests startpage_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/StartPage.cpp
   ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(startpage_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
