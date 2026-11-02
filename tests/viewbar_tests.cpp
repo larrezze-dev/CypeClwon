@@ -6,7 +6,10 @@
 #include <QToolButton>
 #include <memory>
 
+#include <QCheckBox>
+
 #include "ViewBar.h"
+#include "ViewOptionsDialog.h"
 #include "Viewport3D.h"
 
 using cc::app::ProjectionPalette;
@@ -47,12 +50,9 @@ TEST_F(ViewBarTest, HasTenButtonsWithTheTooltipsOfTheOriginal) {
     EXPECT_EQ(buttons, ViewBar::ButtonCount);
 }
 
-TEST_F(ViewBarTest, OnlyTheImplementedButtonsAreEnabled) {
+TEST_F(ViewBarTest, AllTenButtonsAreEnabled) {
     ViewBar* bar = frame->viewBar();
-    for (int i = 0; i < ViewBar::ButtonCount; ++i) {
-        const auto b = static_cast<ViewBar::Button>(i);
-        EXPECT_EQ(bar->button(b)->isEnabled(), i <= ViewBar::RotateAroundCamera) << i;
-    }
+    for (int i = 0; i < ViewBar::ButtonCount; ++i) EXPECT_TRUE(bar->button(static_cast<ViewBar::Button>(i))->isEnabled()) << i;
 }
 
 TEST_F(ViewBarTest, PaletteHasTwentyTwoEnabledCells) {
@@ -108,12 +108,63 @@ TEST_F(ViewBarTest, RotationButtonsEmitAndDriveTheViewport) {
     EXPECT_FALSE(frame->viewport()->rotateAroundPoint());
 }
 
-TEST_F(ViewBarTest, DisabledButtonsEmitNothing) {
+TEST_F(ViewBarTest, SectionButtonsToggleThePlanesOfTheViewport) {
     ViewBar* bar = frame->viewBar();
-    QSignalSpy spy(bar, &ViewBar::paletteToggled);
+    Viewport3D* v = frame->viewport();
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
     bar->button(ViewBar::SectionX)->click();
-    bar->button(ViewBar::ClippingVolume)->click();
-    EXPECT_EQ(spy.count(), 0);
+    EXPECT_TRUE(v->sectionActive(0));
+    EXPECT_DOUBLE_EQ(v->clipping().sections[0].position, 5.0);  // starts at the middle of the envelope (plus symmetric margin)
+    EXPECT_TRUE(bar->button(ViewBar::SectionX)->isChecked());
+    bar->button(ViewBar::SectionX)->click();
+    EXPECT_FALSE(v->sectionActive(0));
+}
+
+TEST_F(ViewBarTest, ClippingVolumeFollowsTheGeometricEnvelope) {
+    Viewport3D* v = frame->viewport();
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
+    frame->viewBar()->button(ViewBar::ClippingVolume)->click();
+    ASSERT_TRUE(v->clippingVolumeActive());
+    EXPECT_DOUBLE_EQ(v->clipping().volume.max.x, 10.0);
+    EXPECT_DOUBLE_EQ(v->clipping().volume.min.z, 0.0);
+    EXPECT_EQ(v->clipHandles().size(), 6u);
+    EXPECT_TRUE(v->visibleAfterClipping({5, 2, 3}));
+    EXPECT_FALSE(v->visibleAfterClipping({11, 2, 3}));
+}
+
+TEST_F(ViewBarTest, DraggingASectionArrowMovesThePlaneAndDoubleClickFlipsIt) {
+    Viewport3D* v = frame->viewport();
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
+    v->show();
+    v->resize(600, 400);
+    v->setSectionActive(0, true);
+    const auto handles = v->clipHandles();
+    ASSERT_EQ(handles.size(), 1u);
+    QPointF a, b;
+    ASSERT_TRUE(v->worldToScreen(handles[0].base, a));
+    ASSERT_TRUE(v->worldToScreen(handles[0].tip, b));
+    const QPointF mid = (a + b) / 2.0;
+    ASSERT_TRUE(v->clipHandleAt(mid).has_value());
+    EXPECT_FALSE(v->clipHandleAt(QPointF(2, 2)).has_value());
+    const double before = v->clipping().sections[0].position;
+    v->dragClipHandle(*v->clipHandleAt(mid), mid, mid + (b - a) * 0.5);  // half an arrow along the axis
+    EXPECT_GT(v->clipping().sections[0].position, before);
+    EXPECT_TRUE(v->flipSection(0));
+    EXPECT_TRUE(v->clipping().sections[0].flipped);
+    EXPECT_FALSE(v->flipSection(1));  // inactive section
+}
+
+TEST_F(ViewBarTest, OptionsButtonOpensTheDialogWithBothBoxesUnchecked) {
+    Viewport3D* v = frame->viewport();
+    EXPECT_FALSE(v->objectEdges());
+    EXPECT_FALSE(v->ssao());
+    cc::app::ViewOptionsDialog dialog(v->objectEdges(), v->ssao());
+    EXPECT_EQ(dialog.size(), QSize(265, 136));
+    EXPECT_FALSE(dialog.edgesBox()->isChecked());
+    EXPECT_FALSE(dialog.ssaoBox()->isChecked());
+    EXPECT_EQ(dialog.ssaoBox()->text(), QStringLiteral("Iluminación ambiental mejorada (SSAO)"));
+    dialog.edgesBox()->setChecked(true);
+    EXPECT_TRUE(dialog.objectEdges());
 }
 
 int main(int argc, char** argv) {

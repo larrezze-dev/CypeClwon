@@ -1,5 +1,5 @@
 ﻿add_executable(cypeclwon WIN32 main.cpp MainWindow.cpp MainWindow.h SessionBar.cpp SessionBar.h
-  WorkArea.cpp WorkArea.h Viewport3D.cpp Viewport3D.h ViewBar.cpp ViewBar.h ViewIcons.cpp ViewIcons.h
+  WorkArea.cpp WorkArea.h Viewport3D.cpp Viewport3D.h ViewBar.cpp ViewBar.h ViewIcons.cpp ViewIcons.h ViewOptionsDialog.cpp ViewOptionsDialog.h
   StartPage.cpp StartPage.h LeftPanel.cpp LeftPanel.h DisplayOptionsPanel.cpp DisplayOptionsPanel.h LayersPanel.cpp LayersPanel.h CategoriesPanel.cpp CategoriesPanel.h
   CypeDialog.cpp CypeDialog.h NewProjectDialog.cpp NewProjectDialog.h
   ProjectTypeDialog.cpp ProjectTypeDialog.h

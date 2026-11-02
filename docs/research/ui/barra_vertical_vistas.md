@@ -71,3 +71,9 @@ Capturas `rq_*.png`, `rs_*.png`, `rq_icons.png`.
 - **Volumen de recorte** (y=387): caja de 6 planos en alambre alrededor de la envolvente geométrica (rq_v1/v2). Flechas y arcos de ajuste: sin medir.
 - **Icono 411** (plano con ojo y flecha): se hunde al pulsarlo pero no cambia el dibujo; la rueda y el arrastre tampoco cambian nada (rq_w411/d411). Tooltip no capturado: PENDIENTE (pedir al usuario que lo lea con el ratón real).
 - **Icono 440** («3D» con engranaje): abre el diálogo **Opciones** (265x136) con dos casillas sin marcar, «Aristas de objetos» e «Iluminación ambiental mejorada (SSAO)», y el botón Aceptar (rq_i2.png).
+
+## Sesión 22: clon de secciones, volumen de recorte, icono 411 y «Opciones»
+- `core/clipping`: semiespacios por eje; sección = se conserva el lado opuesto a la flecha roja (flecha +eje elimina coordenada > posición); recorte de segmentos (barras) y de polígonos (láminas, Sutherland-Hodgman); el volumen conserva el interior de la caja de 6 planos (envolvente de los nudos) y sus caras nunca se cruzan.
+- Visor: plano gris translúcido + flecha roja + arco rojo; arrastrar la flecha mueve el plano a lo largo del eje; doble clic invierte el sentido (según el tooltip del original). Supuestos aún no medidos en el original: posición inicial (centro de la envolvente), tamaño de flecha/arco, función de los arcos.
+- Icono y=411: botón hundible sin efecto visible, igual que el original; sin tooltip hasta que el usuario lo lea.
+- Icono y=440: `ViewOptionsDialog` (265x136, solo Aceptar; «Aristas de objetos» dibuja un borde oscuro alrededor de los perfiles/láminas renderizados; «SSAO» se guarda sin efecto).

@@ -16,7 +16,7 @@ enum class ViewBarIcon {
     SectionZ,
     ClippingVolume,
     Unidentified1,
-    Unidentified2
+    Options
 };
 
 /// Icons of the zoom / framing group of the top bar.

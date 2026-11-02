@@ -9,10 +9,12 @@
 #include <QString>
 #include <QStringList>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "core/camera.h"
 #include "core/categories.h"
+#include "core/clipping.h"
 #include "core/picking.h"
 #include "core/selection.h"
 #include "core/snap.h"
@@ -168,6 +170,35 @@ public:
     void setRotateAroundCamera(bool on);
     bool rotateAroundCamera() const { return m_rotateAroundCamera; }
 
+    /// Sections X/Y/Z and clipping volume (TK-032). A section removes the geometry on the side of its red arrow.
+    const core::ClipSettings& clipping() const { return m_clip; }
+    void setSectionActive(int axis, bool on);
+    bool sectionActive(int axis) const { return axis >= 0 && axis < 3 && m_clip.sections[static_cast<std::size_t>(axis)].active; }
+    bool flipSection(int axis);
+    void setClippingVolumeActive(bool on);
+    bool clippingVolumeActive() const { return m_clip.volume.active; }
+    /// Options of the 3D window (icon y=440): edges of the objects and screen-space ambient occlusion. SSAO has no effect on
+    /// the software painter (ticket for the OpenGL renderer).
+    void setObjectEdges(bool on) { m_objectEdges = on; update(); }
+    bool objectEdges() const { return m_objectEdges; }
+    void setSsao(bool on) { m_ssao = on; update(); }
+    bool ssao() const { return m_ssao; }
+    /// An arrow of the section planes / clipping volume that the mouse can grab.
+    struct ClipHandle {
+        bool volume = false;   ///< false: section plane
+        int axis = 0;
+        bool faceMax = false;  ///< volume: the face with the larger coordinate
+        core::Vec3 base;       ///< plane centre / face centre
+        core::Vec3 tip;        ///< arrow head
+    };
+    std::vector<ClipHandle> clipHandles() const;
+    /// Handle whose arrow is within `tolerancePx` of the widget position.
+    std::optional<ClipHandle> clipHandleAt(const QPointF& pos, double tolerancePx = 8.0) const;
+    /// Moves the arrow of `handle` so that it follows the cursor (as if dragged from `from` to `to`).
+    void dragClipHandle(const ClipHandle& handle, const QPointF& from, const QPointF& to);
+    /// Whether a world point survives every active section and the clipping volume.
+    bool visibleAfterClipping(const core::Vec3& p) const;
+
     /// Screen position (widget pixels, y down) of a world point; false when it cannot be seen (behind the camera).
     bool worldToScreen(const core::Vec3& world, QPointF& screen) const;
     /// World point under a widget position on the plane through the camera target.
@@ -180,6 +211,8 @@ signals:
     void zoomMarkModeChanged(bool on);
     void rotateAroundPointChanged(bool on);
     void rotateAroundCameraChanged(bool on);
+    void sectionChanged(int axis, bool active);
+    void clippingVolumeChanged(bool active);
     /// Cursor position on the target plane in world coordinates; emitted on every mouse move.
     void cursorMoved(const cc::core::Vec3& world);
     void selectionChanged();
@@ -256,6 +289,13 @@ private:
     bool m_zoomMark = false;
     bool m_rotateAroundPoint = false;
     bool m_rotateAroundCamera = false;
+    core::ClipSettings m_clip;
+    bool m_objectEdges = false;
+    bool m_ssao = false;
+    std::optional<ClipHandle> m_clipDrag;
+    QPointF m_clipDragLast;
+    void drawClipping(class QPainter& painter) const;
+    std::pair<core::Vec3, core::Vec3> clipEnvelope() const;
     core::Vec3 m_orbitPivot;  ///< fixed at the start of an orbit drag when rotating about a point
     /// Object point under the cursor (node, point of a bar), else the point of the target plane seen there.
     core::Vec3 orbitPivotAt(const QPointF& pos) const;

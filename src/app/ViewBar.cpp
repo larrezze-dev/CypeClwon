@@ -1,5 +1,7 @@
 #include "ViewBar.h"
 
+#include "ViewOptionsDialog.h"
+
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -66,15 +68,17 @@ QString ViewBar::tooltipText(Button which) {
         case ClippingVolume:
             return tr("Volumen de recorte: volumen de visualización mediante 6 planos de corte a partir de la envolvente geométrica; flechas para ajustar los planos y arcos para su orientación.");
         case Unidentified1:
-        case Unidentified2:
+        case Options:
         case ButtonCount:
             break;
     }
     return QString();  // the two last buttons showed no tooltip in the original
 }
 
-bool ViewBar::implemented(Button which) {
-    return which == Projection || which == ProjectionType || which == RotateAroundPoint || which == RotateAroundCamera;
+bool ViewBar::implemented(Button) { return true; }
+
+bool ViewBar::isToggle(Button which) {
+    return which != ProjectionType && which != Options;  // the two others are one-shot buttons
 }
 
 ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
@@ -90,7 +94,7 @@ ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
     const ViewBarIcon icons[ButtonCount] = {ViewBarIcon::Projection,        ViewBarIcon::ProjectionType, ViewBarIcon::RotateAroundPoint,
                                             ViewBarIcon::RotateAroundCamera, ViewBarIcon::SectionX,       ViewBarIcon::SectionY,
                                             ViewBarIcon::SectionZ,           ViewBarIcon::ClippingVolume, ViewBarIcon::Unidentified1,
-                                            ViewBarIcon::Unidentified2};
+                                            ViewBarIcon::Options};
     for (int i = 0; i < ButtonCount; ++i) {
         const Button which = static_cast<Button>(i);
         auto* b = new QToolButton(this);
@@ -100,9 +104,9 @@ ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
         b->setIcon(viewBarIcon(icons[i]));
         b->setToolTip(tooltipText(which));
         b->setEnabled(implemented(which));
-        b->setCheckable(which == Projection || which == RotateAroundPoint || which == RotateAroundCamera);
+        b->setCheckable(isToggle(which));
         m_buttons[static_cast<std::size_t>(i)] = b;
-        if (which == Unidentified2) {  // separated by a line, like the original
+        if (which == Options) {  // separated by a line, like the original
             auto* line = new QFrame(this);
             line->setFrameShape(QFrame::HLine);
             line->setFrameShadow(QFrame::Sunken);
@@ -120,6 +124,11 @@ ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
     connect(button(ProjectionType), &QToolButton::clicked, this, &ViewBar::projectionTypeToggled);
     connect(button(RotateAroundPoint), &QToolButton::toggled, this, &ViewBar::rotateAroundPointToggled);
     connect(button(RotateAroundCamera), &QToolButton::toggled, this, &ViewBar::rotateAroundCameraToggled);
+    for (int axis = 0; axis < 3; ++axis)
+        connect(button(static_cast<Button>(SectionX + axis)), &QToolButton::toggled, this,
+                [this, axis](bool on) { emit sectionToggled(axis, on); });
+    connect(button(ClippingVolume), &QToolButton::toggled, this, &ViewBar::clippingVolumeToggled);
+    connect(button(Options), &QToolButton::clicked, this, &ViewBar::optionsRequested);
 }
 
 bool ViewBar::paletteVisible() const { return button(Projection)->isChecked(); }
@@ -146,6 +155,19 @@ void ViewBar::bind(Viewport3D* viewport) {
     connect(this, &ViewBar::projectionTypeToggled, viewport, [viewport] { viewport->setOrthographic(!viewport->isOrthographic()); });
     connect(this, &ViewBar::rotateAroundPointToggled, viewport, &Viewport3D::setRotateAroundPoint);
     connect(this, &ViewBar::rotateAroundCameraToggled, viewport, &Viewport3D::setRotateAroundCamera);
+    connect(this, &ViewBar::sectionToggled, viewport, &Viewport3D::setSectionActive);
+    connect(this, &ViewBar::clippingVolumeToggled, viewport, &Viewport3D::setClippingVolumeActive);
+    connect(this, &ViewBar::optionsRequested, viewport, [this, viewport] {
+        ViewOptionsDialog dialog(viewport->objectEdges(), viewport->ssao(), window());
+        if (dialog.exec() == QDialog::Accepted) {
+            viewport->setObjectEdges(dialog.objectEdges());
+            viewport->setSsao(dialog.ssao());
+        }
+    });
+    for (int axis = 0; axis < 3; ++axis)
+        connect(viewport, &Viewport3D::sectionChanged, button(static_cast<Button>(SectionX + axis)),
+                [this, axis](int a, bool on) { if (a == axis) button(static_cast<Button>(SectionX + axis))->setChecked(on); });
+    connect(viewport, &Viewport3D::clippingVolumeChanged, button(ClippingVolume), &QToolButton::setChecked);
     connect(viewport, &Viewport3D::rotateAroundPointChanged, button(RotateAroundPoint), &QToolButton::setChecked);
     connect(viewport, &Viewport3D::rotateAroundCameraChanged, button(RotateAroundCamera), &QToolButton::setChecked);
 }

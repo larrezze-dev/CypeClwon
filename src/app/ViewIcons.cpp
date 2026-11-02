@@ -121,7 +121,7 @@ QIcon viewBarIcon(ViewBarIcon which, int size) {
             p.drawEllipse(QPointF(13, 17.5), 3.2, 3.2);
             arrow(p, {16, 9}, {27, 4}, kBlue, 2.0, 6.0);
             break;
-        case ViewBarIcon::Unidentified2: {  // "3D" with a cog
+        case ViewBarIcon::Options: {  // "3D" with a cog
             QFont f(QStringLiteral("Arial"));
             f.setPixelSize(16);
             f.setBold(true);

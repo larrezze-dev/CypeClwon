@@ -44,7 +44,7 @@ public:
         SectionZ,
         ClippingVolume,
         Unidentified1,
-        Unidentified2,
+        Options,  ///< y=440 "3D" with a gear: dialog «Opciones»
         ButtonCount
     };
 
@@ -56,6 +56,8 @@ public:
     static QString tooltipText(Button which);
     /// Buttons that do something now; the others are present but disabled (sections, clipping volume, unidentified).
     static bool implemented(Button which);
+    /// Buttons that stay pressed (checkable).
+    static bool isToggle(Button which);
 
     void setPaletteVisible(bool visible);
     bool paletteVisible() const;
@@ -69,6 +71,9 @@ signals:
     void projectionTypeToggled();
     void rotateAroundPointToggled(bool on);
     void rotateAroundCameraToggled(bool on);
+    void sectionToggled(int axis, bool on);
+    void clippingVolumeToggled(bool on);
+    void optionsRequested();
 
 protected:
     void hideEvent(QHideEvent* event) override;
