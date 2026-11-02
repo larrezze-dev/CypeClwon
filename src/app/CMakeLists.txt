@@ -15,3 +15,7 @@ set(CC_TS_FILES ${CMAKE_SOURCE_DIR}/translations/cypeclwon_en_GB.ts)
 set_source_files_properties(${CC_TS_FILES} PROPERTIES OUTPUT_LOCATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/translations)
 qt_add_translations(cypeclwon TS_FILES ${CC_TS_FILES} SOURCE_TARGETS cypeclwon LRELEASE_TARGET release_translations)
 
+
+# Developer aid: writes a test project with a portal frame and layers (see tools/make_demo_project.cpp).
+add_executable(make_demo_project ${CMAKE_SOURCE_DIR}/tools/make_demo_project.cpp)
+target_link_libraries(make_demo_project PRIVATE cc_core)

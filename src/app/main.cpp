@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
     QCommandLineOption localeOpt(QStringLiteral("locale"), QStringLiteral("Force UI locale."), QStringLiteral("name"));
     QCommandLineOption demoOpt(QStringLiteral("demo-windows"), QStringLiteral("Open N demo MDI windows."), QStringLiteral("n"));
     QCommandLineOption previewOpt(QStringLiteral("preview-dialog"), QStringLiteral("Show a dialog on its own (new-project, project-type, standards, empty-project)."), QStringLiteral("name"));
+    parser.addPositionalArgument(QStringLiteral("file"), QStringLiteral("Project (.ed3) to open."), QStringLiteral("[file]"));
     parser.addOptions({localeOpt, demoOpt, previewOpt});
     parser.process(app);
     installTranslator(app, parser.value(localeOpt));
@@ -87,6 +88,7 @@ int main(int argc, char* argv[]) {
         window.workArea()->addDocumentWindow(QStringLiteral("3D"), new cc::app::Viewport3D);
     }
     window.show();
+    if (!parser.positionalArguments().isEmpty()) window.openProjectFile(parser.positionalArguments().first());
     return app.exec();
 }
 

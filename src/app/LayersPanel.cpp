@@ -23,6 +23,7 @@ namespace cc::app {
 namespace {
 constexpr int kIconSize = 18;
 const QColor kBlue(40, 100, 200);
+const QColor kLockColour(0x3a, 0x4a, 0x63);
 
 QString fromStd(const std::string& s) { return QString::fromStdString(s); }
 
@@ -75,7 +76,7 @@ QIcon lockIcon(bool locked) {
     QPixmap pm = newPixmap();
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
-    p.setPen(QPen(QColor(70, 70, 70), 1.5));
+    p.setPen(QPen(kLockColour, 1.5));
     p.setBrush(Qt::NoBrush);
     if (locked) {
         p.drawArc(QRectF(5, 1.5, 8, 9), 0, 180 * 16);
@@ -85,8 +86,46 @@ QIcon lockIcon(bool locked) {
         p.drawArc(QRectF(8, 1.5, 8, 9), 0, 180 * 16);
         p.drawLine(QPointF(8, 6), QPointF(8, 8.5));
     }
-    p.setBrush(QColor(190, 150, 50));
+    p.setBrush(kLockColour);
     p.drawRect(QRectF(3.5, 8.5, 11, 7.5));
+    return QIcon(pm);
+}
+
+constexpr int kToolIconSize = 20;
+constexpr int kToolButtonSize = 26;
+
+/// Toolbar glyphs (plus, cross, up and down triangles) drawn at toolbar size.
+enum class Glyph { Plus, Cross, Up, Down };
+
+QIcon glyphIcon(Glyph glyph) {
+    QPixmap pm(kToolIconSize, kToolIconSize);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    switch (glyph) {
+        case Glyph::Plus:
+            p.setPen(QPen(Qt::black, 3.0, Qt::SolidLine, Qt::FlatCap));
+            p.drawLine(QPointF(10, 3.5), QPointF(10, 16.5));
+            p.drawLine(QPointF(3.5, 10), QPointF(16.5, 10));
+            break;
+        case Glyph::Cross:
+            p.setPen(QPen(QColor(205, 25, 25), 3.0, Qt::SolidLine, Qt::FlatCap));
+            p.drawLine(QPointF(4.5, 4.5), QPointF(15.5, 15.5));
+            p.drawLine(QPointF(15.5, 4.5), QPointF(4.5, 15.5));
+            break;
+        case Glyph::Up:
+        case Glyph::Down: {
+            p.setPen(Qt::NoPen);
+            p.setBrush(Qt::black);
+            QPolygonF tri;
+            if (glyph == Glyph::Up)
+                tri << QPointF(10, 4) << QPointF(16.5, 15) << QPointF(3.5, 15);
+            else
+                tri << QPointF(10, 16) << QPointF(16.5, 5) << QPointF(3.5, 5);
+            p.drawPolygon(tri);
+            break;
+        }
+    }
     return QIcon(pm);
 }
 
@@ -290,6 +329,32 @@ LayersPanel::LayersPanel(QWidget* parent) : QWidget(parent), m_prompter(defaultP
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(2);
 
+    auto* bar = new QHBoxLayout;
+    bar->setContentsMargins(2, 2, 2, 2);
+    bar->setSpacing(2);
+    auto makeButton = [&](const QString& objectName, const QIcon& icon, const QString& tip) {
+        auto* b = new QToolButton(this);
+        b->setObjectName(objectName);
+        b->setIcon(icon);
+        b->setIconSize(QSize(kToolIconSize, kToolIconSize));
+        b->setFixedSize(kToolButtonSize, kToolButtonSize);
+        b->setToolTip(tip);
+        b->setAutoRaise(true);
+        bar->addWidget(b);
+        return b;
+    };
+    m_add = makeButton(QStringLiteral("layerAdd"), glyphIcon(Glyph::Plus), tr("Añadir / Añadir nuevo elemento a la lista"));
+    m_remove = makeButton(QStringLiteral("layerRemove"), glyphIcon(Glyph::Cross),
+                          tr("Borrar / Suprimir elemento seleccionado de la lista"));
+    m_up = makeButton(QStringLiteral("layerUp"), glyphIcon(Glyph::Up),
+                      tr("Mover un lugar hacia arriba el elemento seleccionado de la lista"));
+    m_down = makeButton(QStringLiteral("layerDown"), glyphIcon(Glyph::Down),
+                        tr("Mover un lugar hacia abajo el elemento seleccionado de la lista"));
+    m_assignTool = makeButton(QStringLiteral("layerAssignTool"), assignToolIcon(), tr("Asignar elementos a etiquetas"));
+    m_assignTool->setCheckable(true);
+    bar->addStretch(1);
+    root->addLayout(bar);
+
     m_table = new QTableWidget(0, ColumnCount, this);
     m_table->setObjectName(QStringLiteral("layersTable"));
     m_table->setHorizontalHeaderLabels({tr("Referencia"), tr("Activa"), tr("Color"), QString(), QString(), QString()});
@@ -303,31 +368,6 @@ LayersPanel::LayersPanel(QWidget* parent) : QWidget(parent), m_prompter(defaultP
     header->setSectionResizeMode(ColReference, QHeaderView::Stretch);
     for (int c = ColActive; c < ColumnCount; ++c) header->setSectionResizeMode(c, QHeaderView::ResizeToContents);
     root->addWidget(m_table, 1);
-
-    auto* bar = new QHBoxLayout;
-    bar->setSpacing(2);
-    auto makeButton = [&](const QString& objectName, const QString& text, const QString& tip) {
-        auto* b = new QToolButton(this);
-        b->setObjectName(objectName);
-        b->setText(text);
-        b->setToolTip(tip);
-        b->setAutoRaise(true);
-        bar->addWidget(b);
-        return b;
-    };
-    m_add = makeButton(QStringLiteral("layerAdd"), QStringLiteral("+"), tr("Añadir / Añadir nuevo elemento a la lista"));
-    m_remove = makeButton(QStringLiteral("layerRemove"), QStringLiteral("×"),
-                          tr("Borrar / Suprimir elemento seleccionado de la lista"));
-    m_remove->setStyleSheet(QStringLiteral("QToolButton { color: #c00000; font-weight: bold; }"));
-    m_up = makeButton(QStringLiteral("layerUp"), QStringLiteral("↑"),
-                      tr("Mover un lugar hacia arriba el elemento seleccionado de la lista"));
-    m_down = makeButton(QStringLiteral("layerDown"), QStringLiteral("↓"),
-                        tr("Mover un lugar hacia abajo el elemento seleccionado de la lista"));
-    m_assignTool = makeButton(QStringLiteral("layerAssignTool"), QString(), tr("Asignar elementos a etiquetas"));
-    m_assignTool->setIcon(assignToolIcon());
-    m_assignTool->setCheckable(true);
-    bar->addStretch(1);
-    root->addLayout(bar);
 
     connect(m_add, &QToolButton::clicked, this, [this] { addLayer(); });
     connect(m_remove, &QToolButton::clicked, this, [this] { removeSelectedLayer(); });

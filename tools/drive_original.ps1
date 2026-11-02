@@ -3,7 +3,8 @@
     [string]$OutDir = "D:\Coding\CypeClwon\docs\screenshots",
     [string]$Exe = "D:\CYPE Ingenieros\Versi*n 2027\CYPE 3D\CYPE 3D.exe",
     [int]$StartupMs = 6000,
-    [int]$MaxSeconds = 120
+    [int]$MaxSeconds = 120,
+    [string[]]$AppArgs = @()
 )
 # Drives the ORIGINAL application for research captures (only its window is captured, via PrintWindow).
 # Steps are separated by '|':  click:x,y  (window-relative, left click)   dclick:x,y   key:^{TAB} (SendKeys syntax)
@@ -78,7 +79,7 @@ Set-Content -Path $log -Value ""
 $deadline = (Get-Date).AddSeconds($MaxSeconds)
 $Exe = (Resolve-Path -LiteralPath $Exe -ErrorAction SilentlyContinue).Path; if (-not $Exe) { $Exe = (Get-ChildItem "D:\CYPE Ingenieros\Versi*n 2027\CYPE 3D\CYPE 3D.exe").FullName }
 Log "launching $Exe"
-$p = Start-Process -FilePath $Exe -PassThru
+$p = if ($AppArgs.Count) { Start-Process -FilePath $Exe -ArgumentList $AppArgs -PassThru } else { Start-Process -FilePath $Exe -PassThru }
 try {
     Start-Sleep -Milliseconds $StartupMs
     if ($p.HasExited) { throw "the application exited during startup (code $($p.ExitCode))" }
