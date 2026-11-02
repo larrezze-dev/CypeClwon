@@ -1,4 +1,5 @@
 ﻿#include "MainWindow.h"
+#include "CategoriesPanel.h"
 #include "DisplayOptionsPanel.h"
 #include "LeftPanel.h"
 #include <QHBoxLayout>
@@ -106,6 +107,12 @@ void MainWindow::createWorkArea() {
             [this](const cc::core::DisplayOptions& options) {
                 for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
                     if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) DisplayOptionsPanel::applyTo(*viewport, options);
+            });
+    // Categorías: visibility and layer colours act on every 3D window (session-only, like the display options).
+    connect(m_leftPanel->categoriesPanel(), &CategoriesPanel::settingsChanged, this,
+            [this](const cc::core::CategorySettings& settings) {
+                for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
+                    if (auto* viewport = qobject_cast<Viewport3D*>(sub->widget())) viewport->setCategorySettings(settings);
             });
     // Etiquetas: eye, padlock, colour and cube act on every 3D window; the assign tool turns the viewport into a selection
     // surface (LMB selects bars and shells, RMB opens "Asignar elementos a etiquetas").
@@ -357,6 +364,7 @@ void MainWindow::setProjectOpen(bool open) {
             else statusBar()->showMessage(text);
         });
         DisplayOptionsPanel::applyTo(*viewport, m_leftPanel->displayOptions()->options());
+        viewport->setCategorySettings(m_leftPanel->categoriesPanel()->settings());
         m_workArea->addDocumentWindow(tr("3D"), viewport);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();

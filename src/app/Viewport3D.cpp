@@ -178,9 +178,26 @@ void Viewport3D::setSelectionMode(bool on) {
 
 void Viewport3D::setSelectionFilter(const core::SelectionFilter& filter) {
     m_filter = filter;
-    if (m_selection.restrictTo(filter)) emit selectionChanged();
+    if (m_selection.restrictTo(effectiveFilter())) emit selectionChanged();
     m_hover.reset();
     update();
+}
+
+void Viewport3D::setCategorySettings(const core::CategorySettings& settings) {
+    if (m_categories == settings) return;
+    m_categories = settings;
+    if (m_selection.restrictTo(effectiveFilter())) emit selectionChanged();
+    m_hover.reset();
+    m_windowStart.reset();
+    update();
+}
+
+core::SelectionFilter Viewport3D::effectiveFilter() const {
+    core::SelectionFilter f = m_filter;
+    f.nodes = f.nodes && m_categories.nodesDrawn();
+    f.bars = f.bars && m_categories.barsDrawn();
+    f.shells = f.shells && m_categories.shellsDrawn();
+    return f;
 }
 
 void Viewport3D::clearSelection() {
@@ -198,7 +215,7 @@ void Viewport3D::cancelWindow() {
 
 void Viewport3D::updateHover(const QPointF& pos) {
     std::optional<core::ElementRef> hover;
-    if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), m_filter, pos.x(), pos.y());
+    if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y());
     if (hover != m_hover || m_windowStart) {
         m_hover = hover;
         update();
@@ -220,8 +237,8 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
     if (m_windowStart) {  // second corner
         const QPointF a = *m_windowStart;
         m_windowStart.reset();
-        changed = m_selection.apply(core::pickRect(*m_structure, mapper(), m_filter, a.x(), a.y(), pos.x(), pos.y()), mode);
-    } else if (const auto hit = core::pickAt(*m_structure, mapper(), m_filter, pos.x(), pos.y())) {
+        changed = m_selection.apply(core::pickRect(*m_structure, mapper(), effectiveFilter(), a.x(), a.y(), pos.x(), pos.y()), mode);
+    } else if (const auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y())) {
         changed = m_selection.apply({*hit}, mode);
     } else {
         m_windowStart = pos;  // first corner; a plain click on empty space does not clear the selection
@@ -425,7 +442,11 @@ QColor layerColour(unsigned rgb) { return rgb == 0 ? QColor(32, 32, 32) : QColor
 void Viewport3D::drawStructure(QPainter& painter) const {
     if (!m_structure) return;
     const core::ScreenMapper map = mapper();
+    const auto colourOf = [this](const std::vector<int>& layerIds) {
+        return m_categories.useLayerColours ? layerColour(m_structure->elementColor(layerIds)) : layerColour(0);
+    };
     for (const core::Shell& shell : m_structure->shells) {
+        if (!m_categories.shellsDrawn()) break;
         if (!m_structure->elementVisible(shell.layerIds)) continue;  // layer hidden with the eye
         QPolygonF poly;
         for (int id : shell.nodeIds) {
@@ -434,7 +455,7 @@ void Viewport3D::drawStructure(QPainter& painter) const {
             if (n && map.toScreen(n->position, x, y)) poly << QPointF(x, y);
         }
         if (poly.size() < 3 || poly.size() != static_cast<int>(shell.nodeIds.size())) continue;
-        const QColor colour = layerColour(m_structure->elementColor(shell.layerIds));
+        const QColor colour = colourOf(shell.layerIds);
         const bool rendered = m_structure->elementRendered(shell.layerIds);
         painter.setPen(QPen(colour, 1));
         if (rendered) {  // cube of the layer: solid
@@ -448,12 +469,13 @@ void Viewport3D::drawStructure(QPainter& painter) const {
     }
     painter.setBrush(Qt::NoBrush);
     for (const core::Bar& bar : m_structure->bars) {
+        if (!m_categories.barsDrawn()) break;
         if (!m_structure->elementVisible(bar.layerIds)) continue;
         const core::Node* a = m_structure->findNode(bar.startNode);
         const core::Node* b = m_structure->findNode(bar.endNode);
         double ax, ay, bx, by;
         if (!(a && b && map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by))) continue;
-        const QColor colour = layerColour(m_structure->elementColor(bar.layerIds));
+        const QColor colour = colourOf(bar.layerIds);
         // Wireframe: thin line; rendered layer: the profile drawn solid (thick stroke), both in the layer colour.
         const bool rendered = m_structure->elementRendered(bar.layerIds);
         painter.setPen(QPen(colour, rendered ? 7.0 : 1.5, Qt::SolidLine, rendered ? Qt::FlatCap : Qt::SquareCap));
@@ -462,7 +484,8 @@ void Viewport3D::drawStructure(QPainter& painter) const {
 }
 
 void Viewport3D::drawNodes(QPainter& painter) const {
-    if (!m_structure) return;
+    // Support symbols are not drawn yet; they follow the same rule as the nodes (CategorySettings::supportsDrawn).
+    if (!m_structure || !m_categories.nodesDrawn()) return;
     const core::ScreenMapper map = mapper();
     painter.setBrush(Qt::NoBrush);
     painter.setPen(QPen(kNodeBlue, 1));

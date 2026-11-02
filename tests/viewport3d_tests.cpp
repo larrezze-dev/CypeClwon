@@ -205,6 +205,26 @@ TEST_F(SelectionTest, ClickSelectsANodeAndHoverFollowsTheCursor) {
     EXPECT_TRUE(view->selection().contains({cc::core::ElementKind::Node, 4}));
 }
 
+TEST_F(SelectionTest, HiddenCategoriesCannotBePickedNorStayHovered) {
+    click(*view, screenOf(*view, 0, 0));  // node 1
+    ASSERT_TRUE(view->selection().contains({cc::core::ElementKind::Node, 1}));
+    cc::core::CategorySettings settings;
+    settings.visible[static_cast<int>(cc::core::Category::Nodes)] = false;
+    view->setCategorySettings(settings);
+    EXPECT_TRUE(view->selection().empty());  // already selected nodes are dropped
+    mouse(*view, QEvent::MouseMove, screenOf(*view, 4, 3), Qt::NoButton, Qt::NoButton);
+    EXPECT_FALSE(view->hovered() && view->hovered()->kind == cc::core::ElementKind::Node);
+    click(*view, screenOf(*view, 0, 0));
+    EXPECT_EQ(view->selection().count(cc::core::ElementKind::Node), 0u);
+    // Hiding the bars hides the nodes too: nothing can be picked on a bar.
+    settings.visible[static_cast<int>(cc::core::Category::Nodes)] = true;
+    settings.visible[static_cast<int>(cc::core::Category::Bars)] = false;
+    view->setCategorySettings(settings);
+    EXPECT_FALSE(view->effectiveFilter().nodes);
+    EXPECT_FALSE(view->effectiveFilter().bars);
+    EXPECT_TRUE(view->effectiveFilter().shells);
+}
+
 TEST_F(SelectionTest, CtrlAddsAndShiftRemoves) {
     click(*view, screenOf(*view, 0, 0));
     click(*view, screenOf(*view, 4, 0), Qt::LeftButton, Qt::ControlModifier);

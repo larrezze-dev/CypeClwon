@@ -9,6 +9,9 @@
 #include <QSplitter>
 #include <QToolButton>
 
+#include <QTableWidget>
+
+#include "CategoriesPanel.h"
 #include "DisplayOptionsPanel.h"
 #include "LeftPanel.h"
 #include "Viewport3D.h"
@@ -136,4 +139,54 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+TEST_F(PanelTest, CategoriesDefaultState) {
+    CategoriesPanel panel;
+    QTableWidget* t = panel.table();
+    ASSERT_EQ(t->rowCount(), 7);
+    const QStringList names{"Nudos", "Barras", "Tirantes", "Pilares", "Vigas", "Paños", "Láminas"};
+    for (int i = 0; i < 7; ++i) EXPECT_EQ(t->item(i, CategoriesPanel::ColReference)->text(), names[i]);
+    EXPECT_EQ(panel.settings(), cc::core::CategorySettings{});
+    EXPECT_TRUE(panel.layerColoursCheck()->isChecked());
+    EXPECT_EQ(panel.layerColoursCheck()->text(), QStringLiteral("Representar la estructura usando los colores de las capas"));
+    ASSERT_EQ(panel.analysisCombo()->count(), 3);
+    EXPECT_EQ(panel.analysisCombo()->itemText(0), QStringLiteral("Tensión / Deformación"));
+    EXPECT_EQ(panel.analysisCombo()->itemText(1), QStringLiteral("Pandeo"));
+    EXPECT_EQ(panel.analysisCombo()->itemText(2), QStringLiteral("Modal"));
+}
+
+TEST_F(PanelTest, CategoriesControlsEmitSettingsChanged) {
+    CategoriesPanel panel;
+    qRegisterMetaType<cc::core::CategorySettings>();
+    QSignalSpy spy(&panel, &CategoriesPanel::settingsChanged);
+    panel.toggleVisible(1);  // Barras
+    ASSERT_EQ(spy.count(), 1);
+    EXPECT_FALSE(spy.at(0).at(0).value<cc::core::CategorySettings>().isVisible(cc::core::Category::Bars));
+    panel.toggleLocked(0);
+    EXPECT_TRUE(panel.settings().isLocked(cc::core::Category::Nodes));
+    panel.layerColoursCheck()->setChecked(false);
+    EXPECT_FALSE(panel.settings().useLayerColours);
+    panel.analysisCombo()->setCurrentIndex(2);
+    EXPECT_EQ(panel.settings().analysis, cc::core::AnalysisElements::Modal);
+    EXPECT_EQ(spy.count(), 4);
+    panel.toggleVisible(1);  // eye comes back
+    EXPECT_TRUE(panel.settings().isVisible(cc::core::Category::Bars));
+    // The table cells react to a real click too.
+    spy.clear();
+    emit panel.table()->cellClicked(2, CategoriesPanel::ColVisible);
+    EXPECT_EQ(spy.count(), 1);
+    EXPECT_FALSE(panel.settings().isVisible(cc::core::Category::Ties));
+    // setSettings is silent.
+    spy.clear();
+    panel.setSettings({});
+    EXPECT_EQ(spy.count(), 0);
+    EXPECT_EQ(panel.settings(), cc::core::CategorySettings{});
+    EXPECT_TRUE(panel.layerColoursCheck()->isChecked());
+}
+
+TEST_F(PanelTest, LeftPanelHostsTheCategoriesPanel) {
+    LeftPanel left;
+    ASSERT_NE(left.categoriesPanel(), nullptr);
+    EXPECT_EQ(left.categoriesSection()->content(), left.categoriesPanel());
 }

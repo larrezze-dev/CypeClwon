@@ -8,6 +8,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "CategoriesPanel.h"
 #include "DisplayOptionsPanel.h"
 #include "LayersPanel.h"
 
@@ -83,7 +84,8 @@ LeftPanel::LeftPanel(QWidget* parent) : QWidget(parent) {
 
     m_layersPanel = new LayersPanel;
     m_labels = new PanelSection(tr("Etiquetas"), m_layersPanel, m_splitter);
-    m_categories = new PanelSection(tr("Categorías"), new QWidget, m_splitter);     // filled by T-P4-07 (TK-028)
+    m_categoriesPanel = new CategoriesPanel;
+    m_categories = new PanelSection(tr("Categorías"), m_categoriesPanel, m_splitter);
     m_displayOptions = new DisplayOptionsPanel;
     m_display = new PanelSection(tr("Opciones de visualización"), m_displayOptions, m_splitter);
     m_splitter->addWidget(m_labels);

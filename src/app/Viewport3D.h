@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "core/camera.h"
+#include "core/categories.h"
 #include "core/picking.h"
 #include "core/selection.h"
 #include "core/snap.h"
@@ -70,6 +71,13 @@ public:
     void setSelectionMode(bool on);
     bool selectionMode() const { return m_selectionMode; }
     void setSelectionFilter(const core::SelectionFilter& filter);
+    /// "Categorías" panel: hidden categories are not drawn and cannot be picked or selected; with the layer colours off,
+    /// bars and shells are drawn in the default colour. Ties, columns, beams and panels have no element type yet and the
+    /// padlocks only matter for editing commands (TK-029): those fields are stored, not honoured.
+    void setCategorySettings(const core::CategorySettings& settings);
+    const core::CategorySettings& categorySettings() const { return m_categories; }
+    /// The selection filter of the command narrowed by the hidden categories.
+    core::SelectionFilter effectiveFilter() const;
     const core::SelectionFilter& selectionFilter() const { return m_filter; }
     const core::Selection& selection() const { return m_selection; }
     void clearSelection();
@@ -190,6 +198,7 @@ private:
     const core::StructuralModel* m_structure = nullptr;
     bool m_selectionMode = false;
     core::SelectionFilter m_filter;
+    core::CategorySettings m_categories;
     core::Selection m_selection;
     std::optional<core::ElementRef> m_hover;
     std::optional<QPointF> m_windowStart;
