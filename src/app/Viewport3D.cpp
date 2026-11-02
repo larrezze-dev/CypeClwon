@@ -962,8 +962,6 @@ namespace {
 double axisCoord(const Vec3& p, int axis) { return axis == 0 ? p.x : (axis == 1 ? p.y : p.z); }
 Vec3 withAxis(Vec3 p, int axis, double v) { (axis == 0 ? p.x : (axis == 1 ? p.y : p.z)) = v; return p; }
 const QColor kClipRed(QStringLiteral("#D62020"));
-constexpr double kArcDegreesPerPixelY = 0.48;  // measured in the original (ar_*.png): +30 px vertical = +14.6 deg
-constexpr double kArcDegreesPerPixelX = 0.26;  // +30 px horizontal = +7.7 deg
 constexpr double kPi = 3.14159265358979323846;
 }  // namespace
 
@@ -1103,8 +1101,14 @@ bool Viewport3D::clipArcAt(const QPointF& pos, double tolerancePx) const {
 }
 
 void Viewport3D::dragClipArc(const QPointF& from, const QPointF& to) {
+    // Law read from the original code (panelarea.dll, pnglslclip.c, 0x1800544a0/0x180054680): incremental,
+    // only the dominant screen axis counts, delta = d * 2*pi / viewport size along that axis. This matches
+    // the measured 0.48 deg/px vertical and 0.26 deg/px horizontal for a viewport of about 1385 x 750 px.
     const QPointF move = to - from;
-    m_clip.rotate((kArcDegreesPerPixelY * move.y() + kArcDegreesPerPixelX * move.x()) * kPi / 180.0);
+    if (std::hypot(move.x(), move.y()) <= 0.001 || width() <= 0 || height() <= 0) return;
+    const bool vertical = std::abs(move.y()) >= std::abs(move.x());
+    const double delta = vertical ? move.y() * 2.0 * kPi / height() : move.x() * 2.0 * kPi / width();
+    m_clip.rotate(delta);
     update();
 }
 

@@ -200,7 +200,7 @@ public:
     /// Moves the arrow of `handle` so that it follows the cursor (as if dragged from `from` to `to`).
     void dragClipHandle(const ClipHandle& handle, const QPointF& from, const QPointF& to);
     /// The arc around the section arrows: true when `pos` is on it. Dragging it turns the whole set about the vertical axis
-    /// (gain measured in the original in the default view only: 0.48 deg/px vertical, 0.26 deg/px horizontal).
+    /// (law from the original code: delta = d * 2*pi / viewport size, dominant axis only).
     bool clipArcAt(const QPointF& pos, double tolerancePx = 8.0) const;
     void dragClipArc(const QPointF& from, const QPointF& to);
     std::vector<core::Vec3> clipArc() const;

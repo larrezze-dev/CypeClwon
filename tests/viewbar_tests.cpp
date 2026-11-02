@@ -182,10 +182,13 @@ TEST_F(ViewBarTest, DraggingTheArcTurnsThePlaneAboutTheVerticalAxis) {
     ASSERT_TRUE(v->clipArcAt(p));
     EXPECT_FALSE(v->clipArcAt(QPointF(1, 1)));
     EXPECT_DOUBLE_EQ(v->clipping().angleRad, 0.0);
-    v->dragClipArc(p, p + QPointF(0, 30));  // +30 px vertical = +14.4 deg measured in the original
-    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 14.4, 0.01);
+    // Law of the original code: delta = d * 360 deg / viewport size along the dominant axis (400 px high here).
+    v->dragClipArc(p, p + QPointF(0, 30));
+    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 27.0, 0.01);
     v->dragClipArc(p, p + QPointF(0, -30));
     EXPECT_NEAR(v->clipping().angleRad, 0.0, 1e-12);
+    v->dragClipArc(p, p + QPointF(30, 10));  // horizontal dominates: 30 px of 600 = 18 deg, the 10 px are ignored
+    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 18.0, 0.01);
 }
 
 TEST_F(ViewBarTest, OptionsButtonOpensTheDialogWithBothBoxesUnchecked) {
