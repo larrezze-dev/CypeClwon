@@ -27,6 +27,6 @@ QIcon zoomToolIcon(ZoomToolIcon which, int size = 20);
 
 /// Axes triad of a palette cell: X red, Y green, Z blue, seen from the camera orientation `yawDeg` / `pitchDeg`.
 /// `rolled180` turns the picture upside down (cells 7-9); `faded` draws it grey (unavailable cells).
-QIcon triadIcon(double yawDeg, double pitchDeg, bool rolled180, bool faded, int size = 30);
+QIcon triadIcon(double yawDeg, double pitchDeg, double rollDeg, bool faded, int size = 30);
 
 }  // namespace cc::app

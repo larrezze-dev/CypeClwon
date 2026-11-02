@@ -29,9 +29,7 @@ ProjectionPalette::ProjectionPalette(QWidget* parent) : QWidget(parent, Qt::Tool
         b->setAutoRaise(true);
         b->setFixedSize(36, 36);
         b->setIconSize(QSize(30, 30));
-        const bool rolled = i >= 6 && i <= 8;  // the same views as 1-3, upside down
-        const core::ProjectionPreset& shown = rolled ? presets[static_cast<std::size_t>(i - 6)] : preset;
-        b->setIcon(triadIcon(shown.yawDeg, shown.pitchDeg, rolled, !preset.available));
+        b->setIcon(triadIcon(preset.yawDeg, preset.pitchDeg, preset.rollDeg, !preset.available));
         b->setEnabled(preset.available);
         b->setToolTip(preset.available ? tr("Proyección %1").arg(i + 1) : tr("Proyección %1 (no disponible)").arg(i + 1));
         connect(b, &QToolButton::clicked, this, [this, i] { emit presetChosen(i); });

@@ -199,10 +199,11 @@ QIcon zoomToolIcon(ZoomToolIcon which, int size) {
     return QIcon(pm);
 }
 
-QIcon triadIcon(double yawDeg, double pitchDeg, bool rolled180, bool faded, int size) {
+QIcon triadIcon(double yawDeg, double pitchDeg, double rollDeg, bool faded, int size) {
     core::Camera cam;
     cam.yawDeg = yawDeg;
     cam.pitchDeg = pitchDeg;
+    cam.rollDeg = rollDeg;
     QPixmap pm;
     QPainter p;
     canvas(p, pm, size);
@@ -222,8 +223,7 @@ QIcon triadIcon(double yawDeg, double pitchDeg, bool rolled180, bool faded, int 
     const auto depth = [&](int i) { return core::dot(axes[i].dir, cam.forward()); };
     std::sort(order.begin(), order.end(), [&](int a, int b) { return depth(a) > depth(b); });
     for (int i : order) {
-        double sx = core::dot(axes[i].dir, cam.right()), sy = core::dot(axes[i].dir, cam.up());
-        if (rolled180) { sx = -sx; sy = -sy; }
+        const double sx = core::dot(axes[i].dir, cam.right()), sy = core::dot(axes[i].dir, cam.up());
         const double len = 12.0;
         const QPointF tip(centre.x() + sx * len, centre.y() + 3 - sy * len);
         const QColor colour = faded ? QColor(QStringLiteral("#B9B9B9")) : axes[i].colour;

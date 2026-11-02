@@ -34,7 +34,8 @@ enum class StandardView { Top, Bottom, Front, Back, Left, Right, Isometric };
 struct ProjectionPreset {
     double yawDeg = 0.0;
     double pitchDeg = 0.0;
-    bool available = true;  ///< false: the original shows a view that needs a camera roll (not modelled), see TK-030
+    double rollDeg = 0.0;   ///< rotation about the view axis (180 = upside down)
+    bool available = true;  ///< false: the original's angles of this cell are not measured yet, see TK-030
 };
 
 /// The 22 cells of the palette in reading order (3 columns, the last one centred). Indices are 0-based.
@@ -47,6 +48,7 @@ struct CameraView {
     double distance = 20.0;
     double yawDeg = 45.0;
     double pitchDeg = 30.0;
+    double rollDeg = 0.0;
     bool operator==(const CameraView&) const = default;
 };
 
@@ -60,6 +62,9 @@ struct CameraView {
 ///
 /// Both projections show the same height at the target distance (2 * distance * tan(fov / 2)), so switching between
 /// perspective and orthographic keeps the apparent size of the model.
+///
+/// `rollDeg` turns the image about the view axis (positive: anticlockwise on screen): right and up are the yaw/pitch
+/// ones rotated about `forward`. Orbiting, the standard views and `setView` reset or restore it explicitly.
 class Camera {
 public:
     enum class Projection { Perspective, Orthographic };
@@ -68,6 +73,7 @@ public:
     double distance = 20.0;
     double yawDeg = 45.0;
     double pitchDeg = 30.0;
+    double rollDeg = 0.0;
     double fovYDeg = 45.0;
     Projection projection = Projection::Perspective;
 
@@ -93,12 +99,12 @@ public:
 
     void setStandardView(StandardView view);
     void setProjection(Projection p) { projection = p; }
-    /// Applies the palette cell `index` (0-based): changes yaw and pitch only. False (nothing changes) when the index is
+    /// Applies the palette cell `index` (0-based): changes yaw, pitch and roll. False (nothing changes) when the index is
     /// out of range or the cell is not available.
     bool setPreset(int index);
 
-    CameraView view() const { return {target, distance, yawDeg, pitchDeg}; }
-    void setView(const CameraView& v) { target = v.target; distance = v.distance; yawDeg = v.yawDeg; pitchDeg = v.pitchDeg; }
+    CameraView view() const { return {target, distance, yawDeg, pitchDeg, rollDeg}; }
+    void setView(const CameraView& v) { target = v.target; distance = v.distance; yawDeg = v.yawDeg; pitchDeg = v.pitchDeg; rollDeg = v.rollDeg; }
 
     /// Centres on the box and moves back until it fits the viewport. A degenerate box (a point) uses `distance` 1.
     void frameBox(const Vec3& min, const Vec3& max, double aspect);

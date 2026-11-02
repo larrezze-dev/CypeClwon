@@ -39,10 +39,21 @@ Vec3 Camera::position() const {
 }
 
 Vec3 Camera::forward() const { return normalised(target - position()); }
-Vec3 Camera::right() const { return {std::cos(rad(yawDeg)), std::sin(rad(yawDeg)), 0.0}; }
-Vec3 Camera::up() const { return normalised(cross(right(), forward())); }
+Vec3 Camera::right() const {
+    const Vec3 r0{std::cos(rad(yawDeg)), std::sin(rad(yawDeg)), 0.0};
+    if (rollDeg == 0.0) return r0;
+    const Vec3 u0 = normalised(cross(r0, forward()));
+    return r0 * std::cos(rad(rollDeg)) + u0 * std::sin(rad(rollDeg));
+}
+Vec3 Camera::up() const {
+    const Vec3 r0{std::cos(rad(yawDeg)), std::sin(rad(yawDeg)), 0.0};
+    const Vec3 u0 = normalised(cross(r0, forward()));
+    if (rollDeg == 0.0) return u0;
+    return u0 * std::cos(rad(rollDeg)) - r0 * std::sin(rad(rollDeg));
+}
 
 void Camera::orbit(double dxDeg, double dyDeg) {
+    rollDeg = 0.0;  // orbiting works on the upright yaw/pitch model (to be checked against the original, TK-030)
     yawDeg = std::fmod(yawDeg - dxDeg, 360.0);
     pitchDeg = std::clamp(pitchDeg + dyDeg, -90.0, 90.0);
 }
@@ -65,6 +76,7 @@ void Camera::zoomAt(double notches, double ndcX, double ndcY, double aspect) {
 }
 
 void Camera::setStandardView(StandardView view) {
+    rollDeg = 0.0;
     switch (view) {
         case StandardView::Top: yawDeg = 0; pitchDeg = 90; break;
         case StandardView::Bottom: yawDeg = 0; pitchDeg = -90; break;
@@ -77,18 +89,19 @@ void Camera::setStandardView(StandardView view) {
 }
 
 const std::array<ProjectionPreset, kProjectionPresetCount>& projectionPresets() {
-    // Rows 1-2: front/top/right and back/bottom/left. Row 3 (cells 7-9) needs a camera roll and 20-22 are not fixed yet
-    // (TK-030): unavailable. Rows 4-6: axonometrics from above (yaw 300/315/330, pitch 45), from above with X towards the
-    // viewer (cell 14 is the default isometric view, yaw 45 / pitch 30) and from below.
+    // Rows 1-2: front/top/right and back/bottom/left. Row 3: the back and left views upside down (roll 180) and the view
+    // from below (cell 8). Cells 20 and 22 are not measured yet (TK-030): unavailable. Rows 4-6: axonometrics from above
+    // (yaw 300/315/330, pitch 45), from above with X towards the viewer (cell 14 is the default isometric view, yaw 45 /
+    // pitch 30) and from below. Cell 21 looks along a horizontal diagonal (yaw 315).
     static const std::array<ProjectionPreset, kProjectionPresetCount> table = {{
-        {0, 0, true},      {0, 90, true},     {90, 0, true},
-        {180, 0, true},    {180, -90, true},  {270, 0, true},
-        {0, 0, false},     {0, 90, false},    {90, 0, false},
-        {300, 45, true},   {315, 45, true},   {330, 45, true},
-        {30, 35, true},    {45, 30, true},    {60, 35, true},
-        {300, -45, true},  {315, -45, true},  {330, -45, true},
-        {0, -90, true},    {0, 0, false},     {0, 0, false},
-        {0, 0, false},
+        {0, 0, 0, true},      {0, 90, 0, true},     {90, 0, 0, true},
+        {180, 0, 0, true},    {180, -90, 0, true},  {270, 0, 0, true},
+        {180, 0, 180, true},  {0, -90, 0, true},    {270, 0, 180, true},
+        {300, 45, 0, true},   {315, 45, 0, true},   {330, 45, 0, true},
+        {30, 35, 0, true},    {45, 30, 0, true},    {60, 35, 0, true},
+        {300, -45, 0, true},  {315, -45, 0, true},  {330, -45, 0, true},
+        {0, -90, 0, true},    {0, 0, 0, false},     {315, 0, 0, true},
+        {0, 0, 0, false},
     }};
     return table;
 }
@@ -99,6 +112,7 @@ bool Camera::setPreset(int index) {
     if (!p.available) return false;
     yawDeg = p.yawDeg;
     pitchDeg = p.pitchDeg;
+    rollDeg = p.rollDeg;
     return true;
 }
 

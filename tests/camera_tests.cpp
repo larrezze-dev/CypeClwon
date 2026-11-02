@@ -202,13 +202,13 @@ TEST(Camera, MatrixMultiplicationAndIdentity) {
     for (std::size_t i = 0; i < 16; ++i) EXPECT_DOUBLE_EQ(vp.m[i], same.m[i]);
 }
 
-TEST(CameraPresets, TableHasTwentyTwoCellsAndSixUnavailable) {
+TEST(CameraPresets, TableHasTwentyTwoCellsAndTwoUnavailable) {
     const auto& presets = projectionPresets();
     ASSERT_EQ(presets.size(), 22u);
     int unavailable = 0;
     for (const auto& p : presets) unavailable += p.available ? 0 : 1;
-    EXPECT_EQ(unavailable, 6);
-    for (int i : {6, 7, 8, 19, 20, 21}) EXPECT_FALSE(presets[static_cast<std::size_t>(i)].available) << i;
+    EXPECT_EQ(unavailable, 2);
+    for (int i : {19, 21}) EXPECT_FALSE(presets[static_cast<std::size_t>(i)].available) << i;
 }
 
 TEST(CameraPresets, FirstSixAreTheOrthogonalViews) {
@@ -232,6 +232,50 @@ TEST(CameraPresets, FirstSixAreTheOrthogonalViews) {
     expectNear(c.up(), {0, -1, 0});
 }
 
+TEST(CameraRoll, RollTurnsRightAndUpAboutTheViewAxis) {
+    Camera c;
+    c.yawDeg = 20; c.pitchDeg = 30;
+    const Vec3 r0 = c.right(), u0 = c.up(), f0 = c.forward();
+    c.rollDeg = 180;
+    expectNear(c.right(), r0 * -1.0);
+    expectNear(c.up(), u0 * -1.0);
+    expectNear(c.forward(), f0);
+    c.rollDeg = 90;
+    expectNear(c.right(), u0);
+    expectNear(c.up(), r0 * -1.0);
+    expectNear(cross(c.right(), c.up()), c.forward() * -1.0);  // still a right-handed screen basis
+}
+
+TEST(CameraRoll, ViewRoundTripAndResets) {
+    Camera c;
+    ASSERT_TRUE(c.setPreset(6));
+    const CameraView v = c.view();
+    EXPECT_EQ(v.rollDeg, 180.0);
+    c.orbit(10, 0);
+    EXPECT_EQ(c.rollDeg, 0.0);
+    c.setView(v);
+    EXPECT_EQ(c.rollDeg, 180.0);
+    c.setStandardView(StandardView::Top);
+    EXPECT_EQ(c.rollDeg, 0.0);
+}
+
+TEST(CameraPresets, RolledAndBottomViewsOfRowThree) {
+    Camera c;
+    ASSERT_TRUE(c.setPreset(6));  // back view upside down: X right, Z down
+    expectNear(c.right(), {1, 0, 0});
+    expectNear(c.up(), {0, 0, -1});
+    ASSERT_TRUE(c.setPreset(7));  // from below: X right, Y down on screen
+    expectNear(c.right(), {1, 0, 0});
+    expectNear(c.up(), {0, -1, 0});
+    ASSERT_TRUE(c.setPreset(8));  // left view upside down: Y right, Z down
+    expectNear(c.right(), {0, 1, 0});
+    expectNear(c.up(), {0, 0, -1});
+    ASSERT_TRUE(c.setPreset(20));  // diagonal: X right, Y left over the horizon, Z up
+    EXPECT_GT(c.right().x, 0.5);
+    EXPECT_LT(c.right().y, -0.5);
+    expectNear(c.up(), {0, 0, 1});
+}
+
 TEST(CameraPresets, CellFourteenIsTheDefaultView) {
     Camera def;
     Camera c;
@@ -245,7 +289,7 @@ TEST(CameraPresets, CellFourteenIsTheDefaultView) {
 TEST(CameraPresets, UnavailableOrInvalidCellsChangeNothing) {
     Camera c;
     const CameraView before = c.view();
-    for (int i : {6, 7, 8, 19, 20, 21, -1, 22, 100}) {
+    for (int i : {19, 21, -1, 22, 100}) {
         EXPECT_FALSE(c.setPreset(i)) << i;
         EXPECT_EQ(c.view(), before);
     }
