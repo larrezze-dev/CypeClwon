@@ -126,6 +126,27 @@ void Viewport3D::setRotateAroundPoint(bool on) {
     emit rotateAroundPointChanged(on);
 }
 
+core::Vec3 Viewport3D::orbitPivotAt(const QPointF& pos) const {
+    if (m_structure) {
+        const auto hit = core::pickAt(*m_structure, mapper(), core::SelectionFilter{}, pos.x(), pos.y());
+        if (hit && hit->kind == core::ElementKind::Node) {
+            if (const core::Node* n = m_structure->findNode(hit->id)) return {n->position.x, n->position.y, n->position.z};
+        } else if (hit && hit->kind == core::ElementKind::Bar) {
+            const core::Bar* bar = m_structure->findBar(hit->id);
+            const core::Node* a = bar ? m_structure->findNode(bar->startNode) : nullptr;
+            const core::Node* b = bar ? m_structure->findNode(bar->endNode) : nullptr;
+            double ax = 0, ay = 0, bx = 0, by = 0;
+            if (a && b && mapper().toScreen(a->position, ax, ay) && mapper().toScreen(b->position, bx, by)) {
+                const double dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+                const double t = len2 > 0 ? std::clamp(((pos.x() - ax) * dx + (pos.y() - ay) * dy) / len2, 0.0, 1.0) : 0.0;
+                return {a->position.x + t * (b->position.x - a->position.x), a->position.y + t * (b->position.y - a->position.y),
+                        a->position.z + t * (b->position.z - a->position.z)};
+            }
+        }
+    }
+    return screenToTargetPlane(pos);
+}
+
 void Viewport3D::setRotateAroundCamera(bool on) {
     if (m_rotateAroundCamera == on) return;
     m_rotateAroundCamera = on;
@@ -156,6 +177,7 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
     m_drag = actionFor(event->buttons());
     if (!m_committed) m_committed = m_camera.view();
+    if (m_drag == DragAction::Orbit && m_rotateAroundPoint) m_orbitPivot = orbitPivotAt(event->position());
     if (m_zoomMark && event->button() == Qt::LeftButton && width() > 0 && height() > 0) {
         // The marked rectangle (zoomMarkRect) becomes the whole view: centre on the cursor and come closer by width / rect width.
         const QRectF rect = zoomMarkRect(event->position(), QSizeF(width(), height()));
@@ -199,7 +221,10 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     m_last = pos;
     if (event->buttons() == Qt::NoButton) m_drag = DragAction::None;
     if (m_drag == DragAction::Orbit) {
-        m_camera.orbit(delta.x() * m_bindings.orbitDegreesPerPixel, delta.y() * m_bindings.orbitDegreesPerPixel);
+        const double dx = delta.x() * m_bindings.orbitDegreesPerPixel, dy = delta.y() * m_bindings.orbitDegreesPerPixel;
+        if (m_rotateAroundCamera) m_camera.orbitAboutEye(dx, dy);
+        else if (m_rotateAroundPoint) m_camera.orbitAbout(m_orbitPivot, dx, dy);
+        else m_camera.orbit(dx, dy);
         emit cameraChanged();
         update();
     } else if (m_drag == DragAction::Pan) {

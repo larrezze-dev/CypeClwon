@@ -321,3 +321,30 @@ TEST(CameraPresets, ViewRoundTrip) {
     d.setView(v);
     EXPECT_EQ(d.view(), v);
 }
+
+TEST(CameraOrbitAbout, PivotKeepsItsScreenPosition) {
+    cc::core::Camera cam;
+    cam.target = {1, 2, 3};
+    cam.distance = 10;
+    const cc::core::Vec3 pivot{4, -1, 5};
+    cc::core::Vec3 before, after;
+    ASSERT_TRUE(cam.project(pivot, 1.5, before));
+    cam.orbitAbout(pivot, 17.0, -9.0);
+    ASSERT_TRUE(cam.project(pivot, 1.5, after));
+    EXPECT_NEAR(before.x, after.x, 1e-9);
+    EXPECT_NEAR(before.y, after.y, 1e-9);
+}
+
+TEST(CameraOrbitAbout, EyeStaysPutWhenRotatingAboutTheCamera) {
+    cc::core::Camera cam;
+    cam.distance = 10;
+    const double eyeDist = cam.eyeDistance();
+    const cc::core::Vec3 eye = cam.target - cam.forward() * eyeDist;
+    cam.orbitAboutEye(2.0, 0.0);
+    const cc::core::Vec3 eye2 = cam.target - cam.forward() * eyeDist;
+    EXPECT_NEAR(eye.x, eye2.x, 1e-6);
+    EXPECT_NEAR(eye.y, eye2.y, 1e-6);
+    EXPECT_NEAR(eye.z, eye2.z, 1e-6);
+    // 2 degrees about an eye ~38 views away push the model far out of the view (original: it disappears).
+    EXPECT_GT(cc::core::length(cam.target), 2.0 * cam.distance * std::tan(cam.fovYDeg * 3.14159265358979 / 360.0));
+}

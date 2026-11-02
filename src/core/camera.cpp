@@ -58,6 +58,15 @@ void Camera::orbit(double dxDeg, double dyDeg) {
     pitchDeg = std::clamp(pitchDeg + dyDeg, -90.0, 90.0);
 }
 
+void Camera::orbitAbout(const Vec3& pivot, double dxDeg, double dyDeg) {
+    const Vec3 d = pivot - target;
+    const double a = dot(d, right()), b = dot(d, up()), c = dot(d, forward());
+    orbit(dxDeg, dyDeg);
+    target = pivot - (right() * a + up() * b + forward() * c);
+}
+
+void Camera::orbitAboutEye(double dxDeg, double dyDeg) { orbitAbout(target - forward() * eyeDistance(), dxDeg, dyDeg); }
+
 double Camera::halfHeight() const { return distance * std::tan(rad(fovYDeg) / 2.0); }
 double Camera::worldPerPixel(double viewportHeightPx) const { return viewportHeightPx > 0 ? 2.0 * halfHeight() / viewportHeightPx : 0.0; }
 

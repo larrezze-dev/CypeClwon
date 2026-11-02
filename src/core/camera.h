@@ -89,6 +89,17 @@ public:
     /// opposite way), dragging `dyDeg` down raises the camera.
     void orbit(double dxDeg, double dyDeg);
 
+    /// Same rotation, but `pivot` keeps its place on screen ("Rotación alrededor de un punto": measured in the original,
+    /// the node under the cursor stayed put while dragging).
+    void orbitAbout(const Vec3& pivot, double dxDeg, double dyDeg);
+
+    /// Rotation about the camera itself ("Rotación alrededor de la cámara"). In the original the eye is ~300 m from the
+    /// model (the cursor tooltip shows its coordinates), so even 2 degrees send the model out of the view: the eye is
+    /// placed `eyeDistance()` behind the target, kEyeDistanceViewHeights visible heights.
+    void orbitAboutEye(double dxDeg, double dyDeg);
+    double eyeDistance() const { return kEyeDistanceViewHeights * 2.0 * halfHeight(); }
+    static constexpr double kEyeDistanceViewHeights = 38.0;  ///< ~30000 px / 790 px viewport (est. from rp_c4/c5.png)
+
     /// Moves the view so the scene follows a mouse drag of (dxPx, dyPx) screen pixels (y grows downwards).
     void pan(double dxPx, double dyPx, double viewportHeightPx);
 

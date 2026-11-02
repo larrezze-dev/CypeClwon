@@ -55,3 +55,11 @@ Ya documentada en `viewport_3d.md` (tabla de iconos x=1310…1499): Ventana ante
 - Orbitar desde la celda 7 (roll 180) con la herramienta Órbita 3D mantiene el roll: tras el arrastre vertical Z sigue hacia abajo (t2, o2.png). `Camera::orbit` ya no lo reinicia.
 - «Marcar zoom» (z1-z4.png): con el modo activo, al mover el cursor aparece un rectángulo gris con borde oscuro y cursor en cruz, centrado en el cursor y con la proporción del visor; su semiancho es la distancia del cursor al borde derecho del visor (más a la izquierda = rectángulo mayor, menos zoom). El clic zoom a ese rectángulo (factor = ancho visor / ancho rect.; medido 1,14 y comprobado por el desplazamiento de la estructura).
 - «Ventana doble» (d1-d3.png): da la misma vista que «Ventana completa»; pulsarla de nuevo no cambia nada. El clon la iguala a «Ventana completa».
+
+## Sesión 21: rotación alrededor de un punto y de la cámara (medidas en el original)
+Capturas `rp_a*`, `rp_b*`, `rp_c*`, `rp_montage3/4.png` (obra orig_copy.ed3, herramienta Órbita 3D + arrastre izquierdo; hay que pulsar el título antes de cada acción).
+- Los iconos y=260 y y=284 se quedan hundidos (resaltados) al activarse; son independientes de la herramienta Órbita.
+- **Por defecto**: el pivote es el centro del modelo (el nudo de partida (930,240) pasó a (852,298) con un arrastre de +100 px).
+- **Rotación alrededor de un punto** (y=260): un arrastre horizontal de +100 px iniciado sobre el nudo (930,240) lo deja en (928,240): el punto bajo el cursor es el pivote y no se mueve en pantalla.
+- **Rotación alrededor de la cámara** (y=284): con 8 px (2°) o 20 px (5°) el modelo sale por completo de la vista. El tooltip de coordenadas pasa a (187, -187, 152) m: el ojo está a ≈ 302 m del modelo (≈ 30000 px a la escala de la vista), así que girar sobre el ojo desplaza el modelo ~5 m por grado.
+- Clon: `Camera::orbitAbout(pivot)` y `orbitAboutEye` (ojo a 38 alturas visibles); pivote = nudo bajo el cursor, punto de la barra bajo el cursor o, si no hay objeto, el punto del plano del objetivo bajo el cursor (comportamiento sin objeto no medido). Con ambas activas gana la cámara (no medido).

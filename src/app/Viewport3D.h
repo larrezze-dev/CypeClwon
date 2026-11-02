@@ -256,6 +256,9 @@ private:
     bool m_zoomMark = false;
     bool m_rotateAroundPoint = false;
     bool m_rotateAroundCamera = false;
+    core::Vec3 m_orbitPivot;  ///< fixed at the start of an orbit drag when rotating about a point
+    /// Object point under the cursor (node, point of a bar), else the point of the target plane seen there.
+    core::Vec3 orbitPivotAt(const QPointF& pos) const;
 };
 
 }  // namespace cc::app
