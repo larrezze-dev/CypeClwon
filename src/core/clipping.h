@@ -10,20 +10,26 @@ namespace cc::core {
 
 /// Section planes and clipping volume of the 3D window (docs/research/ui/barra_vertical_vistas.md, sessions 21-22).
 /// A section is a plane perpendicular to a global axis; the geometry on the side of the red arrow is removed.
-/// The clipping volume is a box of six planes that keeps what lies inside.
+/// The clipping volume is a box of six planes that keeps what lies inside. As in the original (panelarea.dll,
+/// "angulo_giro_antihorario_rad_xy_global", "Xo/Yo/Zo_centro_volumen"), the whole set can be turned about the
+/// vertical axis through one centre by dragging an arc, so the planes need not stay axis-aligned.
 
-/// A half-space kept by the clipper: coordinate `axis` (0 = X, 1 = Y, 2 = Z) on the side of `value`.
+/// Half-space kept by the clipper: dot(normal, p) <= offset.
 struct ClipHalfSpace {
-    int axis = 0;
-    double value = 0.0;
-    bool keepBelow = true;  ///< true: keep coordinate <= value; false: keep coordinate >= value
+    Vec3 normal{1, 0, 0};  ///< unit
+    double offset = 0.0;
     bool contains(const Vec3& p, double tolerance = 1e-9) const;
+    /// Plane perpendicular to `axis` (0 = X, 1 = Y, 2 = Z) of the local frame (turned `angleRad` about Z through `centre`) at
+    /// coordinate `value`; keeps the lower side when `keepBelow`.
+    static ClipHalfSpace local(int axis, double value, bool keepBelow, const Vec3& centre = {}, double angleRad = 0.0);
+    /// Same without any turn.
+    static ClipHalfSpace axisAligned(int axis, double value, bool keepBelow) { return local(axis, value, keepBelow); }
 };
 
 /// One section plane. `flipped` reverses the arrow (double click on the arrow in the original).
 struct SectionPlane {
     bool active = false;
-    double position = 0.0;
+    double position = 0.0;  ///< coordinate along its axis in the local frame
     bool flipped = false;
     /// Direction of the arrow (the side that is removed): +1 along the axis, or -1 when flipped.
     int arrowSign() const { return flipped ? -1 : 1; }
@@ -39,12 +45,23 @@ struct ClipVolume {
 struct ClipSettings {
     std::array<SectionPlane, 3> sections{};
     ClipVolume volume{};
+    Vec3 centre{};          ///< centre of the turn (the original stores the centre of the volume)
+    double angleRad = 0.0;  ///< counter-clockwise turn about Z (global XY plane)
 
     bool anyActive() const;
     /// Half-spaces that the geometry must satisfy to remain visible.
     std::vector<ClipHalfSpace> halfSpaces() const;
 
-    void setSectionActive(int axis, bool on, double defaultPosition);
+    /// Local frame <-> world: the local frame is the world turned `angleRad` about Z through `centre`.
+    Vec3 toWorld(const Vec3& local) const;
+    Vec3 toLocal(const Vec3& world) const;
+    /// Unit vector of local axis `axis` in world coordinates.
+    Vec3 axisDirection(int axis) const;
+    /// Adds `deltaRad` to the turn (kept in (-pi, pi]).
+    void rotate(double deltaRad);
+
+    /// `centreIfFirst` becomes the centre of the turn when nothing was active before.
+    void setSectionActive(int axis, bool on, double defaultPosition, const Vec3& centreIfFirst = {});
     /// Reverses the direction of the removed side; false for an inactive section.
     bool flipSection(int axis);
     void setVolumeActive(bool on, const Vec3& min, const Vec3& max);

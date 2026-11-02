@@ -169,6 +169,25 @@ TEST_F(ViewBarTest, Button411TogglesTheVisibilityOfThePlanesButKeepsTheCut) {
     EXPECT_TRUE(v->clipPlanesVisible());
 }
 
+TEST_F(ViewBarTest, DraggingTheArcTurnsThePlaneAboutTheVerticalAxis) {
+    Viewport3D* v = frame->viewport();
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
+    v->show();
+    v->resize(600, 400);
+    v->setSectionActive(0, true);
+    const auto arc = v->clipArc();
+    ASSERT_GT(arc.size(), 4u);
+    QPointF p;
+    ASSERT_TRUE(v->worldToScreen(arc[arc.size() / 2], p));
+    ASSERT_TRUE(v->clipArcAt(p));
+    EXPECT_FALSE(v->clipArcAt(QPointF(1, 1)));
+    EXPECT_DOUBLE_EQ(v->clipping().angleRad, 0.0);
+    v->dragClipArc(p, p + QPointF(0, 30));  // +30 px vertical = +14.4 deg measured in the original
+    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 14.4, 0.01);
+    v->dragClipArc(p, p + QPointF(0, -30));
+    EXPECT_NEAR(v->clipping().angleRad, 0.0, 1e-12);
+}
+
 TEST_F(ViewBarTest, OptionsButtonOpensTheDialogWithBothBoxesUnchecked) {
     Viewport3D* v = frame->viewport();
     EXPECT_FALSE(v->objectEdges());

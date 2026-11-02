@@ -199,6 +199,11 @@ public:
     std::optional<ClipHandle> clipHandleAt(const QPointF& pos, double tolerancePx = 8.0) const;
     /// Moves the arrow of `handle` so that it follows the cursor (as if dragged from `from` to `to`).
     void dragClipHandle(const ClipHandle& handle, const QPointF& from, const QPointF& to);
+    /// The arc around the section arrows: true when `pos` is on it. Dragging it turns the whole set about the vertical axis
+    /// (gain measured in the original in the default view only: 0.48 deg/px vertical, 0.26 deg/px horizontal).
+    bool clipArcAt(const QPointF& pos, double tolerancePx = 8.0) const;
+    void dragClipArc(const QPointF& from, const QPointF& to);
+    std::vector<core::Vec3> clipArc() const;
     /// Whether a world point survives every active section and the clipping volume.
     bool visibleAfterClipping(const core::Vec3& p) const;
 
@@ -297,6 +302,7 @@ private:
     bool m_objectEdges = false;
     bool m_ssao = false;
     std::optional<ClipHandle> m_clipDrag;
+    bool m_clipArcDrag = false;
     QPointF m_clipDragLast;
     void drawClipping(class QPainter& painter) const;
     std::pair<core::Vec3, core::Vec3> clipEnvelope() const;

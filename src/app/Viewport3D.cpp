@@ -177,6 +177,12 @@ DragAction Viewport3D::actionFor(Qt::MouseButtons buttons) const {
 void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
     if (event->button() == Qt::LeftButton && m_clip.anyActive() && m_clipPlanesVisible) {  // grabbing the red arrow of a section / the volume
+        if (!clipHandleAt(event->position()) && clipArcAt(event->position())) {  // the arc turns the whole set about the vertical axis
+            m_clipArcDrag = true;
+            m_clipDragLast = event->position();
+            event->accept();
+            return;
+        }
         if (const auto handle = clipHandleAt(event->position())) {
             m_clipDrag = handle;
             m_clipDragLast = event->position();
@@ -225,6 +231,18 @@ void Viewport3D::drawZoomMark(QPainter& painter) const {
 
 void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     const QPoint pos = event->position().toPoint();
+    if (m_clipArcDrag) {
+        if (event->buttons().testFlag(Qt::LeftButton)) {
+            dragClipArc(m_clipDragLast, event->position());
+            m_clipDragLast = event->position();
+        } else {
+            m_clipArcDrag = false;
+        }
+        m_cursor = event->position();
+        m_cursorInside = true;
+        event->accept();
+        return;
+    }
     if (m_clipDrag) {
         if (event->buttons().testFlag(Qt::LeftButton)) {
             dragClipHandle(*m_clipDrag, m_clipDragLast, event->position());
@@ -262,6 +280,11 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void Viewport3D::mouseReleaseEvent(QMouseEvent* event) {
+    if (m_clipArcDrag && event->button() == Qt::LeftButton) {
+        m_clipArcDrag = false;
+        event->accept();
+        return;
+    }
     if (m_clipDrag && event->button() == Qt::LeftButton) {
         m_clipDrag.reset();
         event->accept();
@@ -938,8 +961,10 @@ void Viewport3D::paintGL() {
 namespace {
 double axisCoord(const Vec3& p, int axis) { return axis == 0 ? p.x : (axis == 1 ? p.y : p.z); }
 Vec3 withAxis(Vec3 p, int axis, double v) { (axis == 0 ? p.x : (axis == 1 ? p.y : p.z)) = v; return p; }
-Vec3 unitAxis(int axis) { return withAxis({0, 0, 0}, axis, 1.0); }
 const QColor kClipRed(QStringLiteral("#D62020"));
+constexpr double kArcDegreesPerPixelY = 0.48;  // measured in the original (ar_*.png): +30 px vertical = +14.6 deg
+constexpr double kArcDegreesPerPixelX = 0.26;  // +30 px horizontal = +7.7 deg
+constexpr double kPi = 3.14159265358979323846;
 }  // namespace
 
 std::pair<Vec3, Vec3> Viewport3D::clipEnvelope() const {
@@ -955,7 +980,8 @@ std::pair<Vec3, Vec3> Viewport3D::clipEnvelope() const {
 void Viewport3D::setSectionActive(int axis, bool on) {
     if (axis < 0 || axis > 2 || sectionActive(axis) == on) return;
     const auto [lo, hi] = clipEnvelope();
-    m_clip.setSectionActive(axis, on, 0.5 * (axisCoord(lo, axis) + axisCoord(hi, axis)));
+    const Vec3 centre = (lo + hi) * 0.5;
+    m_clip.setSectionActive(axis, on, axisCoord(centre, axis), centre);
     emit sectionChanged(axis, on);
     update();
 }
@@ -988,19 +1014,20 @@ std::vector<Viewport3D::ClipHandle> Viewport3D::clipHandles() const {
         const core::SectionPlane& s = m_clip.sections[static_cast<std::size_t>(a)];
         if (!s.active) continue;
         const double len = std::max(1.0, 0.25 * (axisCoord(hi, a) - axisCoord(lo, a)));
-        const Vec3 base = withAxis(centre, a, s.position);
-        out.push_back({false, a, s.arrowSign() > 0, base, base + unitAxis(a) * (len * s.arrowSign())});
+        const Vec3 base = m_clip.toWorld(withAxis(m_clip.centre, a, s.position));
+        out.push_back({false, a, s.arrowSign() > 0, base, base + m_clip.axisDirection(a) * (len * s.arrowSign())});
     }
     if (m_clip.volume.active) {
         const Vec3 vc = (m_clip.volume.min + m_clip.volume.max) * 0.5;
         for (int a = 0; a < 3; ++a) {
             const double len = std::max(0.5, 0.15 * (axisCoord(m_clip.volume.max, a) - axisCoord(m_clip.volume.min, a)));
             for (bool maxFace : {false, true}) {
-                const Vec3 base = withAxis(vc, a, axisCoord(maxFace ? m_clip.volume.max : m_clip.volume.min, a));
-                out.push_back({true, a, maxFace, base, base + unitAxis(a) * (maxFace ? len : -len)});
+                const Vec3 base = m_clip.toWorld(withAxis(vc, a, axisCoord(maxFace ? m_clip.volume.max : m_clip.volume.min, a)));
+                out.push_back({true, a, maxFace, base, base + m_clip.axisDirection(a) * (maxFace ? len : -len)});
             }
         }
     }
+    (void)centre;
     return out;
 }
 
@@ -1024,8 +1051,9 @@ std::optional<Viewport3D::ClipHandle> Viewport3D::clipHandleAt(const QPointF& po
 }
 
 void Viewport3D::dragClipHandle(const ClipHandle& handle, const QPointF& from, const QPointF& to) {
+    const Vec3 dir = m_clip.axisDirection(handle.axis);
     QPointF a, b;
-    if (!worldToScreen(handle.base, a) || !worldToScreen(handle.base + unitAxis(handle.axis), b)) return;
+    if (!worldToScreen(handle.base, a) || !worldToScreen(handle.base + dir, b)) return;
     const QPointF axisScreen = b - a;  // screen length of one metre along the axis
     const double len2 = axisScreen.x() * axisScreen.x() + axisScreen.y() * axisScreen.y();
     if (len2 < 1e-9) return;  // axis seen end-on: the drag direction is undefined
@@ -1037,6 +1065,46 @@ void Viewport3D::dragClipHandle(const ClipHandle& handle, const QPointF& from, c
         const Vec3& edge = handle.faceMax ? m_clip.volume.max : m_clip.volume.min;
         m_clip.moveVolumeFace(handle.axis, handle.faceMax, axisCoord(edge, handle.axis) + metres);
     }
+    update();
+}
+
+std::vector<Vec3> Viewport3D::clipArc() const {
+    // Horizontal circle about the vertical axis through the centre of the set (seen as an ellipse in the original, ar_*.png),
+    // three quarters of a turn, around the first section arrow or the volume.
+    std::vector<Vec3> arc;
+    if (!m_clip.anyActive()) return arc;
+    const auto [lo, hi] = clipEnvelope();
+    Vec3 base = m_clip.centre;
+    for (int a = 0; a < 3; ++a) {
+        const core::SectionPlane& s = m_clip.sections[static_cast<std::size_t>(a)];
+        if (s.active) { base = m_clip.toWorld(withAxis(m_clip.centre, a, s.position)); break; }
+    }
+    const double r = 0.12 * std::max(hi.x - lo.x, hi.y - lo.y);
+    for (int k = 0; k <= 24; ++k) {
+        const double ang = m_clip.angleRad + (0.25 + 1.5 * k / 24.0) * kPi;
+        arc.push_back({base.x + r * std::cos(ang), base.y + r * std::sin(ang), base.z});
+    }
+    return arc;
+}
+
+bool Viewport3D::clipArcAt(const QPointF& pos, double tolerancePx) const {
+    if (!m_clip.anyActive() || !m_clipPlanesVisible) return false;
+    const std::vector<Vec3> arc = clipArc();
+    for (std::size_t i = 0; i + 1 < arc.size(); ++i) {
+        QPointF a, b;
+        if (!worldToScreen(arc[i], a) || !worldToScreen(arc[i + 1], b)) continue;
+        const QPointF d = b - a;
+        const double len2 = d.x() * d.x() + d.y() * d.y();
+        const double t = len2 > 0 ? std::clamp(((pos.x() - a.x()) * d.x() + (pos.y() - a.y()) * d.y()) / len2, 0.0, 1.0) : 0.0;
+        const QPointF nearest = a + d * t;
+        if (std::hypot(pos.x() - nearest.x(), pos.y() - nearest.y()) <= tolerancePx) return true;
+    }
+    return false;
+}
+
+void Viewport3D::dragClipArc(const QPointF& from, const QPointF& to) {
+    const QPointF move = to - from;
+    m_clip.rotate((kArcDegreesPerPixelY * move.y() + kArcDegreesPerPixelX * move.x()) * kPi / 180.0);
     update();
 }
 
@@ -1055,28 +1123,19 @@ void Viewport3D::drawClipping(QPainter& painter) const {
         if (closed) painter.drawPolygon(p); else painter.drawPolyline(p);
     };
     const auto [lo, hi] = clipEnvelope();
-    const Vec3 centre = (lo + hi) * 0.5;
-    for (int a = 0; a < 3; ++a) {  // plane: grey rectangle spanning the envelope
+    for (int a = 0; a < 3; ++a) {  // plane: outline spanning the envelope, turned with the set
         const core::SectionPlane& s = m_clip.sections[static_cast<std::size_t>(a)];
         if (!s.active) continue;
         const int u = (a + 1) % 3, v = (a + 2) % 3;
         const auto corner = [&](bool uMax, bool vMax) {
-            return withAxis(withAxis(withAxis({0, 0, 0}, a, s.position), u, axisCoord(uMax ? hi : lo, u)), v, axisCoord(vMax ? hi : lo, v));
+            return m_clip.toWorld(withAxis(withAxis(withAxis({0, 0, 0}, a, s.position), u, axisCoord(uMax ? hi : lo, u)), v, axisCoord(vMax ? hi : lo, v)));
         };
         poly({corner(false, false), corner(true, false), corner(true, true), corner(false, true)}, true, QPen(QColor(60, 60, 60), 1), Qt::NoBrush);  // outline only (sp_1.png)
-        // Arc: three quarters of a circle in the plane around the arrow, in red (shape seen in the original; radius assumed).
-        const double r = 0.12 * std::max(axisCoord(hi, u) - axisCoord(lo, u), axisCoord(hi, v) - axisCoord(lo, v));
-        std::vector<Vec3> arc;
-        const Vec3 base = withAxis(centre, a, s.position);
-        for (int k = 0; k <= 24; ++k) {
-            const double ang = (0.25 + 1.5 * k / 24.0) * 3.14159265358979;
-            arc.push_back(withAxis(withAxis(base, u, axisCoord(base, u) + r * std::cos(ang)), v, axisCoord(base, v) + r * std::sin(ang)));
-        }
-        poly(arc, false, QPen(kClipRed, 2), Qt::NoBrush);
     }
+    poly(clipArc(), false, QPen(kClipRed, 2), Qt::NoBrush);
     if (m_clip.volume.active) {  // box of six planes in wire frame
         const Vec3 mn = m_clip.volume.min, mx = m_clip.volume.max;
-        const auto c = [&](int i) { return Vec3{(i & 1) ? mx.x : mn.x, (i & 2) ? mx.y : mn.y, (i & 4) ? mx.z : mn.z}; };
+        const auto c = [&](int i) { return m_clip.toWorld(Vec3{(i & 1) ? mx.x : mn.x, (i & 2) ? mx.y : mn.y, (i & 4) ? mx.z : mn.z}); };
         const QPen pen(QColor(110, 110, 110), 1, Qt::DashLine);
         for (int i = 0; i < 8; ++i)
             for (int bit : {1, 2, 4})
