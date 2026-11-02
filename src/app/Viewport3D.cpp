@@ -937,11 +937,96 @@ void Viewport3D::drawAxesTriad(QPainter& painter) const {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Work planes: grid lines and levels (Geometria > Planos)
+namespace {
+constexpr double kPlaneMargin = 2.0;          // metres the lines go beyond the outermost line of the other direction
+constexpr double kDefaultPlaneHalfSpan = 5.0; // half length of a line when the other direction has no line yet
+
+/// Interval covered by the coordinates of one direction, widened by the margin; a default span when there are none.
+std::pair<double, double> spanOf(const std::vector<core::GridLine>& lines) {
+    if (lines.empty()) return {-kDefaultPlaneHalfSpan, kDefaultPlaneHalfSpan};
+    double lo = lines.front().coordinate, hi = lo;
+    for (const core::GridLine& l : lines) {
+        lo = std::min(lo, l.coordinate);
+        hi = std::max(hi, l.coordinate);
+    }
+    return {lo - kPlaneMargin, hi + kPlaneMargin};
+}
+}  // namespace
+
+void Viewport3D::setWorkPlanes(const core::WorkPlanes* planes, bool visible) {
+    m_planes = planes;
+    m_planesVisible = visible;
+    update();
+}
+
+std::vector<Viewport3D::PlaneSegment> Viewport3D::workPlaneSegments() const {
+    std::vector<PlaneSegment> out;
+    if (!m_planes || !m_planesVisible) return out;
+    const auto [y0, y1] = spanOf(m_planes->gridY);
+    const auto [x0, x1] = spanOf(m_planes->gridX);
+    using Kind = PlaneSegment::Kind;
+    using LabelAt = PlaneSegment::LabelAt;
+    // "Líneas en la dirección X" are drawn at x = coordinate, running along Y; the label sits at the "Origen" (lowest y)
+    // or "Extremo" (highest y) end. Same for Y with the axes exchanged. (Orientation assumed: not verified in the original.)
+    for (const core::GridLine& l : m_planes->gridX)
+        out.push_back({Kind::GridX, {l.coordinate, y0, 0}, {l.coordinate, y1, 0}, QString::fromStdString(l.label),
+                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B});
+    for (const core::GridLine& l : m_planes->gridY)
+        out.push_back({Kind::GridY, {x0, l.coordinate, 0}, {x1, l.coordinate, 0}, QString::fromStdString(l.label),
+                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B});
+    for (const core::Level& level : m_planes->levels) {
+        const double z = level.elevation;
+        const Vec3 c[4] = {{x0, y0, z}, {x1, y0, z}, {x1, y1, z}, {x0, y1, z}};
+        for (int i = 0; i < 4; ++i)
+            out.push_back({Kind::Level, c[i], c[(i + 1) % 4], i == 0 ? QString::fromStdString(level.name) : QString(),
+                           i == 0 ? LabelAt::A : LabelAt::None});
+    }
+    return out;
+}
+
+void Viewport3D::drawWorkPlanes(QPainter& painter) const {
+    const std::vector<PlaneSegment> segments = workPlaneSegments();
+    if (segments.empty()) return;
+    const QColor magenta(QStringLiteral("#E000E0"));
+    for (const PlaneSegment& s : segments) {
+        const bool level = s.kind == PlaneSegment::Kind::Level;
+        QPen pen(level ? QColor(QStringLiteral("#8FA7BF")) : QColor(QStringLiteral("#A0A0A0")), 1);
+        if (level) pen.setStyle(Qt::DashLine);
+        painter.setPen(pen);
+        drawGuideLine(painter, s.a, s.b);
+        if (s.labelAt == PlaneSegment::LabelAt::None || s.label.isEmpty()) continue;
+        const Vec3 anchor = s.labelAt == PlaneSegment::LabelAt::A ? s.a : s.b;
+        const Vec3 other = s.labelAt == PlaneSegment::LabelAt::A ? s.b : s.a;
+        QPointF pa, po;
+        if (!worldToScreen(anchor, pa) || !worldToScreen(other, po)) continue;
+        if (level) {  // minimum drawing of a level: its outline and the reference beside the first corner
+            painter.setPen(QColor(QStringLiteral("#4F6A86")));
+            painter.drawText(pa + QPointF(4, -4), s.label);
+            continue;
+        }
+        // Magenta ellipse with the label beyond the end of the line, joined to it by a segment (pl_h2.png).
+        QPointF dir = pa - po;
+        const double len = std::hypot(dir.x(), dir.y());
+        dir = len > 1e-6 ? dir / len : QPointF(1, 0);
+        const double rx = 18.0, ry = 12.0;
+        const QPointF centre = pa + QPointF(dir.x() * rx * 1.6, dir.y() * ry * 1.6);
+        painter.setPen(QPen(magenta, 1));
+        painter.drawLine(pa, centre);
+        painter.setBrush(Qt::white);
+        painter.drawEllipse(centre, rx, ry);
+        painter.setBrush(Qt::NoBrush);
+        painter.drawText(QRectF(centre.x() - rx, centre.y() - ry, 2 * rx, 2 * ry), Qt::AlignCenter, s.label);
+    }
+}
+
 void Viewport3D::paintGL() {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.fillRect(rect(), Qt::white);
     if (!m_selectionMode) drawGuideLines(painter);  // the original hides the guide lines inside a command
+    drawWorkPlanes(painter);
     drawStructure(painter);
     drawClipping(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command

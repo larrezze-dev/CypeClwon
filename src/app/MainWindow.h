@@ -88,6 +88,12 @@ private:
     void editUnits();
     /// Builds the groups of the Obra tab (reference: docs/screenshots/orig_obra_tab.png).
     void buildObraTab();
+    /// Builds the groups of the Geometria tab built so far ("Planos"; the rest arrives with nodes and bars).
+    void buildGeometryTab();
+    /// Geometria > Planos > Rejilla / Niveles / Visibilidad (each edit is one undoable step).
+    void editGrid();
+    void editLevels();
+    void editPlanesVisibility();
     void updateWindowTitle();
     /// Offers to save a modified project; false when the user cancels.
     bool maybeSave();
@@ -99,6 +105,11 @@ private:
     QAction* m_saveAsAction = nullptr;
     QAction* m_generalDataAction = nullptr;
     QAction* m_unitsAction = nullptr;
+    QAction* m_gridAction = nullptr;
+    QAction* m_levelsAction = nullptr;
+    QAction* m_planesVisibilityAction = nullptr;
+    QAction* m_showNewPlanesAction = nullptr;
+    bool m_planesVisible = true;  ///< "Mostrar/ocultar planos" (session only)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;
     QAction* m_doubleViewAction = nullptr;

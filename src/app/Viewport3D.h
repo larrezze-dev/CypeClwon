@@ -19,6 +19,7 @@
 #include "core/selection.h"
 #include "core/snap.h"
 #include "core/structure_model.h"
+#include "core/work_planes.h"
 
 namespace cc::app {
 
@@ -216,6 +217,21 @@ public:
     /// Whether a world point survives every active section and the clipping volume.
     bool visibleAfterClipping(const core::Vec3& p) const;
 
+    /// "Planos": grid lines and levels drawn when `visible` (not owned; must outlive the viewport or be reset to nullptr).
+    void setWorkPlanes(const core::WorkPlanes* planes, bool visible = true);
+    bool workPlanesVisible() const { return m_planesVisible; }
+    /// One segment of the work planes drawing. Grid lines carry their label at one end (the magenta circle); a level is the
+    /// rectangle of its four edges at its elevation, labelled at a corner. Empty when the planes are hidden or undefined.
+    struct PlaneSegment {
+        enum class Kind { GridX, GridY, Level };
+        enum class LabelAt { None, A, B };
+        Kind kind = Kind::GridX;
+        core::Vec3 a, b;
+        QString label;
+        LabelAt labelAt = LabelAt::None;
+    };
+    std::vector<PlaneSegment> workPlaneSegments() const;
+
     /// Screen position (widget pixels, y down) of a world point; false when it cannot be seen (behind the camera).
     bool worldToScreen(const core::Vec3& world, QPointF& screen) const;
     /// World point under a widget position on the plane through the camera target.
@@ -262,6 +278,7 @@ private:
     DragAction actionFor(Qt::MouseButtons buttons) const;
     void drawGuideLines(class QPainter& painter) const;
     void drawAxesTriad(class QPainter& painter) const;
+    void drawWorkPlanes(class QPainter& painter) const;
 
     void drawGuideLine(class QPainter& painter, core::Vec3 a, core::Vec3 b) const;
     void drawStructure(class QPainter& painter) const;
@@ -283,6 +300,8 @@ private:
     DragAction m_drag = DragAction::None;
 
     const core::StructuralModel* m_structure = nullptr;
+    const core::WorkPlanes* m_planes = nullptr;
+    bool m_planesVisible = true;
     bool m_selectionMode = false;
     core::SelectionFilter m_filter;
     core::CategorySettings m_categories;

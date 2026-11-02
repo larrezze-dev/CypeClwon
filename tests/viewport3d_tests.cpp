@@ -554,3 +554,43 @@ TEST_F(ViewportTest, RotationModesEmitSignalsOnlyOnChange) {
     EXPECT_TRUE(view->rotateAroundPoint());
     EXPECT_TRUE(view->rotateAroundCamera());
 }
+
+TEST_F(ViewportTest, WorkPlanesDrawAGridLinePerCoordinateAndOneRectanglePerLevel) {
+    cc::core::WorkPlanes planes;
+    cc::core::generateGrid(planes, cc::core::GridSpec{});  // 4 + 4 lines
+    planes.levels = {{"Nivel 0", 0.0}, {"Nivel 1", 3.0}};
+    EXPECT_TRUE(view->workPlaneSegments().empty());  // nothing defined yet
+    view->setWorkPlanes(&planes, true);
+    const auto segments = view->workPlaneSegments();
+    int gridX = 0, gridY = 0, levelEdges = 0, labelled = 0;
+    for (const auto& s : segments) {
+        using Kind = Viewport3D::PlaneSegment::Kind;
+        gridX += s.kind == Kind::GridX;
+        gridY += s.kind == Kind::GridY;
+        levelEdges += s.kind == Kind::Level;
+        labelled += s.labelAt != Viewport3D::PlaneSegment::LabelAt::None;
+    }
+    EXPECT_EQ(gridX, 4);
+    EXPECT_EQ(gridY, 4);
+    EXPECT_EQ(levelEdges, 8);
+    EXPECT_EQ(labelled, 4 + 4 + 2);  // every grid line and one corner per level
+    // Line "B" of X: x = 3 m, label at the origin end by default.
+    EXPECT_DOUBLE_EQ(segments[1].a.x, 3.0);
+    EXPECT_EQ(segments[1].label, "B");
+    EXPECT_EQ(segments[1].labelAt, Viewport3D::PlaneSegment::LabelAt::A);
+    // Label position "Extremo" moves the label to the other end.
+    planes.gridX[0].labelPosition = cc::core::LabelPosition::End;
+    EXPECT_EQ(view->workPlaneSegments()[0].labelAt, Viewport3D::PlaneSegment::LabelAt::B);
+}
+
+TEST_F(ViewportTest, HiddenWorkPlanesDrawNothing) {
+    cc::core::WorkPlanes planes;
+    cc::core::generateGrid(planes, cc::core::GridSpec{});
+    view->setWorkPlanes(&planes, false);
+    EXPECT_FALSE(view->workPlanesVisible());
+    EXPECT_TRUE(view->workPlaneSegments().empty());
+    view->setWorkPlanes(&planes, true);
+    EXPECT_FALSE(view->workPlaneSegments().empty());
+    view->setWorkPlanes(nullptr);
+    EXPECT_TRUE(view->workPlaneSegments().empty());
+}

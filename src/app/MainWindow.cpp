@@ -34,6 +34,8 @@
 #include "FileOpsDialogs.h"
 #include "LimitStatesDialog.h"
 #include "UnitsDialog.h"
+#include "WorkPlanesDialogs.h"
+#include <QMenu>
 #include "ProjectTypeDialog.h"
 #include "StartPage.h"
 #include <QMdiArea>
@@ -384,6 +386,7 @@ void MainWindow::syncViewSettings() {
         if (auto* viewport = viewportOf(sub->widget())) {
             DisplayOptionsPanel::applyTo(*viewport, project.display);
             viewport->setCategorySettings(project.categories);
+            viewport->setWorkPlanes(&project.workPlanes, m_planesVisible);
         }
 }
 
@@ -413,7 +416,10 @@ void MainWindow::setProjectOpen(bool open) {
         auto* frame = new ViewportFrame;
         Viewport3D* viewport = frame->viewport();
         applyViewTool(viewport);
-        if (m_document) viewport->setStructure(&m_document->project.structure);
+        if (m_document) {
+            viewport->setStructure(&m_document->project.structure);
+            viewport->setWorkPlanes(&m_document->project.workPlanes, m_planesVisible);
+        }
         connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] {
             if (!m_leftPanel->layersPanel()->assignToolButton()->isChecked() || viewport->selection().empty()) return;
             m_leftPanel->layersPanel()->assignTo(viewport->selection().ids(cc::core::ElementKind::Bar),
@@ -599,6 +605,67 @@ void MainWindow::editUnits() {
     m_undo.push(std::make_unique<cc::core::EditUnitsCommand>(project, edited));
 }
 
+void MainWindow::editGrid() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    GridDialog dialog(project.workPlanes, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const cc::core::WorkPlanes edited = dialog.value();
+    if (edited == project.workPlanes) return;  // nothing changed: the project is not "modified"
+    m_undo.push(std::make_unique<cc::core::EditWorkPlanesCommand>(project, edited, cc::core::WorkPlanesEdit::Grid));
+}
+
+void MainWindow::editLevels() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    LevelsDialog dialog(project.workPlanes, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const cc::core::WorkPlanes edited = dialog.value();
+    if (edited == project.workPlanes) return;
+    m_undo.push(std::make_unique<cc::core::EditWorkPlanesCommand>(project, edited, cc::core::WorkPlanesEdit::Levels));
+}
+
+void MainWindow::editPlanesVisibility() {
+    if (!m_projectOpen) return;
+    PlanesVisibilityDialog dialog(this);  // opens on "Ocultar" like the original, whatever the current state
+    if (dialog.exec() != QDialog::Accepted) return;
+    m_planesVisible = dialog.showPlanes();
+    syncViewSettings();
+}
+
+void MainWindow::buildGeometryTab() {
+    SARibbonCategory* tab = ribbonBar()->categoryPages().at(1);
+    const auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
+    // Menu of the "Planos" button (docs/research/ui/planos.md section 11): Rejilla, Niveles, Cotas >, Referencias, Visibilidad,
+    // Mostrar nuevos (a checkable entry), Agrupar, Desagrupar.
+    auto* menu = new QMenu(tr("Planos"), this);
+    menu->setIcon(themedIcon(QStringLiteral("planes")));
+    const auto entry = [&](const QString& text, const QString& tip, auto handler) {
+        QAction* action = menu->addAction(text);
+        action->setStatusTip(tip);
+        connect(action, &QAction::triggered, this, handler);
+        return action;
+    };
+    m_gridAction = entry(tr("Rejilla"),
+                         tr("Planos - Rejilla. Permite definir una rejilla compuesta por líneas de referencia etiquetadas que sirve como soporte para la introducción de elementos de la estructura."),
+                         [this] { editGrid(); });
+    m_levelsAction = entry(tr("Niveles"),
+                           tr("Planos - Niveles. Permite editar los niveles de la obra. Los niveles son planos horizontales paralelos al plano xy global situados en una cota absoluta dada, que permiten introducir una subdivisión espacial propia de las estructuras de edificación. La asignación de los elementos a los distintos niveles es automática. Los elementos situados entre dos niveles se asignan al nivel inferior."),
+                           [this] { editLevels(); });
+    QMenu* dimensions = menu->addMenu(tr("Cotas"));  // item names derived from the command ids Planos_Cotas_*: provisional (ticket)
+    for (const QString& name : {tr("Añadir"), tr("Borrar"), tr("Mostrar"), tr("Ocultar")})
+        connect(dimensions->addAction(name), &QAction::triggered, this, notYet);
+    entry(tr("Referencias"), tr("Planos - Referencias"), notYet);
+    m_planesVisibilityAction = entry(tr("Visibilidad"), tr("Planos - Visibilidad"), [this] { editPlanesVisibility(); });
+    m_showNewPlanesAction = menu->addAction(tr("Mostrar nuevos"));
+    m_showNewPlanesAction->setCheckable(true);
+    m_showNewPlanesAction->setChecked(true);  // shown as an active entry in the original
+    m_showNewPlanesAction->setStatusTip(tr("Planos - Mostrar nuevos"));
+    entry(tr("Agrupar"), tr("Planos - Agrupar"), notYet);
+    entry(tr("Desagrupar"), tr("Planos - Desagrupar"), notYet);
+    tab->addPanel(tr("Planos"))->addLargeMenu(menu, QToolButton::InstantPopup);
+}
+
 void MainWindow::buildObraTab() {
     SARibbonCategory* tab = ribbonBar()->categoryPages().first();
     const auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
@@ -662,6 +729,7 @@ void MainWindow::buildRibbonTabs() {
         ribbon->addCategoryPage(title);
     }
     buildObraTab();
+    buildGeometryTab();
 }
 
 }  // namespace cc::app

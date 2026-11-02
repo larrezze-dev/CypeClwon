@@ -10,6 +10,8 @@
     <file>icons/file_new.svg</file>
     <file>icons/copy.svg</file>
     <file>icons/trash.svg</file>
+    <file>icons/planes.svg</file>
+    <file>icons/levels_generate.svg</file>
     <file>icons/compress.svg</file>
     <file>icons/decompress.svg</file>
     <file>icons/folder_open.svg</file>

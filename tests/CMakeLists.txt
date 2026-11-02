@@ -86,3 +86,9 @@ add_executable(layers_panel_tests layers_panel_tests.cpp ${CMAKE_SOURCE_DIR}/src
 target_include_directories(layers_panel_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(layers_panel_tests PRIVATE cc_core Qt6::Widgets Qt6::Test GTest::gtest)
 gtest_discover_tests(layers_panel_tests)
+
+add_executable(work_planes_dialog_tests work_planes_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/WorkPlanesDialogs.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(work_planes_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(work_planes_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+gtest_discover_tests(work_planes_dialog_tests)
