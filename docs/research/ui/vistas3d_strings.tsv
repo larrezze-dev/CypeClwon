@@ -1,0 +1,425 @@
+32542					Elementos	Éléments	Elements	Elementi	Elemente	Elementy	Elemanlar				
+56254		Opțiuni de vizualizare			Opcje wyświetlania		Opciones de visualización	Options de visualisation	Opções de visualização	Opcions de visualització	Opzioni di visualizzazione	View options	Opcións de visualización	Anzeigeoptionen	Görüntüleme seçenekleri
+51080				Podłoga	Suelo	Sol	Solo	Sòl	Terreno	Ground	Teren	Boden	Zemin
+169562				Elemanların plan çizimi	
+169564		Desenarea diagramelor de contur și a vederilor 3D a fost dezactivată			Rysowanie izowartości i widoków 3D zostało wyłączone	Kontur grafiklerinin ve 3DGörünümlerin çizimi devre dışı bırakıldı		El dibujo de isovalores y vistas3D ha sido desactivado	Le dessin des isovaleurs et vues3D a été désactivé	O desenho de isovalores e 3D foi desativado	O desenho de isovalores e 3D foi desactivado	El dibuix d'isovalors i vistes3D ha estat desactivat	Il disegno di isovalori e viste 3D è stato disattivato	The drawing of contour plots and 3DViews has been deactivated	O debuxo de isovalores e vistas3D foi desactivado	Die Anzeige von Höhenlinienplots und 3D Ansichten ist deaktiviert worden
+169568				3D elemanlar oluşturma	3D	Generando elementos 3D	Génération d'éléments 3D	Gerando elementos 3D	A gerar elementos 3D	Generant elements 3D	Generazione elementi 3D in corso	Generating 3D elements	Generarea elementelor 3D	3D Elemente werden gerade erstellt	Generowanie elementów 3D
+169569				Elemanların hesaplanması		Calculando elementos	Calcul des éléments	A calcular elementos	Calculant elements	Calcolo elementi in corso	Calculating elements	Calcularea elementelor	Elemente werden gerade berechnet	Obliczanie elementów
+169570		Plasă triunghiulară			Siatka trójkątna		Malla de Triángulos	Mailles Triangulaires	Malha de Triângulos	Malla de Triangles	Maglia di Triangoli	Triangular mesh	trianguliertes Netz	Üçgensel kafes
+169573		Placa grafică'%s' nu suportă vizualizarea de umbre. Cerința minimă a unei plăci grafice, necesară pentru vizualizarea de umbre, este : OpenGL 2.1 y OpenGL Shading Language (GLSL) 1.2	'%s' 		Karta graficzna '%s' nie obsługuje wyświetlania cieni. Minimalna wydajność karty graficznej niezbędna do wizualizacji cieni to: OpenGL 2.1 i OpenGL Shading Language (GLSL) 1.2	Grafik kartı '%s' gölgelerin görüntülenmesini desteklemiyor. Gölgeleri görüntülemek için gereken minimum grafik kartı özellikleri şunlardır: OpenGL 2.1 ve OpenGL Gölgeleme Dili (GLSL) 1.2		La tarjeta gráfica '%s' no soporta la visualización de sombras. Las prestaciones mínimas de una tarjeta gráfica, necesarias para visualizar las sombras, son: OpenGL 2.1 y OpenGL Shading Language (GLSL) 1.2	La carte graphique '%s' ne supporte pas la visualisation des ombres. Les performances minimales nécessaires d'une carte graphique pour pouvoir visualiser les ombres sont: OpenGL 2.1 et OpenGL Shading Language (GLSL) 1.2	A placa gráfica '%s' não suporta a visualização de sombras. As características mínimas de uma placa gráfica, necessárias para visualizar as sombras, são: OpenGL 2.1 e OpenGL Shading Language (GLSL) 1.2	A placa gráfica '%s' não suporta a visualização de sombras. As prestações mínimas de uma placa gráfica, necessárias para visualizar as sombras, são: OpenGL 2.1 e OpenGL Shading Language (GLSL) 1.2	La targeta gràfica '%s' no suporta la visualització d'ombres. Les prestacions mínimes d'una targeta gràfica, necessàries per visualitzar les ombres, són: OpenGL 2.1 i OpenGL Shading Language (GLSL) 1.2	La scheda grafica '%s' non supporta la visualizzazione di ombre. Le prestazioni minime di una scheda grafica, necessarie per visualizzare le ombre, sono: OpenGL 2.1 e OpenGL Shading Language (GLSL) 1.2	The graphics card '%s' does not support shadow viewing. The minimum requirements of the graphics card required to view the shadows are: OpenGL 2.1 y OpenGL Shading Language (GLSL) 1.2	Die Grafikkarte '%s' unterstützt Anzeige von Schatten nicht. Die Mindestanforderungen, damit die Grafikkarte die Schatten anzeigen kann, sind: OpenGL 2.1 und OpenGL Shading Language (GLSL) 1.2
+169574		Cerință acceptată			Obsługiwana funkcja		Prestación soportada	Performance supportée	Característica suportada	Prestação suportada	Prestació suportada	Prestazione supportata	Requirement supported	Unterstützte Anforderungen	Gereksinim desteklenmektedir
+169575		Cerință neacceptată			Funkcja nie jest obsługiwana		Prestación no soportada	Performance non supportée	Característica não suportada	Prestação não suportada	Prestació no suportada	Prestazione non supportata	Requirement not supported	Nicht unterstützte Anforderungen	Gereksinim desteklenmemektedir
+32376					Sombras	Ombres	Sombreamento	Ombre	Shadows	Umbre	Schatten	Cienie	Gölgeler				
+44857				Orientación	Orientation	Orientação	Orientació	Orientamento	Orientare	Richtung	Orientacja	Yönlendirme
+84735				Szerokość		Latitud	Latitude	Latitudine	Breite	Zemljepisna širina	Geografska širina	Enlem
+32377		Iarnă		Kış		Invierno	Hiver	Inverno	Hivern	Winter	Zima
+32378		Vară				Verano	Été	Verão	Estiu	Estate	Summer	Verán	Sommer	Lato	Yaz
+169571		Toamnă			Jesień		Otoño	Automne	Outono	Tardor	Autunno	Autumn	Herbst	Sonbahar
+169572		Primăvară			İlkbahar		Primavera	Printemps	Spring	Frühling	Wiosna
+170771		Nu există niciun element de vizualizat			Nie ma żadnego elementu do wyświetlenia	No hay ningún elemento a visualizar	Il n'y a aucun élément à visualiser	Não existe nenhum elemento a visualizar	No hi ha cap element a visualitzar	Non c'è nessun elemento da visualizzare	There are no elements to show	Es gibt kein Element zum Anzeigen
+390589		Secțiune a clădirii				Sección del edificio	Coupe du bâtiment	Corte do edifício	Secció de l'edifici	Sezione dell'edificio	Building section	Querschnitt des Gebäudes	Przekrój budynku	Bina kesiti
+170773		Această secțiune a clădirii nu taie niciun element al acesteia.			Ten przekrój budynku nie przecina żadnego elementu budynku.	Bu bina kesiti, binadaki hiçbir öğeyle kesişmiyor.		Esta sección del edificio no corta con ningún elemento del mismo.	Cette coupe du bâtiment ne rencontre aucun élément de celui ci.	Este corte do edifício não corta nenhum dos seus elementos.	Este corte do edifício não intercepta nenhum elemento do mesmo.	Aquesta secció de l'edifici no talla amb cap element d'aquest.	Questa sezione dell'edificio non interrompe nessun elemento dello stesso.	This building section does not cut any of its elements.	Dieser Gebäudequerschnitt schneidet in kein Element des Gebäudes ein.
+380259		Nu este posibil să vizualizați secțiunea.			Nie można wyświetlić przekroju.		No es posible visualizar la sección.	La coupe ne peut pas être visualisée.	Não é possível visualizar o corte.	No és possible visualitzar la secció.	No è possibile visualizzare la sezione.	The section cannot be viewed.	Der Querschnitt kann nicht angezeigt werden.	Kesit görüntülenemiyor.
+380260		Nu este posibil să vizualizați secțiunea din cauza următoarei erori:			Nie można wyświetlić przekroju z powodu następującego błędu:	Kesit aşağıdaki hata nedeniyle görüntülenemiyor:		No es posible visualizar la sección debido al siguiente error:	La coupe ne peut être visualisée en raison de l'erreur suivante:	Não é possível visualizar o corte devido ao seguinte erro:	No és possible visualitzar la secció a causa del següent error:	No è possibile visualizzare la sezione per il seguente errore:	The section cannot be viewed due to the following error:	Der Querschnitt kann aufgrund des folgenden Fehlers nicht angezeigt werden:
+259958		Secțiune perpendiculară pe axa globală '%s'			Przekrój prostopadły do 		Sección perpendicular al eje '%s' global	Coupe perpendiculaire à l'axe '%s' global	Corte perpendicular ao eixo '%s' global	Secció perpendicular a l'eix '%s' global	Sezione perpendicolare all'asse '%s' globale	Section perpendicular to the global '%s' axis	Schnitt senkrecht zur globalen '%s' Achse	Global '%s' eksenine dik kesit
+259959		Permite definirea unei secțiuni a modelului perpendicular pe axa globală "%s". Dacă faceți dublu clic pe săgeata de direcție a planului, se inversează direcția planului de tăiere.			Pozwala na zdefiniowanie przekroju modelu prostopadle do globalnej osi '%s'. Podwójne kliknięcie na strzałce kierunku płaszczyzny aktywuje kierunek płaszczyzny tnącej.	Modelin bir kesitini global '%s' eksenine dik olarak tanımlamanızı sağlar. Düzlem yönü okuna çift tıklamak kırpma düzleminin yönünü tersine çevirir.		Permet de définir une coupe du modèle perpendiculaire à l'axe '%s' global. En double-cliquant sur la flèche de direction du plan on inverse le sens du plan de coupe.	Permite definir um corte do modelo perpendicular ao eixo '%s' global. Realizando um duplo clique na seta de direção do plano inverte-se o sentido do plano de corte.	Permite definir um corte do modelo perpendicular ao eixo '%s' global. Fazendo duplo clique na seta de direcção do plano inverte-se o sentido do plano de corte.	Permet definir una secció del model perpendicular a l'eix '%s' global. Fent doble clic en la fletxa de direcció del pla s'inverteix el sentit del pla de tall.	Permette di definire la sezione del modello perpendicolare all'asse '%s' globale. Facendo doppio click nella freccia di direzione del piano si inverte il senso del piano di sezione.	Allows users to define a section of the model that is perpendicular to the global '%s' axis. By double clicking on the direction arrow of the plane, the direction of the trimming plane is inverted.	Es erlaubt, einen Schnitt senkrecht zur globalen '%s' Achse des Modells zu erstellen. Durch Doppelklick in dem Richtungspfeil der Ebene kann die Richtung der Schnittebene umgekehrt werden.
+259960		Rotația în jurul unui punct			Obrót wokół punktu	Bir nokta etrafında döndürme		Rotación alrededor de un punto	Rotation autour d'un point	Rotação em torno a um ponto	Rotació al voltant d'un punt	Rotazione attorno a un punto	Rotation about a point	Um einem Punkt rotieren
+259961		Activați sau dezactivați rotația scenei în jurul unui punct al obiectului aflat sub cursorul mouse-ului.			Włącza lub wyłącza obrót sceny wokół punktu obiektu znajdującego się pod kursorem myszy.	Sahnenin fare imlecinin altındaki bir nesnenin bir noktası etrafında döndürülmesini etkinleştirir veya devre dışı bırakır.		Activa o desactiva la rotación de la escena alrededor de un punto de un objeto situado bajo el cursor del ratón.	Active ou désactive la rotation de la scène autour d'un point d'un objet situé sous le curseur de la souris.	Ativa ou desativa a rotação do ambiente em torno de um ponto de um objeto situado sob o cursor do mouse.	Activa ou desactiva a rotação do ambiente em torno de um ponto de um objecto situado sob o cursor do rato.	Activa o desactiva la rotació de l'escena al voltant d'un punt d'un objecte situat sota el cursor del ratolí.	Attiva o disattiva la rotazione della scena attorno a un punto di un oggetto situato sul cursore del mouse.	Activates or deactivates the rotation of the scene around a point of an object situated below the mouse cursor.	Aktiviert oder deaktiviert die Umkreisung der Szene um einem Punkt eines Objekts unter dem Cursor.
+270250		Afișați / Ascundeți planurile secțiunii			Pokaż / Ukryj płaszczyzny przekroju	Kesit planlarını Göster / Gizle		Mostrar / Ocultar planos de sección	Afficher / Masquer plans de coupe	Mostrar / Ocultar cortes	Mostrar / Ocultar plans de secció	Mostrare / Nascondere piani di sezione	Show / Hide section planes	Schnittebenen anzeigen/ ausblenden
+287762				Obrót wokół kamery	Kamera etrafında döndürme		Rotación alrededor de la cámara	Rotation autour de la caméra	Rotação em torno da câmera	Rotação em torno da câmara	Rotació al voltant de la càmera	Rotazione intorno alla camera	Rotation about the camera	Rotire în jurul camerei	Um die Kamera drehen
+287763		Activați sau dezactivați rotația scenei în jurul axei verticale a camerei.			Włącza lub wyłącza obrót sceny wokół osi pionowej kamery.	Sahnenin kameranın dikey ekseni etrafında döndürülmesini etkinleştirir veya devre dışı bırakır.		Activa o desactiva la rotación de la escena alrededor del eje vertical de la cámara.	Active ou désactive la rotation de la scène autour de l'axe vertical de la caméra.	Ativa ou desativa a rotação do ambiente em torno do eixo vertical da câmera.	Activa ou desactiva a rotação do ambiente em torno do eixo vertical da câmara.	Activa o desactiva la rotació de l'escena al voltant de l'eix vertical de la càmera.	Attiva o disattiva la rotazione della scena intorno l'asse verticale della camera.	Activates or deactivates the rotation of the scene about the vertical axis of the camera.	Aktiviert oder deaktiviert die Drehung der Szene um die vertikale Achse der Kamera.
+350822				Objętość przycięcia	Kırpma hacmi		Volumen de recorte	Volume de découpe	Volume de recorte	Volum de retallada	Volume di ritaglio	Clipping volume	Reducere volum	Größe des Zuschnitts
+350823		Permite definirea unui volum de vizualizare folosind 6 planuri de tăiere care sunt formate din înfășurătoarea geometrică a conținutului scenei. Utilizați săgețile pentru ajustarea planurilor ce definesc volumul de vizualizare și arcurile pentru a le modifica orientarea.			Umożliwia zdefiniowanie wyświetlanej objętości za pomocą 6 płaszczyzn cięcia, które są utworzone z geometrycznej obwiedni zawartości sceny. Użyj strzałek, aby dostosować płaszczyzny, które tworzą wyświetlaną objętość, oraz łuków, aby zmienić ich orientację.	Sahne içeriğinin geometrik katmanlarından oluşan 6 kesme düzlemi aracılığıyla bir görüntüleme hacmi tanımlamanızı sağlar. Görüntülenecek hacmi tanımlayan düzlemleri ayarlamak için okları ve yönlerini değiştirmek için yayları kullanın.		Permite definir un volumen de visualización mediante 6 planos de corte que se conforman a partir de la envolvente geométrica del contenido de la escena. Utilice las flechas para ajustar los planos que definen el volumen a visualizar y los arcos para modificar la orientación de los mismos.	Permet de définir un volume de visualisation via 6 plans de coupe formés à partir de l'enveloppe géométrique du contenu de la scène. Utilisez les flèches pour ajuster les plans définissant le volume à visualiser et les arcs pour modifier leur orientation.	Permite definir um volume de visualização através de 6 planos de corte que se formam a partir da envolvente geométrica do conteúdo do ambiente. Utilize as setas para ajustar os planos que definem o volume a visualizar e os arcos para modificar a orientação dos mesmos.	Permet definir un volum de visualització mitjançant 6 plans de tall que es conformen a partir de l'envolupant geomètrica del contingut de l'escena. Utilitzi les fletxes per ajustar els plans que defineixen el volum a visualitzar i els arcs per modificar l'orientació d'aquests.	Consente di definire un volume di visualizzazione attraverso 6 piani di taglio che si generano a partire da un involucro geometrico del contenuto della scena. Utilizzi le frecce per regolare i piani che definiscono il volume da visualizzare e gli archi per modificare il suo l'orientamento.	Defines a display volume using 6 cutting planes that are formed from the geometric envelope of the contents of the scene. Use the arrows to adjust the planes that define the volume to be displayed and the arcs to modify their orientation.	Definiert ein Anzeigevolumen mit 6 Schnittebenen, die aus der geometrischen Umhüllung des Inhalts der Szene gebildet werden. Benutzen Sie die Pfeile zum Einstellen der Ebenen, die das anzuzeigende Volumen definieren, und die Bögen, um ihre die Ausrichtung zu ändern.
+169563		Sistemul dumneavoastră nu este compatibil cu OpenGL			Sisteminiz OpenGL ile uyumlu değildir.		Su sistema no es compatible con OpenGL	Votre système n'est pas compatible avec OpenGL	O seu sistema não é compatível com OpenGL	El seu sistema no és compatible amb OpenGL	Il suo sistema non è compatibile con OpenGL	Your system is not compatible with OpenGL	O seu sistema non é compatible con OpenGL	Ihres System ist nicht kompatibel mit OpenGL	Twój system nie jest kompatybilny z OpenGL
+169565		Afișează o paletă de culori pentru a atribui culoarea de fundal a ferestrei. Apăsați pe culoarea pe care doriți să o selectați ca și culoare de fundal, iar paleta de culori se va închide automat.			Wyświetla paletę kolorów w celu wybrania koloru tła okna. Kliknij na kolor, który chcesz wybrać jako kolor tła, a paleta kolorów zostanie automatycznie zamknięta.	Ekrana bir arka plan atayabilmeniz için bir renk paleti gösterir. İstediğiniz arka plan rengine tıklayın ve renk paleti otomatik olarak kapanacaktır.		Muestra una paleta de colores para asignar el color de fondo de la ventana. Pulse sobre el color que desee seleccionar como color de fondo y automáticamente se cerrará la paleta de colores.	Affiche une palette de couleur pour assigner une couleur de fond à la fenêtre. Cliquez sur la couleur que vous voulez appliquer comme couleur de fond. La palette de couleur se fermera automatiquement.	Mostra uma paleta de cores para atribuir a cor de fundo da janela. Clique sobre a cor que deseja selecionar como cor de fundo e automaticamente se fechará a paleta de cores.	Mostra uma paleta de cores para atribuir a cor de fundo da janela. Prima sobre a cor que deseja seleccionar como cor de fundo e automaticamente se fechará a paleta de cores.	Mostra una paleta de colors per assignar el color de fons de la finestra. Premi sobre el color que desitgi seleccionar com color de fons i automàticament es tancarà la paleta de colors.	Mostra una tavolozza di colori per assegnare il colore di sfondo alla finestra. Clicchi sul colore che desidera impostare come colore di sfondo ed automaticamente si chiuderà la tavolozza dei colori.	Shows a palette of colours so you may assign a background to the display. Click on the desired background colour and the colour palette will automatically close.	Amosa unha paleta de cores para asignar a cor de fondo da ventana. Prema sobre a cor que desexe seleccionar coma cor de fondo e automáticamente se pechará a paleta de cores.	Zeigt eine Farbpalette an, damit Sie eine Farbe für den Hintergrund des Fensters auswählen können. Klicken Sie auf die Farbe, die Sie als Farbe des Hintergrunds auswählen wollen und die Farbpalette wird automatisch geschlossen werden.
+169566		Afișează o fereastră care vă permite să gestionați vizibilitatea diferitelor elemente (grupate pe tipologii) care apar în vizualizarea curentă. De asemenea, permite activarea vizibilității terenului (la cota zero).			Wyświetla okno umożliwiające zarządzanie widocznością różnych elementów (pogrupowanych według typologii), które pojawiają się w bieżącym widoku. Dodatkowo umożliwia aktywację widoczności podłogi (przy zerowej wysokości).	Mevcut görünümde görünen farklı elemanların görünürlüğünü yönetmenizi sağlayan bir pencere gösterir. Ayrıca, zemini (sıfır seviyesinde) görselleştirmenize olanak tanır.		Muestra una ventana que permite gestionar la visibilidad de los distintos elementos (agrupados por tipologías) que aparecen en la vista actual. Además, permite activar la visibilidad del suelo (en la cota cero).	Affiche une fenêtre qui permet de gérer la visibilité des différents éléments (groupés par typologie) qui apparaissent dans la vue actuelle. Permet aussi d'activer la visibilité du sol (à la cote zéro).	Mostra uma janela que permite gerenciar a visibilidade dos distintos elementos (agrupados por tipologias) que aparecem na vista atual. Além disso, permite ativar a visibilidade do terreno (na cota zero).	Mostra uma janela que permite gerir a visibilidade dos distintos elementos (agrupados por tipologias) que aparecem na vista actual. Além disso, permite activar a visibilidade do solo (na cota zero).	Mostra una finestra que permet gestionar la visibilitat dels diferents elements (agrupats per tipologies) que apareixen en la vista actual. A més, permet activar la visibilitat del terra (en la cota zero).	Mostra una finestra che consente di gestire la visibilità dei distinti elementi (raggruppati per tipologie) che appaiono nella vista corrente. Inoltre, consente di attivare la visibilità del suolo (alla quota zero).	Displays a window that allows you to manage the visibility of the different elements (grouped by types) that appear in the current view. It also gives you the option to visualise the ground (at zero level).	Amosa unha ventana que permite xestionar a visibilidade dos distintos elementos (agrupados por tipoloxías) que aparecen na vista actual. Ademáis, permite activar a visibilidade do solo (na cota cero).	Zeigt ein Fenster an, das die Anzeige der verschiedenen Elemente (gruppiert nach Typologien) der aktuellen Ansicht verwaltet. Außerdem ermöglicht es, die Sichtbarkeit des Bodens (Höhe: Null) zu aktivieren.
+74934				Kolor tła		Color de fondo	Couleur de fond	Cor do fundo	Cor de fundo	Color de fons	Colore dello sfondo	Background colour	Cor de fondo	Culoarea fundalului	Farbe des Hintergrunds	Arka plan rengi					Kolor tła	
+278230				Krawędzie obiektów	Belirgin Nesne Kenarları		Aristas de objetos	Arêtes des objets	Arestas de objetos	Arestes d'objectes	Bordi dell'oggetto	Object edges	Muchiile obiectului	Kanten der Objekte
+278231		Iluminare ambientală îmbunătățită (SSAO)			Ulepszone oświetlenie otoczenia (SSAO)	Ekran Uzayı Ortam Örtmesi (SSAO)		Iluminación ambiental mejorada (SSAO)	Illumination ambiante améliorée (SSAO)	Iluminação ambiental melhorada (SSAO)	Il·luminació ambiental millorada (SSAO)	Illluminazione ambientale migliorata (SSAO)	Improved environment lighting (SSAO)	Verbesserte Umgebungsbeleuchtung (SSAO)
+278222		Jest to technika oprogramowania, którą można zastosować wraz z dowolną kartą graficzną. Jakość obrazu jest dobra, a wpływ na szybkość grafiki jest minimalny. Jest to wartość zalecana dla obszarów roboczych.	Bu herhangi bir ekran kartıyla uygulanabilen bir yazılım tekniğidir. Görüntü kalitesi iyidir ve grafik hızı üzerindeki etkisi minimumdur. Bu çalışma alanları için önerilen ayardır.			Este o tehnică software care poate fi aplicată cu orice placă video. Calitatea imaginii este bună, iar impactul asupra vitezei grafice este minim. minimă. Aceasta este setarea recomandată pentru zonele de lucru.		Es una técnica de software que puede aplicarse con cualquier tarjeta de vídeo. La calidad de la imagen es buena y el impacto en la velocidad de los gráficos es mínimo. Es el valor recomendado para las áreas de trabajo.	C'est une technique logicielle qui peut être appliquée à toute carte graphique. La qualité de l'image est bonne et l'impact sur la vitesse des graphiques est minime. Cette option est recommandée pour les espaces de travail.	É uma técnica de software que pode ser aplicada com qualquer placa gráfica. A qualidade da imagem é boa e o impacto na velocidade dos gráficos é mínimo. É o valor recomendado para as áreas de trabalho.	És una tècnica de software que es pot aplicar amb qualsevol targeta de vídeo. La qualitat de la imatge és bona i l'impacte en la velocitat dels gràfics és mínima. És el valor recomanat per a les àrees de treball.	É una tecnica del software che può applicarsi con qualunque scheda video. La qualità dell'immagine é buona e l'impatto nella velocità dei grafici é minimo. É il valore raccomandato per l'area di lavoro.	It is a software technique that can be applied with any video card. The quality of the image is good and the impact on the speed of the graphics is minimal. It is the recommended value for workspaces.	Es ist ein Verfahren, die mit jeder Grafikkarte verwendet werden kann. Die Qualität des Bildes ist gut und der Einfluss in der Grafikleistung ist niedrig. Es ist die empfohlene Option für die Arbeitsbereiche.
+278223		Este o tehnică care poate fi aplicată numai cu plăci video care o acceptă. Calitatea imaginii este bună, iar definirea marginilor primitivelor geometrice este excelentă începând cu 4 probe. Cu toate acestea, în funcție de în funcție de hardware-ul PC-ului dumneavoastră, viteza grafică poate fi afectată. Aceasta este valoarea recomandată pentru zonele de afișare.			Jest to technika, którą można zastosować tylko z kartami graficznymi, które ją obsługują. Jakość obrazu jest dobra, a definicja krawędzi prymitywów geometrycznych jest doskonała od 4 próbek wzwyż. Jednak w zależności od sprzętu komputerowego może mieć wpływ na prędkość grafiki. Jest to zalecana wartość dla obszarów wyświetlania.	Yalnızca bunu destekleyen ekran kartlarıyla uygulanabilen bir tekniktir. Görüntü kalitesi iyidir ve geometrik şekillerin kenarlarının tanımı, 4 örneklemeden itibaren mükemmeldir. Ancak, PC donanımınıza bağlı olarak grafik hızı etkilenebilir. Görüntüleme alanları için önerilen değerdir.		Es una técnica que puede aplicarse sólo con las tarjetas de vídeo que la soportan. La calidad de la imagen es buena, y la definición de los bordes de las primitivas geométricas es excelente a partir de 4 muestras. Sin embargo, dependiendo del hardware de su PC, la velocidad de los gráficos puede verse afectada. Es el valor recomendado para las áreas de visualización.	C'est une technique qui peut uniquement être appliquée aux cartes graphiques qui la supportent. La qualité de l'image est bonne et la définition des bords des primitives géométriques est excellente à partir de 4 échantillons. Cependant, selon le hardware de votre PC, la vitesse des graphiques peut être affectée. Cette option est recommandée pour les zones de visualisation.	É uma técnica que pode ser aplicada apenas com as placas gráficas compativéis. A qualidade da imagem é boa e a definição dos bordos das primitivas geométricas é excelente a partir de 4 amostras. No entanto, dependendo do hardware do seu PC, a velocidade dos gráficos pode ser afetada. É o valor recomendado para as áreas de visualização.	É uma técnica que pode ser aplicada apenas com as placas gráficas compativéis. A qualidade da imagem é boa e a definição dos bordos das primitivas geométricas é excelente a partir de 4 amostras. No entanto, dependendo do hardware do seu PC, a velocidade dos gráficos pode ser afectada. É o valor recomendado para as áreas de visualização.	És una tècnica que es pot aplicar només amb les targetes de vídeo que la suporten. La qualitat de la imatge és bona, i la definició de les vores de les primitives geomètriques és excel·lent a partir de 4 mostres. No obstant això, depenent del harware del seu PC, la velocitat dels gràfics es pot veure afectada. És el valor recomanat per a les àrees de visualització.	É una tecnica che può applicarsi solo con le schede video che la supportano. La qualità dell'immagine é buona, e la definizione dei bordi della primitiva geometrica é eccellente a partire da 4 campioni. Tuttavia, in base all'hardware del suo PC, la velocità dei grafici può variare. É il valore raccomandato per le aree di visualizzazione.	It is a technique that can be applied only with the video cards that support it. The quality of the image is good, and the definition of the edges of the geometric primitives is excellent as of 4 samples. However, depending on the hardware of your PC, the speed of the graphics may be affected. It is the recommended value for display areas.	Es ist ein Verfahren, die nur mit bestimmten Grafikkarten verwendet werden kann. Die Qualität des Bildes ist gut und die Definition der Kanten der geometrischen Grundformen ist optimal ab 4 Samples. Trotzdem, kann die Grafikleistung Ihres Computers abhängig von Ihrem Hardware beeinträchtigt werden. Es ist die empfohlene Option für die Anzeigebereiche.
+278224		Combină cele două tehnici anterioare și produce o imagine de o calitate excelentă.			Łączy dwie techniki wspomniane wcześniej i tworzy obraz o doskonałej jakości.	Önceki iki tekniği birleştirir ve mükemmel kalitede bir görüntü üretir.		Combina las dos técnicas anteriores y produce una imagen de una calidad excelente.	Combinaison des deux techniques précédentes qui produit une image d'une excellente qualité.	Combina as duas técnicas anteriores e produz uma imagem de excelente qualidade.	Combina les dues tècniques anteriors i produeix una imatge d'una qualitat excel·lent.	Combina le due tecniche precedenti e produce un'immagine di qualità eccellente.	Combines the two previous techniques and produces an image of excellent quality.	Kombiniert die zwei obengenannten Verfahren und erstellt ein Bild mit optimaler Qualität.
+278225		Îmbunătățirea nivelului de calitate al iluminării ambientale (SSAO)			Ulepszony poziom jakości oświetlenia otoczenia (SSAO)	Geliştirilmiş ortam aydınlatma kalitesi seviyesi (SSAO)		Nivel de calidad de iluminación ambiental mejorada (SSAO)	Niveau de qualité d'illumination ambiante améliorée (SSAO)	Nível de qualidade de iluminação ambiental melhorada (SSAO)	Nivell de qualitat d'il·luminació ambiental millorada (SSAO)	Livello di qualità della luminosità ambientale migliorato (SSAO)	Improved environment lighting quality level (SSAO)	Verbessertes Qualitätsniveau der Umgebungsbeleuchtung (SSAO)
+278226		Scăzut			Düşük	Bajo	Faible	Baixo	Baix	Basso	Low	Niedrig	Niski
+278227				Średni	Medio	Moyen	Médio	Mig	Medium	Mediu	Mittel	Orta
+278228				Alto	Élevé	Alt	High	Ridicat	Hoch	Wysoki	Yüksek
+278229					Máximo	Maximal	Màxim	Massimo	Maximum	Maxim	Maksymalny	Maksimum
+316454				Poziom jakości rysunku przezroczystych obiektów podczas przesuwania lub obracania	Hareket ettirirken veya döndürürken şeffaf nesnelerin çizim kalitesi seviyesi		Nivel de calidad de dibujo de los objetos transparentes al mover o girar	Niveau de qualité de dessin des objets transparents en déplaçant ou tournant	Nível de qualidade de desenho dos objetos transparentes ao mover ou rodar	Nível de qualidade de desenho dos objectos transparentes ao mover ou rodar	Nivell de qualitat de dibuix dels objectes transparents en moure o girar	Livello di qualità del disegno degli oggetti trasparenti muovendo o girando	Drawing quality level of the transparent objects when moving or rotating	Nivelul de calitate al desenului obiectelor transparente la deplasare sau rotire	Zeichnungsqualität der transparenten Objekte beim Bewegen oder Drehen
+278215		Trebuie să reporniți programul pentru a se aplica modificările efectuate.			Aby zastosować wprowadzone zmiany, należy ponownie uruchomić program.	Değişikliklerin uygulanabilmesi için program yeniden başlatılmalıdır.		Debe reiniciar el programa para que se apliquen los cambios efectuados.	Vous devez redémarrer le logiciel pour que les changements effectués prennent effet.	Deve-se reiniciar o programa para que se apliquem as modificações realizadas.	Deve reiniciar o programa para que se apliquem as modificações realizadas.	Ha de reiniciar el programa perquè s'apliquin els canvis efectuats.	Riavvia il programma per effettuare le modifiche.	The program must be restarted for the changes to be applied.	Das Programm muss neu gestartet werden, damit die durchgeführten Änderungen wirksam werden.	Program je treba znova zagnati, da se spremembe aplicirajo.
+352101				Poziom jakości rysowania obiektów przezroczystych	Şeffaf nesnelerin çizim kalitesi seviyesi		Nivel de calidad de dibujo de los objetos transparentes	Niveau de qualité de dessin des objets transparents	Nível de qualidade de desenho dos objetos transparentes	Nível de qualidade de desenho dos objectos transparentes	Nivell de qualitat de dibuix dels objectes transparents	Livello di qualità del disegno degli oggetti trasparenti	Drawing quality level of transparent objects	Nivelul de calitate al desenului obiectelor transparente	Qualitätsstufe der Zeichnung von transparenten Objekten
+75009				Hayır		No	Non	Não	Nu	Nein	Nie					Hayır		Ne	Nem
+354646		Activați interogările de ocluzie hardware			Włącz zapytania okluzji sprzętowej	Donanım tıkanıklığı sorgularını etkinleştirin		Activar consultas de oclusión por hardware	Activer requêtes d'occlusion par hardware	Ativar consultas de oclusão por hardware	Activar consultas de oclusão por hardware	Activar consultes d'oclusió per hardware	Abilita le query di occlusione hardware	Enable hardware occlusion queries	Aktivieren von Hardware-Okklusionsabfragen
+390465	Calitatea de reprezentare a șabloanelor DXF - DWG	DXF - DWG 		Jakość wyświetlania szablonów DXF - DWG	DXF - DWG şablonlarının gösterim kalitesi	DXF-DWG	Calidad de representación de las plantillas DXF - DWG	Qualité de représentation des fonds de plan DXF - DWG	Qualidade de representação das máscaras DXF - DWG	Qualitat de representació de les plantilles DXF - DWG	Qualità di rappresentazione dei template DXF - DWG	Representation quality of DXF - DWG templates	Darstellungsqualität der DXF - DWG- Vorlagen
+390524	Viteza maximă			Maksymalna szybkość	Maksimum hız		Máxima velocidad	Vitesse maximale	Máxima velocidade	Màxima velocitat	Massima velocità	Maximum speed	Maximale Geschwindigkeit
+205292	Precizia maximă			Máxima precisión	Précision maximale	Máxima precisão	Màxima precisió	Massima precisione	Maximum precision	Maximale Genauigkeit	Maksymalna precyzja	Maksimum hassasiyet
+278219	Antialiasing, 	Anti-aliasing-ul, cunoscut și sub numele de netezirea marginilor, este un proces care îmbunătățește aspectul unei imagini prin reducerea nivelului de pixelare la marginile elementelor geometrice. În funcție de tehnica folosită, de hardware-ul de care dispuneți pe PC și de setările driverului plăcii video, performanța grafică poate fi afectată.	Antialiasing, 	Antialiasing, 	Antyaliasing, znany również jako wygładzanie krawędzi, to proces poprawiający wygląd obrazu poprzez zmniejszenie poziomu pikselizacji na krawędziach prymitywów geometrycznych. W zależności od zastosowanej techniki, sprzętu komputerowego i konfiguracji sterownika karty graficznej, może mieć wpływ na wydajność graficzną.	Kenar yumuşatma olarak da bilinen antialiasing, geometrik şekillerin kenarlarındaki pikselleşme seviyesini azaltarak bir görüntünün görünümünü iyileştiren bir işlemdir. Kullanılan tekniğe, bilgisayarınızda bulunan donanıma ve ekran kartınızın sürücüsünün yapılandırmasına bağlı olarak grafik performansı etkilenebilir.		El antialiasing, también conocido como suavizado de bordes, es un proceso que mejora la apariencia de una imagen reduciendo el nivel de pixelado en los bordes de las primitivas geométricas. Según la técnica empleada, el hardware del que disponga su PC y la configuración del driver de su tarjeta de vídeo, el rendimiento gráfico puede verse afectado.	L'antialiasing, également connu comme anticrénelage, est un procédé qui améliore l'apparence d'une image en réduisant l'effet de pixellisation des bords des primitives géométriques. Selon la technique employée, le hardware de votre PC et la configuration du pilote de la carte graphique, la performance graphique peut être affectée.	O anti-aliasing, também conhecido como redução de serrilhamento de bordos, é um processo que melhora a aparência de uma imagem reduzindo o nível de pixelização nos bordos das primitivas geométricas. Dependendo da técnica utilizada, do hardware disponível no seu PC e da configuração do driver da placa gráfica, o rendimento gráfico pode ser afetado.	O anti-aliasing, também conhecido como redução de serrilhamento de bordos, é um processo que melhora a aparência de uma imagem reduzindo o nível de pixelização nos bordos das primitivas geométricas. Dependendo da ténica utilizada, do hardware disponível no seu PC e da configuração do driver da placa gráfica, o rendimento gráfico pode ser afectado.	L'antialiasing, també conegut com suavitzat de vores, és un procés que millora l'aparença d'una imatge reduint el nivell de pixelat a les vores de les primitives geomètriques. Segons la tècnica emprada, el hardware del que disposi el seu PC i la configuració del driver de la seva targeta de vídeo, el rendiment gràfic es pot veure afectat.	L'antialiasing, conosciuto anche come scalettatura, é un processo che migliora l'aspetto di una immagine migliorando la risoluzione dei pixel sui bordi della geometria. In base alla tecnica impiegata, all'hardware e alla configurazione dei driver della scheda video, il rendimento grafico cambia.	Antialiasing, also known as edge smoothing, is a process that improves the appearance of an image by reducing the level of pixelation at the edges of geometric primitives. Depending on the technique used, the hardware available to your PC and the configuration of the driver of your video card, the graphic performance may be affected.	Antialiasing, auch als Kantenglättung bezeichnet, ist ein Prozess, die das Aussehen eines Bildes durch die Reduzierung der Pixelebene der Kanten der geometrische Grundformen verbessert. Abhängig vom durchgeführten Verfahren, die Hardware Ihres Computers und die Einstellungen der Drivers Ihrer Grafikkarte, kann die Grafikleistung beeinträchtigt werden.
+278220		Opțiunile de configurare disponibile sunt :			Dostępne opcje konfiguracji to:	Mevcut yapılandırma seçenekleri şunlardır:		Las opciones de configuración disponibles son:	Les options de configuration disponibles sont:	As opções de configuração disponíveis são:	Les opcions de configuració disponibles són:	Le opzioni di configurazione disponibili sono:	The available configuration options are:	Die verfügbaren Einstellungsoptionen sind:
+278221		Nu se aplică nicio tehnică de netezire a marginilor. Viteza grafică este cea mai mare posibilă. Marginile primitivelor geometrice din imagine sunt clar pixelate atunci când nu sunt aliniate cu direcțiile orizontală și verticală ale ecranului.			Nie zastosowano techniki wygładzania krawędzi. Prędkość obrazu osiąga maksymalną możliwą wartość. Krawędzie geometrycznych prymitywów na obrazie są wyraźnie podzielone na piksele, gdy nie znajdują się w jednej linii z poziomymi i pionowymi kierunkami ekranu.	Hiçbir kenar yumuşatma tekniği uygulanmamıştır. Grafiklerin hızı mümkün olan maksimum hızdır. Görüntünün geometrik şekillerin kenarları, ekranın yatay ve dikey yönleriyle hizalanmadıklarında açıkça pikselleşir.		No se aplica ninguna técnica de suavizado de bordes. La velocidad de los gráficos es la máxima posible. Los bordes de las primitivas geométricas de la imagen se ven claramente pixelados cuando no están alineados con las direcciones horizontal y vertical de la pantalla.	Aucune technique d'adoucissement des bords n'est appliquée. La vitesse des graphiques est la plus élevée possible. Les bords des primitives géométriques de l'image sont clairement pixellisés lorsqu'ils ne sont pas alignés horizontalement et verticalement par rapport à l'écran.	Não se aplica nenhuma técnica de redução de serrilhamento de bordos. A velocidade dos gráficos é a máxima possível. Os bordos das primitivas geométricas da imagem vêm-se claramente pixelados quando não estão alinhados com as direções horizontal e vertical da tela.	Não se aplica nenhuma técnica de redução de serrilhamento de bordos. A velocidade dos gráficos é a máxima possível. Os bordos das primitivas geométricas da imagem vêm-se claramente pixelados quando não estão alinhados com as direcções horizontal e vertical do ecrã.	No s'aplica cap tècnica de suavitzat de vores. La velocitat dels gràfics és la màxima possible. Les vores de les primitives geomètriques de la imatge es veuen clarament pixelats quan no estan alineats amb les direccions horitzontal i vertical de la pantalla.	Non si applica nessuna tecnica di miglioramento dei bordi. La velocità dei grafici é la massima possibile. I bordi della primitiva geometrica dell'immagine si vedono chiaramente pixellati quando non sono allineati con le direzioni orizzonti e verticali dello schermata.	No edge smoothing technique is applied. The speed of the graphics is the maximum possible speed. The edges of the geometric primitives of the image are clearly pixelated when they are not aligned with the horizontal and vertical directions of the screen.	Keine Kantenglättungsverfahren wird durchgeführt. Die Grafikleistung ist maximal. Die Kanten der geometrischen Grundformen des Bildes werden deutlich verpixelt angezeigt, wenn sie nicht mit der horizontale oder vertikale Richtung des Bildschirm ausgerichtet sind.
+74834	Editați					Editați				
+74700		Configurează				Yapılandır	
+46074		Ștergeți			Usuń	
+58399		Continuă				Pokračovat	
+75005		Copiați					Copiați				
+122487		Tipăriți			Yazdır			Tipăriți			Yazdır	
+29651		Importați			İçe aktar	
+74994		Căutați				
+396517				
+74912		Selectați				
+74889					Nápověda	Pomoć	Pomoč	Yardım		Βοήθεια
+138923		Deschideți			
+123799		Salvați			Sačuvati
+58403		Ignoră				Mellőz	Pomiń	
+58405		Mai multe informații				Več informacij	Więcej informacji	
+74693		Acceptă				Přijmout	OK
+46966					Błąd		Error	Erreur	Erro	Errore	Eroare	Fehler	Chyba	Greška	Napaka	Hiba	Hata					Błąd					Błąd	
+46960		Anulați				Prekliči	İptal	
+58407					Přístup	Dostęp	Erişim	
+74695		Ieșire				Wyjdź	Çıkış	
+58408					Předchozí	Előző	
+58409		Următorul				Slijedeće	Következő	Następny	Sledeći	
+75008					Sí	Oui	Sim	Si	Sì	Yes	Da	Ja	Ano	Igen	Tak	Evet
+58410					Dokončit	
+94334		Creați			Oluştur	
+290904			Verificați flambajul elementelor aflate în compresiune			Weryfikuj wyboczenie ściskanych elementów	Basınç elemanlarının burkulmasını kontrol et
+46970					Neověřeno	Nije potvrđen	Nem ellenőrzött	Nie spełnia wymogów weryfikacji	Uyumlu değil	
+46987		Verificări de cod				Kód ellenőrzése			Verificări de cod				Kód ellenőrzése	
+353379		Verificări opționale			
+268446			
+46988				
+390581			
+46972		Verificarea rezistenței la foc			Sprawdź odporność ogniową	Yangın direncini kontrol edin	
+390582			Współczynnik minimalnego momentu	Minimum moment katsayısı	
+38037				Sprawdzanie płatwi/rygli	Aşık kontrolü	
+191867		Rezistență la foc			Odporność ogniowa	Yangın direnci	
+46990		Normă neimplementată			Standart uygulanmadı	
+38031		Utilizări			Talep kapasite oranı	
+46991		Deformația unitară sub încărcarea maximă.			Jednostkowe odkształcenie od maksymalnego obciążenia.	Maksimum mukavemete ulaşırken gerinim.	
+46975				
+46992		Nu a fost gasită nici o armare validă			Nie znaleziono żadnego odpowiedniego zbrojenia	Geçerli bir donatı bulunamadı	
+46976				Długość wyboczeniowa	Burkulma uzunluğu	
+46993				T/K oranı	DCR
+42532				Współczynnik wyboczeniowy	Burkulma katsayısı	
+27901		Rezumat al verificărilor			
+26714				
+41955		Verificări		
+156821		Rezistența			Wytrzymałość	Dayanım	
+46980				SPEŁNIA	
+46996		Rezistența la temperatura ambiantă			Wytrzymałość w temperaturze otoczenia	Ortam sıcaklığında direnç	
+46981		Rezistența la torsiune			Nośność na skręcanie	
+46997		S-au îndeplinit toate verificările.			Wszystkie weryfikacje zostały spełnione.	Bütün kontroller doğrulanmıştır.	
+46982				
+122732		Verificări de rezistență			Weryfikacje wytrzymałościowe	Dayanıklılık kontrolleri	
+46967		Nu se aplică				Nepřijatelné	Nem megfelelő	Geçerli değil	
+46983		Verificări U.S.L.	U.L.S.		
+290901		Încovoiere pozitivă (partea superioară)			Zginanie momentem dodatnim (Górna półka)	Pozitif eğilme (Üst başlık)	
+46968		S-au produs urmatoarele avertizări			Pojawiły się następujące ostrzeżenia	Aşağıdaki uyarılar meydana geldi	
+184697		Rezistență la întindere			Wytrzymałość na rozciąganie	
+290902		Incovoiere negativă (Partea inferioară)			Zginanie momentem ujemnym (Dolna półka)	Negatif eğilme (Alt başlık)	
+46969		Avertizări				Ostrzeżenia	Uyarılar
+27046		Rezistența la compresiune			Nośność na ściskanie	Basınç mukavemeti	
+290903		Verificați flambajul lateral			Yanal burkulmayı kontrol et	
+46986				Nie ma błędów	Hiçbir hata bulunmamaktadır	
+34244		
+74929				
+75000		Derulați în sus			Przesuń do góry	Yukarı kaydır	
+75025		Date definite în bibliotecă			Kütüphanede tanımlı veriler	
+250065			Capăt		
+38793		Încărcări ale fundației			Obciążenia fundamentów	
+56434				
+74944	Tanımlı değil				
+58617	Oś				
+64403	Yer değiştirmeler		Μετατοπίσεις			
+25927				
+74737		Oțel în etrieri			
+71614				
+155074		Στοιχείο			
+38405		Armatură			Donatı
+29506		Piloți			Kazıklar	
+29543			İtibaren	
+322563		Doriți să continuați?			Czy chcesz kontynuować?	
+74914					Ellenőriz	Sprawdź	
+74720				Szczegóły	
+74777					Fecha	Date	Data	Datum	Dátum	Tarih
+71602		Opțiuni de dimensionare			Boyutlandırma seçenekleri	
+38520			
+32867				
+75029					Barvy pro zobrazení obrysů	Kolory do przedstawienia izowartości	
+75001		Derulați în jos			Przesuń na dół	Aşağı kaydır	
+56004		Armare manuală			Zbrojenie wprowadzane ręcznie	Manuel donatı	
+34245				
+250157				
+43497				
+74931		Exportați				Dışa Aktar	
+29544		Până la		Karşı	
+30696					Ostrzeżenie	Uyarı
+74778		Rezumatul măsurătorilor			
+74916				
+38797				Wypełnienie	
+61921		Mutați			Przesuń	Taşı	
+74868				Wartości maksymalne	Maksimum değerler	
+65851				Wyświetlanie	
+29542			Średn.
+175585				Siła osiowa	
+214547		Nu se poate deschide fișierul '%s', pentru că este utilizat de o altă aplicație.			Nie można otworzyć pliku '%s', ponieważ jest obecnie używany przez inną aplikację.	Başka bir uygulama tarafından kullanıldığı için '%s' dosyası açılamıyor.	
+74981		X 	Współrzędna X	X Koordinatı	X
+38501				Węzły	Düğümler	
+58251				
+28270		Opțiuni			Opciones	Options	Opções	Opcions	Opzioni	Opcións	Optionen	Opcje	Seçenekler
+157015		Secțiune		
+74967		Calculați lucrarea			
+74779		Dimensiunea textului și grosimea scrisului			Metinlerin ve kalem kalınlığının boyutu	
+292012		Notă			
+74721					
+32858		Legendă		
+13270				
+74756		Referință					Αναφορά
+60182				Çerçevenin adı	
+74740				
+75004		Selectați o opțiune din meniu.			Wybierz opcję z menu.	
+214548		Nu este posibil să se acceseze '%s', pentru că este utilizat de o altă aplicație.			Nie można uzyskać dostępu do '%s', ponieważ jest obecnie używany przez inną aplikację.	Başka bir uygulama tarafından kullanıldığı için '%s' öğesine erişmek mümkün değildir.	
+74982		Y 	Współrzędna Y	Y Koordinatı	Y
+27949				Açıklıklar	
+74897			
+356288		Secțiune		
+139468				Hesaplanıyor	
+74919		Animație		
+74948			
+74722		Ștergeți				Usuń	
+74780		Numele fișierului este incorect				Ime datoteke je napačno	Nazwa pliku jest niewłaściwa	Dosya adı yanlıştır	
+74706		Scară				Měřítko	
+74870		Riglă verticală			
+74741				Dług.	
+366053				Całkowite	
+75007		Ajustați			
+58304					Çalışmanın tanımı	
+74878		Mărimea textului			
+74898		Mărime:		
+38643								
+170708		Vedeți plansee din rețea de grinzi și tip dală			Zobacz stropy kasetonowe i płyty	Nervürlü ve düz döşemeleri görüntüle	
+74969		Salvați ca				Farklı kaydet	
+74951		Schimbați grupul			Zmień grupę	Grubu değiştir	
+74808				Ortogonal açık/kapalı	
+50503				Adı					İsim	
+74871		Linia de bază a cadrului			Çerçeve tabanı hattı	
+74984				Özetlenmiş	
+250158				Wartość	Değer	
+123798		Manager de fișiere				Správce souborů	Fájlkezelő	Menedżer plików	
+74879		Încărcări speciale			Specjalne obciążenia	
+38789				Podłużne	Boylamasına	
+64404				Deforme olmuş	
+59343			
+183369								
+37750				
+74809		Modificați ultimul punct marcat			Zmień ostatni zaznaczony punkt	Son işaretli noktayı değiştirin	
+74935		Proiecție			İzdüşüm		Proyección	Projection	Projeção	Projecção	Projecció	Proiezione	Proxección	Projektion	Pohled	Projekcija	Vetítés	Rzut
+74970			
+55728				Kolon başlangıçları	
+74872				Moment hattı	
+155089		Încărcări			Obciążenia	
+157223				Długość					Długość	
+55257				
+38790				
+137893		Primul câmp al titlului nu poate rămâne gol.			Pierwsze pole tytułu nie może być puste.	Başlıktaki ilk alan boş bırakılamaz.	
+74971				
+156896				
+74955		Permite refacerea operațiunilor anulate anterior cu ajutorul butonului '%s'.			Umożliwia ponowne wykonanie cofniętych wcześniej operacji za pomocą przycisku '%s'.	Önceden geri alınan işlemleri '%s' seçeneği ile tekrar yapmanızı sağlar.	
+74709		Desenați			
+74810		Șabloane DXF-DWG	DXF-DWG 		DXF-DWG Şablonları	DXF-DWG
+74759				
+74873		Linia de tăiere			Linia sił tnących	Kesme hattı	
+175880		Armarea nu a fost definită			Donatı tanımlanmamıştır	
+74988		Parolă			Hasło	Şifre	
+74842				
+37832			
+316709	Este necesar GL 3.3 sau o versiune superioară			OpenGL 3.3	Se requiere OpenGL 3.3 o superior	Version OpenGL 3.3 ou supérieure requise	É necessário OpenGL 3.3 ou superior. Verifique a compatibilidade de sua placa de vídeo.	É necessário OpenGL 3.3 ou superior	Es requereix OpenGL 3.3 o superior	Si richiede OpenGL 3.3 o superiore	OpenGL 3.3 or higher is required	OpenGL 3.3 oder neuer ist benötigt	Wymagana jest wersja OpenGL 3.3 lub nowsza	OpenGL 3.3 veya üstü gereklidir
+74972		Lucrarea nu este calculată.			Projekt nie został obliczony.	Bu çalışma hesaplanmamıştır.	
+74922				Kiriş tanımı	
+74725				Açıklama	
+74956				Wykryto błędy we wprowadzonych danych.	Girilen verilerde hata tespit edilmiştir.	
+38333				Sınırlar	
+74811				Kaynakları düzenleme	
+32667				Miesiąc
+34025				Ciężar	Ağırlık	
+74760				
+182413					Błędy	
+74903		Dacă doriți să verificați cu una din dimensiunile stabilite, introduceți aceste dimensiuni aici și, în continuare, apăsați 'Dimensionare > Rearmare'. Dacă doriți să calculați cu dimensiuni minime, introduceți aici și, în continuare, apăsați 'Dimensionare> Dimensiuni minime'.			Jeśli chcesz zweryfikować określone wymiary, wprowadź je tutaj, a następnie naciśnij 'Wymiarowanie> Ponownie dobierz zbrojenie'. Jeśli chcesz wykonać obliczenia z zachowaniem minimalnych wymiarów, wprowadź je tutaj, a następnie kliknij 'Wymiarowanie> Minimalne wymiary'.	Belirtilen boyutlarla kontrol etmek istiyorsanız, bu boyutları buraya girin ve ardından 'Detaylandırma > Yeniden tasarla' seçeneğine tıklayın. Minimum boyutlarla hesaplamak istiyorsanız, bu boyutları buraya girin ve ardından 'Detaylandırma > Minimum boyutlar' seçeneğine tıklayın.	
+74874				Linia momentów skręcających	Burulma hattı	
+156933			
+72070				
+46260		Încărcare permanentă			Stałe obciążenie	
+74862				Kiriş etiketleri	
+74881		3D 	3D-	3D
+74923		Unități				
+59655				
+74957				Przed kontynuowaniem należy poprawić wszystkie błędy.	
+74712				Urządzenie peryferyjne	
+74812		Capturi de șabloane			Şablon nesne yakalamaları	
+74745				Widok montażowy prętów	Donatı düzeni	
+42064			Kalem kalınlığı	
+75016		Îmbinări I: Hale cu profile cu secțiunea I. Îmbinări sudate			Połączenia I: Hale z dwuteowników. Połączenia spawane	Birleşim I: Çift T profile sahip yapılar. Kaynaklı birleşimler	
+66476		Proiectați			Boyutlandır	
+74990				
+74904		Armare superioară			Üst donatı	
+46261		Supraîncărcare			Obciążenie zmienne	Canlı yük	
+74863		Secțiunea grinzii			Kiriş kesitleri	
+38562				Sayımlar	
+74973		Semnătura			İmza	
+59656				
+74713		Până la etaj			Aż do piętra	
+71597		Calculați			
+53951		Nu se poate șterge fișierul %s			Datoteke %s ni mogoče izbrisati	Nie można usunąć pliku %s	
+58433		Datele lucrării			
+74762				Veličina	
+74746		Rezumatul masurătorilor			Povzetek količin	
+75017		Îmbinări I: Hale cu profile cu secțiunea I. Îmbinări cu șuruburi			Połączenia II: Hale z dwuteowników. Połączenia śrubowe	Birleşim II: Çift T profile sahip yapılar. Cıvatalı bağlantılar	
+74950	3	3D 	3D-	3D
+139014		Se importă ...			İçe aktarılıyor...	
+74991				
+74786				
+27485		Texte pentru armături			Donatı metinleri	
+38565		Suprafețe			
+74835		Tabel de masurători			
+74974				Końcowy raport obliczeń	Son tasarım raporu		Τελική έκθεση σχεδιασμού
+59657				
+57072		Izolare acustică			Hava kaynaklı ses yalıtımı	
+74959		Afișați/Ascundeți problemele			Pokaż/Ukryj incydenty	Hataları Göster/Gizle	
+74714				Od piętra	
+74814		Directorul %s nu există. Doriți să îl creați?			Katalog %s nie istnieje. Czy chcesz go utworzyć?	%s dizini mevcut değildir. Oluşturmak istiyor musunuz?	
+35435				Słupy	
+28251				Pręty	
+123808			Yapılandırma	
+75018		Îmbinarea III: Cadre de clădire cu profile cu secțiune I. Îmbinări sudate			Połączenia III: Ramy budynków z dwuteowników. Połączenia spawane	Birleşim III: Çift T profile sahip bina çerçeveleri. Kaynaklı birleşimler	
+74906		Importați lucrare			
+74992		Încărcați grupul			Przenieś grupę do góry	Bir grup yukarı	
+53936				Trzęsienie ziemi
+74865				
+74885				
+55238		Atribuiți					Atribuiți			
+74975				Wprowadzanie za pomocą współrzędnych	Koordinatlara göre giriş	
+74731		Fără descriere			Açıklama olmadan	
+58247		Informație		
+74925				
+57283		Scară orizontală			
+43211		Grindă înclinată			Belka pochyła	Eğik kiriş	
+74939		Denumirea comercială			Şirket adı	
+38252					Ροπές
+53195		Poziție		
+75019		Îmbinarea IV: Cadre de clădire cu profile cu secțiune I. Îmbinări cu șuruburi			Połączenia IV: Ramy budynków z dwuteowników. Połączenia śrubowe	Birleşim IV: Çift T profile sahip bina çerçeveleri. Cıvatalı bağlantılar	
+74993		Descărcați grupul			Przenieś grupę na dół	Bir grup aşağı	
+53937		Zăpadă			Śnieg
+32088		Zăbrele			
+74886				
+29565		Armătură		
+74976		Dacă apăsați pe acest buton, se va genera o animație a deformației structurii (cauzată de o simplă ipoteză sau de o combinație de ipoteze selectate în acestă casuță de dialog), pornind de la situația nedeformată.			Po naciśnięciu tego przycisku na ekranie zostanie wygenerowana animacja odkształconej postaci konstrukcji (spowodowanej wpływem przypadku prostego lub kombinacji przypadków wybranych w tym oknie dialogowym), począwszy od postaci niezdeformowanej.	Bu butona basarsanız, deforme olmamış durumdan başlayarak ekranda yapının deformasyonunun (bu diyalog kutusunda seçilen tek senaryonun veya senaryo kombinasyonunun neden olduğu) bir animasyonu oluşturulacaktır.	
+138537				ın	
+74716		Scară verticală  			
+66916				
+38806		Tăieri			Siły tnące	
+38889				Stały punkt	
+155079		Normă		
+261366			Materiał
+75020				Połączenia V: Kratownice płaskie z profili zamkniętych	Birleşim V: İçi boş profillere sahip düz kafes kirişler	
+74995		Lucrare goală			Boş proje	
+74867				Kalem kalınlığı	
+36411		Pereți			Ściany	
+74845				Nie można zmienić skali w tego typu rysunkach	Bu tür planlarda ölçeği değiştirmek mümkün değildir	
+41403				
+74977		Introduceți primul punct			Wprowadź pierwszy punkt	İlk noktayı giriniz	
+74961					
+74926				
+367502				Detaylandırma	
+156899		Rază		Promień	Yarıçap
+74817		Vedeți			
+59845				Momenty skręcające	
+38400		Secțiuni			
+74909		Copiați din			Şuradan kopyala	
+261382				
+74996		Obținerea datelor			
+34753								
+74888					Yeni çalışma	
+74847					Piętro	
+29528			
+74978		Introduceți al doilea punct			Wprowadź drugi punkt	İkinci noktayı giriniz	
+58305					Çalışmanın adı	
+74927		Vedeți elevația			
+38794				Kat planları	
+52260				Açıklıklar	
+71967				
+292684					
+74772		Stilouri și texte			Kalem kalınlığı ve metin	
+41919		Adăugați			
+74751				Według grup	
+75023					Hakkında ...	
+74794					
+74998		În cazul modificării armăturii, trebuie să apăsați pe opțiunea 'Verificați'.			W przypadku modyfikacji zbrojenia, należy wybrać opcję 'Weryfikacja'.	Donatıları değiştirdiğinizde, 'Kod kontrolü' seçeneğine tıklamanız gerekir.	
+75006				Kısaltma	
+59554		Nouă			
+139010				
+74928		Opțional			
+74963		%s 		%s elemanının kopyası	%s
+157086			Początek
+74699		Înainte de a imprima planuri, este necesar să fie definite anexele conectate la calculatorul dumneavoastră. Acest lucru se realizează în opțiunea "Setări generale" de pe linia de sus a ecranului, în secțiunea "Planuri".			Przed wydrukowaniem rysunków konieczne jest zdefiniowanie urządzeń peryferyjnych podłączonych do komputera. Można to wykonać, korzystając z opcji 'Ustawienia Ogólne' górnego paska narzędzi, wybierając 'Rysunki'.	Planları yazdırmadan önce bilgisayarınıza bağlı çevre birimlerini tanımlamış olmanız gerekir. Bu işlem, ekranın üst kısmında yer alan 'Planlar' bölümündeki 'Genel Ayarlar' seçeneğinden yapılır.	
+355062			Görünümlerin planları	
+31060		Referințe			
+56318				Według pięter	
+130049				
+74999		Verificați datele generale ale lucrării.			Sprawdź ogólne dane projektu.	
+64398		Oțel laminat și ramforsat			Elementy stalowe walcowane i złożone	Haddelenmiş ve güçlendirilmiş çelik	
+74736		Oțel în bare			Stal prętów	
+74979				Typowe wartości projektu	Proje için yaygın değerler	
+74892				
+76424		Proprietăți mecanice ale lemnului utilizat			Właściwości mechaniczne użytego drewna	Kullanılan ahşabın mekanik özellikleri	
+157122				Materiały		Materiales	Matériaux	Materiais	Materials	Materiali	Materiale	Materialien	Materyaller
+36912				Szkło	
+70701				
+34749		Tip de oțel			
+221528			Z materiału ogólnego	Genel malzemeden üretilmiştir	
+36435				Ahşap	
+100516	Polietilenă			
+156955	Sticlă			Szkło	
+34906				Ahşap	
+224505				Słup_materiał_ogólny	
+71451		Proprietăți ale cărămizii (valori omogenizate)			Właściwości muru (wartości ujednolicone)	Fabrika özellikleri (homojenize değerler)	
+27639			
+45988			
+120705	Vată de sticlă			Wełna szklana	
+87769		PVC
+256113	Biblioteca de oțeluri a utilizatorului			Biblioteka stali użytkownika	Kullanıcının çelik kütüphanesi	
+58764		Oțel produs la rece			Stal zimnogięta	Soğuk şekillendirilmiş çelik	
+57289		Laminate și armate			Haddelenmiş ve kaynaklı	
+120727			
+95348				Miedź	Bakır	
+119392	Vată minerală			Wełna mineralna	
+57288				Zimnogięte	Soğuk şekillendirilmiş	
+34914		Oțel laminat			Haddelenmiş çelik	
+119047			Żeliwo	
+43254				Genişletilmiş polistiren	
+120707			
+404143				
+35022	Placă de oțel			
+375014			
+374884			
+36905		Metalică			
+95546	Alamă			Mosiądz	
+120700	Metalic, cu rupere de punte termică			Metalowy, z przekładką termiczną	Metalik, termal kırılmalı	
+156844		Oțel			
+33378			
+68116	Oțel inoxidabil			
+120701	PVC, 	PVC, cu două goluri	PVC		PVC, iki açıklıklı	2
+119116		Marmură	
+88395		Mochetă			Wykładzina podłogowa	Halı	
+36424				Żelbet	
+120733	Plăci de oțel sudate			Kaynaklı çelik levhalar	
+120723				Wytłaczane aluminium	
+120702	PVC, 	PVC		PVC, üç açıklıklı	3
+3150				
+120734	Selecția materialului			Wybór materiału	
+119373	Oțel zincat			
+138007		Tipul de proiecție				İzdüşüm türü		Tipo de proyección	Type de projection	Tipo de projeção	Tipo de projecção	Tipus de projecció	Tipo di proiezione	Projection type	Tipo de proxección	Projektionsart	Typ projekce	Tip projekcije	Vrsta projekcije	Nézet típus	Typ rzutu
+138008		Rotiți în jurul axei verticale				Otáčení kolem svislé osy	Vrtenje okoli navpične osi	Függőleges tengely körüli forgatás	Obrót wokół osi pionowej	Dikey eksen etrafında döndürme		Girar alrededor del eje vertical	Pivoter autour de l'axe vertical	Girar em torno do eixo vertical	Rodar em torno do eixo vertical	Girar al voltant de l'eix vertical	Ruotare attorno all'asse verticale	Rotate about the vertical axis	Xirar ó redor do eixo vertical	Um die Vertikalachse rotieren.	Rotiraj oko vertikalne osi
+138009		Rotește continuu obiectele din vizualizarea curentă în jurul axei verticale.				Neustálé otáčení objektů ve stávajícím zobrazení kolem svislé osy.	Neprekinjeno vrti predmete v trenutnem pogledu okoli navpične osi.	Folyamatosan forgatja a tárgyakat a jelenlegi nézetben a függőleges tengely körül.	Płynnie obraca obiekty w bieżącym widoku wokół osi pionowej	Görünümdeki nesneleri sürekli olarak dikey eksen etrafında döndürür.		Gira de forma continua los objetos de la vista alrededor del eje vertical.	Pivote de manière continue les objets de la vue autour de l'axe vertical.	Gira de forma contínua os objetos da vista em torno do eixo vertical.	Roda de forma contínua os objectos da vista à volta do eixo vertical.	Gira de forma contínua els objectes de la vista al voltant de l'eix vertical.	Ruota in maniera continua gli oggetti della vista attorno all'asse verticale.	Continuously rotates the objects in the current view around the vertical axis.	Xira de forma continua os obxectos da vista ó redor do eixo vertical.	Dreht die Objekte in der aktuellen Ansicht fortlaufend um die vertikale Achse.	Kontinuirano rotiraj objekte na trenutno prikazu oko vertikalne osi.
+118156	3	3D 	3D-	3D
+170769		2D	2D-	2D
+170770	3	Vizualizare 3D a clădirii		3D-	Binanın 3D görünümü	
+138005		Deschide o fereastră care vă permite să selectați proiecții predeterminate. Alternând clicuri pe același buton, puteți afișa / ascunde fereastra.				Otevře okno, které vám umožní otevřít přednastavené projekce. Střídavým klikáním na stejné tlačítko můžete zobrazit/skrýt okno.	Otvara izbornik koji omogućuje odabir predodređenih projekcija. Ponovnim pritiskom na istu tipku, možete prikazati/sakriti izbornik.	Odpre okno, v katerem lahko izberete vnaprej določene projekcije. Z izmeničnimi kliki na isti gumb lahko prikažete/skrijete okno.	Kinyit egy ablakot, ami engedélyezi, hogy kiválassza az előre meghatározott nézeteket. Váltakozva kattintva ugyanazon gombra, megjeleníteheti/elrejtheti az ablakot.	Otwiera okno, które pozwala wybrać wcześniej określone opcje. Klikając naprzemiennie na ten sam przycisk, możesz pokazać/ukryć okno.	Önceden belirlenmiş projeksiyonları seçmenizi sağlayan bir pencere açar. Aynı düğmeye sırayla tıklayarak pencereyi gösterebilir/gizleyebilirsiniz.		Abre una ventana que permite seleccionar proyecciones predeterminadas. Haga click alternativamente sobre el mismo botón para mostrar/ocultar dicha ventana.	Ouvre une fenêtre qui permet de sélectionner des projections prédéterminées. Cliquez alternativement sur le même bouton pour afficher/masquer cette fenêtre.	Abre-se uma janela que permite selecionar projeções pré-determinadas. Clique alternadamente sobre o mesmo botão para mostrar/ocultar essa janela.	Abre uma janela que permite seleccionar projecções pré-determinadas. Faça clique alternadamente sobre o mesmo botão para mostrar/ocultar essa janela.	Obre una finestra que permet seleccionar projeccions predeterminades. Faci clic alternativament sobre el mateix botó per a mostrar/ocultar aquesta finestra.	Apre una finestra che consente di selezionare proiezioni predeterminate. Faccia clic alternativamente sullo stesso pulsante per mostrare/nascondere tale finestra.	Opens a window which allows you to select default projections. By alternating clicks on the same button, you can show/hide the window.	Abre unha ventana que permite seleccionar proxeccións predeterminadas. Faga click alternativamente sobre o mesmo botón para amosar/ocultar a devandita ventana.	Öffnet ein Fenster, in dem Sie vorgegebene Projektionen auswählen können. Durch abwechselndes Klicken auf dieselbe Schaltfläche können Sie das Fenster ein- und ausblenden.
+350261		Alternează tipul de proiecție (axonometric / perspectivă).			Spremeni vrsto projekcije (aksonometrična/perspektivna).	İzdüşüm türünü değiştirir (Aksonometri/Perspektif).		Cambia el tipo de proyección alternativamente (axonométrica/cónica).	Permute le type de projection (axonométrique/conique).	Muda o tipo de projeção alternadamente (axonométrica/cónica).	Muda o tipo de projecção alternadamente (axonométrica/cónica).	Canvia el tipus de projecció alternativament (axonomètrica/cònica).	Cambia il tipo di proiezione alternativamente (assonometrica/prospettica).	Alternates the projection type (axonometric/perspective).	Cambia o tipo de proxección alternativamente (axonométrica/cónica).	Wechselt den Projektions-Typ (Axonometrie/Perspektive)	Zmienia typ rzutu (aksonometryczny/perspektywiczny)
