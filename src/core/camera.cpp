@@ -53,7 +53,7 @@ Vec3 Camera::up() const {
 }
 
 void Camera::orbit(double dxDeg, double dyDeg) {
-    rollDeg = 0.0;  // orbiting works on the upright yaw/pitch model (to be checked against the original, TK-030)
+    // The roll is kept: in the original, orbiting from the upside-down cell 7 leaves Z pointing down (TK-030, o2.png).
     yawDeg = std::fmod(yawDeg - dxDeg, 360.0);
     pitchDeg = std::clamp(pitchDeg + dyDeg, -90.0, 90.0);
 }

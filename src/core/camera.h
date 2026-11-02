@@ -64,7 +64,7 @@ struct CameraView {
 /// perspective and orthographic keeps the apparent size of the model.
 ///
 /// `rollDeg` turns the image about the view axis (positive: anticlockwise on screen): right and up are the yaw/pitch
-/// ones rotated about `forward`. Orbiting, the standard views and `setView` reset or restore it explicitly.
+/// ones rotated about `forward`. Orbiting keeps it (measured in the original); the standard views reset it and `setView` restores it.
 class Camera {
 public:
     enum class Projection { Perspective, Orthographic };

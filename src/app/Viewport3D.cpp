@@ -109,8 +109,7 @@ void Viewport3D::frameAll() {
 
 void Viewport3D::doubleWindow() {
     if (!m_committed) m_committed = m_camera.view();
-    fitAll();
-    m_camera.distance = std::clamp(m_camera.distance * 2.0, Camera::kMinDistance, Camera::kMaxDistance);
+    fitAll();  // measured in the original (TK-031): the view is identical to "Ventana completa" and repeating it changes nothing
     commitView();
     notifyCameraChanged();
 }
@@ -158,8 +157,10 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_drag = actionFor(event->buttons());
     if (!m_committed) m_committed = m_camera.view();
     if (m_zoomMark && event->button() == Qt::LeftButton && width() > 0 && height() > 0) {
-        m_camera.target = screenToTargetPlane(event->position());  // centre on the clicked point, then come closer
-        m_camera.distance = std::clamp(m_camera.distance / kZoomMarkFactor, Camera::kMinDistance, Camera::kMaxDistance);
+        // The marked rectangle (zoomMarkRect) becomes the whole view: centre on the cursor and come closer by width / rect width.
+        const QRectF rect = zoomMarkRect(event->position(), QSizeF(width(), height()));
+        m_camera.target = screenToTargetPlane(event->position());
+        m_camera.distance = std::clamp(m_camera.distance * rect.width() / width(), Camera::kMinDistance, Camera::kMaxDistance);
         commitView();
         notifyCameraChanged();
         event->accept();
@@ -173,8 +174,27 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
     event->accept();
 }
 
+QRectF Viewport3D::zoomMarkRect(const QPointF& cursor, const QSizeF& area) {
+    // Measured in the original: centred on the cursor, the viewport's aspect, half width = distance from the cursor to the right edge.
+    const double half = std::clamp(area.width() - cursor.x(), area.width() * kZoomMarkMinFraction / 2.0, area.width() / 2.0);
+    const double halfH = half * area.height() / std::max(area.width(), 1.0);
+    return QRectF(cursor.x() - half, cursor.y() - halfH, 2.0 * half, 2.0 * halfH);
+}
+
+void Viewport3D::drawZoomMark(QPainter& painter) const {
+    if (!m_zoomMark || !m_cursorInside) return;
+    const QRectF r = zoomMarkRect(m_cursor, QSizeF(width(), height()));
+    painter.setPen(QPen(QColor(40, 40, 40), 1));
+    painter.setBrush(QColor(245, 245, 245, 200));
+    painter.drawRect(r);
+    painter.setBrush(Qt::NoBrush);
+    painter.drawLine(QPointF(m_cursor.x() - 9, m_cursor.y()), QPointF(m_cursor.x() + 9, m_cursor.y()));
+    painter.drawLine(QPointF(m_cursor.x(), m_cursor.y() - 9), QPointF(m_cursor.x(), m_cursor.y() + 9));
+}
+
 void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     const QPoint pos = event->position().toPoint();
+    if (m_zoomMark) { m_cursor = event->position(); update(); }
     const QPoint delta = pos - m_last;
     m_last = pos;
     if (event->buttons() == Qt::NoButton) m_drag = DragAction::None;
@@ -818,8 +838,9 @@ void Viewport3D::paintGL() {
     painter.fillRect(rect(), Qt::white);
     if (!m_selectionMode) drawGuideLines(painter);  // the original hides the guide lines inside a command
     drawStructure(painter);
+    drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
+    drawZoomMark(painter);
     if (m_selectionMode) {
-        drawNodes(painter);
         for (const core::ElementRef& e : m_selection.items()) drawHighlight(painter, e, true);
         if (m_hover) drawHighlight(painter, *m_hover, false);
         drawRubberBand(painter);

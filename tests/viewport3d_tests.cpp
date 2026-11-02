@@ -487,13 +487,13 @@ TEST_F(ViewportTest, FrameAllWithoutNodesRestoresTheDefaultView) {
     EXPECT_EQ(view->camera().view(), cc::core::Camera{}.view());
 }
 
-TEST_F(ViewportTest, DoubleWindowIsTwiceAsFarAsTheFullWindow) {
+TEST_F(ViewportTest, DoubleWindowEqualsTheFullWindow) {
     view->setNodes({{0, 0, 0}, {10, 4, 6}});
     view->frameAll();
     const double full = view->camera().distance;
     const auto target = view->camera().target;
     view->doubleWindow();
-    EXPECT_NEAR(view->camera().distance, 2.0 * full, 1e-9);
+    EXPECT_NEAR(view->camera().distance, full, 1e-9);  // measured in the original: no visible change
     EXPECT_EQ(view->camera().target, target);
 }
 
@@ -510,11 +510,23 @@ TEST_F(ViewportTest, ZoomMarkClickZoomsInCentredOnThePoint) {
     const auto world = view->screenToTargetPlane(click);
     mouse(*view, QEvent::MouseButtonPress, click, Qt::LeftButton, Qt::LeftButton);
     mouse(*view, QEvent::MouseButtonRelease, click, Qt::LeftButton, Qt::NoButton);
-    EXPECT_NEAR(view->camera().distance, distance / Viewport3D::kZoomMarkFactor, 1e-9);
+    const QRectF rect = Viewport3D::zoomMarkRect(click, QSizeF(view->width(), view->height()));
+    EXPECT_NEAR(view->camera().distance, distance * rect.width() / view->width(), 1e-9);
     EXPECT_NEAR(view->camera().target.x, world.x, 1e-9);
     EXPECT_NEAR(view->camera().target.y, world.y, 1e-9);
     EXPECT_NEAR(view->camera().target.z, world.z, 1e-9);
     EXPECT_EQ(view->historySize(), 1);
+}
+
+TEST(ZoomMarkRect, CentredOnTheCursorWithTheViewportAspect) {
+    const QSizeF area(1000, 500);
+    const QRectF r = Viewport3D::zoomMarkRect({600, 200}, area);
+    EXPECT_NEAR(r.center().x(), 600, 1e-9);
+    EXPECT_NEAR(r.center().y(), 200, 1e-9);
+    EXPECT_NEAR(r.width(), 800, 1e-9);  // half width = distance to the right edge (400)
+    EXPECT_NEAR(r.width() / r.height(), 2.0, 1e-9);
+    EXPECT_NEAR(Viewport3D::zoomMarkRect({999, 200}, area).width(), 50, 1e-9);  // never narrower than 5 %
+    EXPECT_NEAR(Viewport3D::zoomMarkRect({0, 200}, area).width(), 1000, 1e-9);  // never wider than the area
 }
 
 TEST_F(ViewportTest, ZoomMarkOffDoesNotZoomOnClick) {

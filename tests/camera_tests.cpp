@@ -245,13 +245,13 @@ TEST(CameraRoll, RollTurnsRightAndUpAboutTheViewAxis) {
     expectNear(cross(c.right(), c.up()), c.forward() * -1.0);  // still a right-handed screen basis
 }
 
-TEST(CameraRoll, ViewRoundTripAndResets) {
+TEST(CameraRoll, ViewRoundTripKeepsRollWhileOrbiting) {
     Camera c;
     ASSERT_TRUE(c.setPreset(6));
     const CameraView v = c.view();
     EXPECT_EQ(v.rollDeg, 180.0);
     c.orbit(10, 0);
-    EXPECT_EQ(c.rollDeg, 0.0);
+    EXPECT_EQ(c.rollDeg, 180.0);  // measured in the original: orbiting does not reset the roll
     c.setView(v);
     EXPECT_EQ(c.rollDeg, 180.0);
     c.setStandardView(StandardView::Top);

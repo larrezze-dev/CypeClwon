@@ -144,8 +144,7 @@ public:
     /// (isometric, target at the origin) is restored. Remembered as the reference of "Ventana doble".
     void frameAll();
     /// "Ventana doble": the original's tooltip says "ampliar al doble el tamaño de la vista respecto a 'Ventana completa'".
-    /// Interpretation (not verified in the original, TK-031): the full window with the camera twice as far, i.e. the
-    /// model at half its "Ventana completa" size, centred.
+    /// Measured (TK-031): the original shows the same view as "Ventana completa" and repeating it changes nothing.
     void doubleWindow();
     /// "Ventana anterior": restores the view before the last zoom / pan / orbit / preset / frame gesture.
     bool previousView();
@@ -158,7 +157,10 @@ public:
     /// off; the original's exact behaviour is unverified).
     void setZoomMarkMode(bool on);
     bool zoomMarkMode() const { return m_zoomMark; }
-    static constexpr double kZoomMarkFactor = 2.0;
+    /// Rectangle shown (and zoomed to) for a cursor position: centred on it, with the aspect of `area`, half width = distance
+    /// from the cursor to the right edge (measured in the original, TK-031), never narrower than kZoomMarkMinFraction.
+    static QRectF zoomMarkRect(const QPointF& cursor, const QSizeF& area);
+    static constexpr double kZoomMarkMinFraction = 0.05;
     /// "Rotación alrededor de un punto" / "... de la cámara": the state of the two buttons of the view bar. The orbit
     /// pivot is still the camera target (TK-032: pivot under the cursor, rotation about the camera axis).
     void setRotateAroundPoint(bool on);
@@ -216,6 +218,7 @@ private:
     void drawNodes(class QPainter& painter) const;
     void drawHighlight(class QPainter& painter, const core::ElementRef& e, bool selected) const;
     void drawRubberBand(class QPainter& painter) const;
+    void drawZoomMark(class QPainter& painter) const;
     void drawNodeLabel(class QPainter& painter) const;
     void drawSnap(class QPainter& painter) const;
     void updateSnap(const QPointF& pos);

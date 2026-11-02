@@ -50,3 +50,8 @@ Ya documentada en `viewport_3d.md` (tabla de iconos x=1310…1499): Ventana ante
 - «Marcar zoom» (a5, b3-b6): tras activarlo y hacer clic aparece un rectángulo de goma con la proporción del visor (~1,9) y cursor en cruz; un segundo clic aplica el zoom. Falta fijar el anclaje del rectángulo con un arrastre diagonal.
 - «Ventana doble»: en las pruebas a2 y b2 no cambió la escala respecto a lo esperado; por comprobar si exige un clic posterior en el dibujo.
 - Los scripts con sshot devuelven tooltips si el ratón queda sobre la barra: usar `move:960,800` y `fshot`.
+
+## Sesión 20: roll, Marcar zoom y Ventana doble (medidos)
+- Orbitar desde la celda 7 (roll 180) con la herramienta Órbita 3D mantiene el roll: tras el arrastre vertical Z sigue hacia abajo (t2, o2.png). `Camera::orbit` ya no lo reinicia.
+- «Marcar zoom» (z1-z4.png): con el modo activo, al mover el cursor aparece un rectángulo gris con borde oscuro y cursor en cruz, centrado en el cursor y con la proporción del visor; su semiancho es la distancia del cursor al borde derecho del visor (más a la izquierda = rectángulo mayor, menos zoom). El clic zoom a ese rectángulo (factor = ancho visor / ancho rect.; medido 1,14 y comprobado por el desplazamiento de la estructura).
+- «Ventana doble» (d1-d3.png): da la misma vista que «Ventana completa»; pulsarla de nuevo no cambia nada. El clon la iguala a «Ventana completa».
