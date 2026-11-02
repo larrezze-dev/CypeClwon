@@ -27,10 +27,15 @@ struct ClipHalfSpace {
 };
 
 /// One section plane. `flipped` reverses the arrow (double click on the arrow in the original).
+/// Every plane has its own turn (panelarea.dll): X and Y planes turn about the vertical axis, the Z plane tilts about Y,
+/// both through the point of the plane at the centre of the envelope. The turn is limited to +-80 degrees.
 struct SectionPlane {
+    static constexpr double kMaxAngleRad = 1.3962634015954636;  ///< 80 degrees
     bool active = false;
-    double position = 0.0;  ///< coordinate along its axis in the local frame
+    double position = 0.0;  ///< coordinate along its (world) axis
     bool flipped = false;
+    Vec3 centre{};          ///< centre of the envelope when the plane was shown; its `axis` coordinate is replaced by `position`
+    double angleRad = 0.0;  ///< own turn, within +-kMaxAngleRad
     /// Direction of the arrow (the side that is removed): +1 along the axis, or -1 when flipped.
     int arrowSign() const { return flipped ? -1 : 1; }
 };
@@ -45,23 +50,35 @@ struct ClipVolume {
 struct ClipSettings {
     std::array<SectionPlane, 3> sections{};
     ClipVolume volume{};
-    Vec3 centre{};          ///< centre of the turn (the original stores the centre of the volume)
-    double angleRad = 0.0;  ///< counter-clockwise turn about Z (global XY plane)
+    /// Global turn of the clipping VOLUME only (the sections have their own angle): centre of the turn (the original stores
+    /// the centre of the volume) and counter-clockwise turn about Z.
+    Vec3 centre{};
+    double angleRad = 0.0;
 
     bool anyActive() const;
     /// Half-spaces that the geometry must satisfy to remain visible.
     std::vector<ClipHalfSpace> halfSpaces() const;
 
-    /// Local frame <-> world: the local frame is the world turned `angleRad` about Z through `centre`.
+    /// Local frame <-> world of the VOLUME: the world turned `angleRad` about Z through `centre`.
     Vec3 toWorld(const Vec3& local) const;
     Vec3 toLocal(const Vec3& world) const;
-    /// Unit vector of local axis `axis` in world coordinates.
+    /// Unit vector of local axis `axis` of the volume in world coordinates.
     Vec3 axisDirection(int axis) const;
-    /// Adds `deltaRad` to the turn (kept in (-pi, pi]).
+    /// Adds `deltaRad` to the global turn (kept in (-pi, pi]); only while the volume is active.
     void rotate(double deltaRad);
 
-    /// `centreIfFirst` becomes the centre of the turn when nothing was active before.
-    void setSectionActive(int axis, bool on, double defaultPosition, const Vec3& centreIfFirst = {});
+    /// Pivot of section `axis`: its centre with the `axis` coordinate replaced by the position.
+    Vec3 sectionPoint(int axis) const;
+    /// Unit normal of section `axis` after its own turn (X, Y: about Z; Z: about Y).
+    Vec3 sectionNormal(int axis) const;
+    /// Turns a point of the unturned plane about the pivot of the section by its angle.
+    Vec3 sectionToWorld(int axis, const Vec3& unturned) const;
+    /// Adds `deltaRad` to the angle of the section. The whole step is refused (false) when the section is inactive, the
+    /// delta is not finite or the result leaves +-80 degrees.
+    bool rotateSection(int axis, double deltaRad);
+
+    /// `centre` is the point the section turns about (centre of the envelope, `axis` coordinate replaced by the position).
+    void setSectionActive(int axis, bool on, double defaultPosition, const Vec3& centre = {});
     /// Reverses the direction of the removed side; false for an inactive section.
     bool flipSection(int axis);
     void setVolumeActive(bool on, const Vec3& min, const Vec3& max);

@@ -67,3 +67,21 @@ depends on `ejes2d_ecuacion_del_plano`, which is in BASICOS.DLL and was NOT deco
 the original (arc turns the planes about the vertical axis) is not confirmed nor contradicted by the code; only the volume circle is clearly
 about a fixed axis (mode 1 rotation). Pending: decompile BASICOS.DLL ejes2d_ecuacion_del_plano and mt_gira_v1_sobre_v2 argument order.
 Also not examined: ray pick 0x180055590.
+
+## Third pass: own angle of a plane and volume margin (REA: panelarea.dll, BASICOS.DLL, CYPEMATH.DLL)
+
+### (1) The arc DOES move the cutting plane, about the in-plane axis V (CONFIRMED by code)
+Chain: 0x18004eb80 -> 0x180050390 -> 0x1800508c0 -> 0x180051650 -> 0x180051850 -> 0x180051c20, then `ejes2d_ecuacion_del_plano` (BASICOS 0x1800d9e70)
+-> `cybsgedb_append_plano_corte` (the clipping plane stored in the scene database).
+- `ejes2d_ecuacion_del_plano(origin, a1, a2)`: (A,B,C) = unit(a1 x a2) (`ejes2d_vector_director_plano`, 0x1800df750; a final helper 0x1800dfa40 on the unit vector was NOT decompiled), D = -(A*ox + B*oy + C*oz). 0x180051650 calls it with a1 = -U', a2 = V', so the normal is -(U' x V').
+- `mt_gira_v1_sobre_v2(sin, cos, v1, v2)` (CYPEMATH 0xb690) rotates the PAIR in place: v1' = v1*cos + v2*sin ; v2' = v2*cos - v1*sin (rotation in the v1,v2 plane, i.e. about v1 x v2). 0x180051c20 passes v1 = W (= U x V), v2 = U. So W' = W*cos + U*sin, U' = U*cos - W*sin; then V' = W' x U' = V (unchanged, algebraically verified).
+- Hence the angle is a rotation of the plane about its in-plane axis V, passing through the same origin (the origin is not modified by the angle). The earlier literal reading "U about the normal" was wrong (the tuple order hides that W is the first argument).
+- Axes per plane type (0x180051c20): X plane: U=(0,1,0) V=(0,0,1) W=(1,0,0); Y plane: U=(-1,0,0) V=(0,0,1) W=(0,1,0); Z plane: U=(1,0,0) V=(0,1,0) W=(0,0,1). Side flag 1 negates U (and so W).
+- Consequence: X and Y planes (vertical) rotate about the global Z axis (matches the measurement: the plane narrows/widens in isometric). Z plane (horizontal) rotates about the global Y axis (tilts), NOT about Z (about Z it would not change). With W' = (sin*U + cos*W): for X plane W' = (cos, sin, 0); for Y plane W' = (-sin, cos, 0); for Z plane W' = (sin, 0, cos).
+- In mode 1 (volume planes) the whole frame (origin, U, V) is then rotated by the volume angle about the axis in receptor +0x20.. (`bsMat4x4_make_rotation_around_axis`), after the own angle.
+- Not established: sign convention of the retained side (which half-space is clipped) and the sign of positive mouse delta on screen.
+
+### (2) Volume margin (CONFIRMED)
+- The bbox passed by 0x180058ac0 to 0x18004f090 (-> 0x18004eb80 mode 1) is `*(receptor+0x0E)`, the SAME scene bbox that 0x180057e20 stores at activation (0x1800534c0 = scene bbox) and draws as a wireframe (0x18004d970) with NO margin. Empty scene [-1,1]^3.
+- Margin m_i = max(0.1*extent_i, 1.0) per axis, added on both sides, computed only at the click (state 0 -> 1), not at activation. Before the click only the bare box is shown.
+- At the click: the previous origin marker is deleted (`_pnglslclip_origen_volumen_plano`), the picked point is stored (+0x20..), 6 planes are created (axes 0,1,2 x sides 0,1) plus an extra call 0x18004f200 (NOT decompiled; probably the origin marker/gizmo), state becomes 1. The plane origin is the picked point with coordinate a replaced by the expanded face.

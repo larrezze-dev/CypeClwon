@@ -143,8 +143,8 @@ void ViewBar::setPaletteVisible(bool visible) {
 }
 
 void ViewBar::placePalette() {
-    // Flush against the right edge of the bar, level with its top.
-    m_palette->move(mapToGlobal(QPoint(width(), 0)));
+    // Flush against the right edge of the bar, level with the top of the "Proyección" button (vb_full.png of the original).
+    m_palette->move(mapToGlobal(QPoint(width(), button(Projection)->y())));
 }
 
 void ViewBar::hideEvent(QHideEvent* event) {

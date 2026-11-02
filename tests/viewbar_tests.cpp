@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QSignalSpy>
+#include <QtTest/QTest>
 #include <QToolButton>
 #include <memory>
 
@@ -64,8 +65,12 @@ TEST_F(ViewBarTest, PaletteHasTwentyTwoEnabledCells) {
 TEST_F(ViewBarTest, ProjectionButtonTogglesThePalette) {
     ViewBar* bar = frame->viewBar();
     QSignalSpy spy(bar, &ViewBar::paletteToggled);
+    frame->show();
+    QTest::qWait(50);
     bar->button(ViewBar::Projection)->click();
     EXPECT_TRUE(bar->paletteVisible());
+    // Flush right of the bar, level with the top of the button (as in the original).
+    EXPECT_EQ(bar->palette()->pos(), bar->mapToGlobal(QPoint(bar->width(), bar->button(ViewBar::Projection)->y())));
     bar->button(ViewBar::Projection)->click();
     EXPECT_FALSE(bar->paletteVisible());
     ASSERT_EQ(spy.count(), 2);
@@ -169,26 +174,52 @@ TEST_F(ViewBarTest, Button411TogglesTheVisibilityOfThePlanesButKeepsTheCut) {
     EXPECT_TRUE(v->clipPlanesVisible());
 }
 
-TEST_F(ViewBarTest, DraggingTheArcTurnsThePlaneAboutTheVerticalAxis) {
+TEST_F(ViewBarTest, DraggingTheArcTurnsOnlyThatPlane) {
     Viewport3D* v = frame->viewport();
     v->setNodes({{0, 0, 0}, {10, 4, 6}});
     v->show();
     v->resize(600, 400);
     v->setSectionActive(0, true);
-    const auto arc = v->clipArc();
+    v->setSectionActive(2, true);
+    const auto arc = v->clipArc(0);
     ASSERT_GT(arc.size(), 4u);
     QPointF p;
     ASSERT_TRUE(v->worldToScreen(arc[arc.size() / 2], p));
-    ASSERT_TRUE(v->clipArcAt(p));
+    ASSERT_EQ(v->clipArcIdAt(p), 0);
     EXPECT_FALSE(v->clipArcAt(QPointF(1, 1)));
-    EXPECT_DOUBLE_EQ(v->clipping().angleRad, 0.0);
+    EXPECT_DOUBLE_EQ(v->clipping().sections[0].angleRad, 0.0);
     // Law of the original code: delta = d * 360 deg / viewport size along the dominant axis (400 px high here).
-    v->dragClipArc(p, p + QPointF(0, 30));
-    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 27.0, 0.01);
-    v->dragClipArc(p, p + QPointF(0, -30));
-    EXPECT_NEAR(v->clipping().angleRad, 0.0, 1e-12);
-    v->dragClipArc(p, p + QPointF(30, 10));  // horizontal dominates: 30 px of 600 = 18 deg, the 10 px are ignored
-    EXPECT_NEAR(v->clipping().angleRad * 180.0 / 3.14159265358979, 18.0, 0.01);
+    EXPECT_TRUE(v->dragClipArc(0, p, p + QPointF(0, 30)));
+    EXPECT_NEAR(v->clipping().sections[0].angleRad * 180.0 / 3.14159265358979, 27.0, 0.01);
+    EXPECT_TRUE(v->dragClipArc(0, p, p + QPointF(0, -30)));
+    EXPECT_NEAR(v->clipping().sections[0].angleRad, 0.0, 1e-12);
+    EXPECT_TRUE(v->dragClipArc(0, p, p + QPointF(30, 10)));  // horizontal dominates: 30 px of 600 = 18 deg, the 10 px are ignored
+    EXPECT_NEAR(v->clipping().sections[0].angleRad * 180.0 / 3.14159265358979, 18.0, 0.01);
+    EXPECT_DOUBLE_EQ(v->clipping().sections[2].angleRad, 0.0);  // the other plane did not move
+    EXPECT_DOUBLE_EQ(v->clipping().angleRad, 0.0);               // nor the global turn
+    // A step that would pass 80 degrees (150 px = 135 deg) is rejected whole.
+    EXPECT_FALSE(v->dragClipArc(0, p, p + QPointF(0, 150)));
+    EXPECT_NEAR(v->clipping().sections[0].angleRad * 180.0 / 3.14159265358979, 18.0, 0.01);
+}
+
+TEST_F(ViewBarTest, ZPlaneArcTiltsAboutYAndVolumeArcKeepsTheGlobalTurn) {
+    Viewport3D* v = frame->viewport();
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
+    v->show();
+    v->resize(600, 400);
+    v->setSectionActive(2, true);
+    v->setClippingVolumeActive(true);
+    ASSERT_FALSE(v->clipArc(2).empty());
+    ASSERT_FALSE(v->clipArc(Viewport3D::kVolumeArc).empty());
+    EXPECT_TRUE(v->clipArc(0).empty());  // inactive section: no arc
+    EXPECT_TRUE(v->dragClipArc(2, QPointF(10, 10), QPointF(10, 40)));
+    EXPECT_NEAR(v->clipping().sections[2].angleRad * 180.0 / 3.14159265358979, 27.0, 0.01);
+    EXPECT_NEAR(v->clipping().sectionNormal(2).x, std::sin(v->clipping().sections[2].angleRad), 1e-12);
+    EXPECT_DOUBLE_EQ(v->clipping().angleRad, 0.0);
+    // The volume turns without limit and leaves the sections alone.
+    for (int i = 0; i < 6; ++i) EXPECT_TRUE(v->dragClipArc(Viewport3D::kVolumeArc, QPointF(10, 10), QPointF(10, 150)));
+    EXPECT_GT(std::abs(v->clipping().angleRad), 0.1);
+    EXPECT_NEAR(v->clipping().sections[2].angleRad * 180.0 / 3.14159265358979, 27.0, 0.01);
 }
 
 TEST_F(ViewBarTest, OptionsButtonOpensTheDialogWithBothBoxesUnchecked) {

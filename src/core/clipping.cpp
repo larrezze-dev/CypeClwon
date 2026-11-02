@@ -17,6 +17,15 @@ Vec3 turnAboutZ(const Vec3& v, double angle) {
     const double c = std::cos(angle), s = std::sin(angle);
     return {c * v.x - s * v.y, s * v.x + c * v.y, v.z};
 }
+
+/// Turn about Y taking Z towards X (x' = c x + s z, z' = -s x + c z).
+Vec3 turnAboutY(const Vec3& v, double angle) {
+    const double c = std::cos(angle), s = std::sin(angle);
+    return {c * v.x + s * v.z, v.y, -s * v.x + c * v.z};
+}
+
+/// Turn of a section: X and Y planes about Z, the Z plane about Y.
+Vec3 turnSection(int axis, const Vec3& v, double angle) { return axis == 2 ? turnAboutY(v, angle) : turnAboutZ(v, angle); }
 }  // namespace
 
 bool ClipHalfSpace::contains(const Vec3& p, double tolerance) const { return inside(*this, p) >= -tolerance; }
@@ -43,16 +52,46 @@ Vec3 ClipSettings::axisDirection(int axis) const {
 }
 
 void ClipSettings::rotate(double deltaRad) {
-    if (!std::isfinite(deltaRad)) return;
+    if (!volume.active || !std::isfinite(deltaRad)) return;
     angleRad = std::remainder(angleRad + deltaRad, 2.0 * kPi);
+}
+
+Vec3 ClipSettings::sectionPoint(int axis) const {
+    Vec3 p = sections[static_cast<std::size_t>(axis)].centre;
+    setCoord(p, axis, sections[static_cast<std::size_t>(axis)].position);
+    return p;
+}
+
+Vec3 ClipSettings::sectionNormal(int axis) const {
+    Vec3 e{};
+    setCoord(e, axis, 1.0);
+    return turnSection(axis, e, sections[static_cast<std::size_t>(axis)].angleRad);
+}
+
+Vec3 ClipSettings::sectionToWorld(int axis, const Vec3& unturned) const {
+    const Vec3 pivot = sectionPoint(axis);
+    return pivot + turnSection(axis, unturned - pivot, sections[static_cast<std::size_t>(axis)].angleRad);
+}
+
+bool ClipSettings::rotateSection(int axis, double deltaRad) {
+    if (axis < 0 || axis > 2 || !std::isfinite(deltaRad)) return false;
+    SectionPlane& s = sections[static_cast<std::size_t>(axis)];
+    if (!s.active) return false;
+    const double next = s.angleRad + deltaRad;
+    if (std::abs(next) > SectionPlane::kMaxAngleRad + 1e-12) return false;  // refused whole, never clamped (original code)
+    s.angleRad = next;
+    return true;
 }
 
 std::vector<ClipHalfSpace> ClipSettings::halfSpaces() const {
     std::vector<ClipHalfSpace> out;
     for (int axis = 0; axis < 3; ++axis) {
         const SectionPlane& s = sections[static_cast<std::size_t>(axis)];
-        // The arrow points to the removed side: arrow +1 removes coordinate > position, so keep the lower side.
-        if (s.active) out.push_back(ClipHalfSpace::local(axis, s.position, s.arrowSign() > 0, centre, angleRad));
+        if (!s.active) continue;
+        // The arrow points to the removed side: arrow +1 removes the side the normal points to, so keep the lower side.
+        const Vec3 n = sectionNormal(axis);
+        const double offset = dot(n, sectionPoint(axis));
+        out.push_back(s.arrowSign() > 0 ? ClipHalfSpace{n, offset} : ClipHalfSpace{n * -1.0, -offset});
     }
     if (volume.active) {
         for (int axis = 0; axis < 3; ++axis) {
@@ -63,19 +102,19 @@ std::vector<ClipHalfSpace> ClipSettings::halfSpaces() const {
     return out;
 }
 
-void ClipSettings::setSectionActive(int axis, bool on, double defaultPosition, const Vec3& centreIfFirst) {
+void ClipSettings::setSectionActive(int axis, bool on, double defaultPosition, const Vec3& planeCentre) {
     if (axis < 0 || axis > 2) return;
     SectionPlane& s = sections[static_cast<std::size_t>(axis)];
     if (on && !s.active) {
-        if (!anyActive()) {  // the turn starts from nothing
-            centre = centreIfFirst;
-            angleRad = 0.0;
-        }
         s.position = defaultPosition;  // a plane shown again starts at the middle, not where it was left
+        s.centre = planeCentre;
+        s.angleRad = 0.0;
     }
     s.active = on;
-    if (!on) s.flipped = false;
-    if (!anyActive()) angleRad = 0.0;
+    if (!on) {
+        s.flipped = false;
+        s.angleRad = 0.0;
+    }
 }
 
 bool ClipSettings::flipSection(int axis) {
@@ -87,15 +126,13 @@ bool ClipSettings::flipSection(int axis) {
 
 void ClipSettings::setVolumeActive(bool on, const Vec3& min, const Vec3& max) {
     if (on && !volume.active) {
-        if (!anyActive()) {
-            centre = (min + max) * 0.5;
-            angleRad = 0.0;
-        }
+        centre = (min + max) * 0.5;  // the global turn belongs to the volume alone
+        angleRad = 0.0;
         volume.min = min;
         volume.max = max;
     }
     volume.active = on;
-    if (!anyActive()) angleRad = 0.0;
+    if (!on) angleRad = 0.0;
 }
 
 void ClipSettings::moveVolumeFace(int axis, bool faceMax, double value) {

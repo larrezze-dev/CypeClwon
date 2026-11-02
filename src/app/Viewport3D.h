@@ -199,10 +199,19 @@ public:
     std::optional<ClipHandle> clipHandleAt(const QPointF& pos, double tolerancePx = 8.0) const;
     /// Moves the arrow of `handle` so that it follows the cursor (as if dragged from `from` to `to`).
     void dragClipHandle(const ClipHandle& handle, const QPointF& from, const QPointF& to);
-    /// The arc around the section arrows: true when `pos` is on it. Dragging it turns the whole set about the vertical axis
-    /// (law from the original code: delta = d * 2*pi / viewport size, dominant axis only).
-    bool clipArcAt(const QPointF& pos, double tolerancePx = 8.0) const;
+    /// Arcs: ids 0..2 are the section planes X, Y, Z (each turns only its own plane, within +-80 degrees, a step that would
+    /// leave the range being refused) and kVolumeArc turns the clipping volume (global turn, unlimited). Law from the
+    /// original code: delta = d * 2*pi / viewport size, dominant axis only.
+    static constexpr int kVolumeArc = 3;
+    /// Id of the arc within `tolerancePx` of `pos`, or -1.
+    int clipArcIdAt(const QPointF& pos, double tolerancePx = 8.0) const;
+    bool clipArcAt(const QPointF& pos, double tolerancePx = 8.0) const { return clipArcIdAt(pos, tolerancePx) >= 0; }
+    /// Turns what arc `id` governs; false when refused (inactive, or the section would leave +-80 degrees).
+    bool dragClipArc(int id, const QPointF& from, const QPointF& to);
+    /// Same on the first existing arc (a section before the volume).
     void dragClipArc(const QPointF& from, const QPointF& to);
+    std::vector<core::Vec3> clipArc(int id) const;
+    /// First existing arc, empty when nothing is active.
     std::vector<core::Vec3> clipArc() const;
     /// Whether a world point survives every active section and the clipping volume.
     bool visibleAfterClipping(const core::Vec3& p) const;
@@ -303,6 +312,7 @@ private:
     bool m_ssao = false;
     std::optional<ClipHandle> m_clipDrag;
     bool m_clipArcDrag = false;
+    int m_clipArcId = -1;  ///< arc being dragged
     QPointF m_clipDragLast;
     void drawClipping(class QPainter& painter) const;
     std::pair<core::Vec3, core::Vec3> clipEnvelope() const;
