@@ -90,7 +90,7 @@ void Camera::setStandardView(StandardView view) {
 
 const std::array<ProjectionPreset, kProjectionPresetCount>& projectionPresets() {
     // Rows 1-2: front/top/right and back/bottom/left. Row 3: the back and left views upside down (roll 180) and the view
-    // from below (cell 8). Cells 20 and 22 are not measured yet (TK-030): unavailable. Rows 4-6: axonometrics from above
+    // from below (cell 8). Row 7-8 (measured from the length of the triad axes of the original): 19 and 20 look along Y from below / above at 45 degrees, 21 and 22 along the horizontal diagonals (yaw 315 / 45). Rows 4-6: axonometrics from above
     // (yaw 300/315/330, pitch 45), from above with X towards the viewer (cell 14 is the default isometric view, yaw 45 /
     // pitch 30) and from below. Cell 21 looks along a horizontal diagonal (yaw 315).
     static const std::array<ProjectionPreset, kProjectionPresetCount> table = {{
@@ -100,8 +100,8 @@ const std::array<ProjectionPreset, kProjectionPresetCount>& projectionPresets() 
         {300, 45, 0, true},   {315, 45, 0, true},   {330, 45, 0, true},
         {30, 35, 0, true},    {45, 30, 0, true},    {60, 35, 0, true},
         {300, -45, 0, true},  {315, -45, 0, true},  {330, -45, 0, true},
-        {0, -90, 0, true},    {0, 0, 0, false},     {315, 0, 0, true},
-        {0, 0, 0, false},
+        {0, -45, 0, true},    {0, 45, 0, true},     {315, 0, 0, true},
+        {45, 0, 0, true},
     }};
     return table;
 }

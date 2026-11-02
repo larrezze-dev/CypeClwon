@@ -435,8 +435,8 @@ TEST_F(ViewportTest, PresetCommitsHistoryAndPreviousViewRestores) {
     EXPECT_FALSE(view->previousView());
 }
 
-TEST_F(ViewportTest, UnavailablePresetLeavesHistoryAlone) {
-    EXPECT_FALSE(view->applyProjectionPreset(19));
+TEST_F(ViewportTest, InvalidPresetLeavesHistoryAlone) {
+    EXPECT_FALSE(view->applyProjectionPreset(22));
     EXPECT_FALSE(view->canGoPrevious());
 }
 

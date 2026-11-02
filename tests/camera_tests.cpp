@@ -202,13 +202,12 @@ TEST(Camera, MatrixMultiplicationAndIdentity) {
     for (std::size_t i = 0; i < 16; ++i) EXPECT_DOUBLE_EQ(vp.m[i], same.m[i]);
 }
 
-TEST(CameraPresets, TableHasTwentyTwoCellsAndTwoUnavailable) {
+TEST(CameraPresets, TableHasTwentyTwoAvailableCells) {
     const auto& presets = projectionPresets();
     ASSERT_EQ(presets.size(), 22u);
     int unavailable = 0;
     for (const auto& p : presets) unavailable += p.available ? 0 : 1;
-    EXPECT_EQ(unavailable, 2);
-    for (int i : {19, 21}) EXPECT_FALSE(presets[static_cast<std::size_t>(i)].available) << i;
+    EXPECT_EQ(unavailable, 0);
 }
 
 TEST(CameraPresets, FirstSixAreTheOrthogonalViews) {
@@ -227,7 +226,7 @@ TEST(CameraPresets, FirstSixAreTheOrthogonalViews) {
     expectNear(c.up(), {0, 1, 0});
     ASSERT_TRUE(c.setPreset(5));
     expectNear(c.forward(), {1, 0, 0});
-    ASSERT_TRUE(c.setPreset(18));
+    ASSERT_TRUE(c.setPreset(7));
     expectNear(c.forward(), {0, 0, 1});
     expectNear(c.up(), {0, -1, 0});
 }
@@ -274,6 +273,13 @@ TEST(CameraPresets, RolledAndBottomViewsOfRowThree) {
     EXPECT_GT(c.right().x, 0.5);
     EXPECT_LT(c.right().y, -0.5);
     expectNear(c.up(), {0, 0, 1});
+    ASSERT_TRUE(c.setPreset(21));  // yaw 45 at the horizon: X and Y both point to the right
+    EXPECT_NEAR(dot(Vec3{1, 0, 0}, c.right()), dot(Vec3{0, 1, 0}, c.right()), 1e-9);
+    ASSERT_TRUE(c.setPreset(19));  // from above at 45 degrees along Y: Y overlaps Z on screen
+    EXPECT_NEAR(dot(Vec3{0, 1, 0}, c.up()), dot(Vec3{0, 0, 1}, c.up()) * std::tan(45.0 * 3.14159265358979 / 180.0), 1e-9);
+    EXPECT_NEAR(dot(Vec3{0, 0, 1}, c.up()), std::sqrt(0.5), 1e-9);
+    ASSERT_TRUE(c.setPreset(18));  // the same from below: Y points down
+    EXPECT_NEAR(dot(Vec3{0, 1, 0}, c.up()), -std::sqrt(0.5), 1e-9);
 }
 
 TEST(CameraPresets, CellFourteenIsTheDefaultView) {
@@ -289,7 +295,7 @@ TEST(CameraPresets, CellFourteenIsTheDefaultView) {
 TEST(CameraPresets, UnavailableOrInvalidCellsChangeNothing) {
     Camera c;
     const CameraView before = c.view();
-    for (int i : {19, 21, -1, 22, 100}) {
+    for (int i : {-1, 22, 100}) {
         EXPECT_FALSE(c.setPreset(i)) << i;
         EXPECT_EQ(c.view(), before);
     }

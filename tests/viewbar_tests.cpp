@@ -55,11 +55,10 @@ TEST_F(ViewBarTest, OnlyTheImplementedButtonsAreEnabled) {
     }
 }
 
-TEST_F(ViewBarTest, PaletteHasTwentyTwoCellsAndTwoDisabled) {
+TEST_F(ViewBarTest, PaletteHasTwentyTwoEnabledCells) {
     ProjectionPalette* palette = frame->viewBar()->palette();
     ASSERT_EQ(palette->cellCount(), 22);
-    EXPECT_EQ(palette->enabledCellCount(), 20);
-    for (int i : {19, 21}) EXPECT_FALSE(palette->cell(i)->isEnabled()) << i;
+    EXPECT_EQ(palette->enabledCellCount(), 22);
 }
 
 TEST_F(ViewBarTest, ProjectionButtonTogglesThePalette) {

@@ -44,3 +44,9 @@ Ya documentada en `viewport_3d.md` (tabla de iconos x=1310…1499): Ventana ante
 - Efecto de «Tipo de proyección» (cónica) y de las secciones/volumen de recorte (T-P4-10+ / ticket).
 - Iconos de y=411 y y=440.
 - Comportamiento exacto de «Ventana doble» y «Marcar zoom».
+
+## Sesión 19: celdas 19-22 y zoom
+- Medidas con la longitud relativa de los ejes (c20.png, c22.png): 19 = yaw 0 / pitch -45 (Y abajo, Z y Y igual de largos); 20 = yaw 0 / pitch +45 (Y oculto tras Z, Z al 71 % de X); 21 = yaw 315; 22 = yaw 45 / pitch 0 (Y coincide con X, X al 73 % de Z). Celda 8 = (0,-90) sin roll; 7 y 9 con roll 180.
+- «Marcar zoom» (a5, b3-b6): tras activarlo y hacer clic aparece un rectángulo de goma con la proporción del visor (~1,9) y cursor en cruz; un segundo clic aplica el zoom. Falta fijar el anclaje del rectángulo con un arrastre diagonal.
+- «Ventana doble»: en las pruebas a2 y b2 no cambió la escala respecto a lo esperado; por comprobar si exige un clic posterior en el dibujo.
+- Los scripts con sshot devuelven tooltips si el ratón queda sobre la barra: usar `move:960,800` y `fshot`.
