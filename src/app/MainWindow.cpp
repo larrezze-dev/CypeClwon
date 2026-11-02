@@ -1,6 +1,8 @@
 ﻿#include "MainWindow.h"
 #include "CategoriesPanel.h"
 #include "DisplayOptionsPanel.h"
+#include <QTabBar>
+
 #include "LeftPanel.h"
 #include <QHBoxLayout>
 #include <QMdiArea>
@@ -107,12 +109,35 @@ void MainWindow::createWorkArea() {
     m_stack->addWidget(m_workArea);
     // Left panel (Etiquetas / Categorías / Opciones de visualización) beside the stack; visible only with a project open.
     auto* central = new QWidget(this);
-    auto* centralLayout = new QHBoxLayout(central);
+    auto* outerLayout = new QVBoxLayout(central);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+    auto* body = new QWidget(central);
+    auto* centralLayout = new QHBoxLayout(body);
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
-    m_leftPanel = new LeftPanel(central);
+    m_leftPanel = new LeftPanel(body);
     centralLayout->addWidget(m_leftPanel);
     centralLayout->addWidget(m_stack, 1);
+    outerLayout->addWidget(body, 1);
+    // Mode tabs under the whole window, above the status bar (reference: docs/screenshots/vb_full.png). Bold = current.
+    m_modeTabs = new QTabBar(central);
+    m_modeTabs->setObjectName(QStringLiteral("modeTabs"));
+    m_modeTabs->setDrawBase(false);
+    m_modeTabs->setExpanding(false);
+    m_modeTabs->addTab(tr("Estructura"));
+    m_modeTabs->addTab(tr("Cimentación"));
+    m_modeTabs->setStyleSheet(QStringLiteral(
+        "QTabBar::tab { border: none; background: transparent; padding: 3px 12px; }"
+        "QTabBar::tab:selected { font-weight: bold; }"));
+    m_modeTabs->hide();
+    connect(m_modeTabs, &QTabBar::currentChanged, this, [this](int index) {
+        if (index == 0) return;
+        // The foundation module is not cloned yet (TK-033): stay on the structure.
+        m_modeTabs->setCurrentIndex(0);
+        statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000);
+    });
+    outerLayout->addWidget(m_modeTabs);
     setCentralWidget(central);
     // Session-only display options (TK-028: per project or per user is not verified).
     connect(m_leftPanel->displayOptions(), &DisplayOptionsPanel::optionsChanged, this,
@@ -384,6 +409,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }
     m_leftPanel->setVisible(open);
+    m_modeTabs->setVisible(open);
     updateViewActions();
     m_stack->setCurrentWidget(open ? static_cast<QWidget*>(m_workArea) : m_startPage);
     // Like the original, the ribbon shows no tabs until a project is open.

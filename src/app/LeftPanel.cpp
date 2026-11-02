@@ -91,8 +91,8 @@ LeftPanel::LeftPanel(QWidget* parent) : QWidget(parent) {
     m_splitter->addWidget(m_labels);
     m_splitter->addWidget(m_categories);
     m_splitter->addWidget(m_display);
-    m_splitter->setStretchFactor(0, 3);
-    m_splitter->setStretchFactor(1, 3);
+    m_splitter->setStretchFactor(0, 1);
+    m_splitter->setStretchFactor(1, 0);
     m_splitter->setStretchFactor(2, 0);
     layout->addWidget(m_splitter);
 }

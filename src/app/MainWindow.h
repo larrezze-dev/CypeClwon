@@ -12,6 +12,8 @@ class QActionGroup;
 class QCloseEvent;
 class QStackedWidget;
 
+class QTabBar;
+
 namespace cc::app {
 
 class LeftPanel;
@@ -107,6 +109,7 @@ private:
 
     SessionBar* m_sessionBar = nullptr;
     LeftPanel* m_leftPanel = nullptr;
+    QTabBar* m_modeTabs = nullptr;
     WorkArea* m_workArea = nullptr;
     StartPage* m_startPage = nullptr;
     cc::core::RecentFiles m_recent;

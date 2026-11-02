@@ -98,7 +98,14 @@ CategoriesPanel::CategoriesPanel(QWidget* parent) : QWidget(parent) {
         m_table->item(row, ColReference)->setText(categoryName(row));
     }
     refreshTable();
-    root->addWidget(m_table, 1);
+    // The original shows all seven rows without scrolling (TK-028): size the table to its content.
+    m_table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    {
+        int height = m_table->horizontalHeader()->sizeHint().height() + 2 * m_table->frameWidth();
+        for (int row = 0; row < cc::core::kCategoryCount; ++row) height += m_table->rowHeight(row);
+        m_table->setFixedHeight(height);
+    }
+    root->addWidget(m_table);
 
     m_layerColours = new QCheckBox(tr("Representar la estructura usando los colores de las capas"), this);
     m_layerColours->setObjectName(QStringLiteral("layerColours"));
