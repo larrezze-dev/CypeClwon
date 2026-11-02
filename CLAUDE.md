@@ -17,6 +17,15 @@ Adicionalmente iniciar el ejecutable y realizar capturas de pantalla y pruebas d
 https://info.cype.com/es/software/cype-3d/?_gl=1%2A1sl1l1t%2A_ga%2ANjI4MjI2NTcxLjE3OTM0Mzc0NzY.%2A_ga_P0GJKB1YE4%2AczE3OTM0Mzc0NzYkbzEkZzAkdDE3OTM0Mzc0ODQkajUyJGwwJGgw
 
 
+### Orden de investigación para saber cómo funciona CYPE 3D (obligatorio)
+
+Para averiguar cómo funciona cualquier característica del original, seguir SIEMPRE este orden:
+
+1. **Primero, el código del original con REA**: buscar en los binarios (DLL/EXE de la carpeta de CYPE 3D) con el MCP rea: cadenas de recursos (UTF-16, con ids y varios idiomas), nombres de funciones y símbolos (`list_procedures`, `list_names`), pseudocódigo (`procedure_pseudo_code`), referencias y estructuras de configuración. Muchas respuestas (textos exactos, tooltips, leyes de cálculo, formato de configuración, qué hace un botón) están aquí y evitan pruebas a ciegas.
+2. **Solo si REA no responde lo que se busca**: lanzar CYPE 3D en el escritorio (con el OK previo del usuario, ver «Comunicación con el usuario») y observarlo con capturas y pruebas de funcionalidad (`tools/drive_original.ps1`).
+
+Combinar ambos al final es válido (p. ej. medir en el original una constante que el código no revela), pero no se empieza por la interfaz si el código puede responder. Documentar en `docs/research/` qué se averiguó por cada vía.
+
 ## Plan de Implementación
 
 Primer paso: evaluar en detalle el proyecto utilizando el MCP rea para determinar su complejidad. Luego elaborar un detallado plan de implementación y guardarlo en el archivo .planning.md - este plan de implementación debe de ser elaborado de forma que te sirva de guía durante todo el proceso de desarrollo. Detallar todas las funcionalidades e GUI a clonar en una secuencia lógica y dentro de lo posible secuencial.
