@@ -15,7 +15,7 @@ enum class ViewBarIcon {
     SectionY,
     SectionZ,
     ClippingVolume,
-    Unidentified1,
+    HideSectionPlanes,
     Options
 };
 

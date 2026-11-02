@@ -67,7 +67,8 @@ QString ViewBar::tooltipText(Button which) {
             return tr("Sección perpendicular al eje 'Z' global: define una sección del modelo; doble clic en la flecha invierte el sentido del plano de recorte.");
         case ClippingVolume:
             return tr("Volumen de recorte: volumen de visualización mediante 6 planos de corte a partir de la envolvente geométrica; flechas para ajustar los planos y arcos para su orientación.");
-        case Unidentified1:
+        case HideSectionPlanes:
+            return tr("Mostrar / Ocultar planos de sección");
         case Options:
         case ButtonCount:
             break;
@@ -93,7 +94,7 @@ ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
     layout->setSpacing(2);
     const ViewBarIcon icons[ButtonCount] = {ViewBarIcon::Projection,        ViewBarIcon::ProjectionType, ViewBarIcon::RotateAroundPoint,
                                             ViewBarIcon::RotateAroundCamera, ViewBarIcon::SectionX,       ViewBarIcon::SectionY,
-                                            ViewBarIcon::SectionZ,           ViewBarIcon::ClippingVolume, ViewBarIcon::Unidentified1,
+                                            ViewBarIcon::SectionZ,           ViewBarIcon::ClippingVolume, ViewBarIcon::HideSectionPlanes,
                                             ViewBarIcon::Options};
     for (int i = 0; i < ButtonCount; ++i) {
         const Button which = static_cast<Button>(i);
@@ -128,6 +129,7 @@ ViewBar::ViewBar(QWidget* parent) : QWidget(parent) {
         connect(button(static_cast<Button>(SectionX + axis)), &QToolButton::toggled, this,
                 [this, axis](bool on) { emit sectionToggled(axis, on); });
     connect(button(ClippingVolume), &QToolButton::toggled, this, &ViewBar::clippingVolumeToggled);
+    connect(button(HideSectionPlanes), &QToolButton::toggled, this, &ViewBar::sectionPlanesHidden);
     connect(button(Options), &QToolButton::clicked, this, &ViewBar::optionsRequested);
 }
 
@@ -157,6 +159,7 @@ void ViewBar::bind(Viewport3D* viewport) {
     connect(this, &ViewBar::rotateAroundCameraToggled, viewport, &Viewport3D::setRotateAroundCamera);
     connect(this, &ViewBar::sectionToggled, viewport, &Viewport3D::setSectionActive);
     connect(this, &ViewBar::clippingVolumeToggled, viewport, &Viewport3D::setClippingVolumeActive);
+    connect(this, &ViewBar::sectionPlanesHidden, viewport, [viewport](bool hidden) { viewport->setClipPlanesVisible(!hidden); });
     connect(this, &ViewBar::optionsRequested, viewport, [this, viewport] {
         ViewOptionsDialog dialog(viewport->objectEdges(), viewport->ssao(), window());
         if (dialog.exec() == QDialog::Accepted) {

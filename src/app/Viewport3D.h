@@ -179,6 +179,9 @@ public:
     bool clippingVolumeActive() const { return m_clip.volume.active; }
     /// Options of the 3D window (icon y=440): edges of the objects and screen-space ambient occlusion. SSAO has no effect on
     /// the software painter (ticket for the OpenGL renderer).
+    /// "Mostrar / Ocultar planos de sección" (y=411): hides the planes, arrows and arcs but keeps the cut (measured, sp_*.png).
+    void setClipPlanesVisible(bool on) { m_clipPlanesVisible = on; update(); }
+    bool clipPlanesVisible() const { return m_clipPlanesVisible; }
     void setObjectEdges(bool on) { m_objectEdges = on; update(); }
     bool objectEdges() const { return m_objectEdges; }
     void setSsao(bool on) { m_ssao = on; update(); }
@@ -290,6 +293,7 @@ private:
     bool m_rotateAroundPoint = false;
     bool m_rotateAroundCamera = false;
     core::ClipSettings m_clip;
+    bool m_clipPlanesVisible = true;
     bool m_objectEdges = false;
     bool m_ssao = false;
     std::optional<ClipHandle> m_clipDrag;

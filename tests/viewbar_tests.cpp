@@ -154,6 +154,21 @@ TEST_F(ViewBarTest, DraggingASectionArrowMovesThePlaneAndDoubleClickFlipsIt) {
     EXPECT_FALSE(v->flipSection(1));  // inactive section
 }
 
+TEST_F(ViewBarTest, Button411TogglesTheVisibilityOfThePlanesButKeepsTheCut) {
+    ViewBar* bar = frame->viewBar();
+    Viewport3D* v = frame->viewport();
+    EXPECT_EQ(bar->button(ViewBar::HideSectionPlanes)->toolTip(), QStringLiteral("Mostrar / Ocultar planos de sección"));
+    EXPECT_TRUE(v->clipPlanesVisible());
+    v->setNodes({{0, 0, 0}, {10, 4, 6}});
+    bar->button(ViewBar::SectionX)->click();
+    bar->button(ViewBar::HideSectionPlanes)->click();  // pressed = hidden
+    EXPECT_FALSE(v->clipPlanesVisible());
+    EXPECT_TRUE(v->sectionActive(0));
+    EXPECT_FALSE(v->visibleAfterClipping({9, 2, 3}));  // the cut stays
+    bar->button(ViewBar::HideSectionPlanes)->click();
+    EXPECT_TRUE(v->clipPlanesVisible());
+}
+
 TEST_F(ViewBarTest, OptionsButtonOpensTheDialogWithBothBoxesUnchecked) {
     Viewport3D* v = frame->viewport();
     EXPECT_FALSE(v->objectEdges());

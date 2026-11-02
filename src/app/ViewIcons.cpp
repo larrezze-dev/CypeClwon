@@ -114,7 +114,7 @@ QIcon viewBarIcon(ViewBarIcon which, int size) {
             arrow(p, {3, 24}, {8, 21}, kGreen, 1.8, 5.0);
             arrow(p, {29, 24}, {24, 21}, kBlue, 1.8, 5.0);
             break;
-        case ViewBarIcon::Unidentified1:  // drawing with camera and arrow (purpose not identified in the original)
+        case ViewBarIcon::HideSectionPlanes:  // drawing with camera and arrow (purpose not identified in the original)
             p.setPen(QPen(kInk, 1.6));
             p.setBrush(Qt::NoBrush);
             p.drawRoundedRect(QRectF(5, 12, 16, 11), 1.5, 1.5);

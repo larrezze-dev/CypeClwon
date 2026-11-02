@@ -43,7 +43,7 @@ public:
         SectionY,
         SectionZ,
         ClippingVolume,
-        Unidentified1,
+        HideSectionPlanes,  ///< y=411 "Mostrar / Ocultar planos de sección" (pressed = planes hidden; the cut stays)
         Options,  ///< y=440 "3D" with a gear: dialog «Opciones»
         ButtonCount
     };
@@ -73,6 +73,7 @@ signals:
     void rotateAroundCameraToggled(bool on);
     void sectionToggled(int axis, bool on);
     void clippingVolumeToggled(bool on);
+    void sectionPlanesHidden(bool hidden);
     void optionsRequested();
 
 protected:

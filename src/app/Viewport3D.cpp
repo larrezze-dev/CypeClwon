@@ -176,7 +176,7 @@ DragAction Viewport3D::actionFor(Qt::MouseButtons buttons) const {
 
 void Viewport3D::mousePressEvent(QMouseEvent* event) {
     m_last = event->position().toPoint();
-    if (event->button() == Qt::LeftButton && m_clip.anyActive()) {  // grabbing the red arrow of a section / the volume
+    if (event->button() == Qt::LeftButton && m_clip.anyActive() && m_clipPlanesVisible) {  // grabbing the red arrow of a section / the volume
         if (const auto handle = clipHandleAt(event->position())) {
             m_clipDrag = handle;
             m_clipDragLast = event->position();
@@ -279,7 +279,7 @@ void Viewport3D::mouseDoubleClickEvent(QMouseEvent* event) {
         event->accept();
         return;
     }
-    if (event->button() == Qt::LeftButton && m_clip.anyActive()) {  // double click on a section arrow reverses its sense
+    if (event->button() == Qt::LeftButton && m_clip.anyActive() && m_clipPlanesVisible) {  // double click on a section arrow reverses its sense
         if (const auto handle = clipHandleAt(event->position()); handle && !handle->volume) {
             flipSection(handle->axis);
             m_clipDrag.reset();
@@ -1041,7 +1041,7 @@ void Viewport3D::dragClipHandle(const ClipHandle& handle, const QPointF& from, c
 }
 
 void Viewport3D::drawClipping(QPainter& painter) const {
-    if (!m_clip.anyActive()) return;
+    if (!m_clip.anyActive() || !m_clipPlanesVisible) return;
     const core::ScreenMapper map = mapper();
     const auto poly = [&](const std::vector<Vec3>& pts, bool closed, const QPen& pen, const QBrush& brush) {
         QPolygonF p;
@@ -1063,8 +1063,7 @@ void Viewport3D::drawClipping(QPainter& painter) const {
         const auto corner = [&](bool uMax, bool vMax) {
             return withAxis(withAxis(withAxis({0, 0, 0}, a, s.position), u, axisCoord(uMax ? hi : lo, u)), v, axisCoord(vMax ? hi : lo, v));
         };
-        poly({corner(false, false), corner(true, false), corner(true, true), corner(false, true)}, true, QPen(QColor(110, 110, 110), 1),
-             QBrush(QColor(150, 150, 150, 40)));
+        poly({corner(false, false), corner(true, false), corner(true, true), corner(false, true)}, true, QPen(QColor(60, 60, 60), 1), Qt::NoBrush);  // outline only (sp_1.png)
         // Arc: three quarters of a circle in the plane around the arrow, in red (shape seen in the original; radius assumed).
         const double r = 0.12 * std::max(axisCoord(hi, u) - axisCoord(lo, u), axisCoord(hi, v) - axisCoord(lo, v));
         std::vector<Vec3> arc;
