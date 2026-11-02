@@ -123,3 +123,8 @@ Icono del imán (rojo, barra superior x≈1586, y=38) abre el diálogo **Captura
 - Al elegir "Sobre el elemento" la caja de información de la barra pasa de la esquina a un **bocadillo** situado arriba a la derecha del punto ajustado: esquina inferior izquierda ~32 px a la derecha y ~2 px por encima del punto, con una pequeña cola que apunta a él. Mismo contenido de tres filas.
 - El **tooltip de coordenadas no cambia**: sigue a ~(+40,+43) px del cursor. Por tanto la opción solo gobierna la caja de información (y, por analogía, la etiqueta de nudo).
 - El resto (cota girada "1.7488 m", marcador de reloj de arena, barra en azul) es igual que con la esquina. Captura adicional: el tooltip del comando Nuevo muestra un texto de ayuda largo con "Pulse 'F1' alternativamente para mostrar u ocultar los textos de ayuda" (`user` captura 193236, pendiente de investigar como función de ayuda).
+
+## Cierre de secciones del panel izquierdo (sesión 18, build/smoke/o_close3.png, o_ventana.png)
+- Categorías NO tiene chevron ni × en la cabecera; Etiquetas y Opciones de visualización sí.
+- La × de Opciones de visualización la oculta; el hueco se reparte entre las otras secciones.
+- No hay forma de reabrirla: ni la pestaña Ventana (Abrir nueva, Renombrar, Cerrar, Anterior, Siguiente, Cascada, Mosaicos, Ordenar, Seleccionar ventana) ni el clic derecho en cabeceras o fondo (sin menú contextual).

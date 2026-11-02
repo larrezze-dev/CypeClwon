@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <QWidget>
 
 class QSplitter;
@@ -46,6 +46,9 @@ public:
     DisplayOptionsPanel* displayOptions() const { return m_displayOptions; }
     LayersPanel* layersPanel() const { return m_layersPanel; }
     CategoriesPanel* categoriesPanel() const { return m_categoriesPanel; }
+    /// Shows and unfolds every section again. The original has no command to reopen a section closed with the x
+    /// (nothing in the Ventana tab nor a context menu; verified), so they come back when a project is opened.
+    void restoreSections();
     QSplitter* splitter() const { return m_splitter; }
 
 private:

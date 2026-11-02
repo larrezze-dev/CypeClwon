@@ -91,6 +91,9 @@ try {
         switch ($kind) {
             'wait'   { Start-Sleep -Milliseconds ([int]$arg) }
             'click'  { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $false; Start-Sleep -Milliseconds 700 }
+            'rclick' { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
+                       [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 150; [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120
+                       [D]::mouse_event(8, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(16, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
             'dclick' { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $true; Start-Sleep -Milliseconds 700 }
             'move'   { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120; Start-Sleep -Milliseconds 900 }
             'wheel'  { [void][D]::SetForegroundWindow([D]::Top([uint32]$p.Id)); $d = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]([int]$arg * 120)), 0); [D]::mouse_event(0x0800, 0, 0, $d, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }

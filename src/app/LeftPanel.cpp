@@ -1,4 +1,4 @@
-#include "LeftPanel.h"
+﻿#include "LeftPanel.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -86,6 +86,9 @@ LeftPanel::LeftPanel(QWidget* parent) : QWidget(parent) {
     m_labels = new PanelSection(tr("Etiquetas"), m_layersPanel, m_splitter);
     m_categoriesPanel = new CategoriesPanel;
     m_categories = new PanelSection(tr("Categorías"), m_categoriesPanel, m_splitter);
+    // The original's Categorías header has neither chevron nor close button (o_close3.png).
+    m_categories->chevronButton()->hide();
+    m_categories->closeButton()->hide();
     m_displayOptions = new DisplayOptionsPanel;
     m_display = new PanelSection(tr("Opciones de visualización"), m_displayOptions, m_splitter);
     m_splitter->addWidget(m_labels);
@@ -95,6 +98,13 @@ LeftPanel::LeftPanel(QWidget* parent) : QWidget(parent) {
     m_splitter->setStretchFactor(1, 0);
     m_splitter->setStretchFactor(2, 0);
     layout->addWidget(m_splitter);
+}
+
+void LeftPanel::restoreSections() {
+    for (PanelSection* section : {m_labels, m_categories, m_display}) {
+        section->setFolded(false);
+        section->show();
+    }
 }
 
 }  // namespace cc::app

@@ -430,6 +430,7 @@ void MainWindow::setProjectOpen(bool open) {
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }
+    if (open) m_leftPanel->restoreSections();
     m_leftPanel->setVisible(open);
     m_modeTabs->setVisible(open);
     updateViewActions();

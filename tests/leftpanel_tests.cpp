@@ -133,6 +133,13 @@ TEST_F(PanelTest, LeftPanelHasThreeSectionsWithFoldAndClose) {
     panel.labelsSection()->closeButton()->click();
     EXPECT_FALSE(panel.labelsSection()->isVisible());
     EXPECT_TRUE(panel.categoriesSection()->isVisible());
+    // Categorías has neither chevron nor close button in the original.
+    EXPECT_TRUE(panel.categoriesSection()->chevronButton()->isHidden());
+    EXPECT_TRUE(panel.categoriesSection()->closeButton()->isHidden());
+    display->chevronButton()->click();
+    panel.restoreSections();
+    EXPECT_TRUE(panel.labelsSection()->isVisible());
+    EXPECT_FALSE(display->isFolded());
 }
 
 int main(int argc, char** argv) {
