@@ -63,3 +63,11 @@ Capturas `rp_a*`, `rp_b*`, `rp_c*`, `rp_montage3/4.png` (obra orig_copy.ed3, her
 - **Rotación alrededor de un punto** (y=260): un arrastre horizontal de +100 px iniciado sobre el nudo (930,240) lo deja en (928,240): el punto bajo el cursor es el pivote y no se mueve en pantalla.
 - **Rotación alrededor de la cámara** (y=284): con 8 px (2°) o 20 px (5°) el modelo sale por completo de la vista. El tooltip de coordenadas pasa a (187, -187, 152) m: el ojo está a ≈ 302 m del modelo (≈ 30000 px a la escala de la vista), así que girar sobre el ojo desplaza el modelo ~5 m por grado.
 - Clon: `Camera::orbitAbout(pivot)` y `orbitAboutEye` (ojo a 38 alturas visibles); pivote = nudo bajo el cursor, punto de la barra bajo el cursor o, si no hay objeto, el punto del plano del objetivo bajo el cursor (comportamiento sin objeto no medido). Con ambas activas gana la cámara (no medido).
+
+## Sesión 21 (II): tipo de proyección, secciones, volumen de recorte, iconos 411/440
+Capturas `rq_*.png`, `rs_*.png`, `rq_icons.png`.
+- **Tipo de proyección** (y=236): alterna axonométrica ↔ cónica (rq_t1/t2). El original abre en **axonométrica**; el clon ya abre igual (cambio de esta sesión) y el botón alterna.
+- **Sección X** (y=314, icono plano con mitad roja): aparece un plano rectangular de contorno gris perpendicular a X, con una **flecha roja gruesa** (sentido de la parte eliminada: +X) y un **arco rojo** alrededor; la geometría del lado de la flecha desaparece (la barra se corta en el plano, rq_x1). Con el script no se consiguió mover el plano ni invertirlo (arrastre y doble clic sobre la flecha: sin cambio en rs_drag/rs_dclick): PENDIENTE de prueba manual del usuario.
+- **Volumen de recorte** (y=387): caja de 6 planos en alambre alrededor de la envolvente geométrica (rq_v1/v2). Flechas y arcos de ajuste: sin medir.
+- **Icono 411** (plano con ojo y flecha): se hunde al pulsarlo pero no cambia el dibujo; la rueda y el arrastre tampoco cambian nada (rq_w411/d411). Tooltip no capturado: PENDIENTE (pedir al usuario que lo lea con el ratón real).
+- **Icono 440** («3D» con engranaje): abre el diálogo **Opciones** (265x136) con dos casillas sin marcar, «Aristas de objetos» e «Iluminación ambiental mejorada (SSAO)», y el botón Aceptar (rq_i2.png).

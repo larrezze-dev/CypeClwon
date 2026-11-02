@@ -34,6 +34,7 @@ Vec3 toEye(const core::Mat4& view, const Vec3& p) {
 Viewport3D::Viewport3D(QWidget* parent) : QOpenGLWidget(parent) {
     setMouseTracking(true);
     setMinimumSize(100, 100);
+    m_camera.setProjection(Camera::Projection::Orthographic);  // the original opens in axonometric (rq_t1/t2.png)
 }
 
 double Viewport3D::aspect() const { return height() > 0 ? static_cast<double>(width()) / height() : 1.0; }

@@ -106,12 +106,12 @@ TEST_F(ViewportTest, WheelAtCursorKeepsThePointUnderTheCursor) {
 
 TEST_F(ViewportTest, ProjectionToggleEmitsOnlyOnChange) {
     QSignalSpy spy(view.get(), &Viewport3D::projectionChanged);
-    EXPECT_FALSE(view->isOrthographic());
-    view->setOrthographic(true);
-    view->setOrthographic(true);
-    EXPECT_TRUE(view->isOrthographic());
-    EXPECT_EQ(spy.count(), 1);
+    EXPECT_TRUE(view->isOrthographic());  // the original opens in axonometric
     view->setOrthographic(false);
+    view->setOrthographic(false);
+    EXPECT_FALSE(view->isOrthographic());
+    EXPECT_EQ(spy.count(), 1);
+    view->setOrthographic(true);
     EXPECT_EQ(spy.count(), 2);
 }
 

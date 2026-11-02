@@ -86,11 +86,11 @@ TEST_F(ViewBarTest, ClickingACellEmitsAndAppliesThePreset) {
 TEST_F(ViewBarTest, ProjectionTypeButtonSwitchesBetweenConicalAndAxonometric) {
     ViewBar* bar = frame->viewBar();
     QSignalSpy spy(bar, &ViewBar::projectionTypeToggled);
-    EXPECT_FALSE(frame->viewport()->isOrthographic());
-    bar->button(ViewBar::ProjectionType)->click();
     EXPECT_TRUE(frame->viewport()->isOrthographic());
     bar->button(ViewBar::ProjectionType)->click();
     EXPECT_FALSE(frame->viewport()->isOrthographic());
+    bar->button(ViewBar::ProjectionType)->click();
+    EXPECT_TRUE(frame->viewport()->isOrthographic());
     EXPECT_EQ(spy.count(), 2);
 }
 
