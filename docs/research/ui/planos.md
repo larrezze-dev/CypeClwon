@@ -89,3 +89,54 @@ Dónde buscar: (a) xrefs a las funciones `FUN_1807ca620` (crea una línea de rej
 - Clic en Rejilla (50,156) y en Niveles (50,180): ambos mostraron la misma ventana **«Propiedades - Planos»** (278x370, ventana propia con maximizar/cerrar) con tres radios con icono: «Planos paralelos a YZ» (marcado y en negrita), «Planos paralelos a XZ», «Planos paralelos a XY». No se vio más contenido (probablemente la ventana abre vacía hasta elegir; falta comprobar si Niveles era realmente otra ventana: la ESC intermedia pudo no cerrarla).
 - PENDIENTE de medir: qué cambia al elegir cada radio (tabla de líneas/niveles), botones de la ventana, diálogos de generar rejilla/niveles (ver §2-§3 del código), Cotas, Referencias, Mostrar nuevos, Agrupar/Desagrupar.
 - El script drive_original.ps1 cierra la app al terminar: cada prueba debe ser una sola ejecución; no redirigir su salida (bloquea su propio log).
+
+## 10. Segunda pasada REA (ed3dlib.dll + BASICOS.DLL; sin lanzar la app)
+Etiquetas: [código] pseudocódigo/bytes leídos; [cadena] texto de tabla de mensajes; [no resuelto]. Nombres `FUN_*` = direcciones de ed3dlib.dll salvo indicación.
+
+### 10.1 Qué abre el comando «Rejilla» [código]
+- Los comandos del menú Planos se registran con `FUN_1800016f0(..., "Planos_Rejilla", ...)` (envoltorio `FUN_1804113e0`; también `Planos_Referencias`, `Planos_Cotas_Anadir/Borrar/Mostrar/Ocultar`, `Planos_MostrarOcultar`, `Planos_Visibilidad`, `Planos_Agrupar`, `Planos_Desagrupar`, `Obra_GenerarPlanos`).
+- Cadena de llamadas de «Planos_Rejilla»: `FUN_18023e0a0` -> `FUN_1804729a0` -> `FUN_1801e7e20`, que crea los datos del panel (un `cybool` inicializado a **1 = marcado**, 4 `ArrDouble` vacíos y 1 `ArrPunto3D` vacío: coordenadas/desplazamientos por plano, cf. B/C/D_planos y `desplazamientos_por_plano` en las aserciones) y llama a `FUN_1807c4a30` -> `FUN_1807cabd0` (panel `lineas_grid`, fichero `ed3pnlingridus.c`).
+- **Estructura del panel de rejilla** (`FUN_1807cabd0`, `pnpanel_crea_en_bordes_3_norte_centro_sur("lineas_grid", N, C, S)`):
+  - Norte: el botón «Generación de líneas de rejilla» (id 65025, `boton_crea_u("generacion")`, encapsulado con alineación 8; qué lado es 8: [no resuelto]).
+  - Centro (`FUN_1807cf3c0`): `pnpanel_crea_en_horizontal_2("lineas_grid", tablaX, tablaY, margen 0x14)`: **dos tablas lado a lado, una por dirección X y otra Y**, cada una en un grupo con título (`grupanel_panel_con_titulo_u`, `FUN_1807cea70`); los títulos vienen de `FUN_180612c50/70`, no leídos: se asume 25887/25888 «Líneas en la dirección X/Y» (**no confirmado**).
+  - Sur: check con el texto 387397 «Ajustar los elementos del modelo por cambios en la posición de las líneas de la rejilla», valor por defecto **marcado**.
+  - No hay pestañas ni radios en este panel. Los arrays X/Y del panel son **copias** (`arr_CopiaEstructurasConTipo`, `FUN_1807ce460`).
+- **Contradicción con §9**: lo medido en el original (ventana «Propiedades - Planos» con 3 radios «Planos paralelos a YZ/XZ/XY») no coincide con este panel. Los textos 65446/65447/65448 están en `ed3tipo.msg` (generador `FUN_18065cbc0` y hermanos, referenciados desde `FUN_18065bcd0`), es decir son nombres del enum de tipo de plano; qué ventana los usa: [no resuelto]. Hipótesis a comprobar en la app (no deducida): la ventana medida pertenece a otro comando (Referencias/Cotas) o a un diálogo general de propiedades.
+
+### 10.2 Tabla de líneas de rejilla (`FUN_1807ce5f0`, lista `lineas_grid`, tipo `ed3lingridus_t`) [código]
+Lista de botones `lista_lineas` (`pnlstbt_nousar_creaListaBotones`, base 300x400) con 3 columnas, en este orden:
+| # | Columna (mensaje) | Tipo | Campo (offset en `ed3lingridus_t`) | Edición |
+|---|---|---|---|---|
+| 1 | Etiqueta (65019, por el uso del mismo generador de mensaje en el diálogo «Nueva línea») | texto | +0xC | flags 1,1 (significado no leído) |
+| 2 | Coordenada (25889) | double, límites **-50000 .. +50000**, paso **0,001** (0x3F50624DD2F1A9FC), formato 0x12 | +4 | editable (`lista_columnaSetEditable(…,1)`) |
+| 3 | Posición de la etiqueta (25890) | popup (`columnaCreaPopupArr`) con 2 textos | +0x14 | por popup |
+- `lista_nousar_setFuncionSePuedeFinalizar(lista, "ed3lingridus_t", 0, FUN_1807cf630)`: función de «se puede finalizar» (validación; las cadenas 25891/25892 son sus avisos probables). **Momento exacto y contenido de `FUN_1807cf630`: no leídos.** Orden de la tabla por coordenada: [no resuelto] (`lista_navegacion_lineas_grid_usar_ordenadas` se refiere a la navegación 25939/25940).
+- **Textos de las 2 opciones de posición** [cadena]: valor 0 = **«Origen»** (id 157086, `entorno.msg`), valor 1 = **«Extremo»** (id 250065, `entorno.msg`). El popup se construye con `arr_CreaCADENA_u(2)`, es decir son cadenas; que lleven icono no está probado (corrige §2).
+- Botón de añadir de la lista: `FUN_1807cf020` abre el diálogo **«Nueva línea»** (id 65024, `dlgokcan_lanzaDialogoAceptado_u("nueva_linea")`, Aceptar/Cancelar). Contenido (`FUN_1807cec40`, `pnpanel_crea_en_vertical_edits_3`): **Coordenada** (`pnpanel_ed_double_u "coord"`, ±50000, paso 0,001, inicial **0,0**), **Etiqueta** (`pnpanel_ed_texto_u`, el parámetro 4 es probablemente la longitud máxima = **4 caracteres**, no confirmado; inicial **cadena vacía**), **Posición de la etiqueta** (popup Origen/Extremo, inicial **0 = Origen**). Al aceptar se crea la línea (`FUN_1807ca620`) y se **inserta al final** (`lista_nousar_filaInsertarDato(..., numFilas)`), sin ordenar.
+
+### 10.3 Generador de rejilla: valores por defecto [código]
+Creación del objeto uniforme: `FUN_1807c7920` -> `FUN_1807c87e0(etiqueta)` para X y para Y; cada dirección es `{n, separación, etiqueta, posición}` (`FUN_1807c9fb0`, 0x18 bytes):
+- **n = 4** líneas por dirección (límites 2..1000, §2).
+- **Etiqueta inicial**: X = **"A"**, Y = **"1"** (cadenas UTF-16 en 0x180A36534 y 0x180A36510).
+- **Posición de etiqueta** = 0 (**Origen**).
+- **Separación** = valor por defecto de la unidad `"longitud"` (`FUN_1807ca2d0` -> `FUN_1807ca020`: `udentsal_crea_generado(..., 0.05, 1000.0, 3.0, 0.01, 1.0)`). El significado posicional de las 5 constantes no se ha leído en CYPEUD: **probable** (no confirmado) mín 0,05 / máx 1000 / defecto **3,0** / paso 0,01 / factor 1,0.
+- El objeto uniforme vive en `datos_panel[2]` y se reutiliza entre aperturas del diálogo, por tanto los últimos valores se conservan mientras viva el panel. Al aceptar se aplican los dos ejes con `FUN_1807cf480(coords, etiquetas, posiciones, ajustar_elementos, array)` y se rehace el panel (`FUN_1807cf3c0`).
+
+### 10.4 Regla de etiquetas `cyperef_nueva_referencia_u` [código parcial]
+Está en **BASICOS.DLL** (`cyperef.c`; exports `cyperef_nueva_referencia_u`, `cyperef_siguiente_referencia_u`, `cyperef_u_referencia_alfanumerica_siguiente`). `cyperef_nueva_referencia_u(s)` = `FUN_1800a4df0(s,0,0)`: copia `s`, le **concatena un espacio** (0x18014F2F4), llama a `FUN_1800a59c0(cadena, longitud, 0, 0)` y, si devuelve 0 (no pudo incrementar), devuelve la cadena **"1"** (0x18015384C). El algoritmo de incremento (`FUN_1800a59c0`) **no se ha leído**: A->B, Z->AA, 1->2 de §2 son una suposición razonable pero **[no resuelto]**; medir en la app generando más de 26 líneas X.
+
+### 10.5 Submenú y cadenas del menú Planos [cadena+código]
+- Ids de texto: 74892 «Planos» (botón; 374697 también «Planos»), 25913 «Rejilla», 25927 «Niveles», 38643 «Cotas» (submenú), 31060 «Referencias», 392579 «Visibilidad», 392580 «**Mostrar nuevos**», 64084 «Agrupar planos», 64085 «Desagrupar planos». «Cotas X/Y/Z»: 65143/65144/65145. Diálogo «Mostrar/ocultar planos» = 64347.
+- Comandos internos de Cotas: `Planos_Cotas_Anadir`, `Planos_Cotas_Borrar`, `Planos_Cotas_Mostrar`, `Planos_Cotas_Ocultar` (textos de los 4 ítems del submenú no localizados por id: [no resuelto]). Fragmentos de ayuda: «…líneas de referencia o planos entre los que se define la cota que desea introducir.» (0x180C22078) y «…cotas para ocultarlas en planos.» (0x180B416AE).
+- «Mostrar nuevos» (392580; regeneración `regen_planos_visibilidad`): comportamiento exacto **[no resuelto]**; por el nombre y el diálogo «Mostrar/ocultar planos» (Mostrar/Ocultar, defecto Ocultar, §9) probablemente es un estado que decide si los planos recién creados quedan visibles; **no verificado**.
+- Agrupar/Desagrupar [código, aserciones]: la obra tiene `datos_obra->grupos_planos_x/y/z`; planos identificados por `ids_planos` y tipo `ED3TIPO_PLANO_X/Y/Z`; tope `num_planos < 10000`; la generación exige `fabs(separacion_entre_planos) > ED3TIPO_PRECISION_PLANOS` y `num_planos_generar > 0`; un plano no puede estar en dos grupos (`ed3argrupla_existe_id_plano_en_algun_grupo`); `ed3comun_son_planos_con_mismos_puntos_fijos` debe ser cierto entre plano origen y destino (error 65155). Valor numérico de `ED3TIPO_PRECISION_PLANOS`: [no resuelto].
+
+### 10.6 Dibujo 3D y guardado en el .ed3
+**[no resuelto]**: no se leyó código de render ni serializador. Solo por cadenas: 64255 «Mostrar la rejilla»; 25876 «Etiqueta de la línea de la rejilla»; 25877 «Líneas de la rejilla»; BIM JSON `bjsumodgeo_v1_append_linea_grid_x/y`. Siguiente paso: xrefs a `FUN_1807ca620` (crea línea de rejilla) y `FUN_18078fa80` (crea nivel) hacia el serializador de obra; o medir color/estilo en la app (con OK) y comparar bytes de un `.ed3` con rejilla no por defecto.
+
+### 10.7 Pendiente tras esta pasada
+1. Qué ventana muestra los radios 65446-65448 y qué cambia al elegirlos (§10.1).
+2. Contenido de `FUN_1807cf630` (validación) y de `FUN_1800a59c0` (incremento de referencias).
+3. Significado de las 5 constantes de `udentsal_crea_generado` (CYPEUD) y límites reales de la separación.
+4. Textos y comportamiento de Cotas (4 ítems), Referencias y Mostrar nuevos.
+5. Dibujo 3D y formato .ed3 de rejilla/niveles.
