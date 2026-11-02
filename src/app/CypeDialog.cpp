@@ -45,6 +45,7 @@ CypeDialog::CypeDialog(const QString& title, QWidget* parent) : QDialog(parent) 
     m_titleBar->setObjectName(QStringLiteral("dlgTitleBar"));
     m_titleBar->setFixedHeight(kTitleBarHeight);
     auto* bar = new QHBoxLayout(m_titleBar);
+    m_titleLayout = bar;
     bar->setContentsMargins(kTitleBarHeight, 0, 0, 0);  // left spacer balances the close button
     bar->setSpacing(0);
     auto* label = new QLabel(title, m_titleBar);
@@ -64,6 +65,17 @@ CypeDialog::CypeDialog(const QString& title, QWidget* parent) : QDialog(parent) 
     m_content = new QVBoxLayout(body);
     m_content->setContentsMargins(14, 12, 14, 12);
     m_root->addWidget(body, 1);
+}
+
+void CypeDialog::setMaximizable() {
+    auto* maximise = new QToolButton(m_titleBar);
+    maximise->setObjectName(QStringLiteral("dlgClose"));
+    maximise->setText(QStringLiteral("☐"));
+    maximise->setFixedSize(kTitleBarHeight, kTitleBarHeight);
+    maximise->setCursor(Qt::ArrowCursor);
+    connect(maximise, &QToolButton::clicked, this, [this] { isMaximized() ? showNormal() : showMaximized(); });
+    m_titleLayout->insertWidget(m_titleLayout->count() - 1, maximise);
+    m_titleLayout->setContentsMargins(2 * kTitleBarHeight, 0, 0, 0);  // balances both buttons
 }
 
 void CypeDialog::setupFooter(const QString& acceptText, const QString& cancelText) {

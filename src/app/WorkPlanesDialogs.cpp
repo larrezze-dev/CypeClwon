@@ -126,7 +126,9 @@ PlanesPrompts PlanesPrompts::interactive() {
 // GridDialog
 
 GridDialog::GridDialog(const WorkPlanes& initial, QWidget* parent) : CypeDialog(tr("Rejilla"), parent), m_planes(initial) {
-    setFixedSize(678, 621);
+    setMinimumSize(678, 621);
+    resize(678, 621);
+    setMaximizable();
     QVBoxLayout* body = contentLayout();
 
     auto* top = new QHBoxLayout;
@@ -362,7 +364,9 @@ GridLine NewGridLineDialog::value() const {
 // LevelsDialog
 
 LevelsDialog::LevelsDialog(const WorkPlanes& initial, QWidget* parent) : CypeDialog(tr("Niveles"), parent), m_planes(initial) {
-    setFixedSize(280, 420);
+    setMinimumSize(280, 420);
+    resize(280, 420);
+    setMaximizable();
     m_planes.levels = sortedLevels(m_planes.levels);
     QVBoxLayout* body = contentLayout();
     body->setSpacing(4);

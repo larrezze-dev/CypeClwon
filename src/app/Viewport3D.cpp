@@ -1017,7 +1017,13 @@ void Viewport3D::drawWorkPlanes(QPainter& painter) const {
         painter.setBrush(Qt::white);
         painter.drawEllipse(centre, rx, ry);
         painter.setBrush(Qt::NoBrush);
-        painter.drawText(QRectF(centre.x() - rx, centre.y() - ry, 2 * rx, 2 * ry), Qt::AlignCenter, s.label);
+        // The text of the original is turned along the projected line (pl_h2.png); kept upright-readable.
+        double angle = std::atan2(po.y() - pa.y(), po.x() - pa.x()) * 180.0 / 3.14159265358979323846;
+        if (angle > 90.0) angle -= 180.0;
+        if (angle < -90.0) angle += 180.0;
+        painter.save(); painter.translate(centre); painter.rotate(angle);
+        painter.drawText(QRectF(-rx, -ry, 2 * rx, 2 * ry), Qt::AlignCenter, s.label);
+        painter.restore();
     }
 }
 

@@ -19,6 +19,8 @@ public:
 
     QPushButton* acceptButton() const { return m_accept; }
     QPushButton* cancelButton() const { return m_cancel; }
+    /// Adds the maximise / restore button the original shows on its resizable windows (Rejilla, Niveles).
+    void setMaximizable();
 
 protected:
     QVBoxLayout* contentLayout() const { return m_content; }
@@ -32,6 +34,7 @@ protected:
 
 private:
     QWidget* m_titleBar = nullptr;
+    QHBoxLayout* m_titleLayout = nullptr;
     QVBoxLayout* m_content = nullptr;
     QVBoxLayout* m_root = nullptr;
     QPushButton* m_accept = nullptr;
