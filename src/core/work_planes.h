@@ -36,6 +36,19 @@ struct PlaneGroups {
     bool operator==(const PlaneGroups&) const = default;
 };
 
+/// "Referencias" dialog (planos.md section 12.2): which reference lines are drawn. Defaults are those of the original.
+struct ReferenceOptions {
+    bool showGrid = true;            ///< "Mostrar la rejilla"
+    bool referenceLines = true;      ///< "Líneas de referencia" (master switch of the five below)
+    bool onlyWithNode = false;       ///< "Sólo las que tienen nudo"
+    bool parallelX = true;           ///< "Paralelas a X"
+    bool parallelY = true;           ///< "Paralelas a Y"
+    bool parallelZ = true;           ///< "Paralelas a Z"
+    bool colourByDirection = false;  ///< "Dibujar con color según dirección" (X red, Y green, Z blue)
+
+    bool operator==(const ReferenceOptions&) const = default;
+};
+
 /// Everything stored by "Geometria > Planos": the grid, the levels and the plane groups.
 struct WorkPlanes {
     std::vector<GridLine> gridX;  ///< lines "en la direccion X" (kept in the order they were entered, not sorted)
@@ -44,6 +57,10 @@ struct WorkPlanes {
     bool adjustElements = true;
     std::vector<Level> levels;  ///< in the order entered; use sortedLevels() for the display order
     PlaneGroups groups;
+    /// "Visibilidad" (Mostrar/ocultar planos): false hides the grid lines (labels stay). Saved in the project; absent = visible.
+    /// The original applies it to a chosen group of nodes; without nodes the clone applies it to the whole grid (ticket TK-035).
+    bool visible = true;
+    ReferenceOptions references;  ///< "Referencias"
 
     bool operator==(const WorkPlanes&) const = default;
 
@@ -56,6 +73,10 @@ constexpr double kMaxGridCoordinate = 50000.0;  ///< limit of the "Coordenada" c
 constexpr int kMinGridLines = 2;                ///< "Numero de lineas" of the generator: 2..1000
 constexpr int kMaxGridLines = 1000;
 constexpr int kMinLevels = 2;
+constexpr double kSameCoordinate = 0.001;  ///< two grid lines closer than or exactly this apart are "en la misma coordenada" (measured)
+
+/// Rounds a grid coordinate to three decimals, as the original does when it is typed.
+double roundCoordinate(double value);
 
 // --- Defaults of the original dialogs ---------------------------------------------------------------------------
 
@@ -103,8 +124,8 @@ std::vector<Level> generateLevels(const std::string& prefix, int count, double s
 
 // --- Validation (messages in Spanish, as in the original; empty string = valid) -----------------------------------
 
-/// First problem of one grid direction: repeated label ("La etiqueta 'X' esta repetida."), then two lines at the same
-/// coordinate ("Las lineas 'A' y 'B' estan situadas en la misma coordenada."), then a coordinate that is not finite or
+/// First problem of one grid direction: repeated label ("La etiqueta 'X' está repetida."), then two lines at the same
+/// coordinate, 0.001 m or less apart ("Las líneas 'A' y 'B' están situadas en la misma coordenada."), then a coordinate that is not finite or
 /// outside +-50000 m. Empty labels are not compared with each other (a new line has no label yet).
 std::string validateGridLines(const std::vector<GridLine>& lines);
 

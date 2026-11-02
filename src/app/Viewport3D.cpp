@@ -874,12 +874,24 @@ void Viewport3D::drawGuideLine(QPainter& painter, Vec3 a, Vec3 b) const {
 void Viewport3D::drawGuideLines(QPainter& painter) const {
     // Original (vp_s5.png): thin dotted orange lines through every node: a full-length one along Y, plus X and Z lines
     // beyond the nodes along X and Z (nodes aligned along those axes are joined). With no nodes, the three axes through the origin are drawn.
-    QPen pen(QColor(QStringLiteral("#D98A4A")), 1);
-    pen.setStyle(Qt::DotLine);
-    painter.setPen(pen);
+    // "Referencias" (planos.md 12.2): the master switch, the direction filters, "only with a node" and the colour by direction.
+    const core::ReferenceOptions refs = m_planes ? m_planes->references : core::ReferenceOptions{};
+    if (!refs.referenceLines) return;
+    const bool wanted[3] = {refs.parallelX, refs.parallelY, refs.parallelZ};
+    const char* directionColours[3] = {"#E00000", "#00B000", "#0000E0"};  // the colours of the axes triad
+    const auto usePen = [&](int direction) {
+        QPen pen(QColor(QLatin1String(refs.colourByDirection ? directionColours[direction] : "#D98A4A")), 1);
+        pen.setStyle(Qt::DotLine);
+        painter.setPen(pen);
+    };
     if (m_nodes.empty()) {
+        if (refs.onlyWithNode) return;  // the three lines through the origin have no node
         const Vec3 axes[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-        for (const Vec3& axis : axes) drawGuideLine(painter, axis * -kGuideExtent, axis * kGuideExtent);
+        for (int d = 0; d < 3; ++d) {
+            if (!wanted[d]) continue;
+            usePen(d);
+            drawGuideLine(painter, axes[d] * -kGuideExtent, axes[d] * kGuideExtent);
+        }
         return;
     }
     const double pixelsToWorld = m_camera.worldPerPixel(height());
@@ -890,7 +902,10 @@ void Viewport3D::drawGuideLines(QPainter& painter) const {
         return kStubPixels * pixelsToWorld * depthScale;
     };
     // Y: a full-length line through every node.
-    for (const Vec3& n : m_nodes) drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
+    if (wanted[1]) {
+        usePen(1);
+        for (const Vec3& n : m_nodes) drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
+    }
     // X and Z: nodes that share the other two coordinates are joined by one segment, extended a few pixels at both ends.
     const auto key = [](double a, double b) { return std::make_pair(std::llround(a * 1e6), std::llround(b * 1e6)); };
     std::map<std::pair<long long, long long>, std::pair<Vec3, Vec3>> alongX, alongZ;  // line -> (lowest, highest) node
@@ -900,10 +915,16 @@ void Viewport3D::drawGuideLines(QPainter& painter) const {
         auto [iz, newZ] = alongZ.try_emplace(key(n.x, n.y), n, n);
         if (!newZ) { if (n.z < iz->second.first.z) iz->second.first = n; if (n.z > iz->second.second.z) iz->second.second = n; }
     }
-    for (const auto& [k, ends] : alongX)
-        drawGuideLine(painter, ends.first - Vec3{stubAt(ends.first), 0, 0}, ends.second + Vec3{stubAt(ends.second), 0, 0});
-    for (const auto& [k, ends] : alongZ)
-        drawGuideLine(painter, ends.first - Vec3{0, 0, stubAt(ends.first)}, ends.second + Vec3{0, 0, stubAt(ends.second)});
+    if (wanted[0]) {
+        usePen(0);
+        for (const auto& [k, ends] : alongX)
+            drawGuideLine(painter, ends.first - Vec3{stubAt(ends.first), 0, 0}, ends.second + Vec3{stubAt(ends.second), 0, 0});
+    }
+    if (wanted[2]) {
+        usePen(2);
+        for (const auto& [k, ends] : alongZ)
+            drawGuideLine(painter, ends.first - Vec3{0, 0, stubAt(ends.first)}, ends.second + Vec3{0, 0, stubAt(ends.second)});
+    }
 }
 
 void Viewport3D::drawAxesTriad(QPainter& painter) const {
@@ -955,15 +976,15 @@ std::pair<double, double> spanOf(const std::vector<core::GridLine>& lines) {
 }
 }  // namespace
 
-void Viewport3D::setWorkPlanes(const core::WorkPlanes* planes, bool visible) {
+void Viewport3D::setWorkPlanes(const core::WorkPlanes* planes) {
     m_planes = planes;
-    m_planesVisible = visible;
     update();
 }
 
 std::vector<Viewport3D::PlaneSegment> Viewport3D::workPlaneSegments() const {
     std::vector<PlaneSegment> out;
-    if (!m_planes || !m_planesVisible) return out;
+    if (!m_planes || !m_planes->references.showGrid) return out;
+    const bool lines = m_planes->visible;
     const auto [y0, y1] = spanOf(m_planes->gridY);
     const auto [x0, x1] = spanOf(m_planes->gridX);
     using Kind = PlaneSegment::Kind;
@@ -972,40 +993,27 @@ std::vector<Viewport3D::PlaneSegment> Viewport3D::workPlaneSegments() const {
     // or "Extremo" (highest y) end. Same for Y with the axes exchanged. (Orientation assumed: not verified in the original.)
     for (const core::GridLine& l : m_planes->gridX)
         out.push_back({Kind::GridX, {l.coordinate, y0, 0}, {l.coordinate, y1, 0}, QString::fromStdString(l.label),
-                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B});
+                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B, lines});
     for (const core::GridLine& l : m_planes->gridY)
         out.push_back({Kind::GridY, {x0, l.coordinate, 0}, {x1, l.coordinate, 0}, QString::fromStdString(l.label),
-                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B});
-    for (const core::Level& level : m_planes->levels) {
-        const double z = level.elevation;
-        const Vec3 c[4] = {{x0, y0, z}, {x1, y0, z}, {x1, y1, z}, {x0, y1, z}};
-        for (int i = 0; i < 4; ++i)
-            out.push_back({Kind::Level, c[i], c[(i + 1) % 4], i == 0 ? QString::fromStdString(level.name) : QString(),
-                           i == 0 ? LabelAt::A : LabelAt::None});
-    }
+                       l.labelPosition == core::LabelPosition::Origin ? LabelAt::A : LabelAt::B, lines});
     return out;
 }
 
 void Viewport3D::drawWorkPlanes(QPainter& painter) const {
     const std::vector<PlaneSegment> segments = workPlaneSegments();
     if (segments.empty()) return;
-    const QColor magenta(QStringLiteral("#E000E0"));
+    const QColor magenta(QStringLiteral("#FF00FF"));  // measured in the original (planos.md 12.6)
     for (const PlaneSegment& s : segments) {
-        const bool level = s.kind == PlaneSegment::Kind::Level;
-        QPen pen(level ? QColor(QStringLiteral("#8FA7BF")) : QColor(QStringLiteral("#A0A0A0")), 1);
-        if (level) pen.setStyle(Qt::DashLine);
-        painter.setPen(pen);
-        drawGuideLine(painter, s.a, s.b);
+        if (s.lineVisible) {
+            painter.setPen(QPen(QColor(QStringLiteral("#CC9966")), 1));  // grid and reference lines share this colour
+            drawGuideLine(painter, s.a, s.b);
+        }
         if (s.labelAt == PlaneSegment::LabelAt::None || s.label.isEmpty()) continue;
         const Vec3 anchor = s.labelAt == PlaneSegment::LabelAt::A ? s.a : s.b;
         const Vec3 other = s.labelAt == PlaneSegment::LabelAt::A ? s.b : s.a;
         QPointF pa, po;
         if (!worldToScreen(anchor, pa) || !worldToScreen(other, po)) continue;
-        if (level) {  // minimum drawing of a level: its outline and the reference beside the first corner
-            painter.setPen(QColor(QStringLiteral("#4F6A86")));
-            painter.drawText(pa + QPointF(4, -4), s.label);
-            continue;
-        }
         // Magenta ellipse with the label beyond the end of the line, joined to it by a segment (pl_h2.png).
         QPointF dir = pa - po;
         const double len = std::hypot(dir.x(), dir.y());

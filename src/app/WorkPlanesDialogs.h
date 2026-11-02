@@ -1,12 +1,15 @@
 #pragma once
 #include <functional>
 
+#include <QFrame>
+
 #include "CypeDialog.h"
 #include "core/work_planes.h"
 
 class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
+class QFrame;
 class QLineEdit;
 class QRadioButton;
 class QSpinBox;
@@ -161,6 +164,45 @@ public:
 private:
     QRadioButton* m_show = nullptr;
     QRadioButton* m_hide = nullptr;
+};
+
+/// "Referencias" (~246x262): which reference lines are drawn. The five lower boxes depend on "Líneas de referencia".
+/// Reference: planos.md section 12.2.
+class ReferencesDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit ReferencesDialog(const cc::core::ReferenceOptions& initial, QWidget* parent = nullptr);
+    cc::core::ReferenceOptions value() const;
+
+private:
+    QCheckBox* m_showGrid = nullptr;
+    QCheckBox* m_lines = nullptr;
+    QCheckBox* m_onlyWithNode = nullptr;
+    QCheckBox* m_parallel[3] = {nullptr, nullptr, nullptr};
+    QCheckBox* m_colour = nullptr;
+};
+
+/// Floating "Cotas" bar of the original (planos.md section 12.1): four icon buttons Añadir, Borrar, Mostrar and Ocultar.
+/// Each button carries the tooltip and the status bar text of the original. The actions need nodes (not developed yet), so
+/// the owner decides what a click does.
+class DimensionsBar : public QFrame {
+    Q_OBJECT
+public:
+    enum class Command { Add, Delete, Show, Hide };
+    explicit DimensionsBar(QWidget* parent = nullptr);
+
+    static QString title(Command command);
+    /// Tooltip body; empty for "Borrar" (the original shows only its title).
+    static QString tooltipBody(Command command);
+    /// Status bar text of the command ("Cotas - Añadir | - LMB: ...").
+    static QString statusText(Command command);
+    QToolButton* button(Command command) const { return m_buttons[static_cast<int>(command)]; }
+
+signals:
+    void commandChosen(DimensionsBar::Command command);
+
+private:
+    QToolButton* m_buttons[4] = {nullptr, nullptr, nullptr, nullptr};
 };
 
 }  // namespace cc::app

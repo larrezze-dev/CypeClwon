@@ -50,6 +50,16 @@ EditViewSettingsCommand::EditViewSettingsCommand(Project& project, DisplayOption
       m_beforeCategories(project.categories),
       m_afterCategories(newCategories) {}
 
+std::string EditWorkPlanesCommand::text() const {
+    switch (m_kind) {
+        case WorkPlanesEdit::Grid: return "Rejilla";
+        case WorkPlanesEdit::Levels: return "Niveles";
+        case WorkPlanesEdit::Visibility: return "Visibilidad";
+        case WorkPlanesEdit::References: return "Referencias";
+    }
+    return "Planos";
+}
+
 EditWorkPlanesCommand::EditWorkPlanesCommand(Project& project, WorkPlanes newPlanes, WorkPlanesEdit kind)
     : m_project(project), m_before(project.workPlanes), m_after(std::move(newPlanes)), m_kind(kind) {}
 

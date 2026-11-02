@@ -386,7 +386,7 @@ void MainWindow::syncViewSettings() {
         if (auto* viewport = viewportOf(sub->widget())) {
             DisplayOptionsPanel::applyTo(*viewport, project.display);
             viewport->setCategorySettings(project.categories);
-            viewport->setWorkPlanes(&project.workPlanes, m_planesVisible);
+            viewport->setWorkPlanes(&project.workPlanes);
         }
 }
 
@@ -418,7 +418,7 @@ void MainWindow::setProjectOpen(bool open) {
         applyViewTool(viewport);
         if (m_document) {
             viewport->setStructure(&m_document->project.structure);
-            viewport->setWorkPlanes(&m_document->project.workPlanes, m_planesVisible);
+            viewport->setWorkPlanes(&m_document->project.workPlanes);
         }
         connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] {
             if (!m_leftPanel->layersPanel()->assignToolButton()->isChecked() || viewport->selection().empty()) return;
@@ -626,11 +626,39 @@ void MainWindow::editLevels() {
 }
 
 void MainWindow::editPlanesVisibility() {
-    if (!m_projectOpen) return;
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
     PlanesVisibilityDialog dialog(this);  // opens on "Ocultar" like the original, whatever the current state
     if (dialog.exec() != QDialog::Accepted) return;
-    m_planesVisible = dialog.showPlanes();
-    syncViewSettings();
+    cc::core::WorkPlanes edited = project.workPlanes;
+    edited.visible = dialog.showPlanes();  // saved in the project (work_planes section); undoable
+    if (edited == project.workPlanes) return;
+    m_undo.push(std::make_unique<cc::core::EditWorkPlanesCommand>(project, edited, cc::core::WorkPlanesEdit::Visibility));
+}
+
+void MainWindow::editReferences() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    ReferencesDialog dialog(project.workPlanes.references, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    cc::core::WorkPlanes edited = project.workPlanes;
+    edited.references = dialog.value();
+    if (edited == project.workPlanes) return;
+    m_undo.push(std::make_unique<cc::core::EditWorkPlanesCommand>(project, edited, cc::core::WorkPlanesEdit::References));
+}
+
+void MainWindow::showDimensionsBar() {
+    if (!m_projectOpen) return;
+    if (!m_dimensionsBar) {
+        m_dimensionsBar = new DimensionsBar(m_workArea);
+        // Dimensioning needs nodes and elements (not developed yet): the buttons report it. While the pointer is over a
+        // button the status bar shows the text of its command, as in the original.
+        connect(m_dimensionsBar, &DimensionsBar::commandChosen, this,
+                [this](DimensionsBar::Command) { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); });
+    }
+    m_dimensionsBar->move(0, 160);  // top left of the work area, as measured in the original
+    m_dimensionsBar->show();
+    m_dimensionsBar->raise();
 }
 
 void MainWindow::buildGeometryTab() {
@@ -652,15 +680,16 @@ void MainWindow::buildGeometryTab() {
     m_levelsAction = entry(tr("Niveles"),
                            tr("Planos - Niveles. Permite editar los niveles de la obra. Los niveles son planos horizontales paralelos al plano xy global situados en una cota absoluta dada, que permiten introducir una subdivisión espacial propia de las estructuras de edificación. La asignación de los elementos a los distintos niveles es automática. Los elementos situados entre dos niveles se asignan al nivel inferior."),
                            [this] { editLevels(); });
-    QMenu* dimensions = menu->addMenu(tr("Cotas"));  // item names derived from the command ids Planos_Cotas_*: provisional (ticket)
-    for (const QString& name : {tr("Añadir"), tr("Borrar"), tr("Mostrar"), tr("Ocultar")})
-        connect(dimensions->addAction(name), &QAction::triggered, this, notYet);
-    entry(tr("Referencias"), tr("Planos - Referencias"), notYet);
+    // "Cotas" is not a submenu in the original: it opens a floating bar with the four buttons Añadir/Borrar/Mostrar/Ocultar.
+    entry(tr("Cotas"), tr("Planos - Cotas"), [this] { showDimensionsBar(); });
+    entry(tr("Referencias"),
+          tr("Planos - Referencias. Permite activar o desactivar algunas líneas de referencia de modo que sea más cómoda la visualización y acotación de la estructura."),
+          [this] { editReferences(); });
     m_planesVisibilityAction = entry(tr("Visibilidad"), tr("Planos - Visibilidad"), [this] { editPlanesVisibility(); });
     m_showNewPlanesAction = menu->addAction(tr("Mostrar nuevos"));
     m_showNewPlanesAction->setCheckable(true);
-    m_showNewPlanesAction->setChecked(true);  // shown as an active entry in the original
-    m_showNewPlanesAction->setStatusTip(tr("Planos - Mostrar nuevos"));
+    m_showNewPlanesAction->setChecked(true);  // checked by default and kept for the session, as in the original (no dialog)
+    m_showNewPlanesAction->setStatusTip(tr("Seleccione una opción del menú."));  // the bar does not change (measured)
     entry(tr("Agrupar"), tr("Planos - Agrupar"), notYet);
     entry(tr("Desagrupar"), tr("Planos - Desagrupar"), notYet);
     tab->addPanel(tr("Planos"))->addLargeMenu(menu, QToolButton::InstantPopup);

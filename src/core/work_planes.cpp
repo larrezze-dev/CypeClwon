@@ -28,6 +28,9 @@ bool inRange(double coordinate) { return std::isfinite(coordinate) && std::fabs(
 
 bool sameValue(double a, double b) { return std::fabs(a - b) <= kSameValue; }
 
+// Measured in the original: 3.000 and 3.001 are the same coordinate, 3.002 is not (the small term absorbs binary rounding).
+bool sameCoordinate(double a, double b) { return std::fabs(a - b) <= kSameCoordinate + 1e-9; }
+
 bool validGroups(const std::vector<std::vector<double>>& groups) {
     std::vector<double> seen;
     for (const auto& group : groups)
@@ -54,6 +57,8 @@ bool WorkPlanes::isValid() const {
     }
     return validGroups(groups.x) && validGroups(groups.y) && validGroups(groups.z);
 }
+
+double roundCoordinate(double value) { return std::round(value * 1000.0) / 1000.0; }
 
 GridLine newGridLine() { return GridLine{}; }
 
@@ -110,7 +115,7 @@ std::vector<GridLine> generateGridAxis(const GridAxisSpec& spec) {
     std::string label = spec.firstLabel;
     for (int i = 0; i < spec.count; ++i) {
         if (i > 0) label = nextReference(label);
-        lines.push_back(GridLine{label, i * spec.spacing, spec.position});
+        lines.push_back(GridLine{label, roundCoordinate(i * spec.spacing), spec.position});
     }
     return lines;
 }
@@ -139,7 +144,7 @@ std::string validateGridLines(const std::vector<GridLine>& lines) {
                 return format("La etiqueta '%s' está repetida.", {lines[i].label});
     for (std::size_t i = 0; i < lines.size(); ++i)
         for (std::size_t j = i + 1; j < lines.size(); ++j)
-            if (sameValue(lines[i].coordinate, lines[j].coordinate))
+            if (sameCoordinate(lines[i].coordinate, lines[j].coordinate))
                 return format("Las líneas '%s' y '%s' están situadas en la misma coordenada.",
                               {lines[i].label, lines[j].label});
     for (const GridLine& line : lines)
@@ -234,6 +239,14 @@ std::string toJson(const WorkPlanes& planes) {
     for (const Level& level : planes.levels) levels.push_back(json{{"name", level.name}, {"elevation", level.elevation}});
     j["levels"] = levels;
     j["groups"] = json{{"x", planes.groups.x}, {"y", planes.groups.y}, {"z", planes.groups.z}};
+    if (!planes.visible) j["visible"] = false;  // absent = visible
+    if (!(planes.references == ReferenceOptions{})) {
+        const ReferenceOptions& r = planes.references;
+        j["references"] = json{{"showGrid", r.showGrid},         {"referenceLines", r.referenceLines},
+                               {"onlyWithNode", r.onlyWithNode}, {"parallelX", r.parallelX},
+                               {"parallelY", r.parallelY},       {"parallelZ", r.parallelZ},
+                               {"colourByDirection", r.colourByDirection}};
+    }
     return j.dump();
 }
 
@@ -261,6 +274,22 @@ std::optional<WorkPlanes> workPlanesFromJson(const std::string& jsonText) {
             if (!readGroups(g, "x", planes.groups.x) || !readGroups(g, "y", planes.groups.y) ||
                 !readGroups(g, "z", planes.groups.z))
                 return std::nullopt;
+        }
+        if (j.contains("visible")) planes.visible = j.at("visible").get<bool>();
+        if (j.contains("references")) {
+            const json& r = j.at("references");
+            if (!r.is_object()) return std::nullopt;
+            const auto read = [&r](const char* key, bool& out) {
+                if (r.contains(key)) out = r.at(key).get<bool>();
+            };
+            ReferenceOptions& o = planes.references;
+            read("showGrid", o.showGrid);
+            read("referenceLines", o.referenceLines);
+            read("onlyWithNode", o.onlyWithNode);
+            read("parallelX", o.parallelX);
+            read("parallelY", o.parallelY);
+            read("parallelZ", o.parallelZ);
+            read("colourByDirection", o.colourByDirection);
         }
         return planes;
     } catch (const json::exception&) {

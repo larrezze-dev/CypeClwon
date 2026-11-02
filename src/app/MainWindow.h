@@ -94,6 +94,9 @@ private:
     void editGrid();
     void editLevels();
     void editPlanesVisibility();
+    void editReferences();
+    /// "Cotas": shows the floating bar with its four buttons (the actions need nodes, ticket TK-035).
+    void showDimensionsBar();
     void updateWindowTitle();
     /// Offers to save a modified project; false when the user cancels.
     bool maybeSave();
@@ -109,7 +112,7 @@ private:
     QAction* m_levelsAction = nullptr;
     QAction* m_planesVisibilityAction = nullptr;
     QAction* m_showNewPlanesAction = nullptr;
-    bool m_planesVisible = true;  ///< "Mostrar/ocultar planos" (session only)
+    class DimensionsBar* m_dimensionsBar = nullptr;
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;
     QAction* m_doubleViewAction = nullptr;

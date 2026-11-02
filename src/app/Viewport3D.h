@@ -217,18 +217,21 @@ public:
     /// Whether a world point survives every active section and the clipping volume.
     bool visibleAfterClipping(const core::Vec3& p) const;
 
-    /// "Planos": grid lines and levels drawn when `visible` (not owned; must outlive the viewport or be reset to nullptr).
-    void setWorkPlanes(const core::WorkPlanes* planes, bool visible = true);
-    bool workPlanesVisible() const { return m_planesVisible; }
-    /// One segment of the work planes drawing. Grid lines carry their label at one end (the magenta circle); a level is the
-    /// rectangle of its four edges at its elevation, labelled at a corner. Empty when the planes are hidden or undefined.
+    /// "Planos": the grid lines drawn, and the reference lines filtered by "Referencias" (not owned; must outlive the viewport
+    /// or be reset to nullptr). "Visibilidad" and "Referencias" are read from the planes. Levels are not drawn in 3D (measured).
+    void setWorkPlanes(const core::WorkPlanes* planes);
+    /// False when "Visibilidad" hides the grid lines (their labels stay).
+    bool workPlanesVisible() const { return !m_planes || m_planes->visible; }
+    /// One grid line. Grid lines carry their label at one end (the magenta circle). `lineVisible` is false when "Visibilidad"
+    /// hides the lines: the label and its stretch are still drawn. Empty when undefined or when "Mostrar la rejilla" is off.
     struct PlaneSegment {
-        enum class Kind { GridX, GridY, Level };
+        enum class Kind { GridX, GridY };
         enum class LabelAt { None, A, B };
         Kind kind = Kind::GridX;
         core::Vec3 a, b;
         QString label;
         LabelAt labelAt = LabelAt::None;
+        bool lineVisible = true;
     };
     std::vector<PlaneSegment> workPlaneSegments() const;
 
@@ -301,7 +304,6 @@ private:
 
     const core::StructuralModel* m_structure = nullptr;
     const core::WorkPlanes* m_planes = nullptr;
-    bool m_planesVisible = true;
     bool m_selectionMode = false;
     core::SelectionFilter m_filter;
     core::CategorySettings m_categories;

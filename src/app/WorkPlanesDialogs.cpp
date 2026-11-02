@@ -5,6 +5,9 @@
 #include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QIcon>
+#include <QPainter>
+#include <QPixmap>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -211,7 +214,8 @@ void GridDialog::cellEdited(int axis, QTableWidgetItem* item) {
         line.label = item->text().trimmed().toStdString();
     } else if (item->column() == 1) {
         double value = 0.0;
-        if (parseNumber(item->text(), value) && std::abs(value) <= kMaxGridCoordinate) line.coordinate = value;
+        // The original rounds the coordinate to three decimals when it is typed (3.0004 -> 3.000, 3.0009 -> 3.001).
+        if (parseNumber(item->text(), value) && std::abs(value) <= kMaxGridCoordinate) line.coordinate = roundCoordinate(value);
         // An unreadable or out-of-range value is discarded: the cell goes back to the stored coordinate.
         m_rebuilding = true;
         item->setText(plainNumber(line.coordinate, 3));
@@ -354,7 +358,7 @@ NewGridLineDialog::NewGridLineDialog(QWidget* parent) : CypeDialog(tr("Nueva lí
 
 GridLine NewGridLineDialog::value() const {
     GridLine line;
-    line.coordinate = m_coordinate->value();
+    line.coordinate = roundCoordinate(m_coordinate->value());
     line.label = m_label->text().trimmed().toStdString();
     line.labelPosition = positionOf(m_position);
     return line;
@@ -541,5 +545,162 @@ PlanesVisibilityDialog::PlanesVisibilityDialog(QWidget* parent) : CypeDialog(tr(
 bool PlanesVisibilityDialog::showPlanes() const { return m_show->isChecked(); }
 
 void PlanesVisibilityDialog::setShowPlanes(bool show) { (show ? m_show : m_hide)->setChecked(true); }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ReferencesDialog
+
+ReferencesDialog::ReferencesDialog(const ReferenceOptions& initial, QWidget* parent) : CypeDialog(tr("Referencias"), parent) {
+    setFixedSize(246, 262);
+    const auto box = [this](const QString& text, bool on, const QString& tip = QString()) {
+        auto* check = new QCheckBox(text, this);
+        check->setChecked(on);
+        if (!tip.isEmpty()) check->setToolTip(tip);
+        contentLayout()->addWidget(check);
+        return check;
+    };
+    m_showGrid = box(tr("Mostrar la rejilla"), initial.showGrid);
+    m_lines = box(tr("Líneas de referencia"), initial.referenceLines);
+    auto* separator = new QFrame(this);
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Sunken);
+    contentLayout()->addWidget(separator);
+    m_onlyWithNode = box(tr("Sólo las que tienen nudo"), initial.onlyWithNode,
+                         tr("Activa o desactiva las líneas de referencia que no tienen ningún nudo."));
+    m_parallel[0] = box(tr("Paralelas a X"), initial.parallelX, tr("Activa o desactiva las líneas de referencia paralelas al eje global X."));
+    m_parallel[1] = box(tr("Paralelas a Y"), initial.parallelY, tr("Activa o desactiva las líneas de referencia paralelas al eje global Y."));
+    m_parallel[2] = box(tr("Paralelas a Z"), initial.parallelZ, tr("Activa o desactiva las líneas de referencia paralelas al eje global Z."));
+    m_colour = box(tr("Dibujar con color según dirección"), initial.colourByDirection,
+                   tr("Dibuja las líneas de referencia con el mismo código de colores que los ejes principales de la obra."));
+    contentLayout()->addStretch(1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+    // Clearing "Líneas de referencia" greys the five boxes below (measured in the original).
+    const auto sync = [this](bool on) {
+        for (QCheckBox* dependent : {m_onlyWithNode, m_parallel[0], m_parallel[1], m_parallel[2], m_colour}) dependent->setEnabled(on);
+    };
+    connect(m_lines, &QCheckBox::toggled, this, sync);
+    sync(m_lines->isChecked());
+}
+
+ReferenceOptions ReferencesDialog::value() const {
+    ReferenceOptions o;
+    o.showGrid = m_showGrid->isChecked();
+    o.referenceLines = m_lines->isChecked();
+    o.onlyWithNode = m_onlyWithNode->isChecked();
+    o.parallelX = m_parallel[0]->isChecked();
+    o.parallelY = m_parallel[1]->isChecked();
+    o.parallelZ = m_parallel[2]->isChecked();
+    o.colourByDirection = m_colour->isChecked();
+    return o;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// DimensionsBar
+
+namespace {
+
+/// Simple drawn icon of a "Cotas" button (the original's artwork is not available): a dimension line with a plus, a cross,
+/// or a struck-out look.
+QIcon dimensionIcon(DimensionsBar::Command command) {
+    QPixmap pixmap(24, 24);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    const bool dimmed = command == DimensionsBar::Command::Hide;
+    p.setPen(QPen(QColor(dimmed ? QStringLiteral("#8A8A8A") : QStringLiteral("#2060A0")), 1.5));
+    p.drawLine(3, 15, 21, 15);  // the dimension line
+    p.drawLine(3, 11, 3, 19);   // its two end ticks
+    p.drawLine(21, 11, 21, 19);
+    if (command == DimensionsBar::Command::Add) {
+        p.setPen(QPen(QColor(QStringLiteral("#20A020")), 2));
+        p.drawLine(12, 3, 12, 11);
+        p.drawLine(8, 7, 16, 7);
+    } else if (command == DimensionsBar::Command::Delete) {
+        p.setPen(QPen(QColor(QStringLiteral("#D02020")), 2));
+        p.drawLine(8, 3, 16, 11);
+        p.drawLine(16, 3, 8, 11);
+    } else if (command == DimensionsBar::Command::Hide) {
+        p.setPen(QPen(QColor(QStringLiteral("#D02020")), 2));
+        p.drawLine(4, 21, 20, 9);
+    }
+    p.end();
+    return QIcon(pixmap);
+}
+
+}  // namespace
+
+QString DimensionsBar::title(Command command) {
+    switch (command) {
+        case Command::Add: return tr("Añadir");
+        case Command::Delete: return tr("Borrar");
+        case Command::Show: return tr("Mostrar");
+        case Command::Hide: return tr("Ocultar");
+    }
+    return QString();
+}
+
+QString DimensionsBar::tooltipBody(Command command) {
+    switch (command) {
+        case Command::Add:
+            return tr("Definición de las dimensiones de la obra mediante la introducción de cotas entre los elementos que definen su geometría (lineas de referencia, nudos, planos, etc.).");
+        case Command::Delete: return QString();
+        case Command::Show:
+            return tr("Permite introducir cotas adicionales para mejorar la acotación en planos o en pantalla. Las líneas de cota introducidas mediante esta opción no modifican las dimensiones de la obra, sólo se muestran como información calculada por el programa.");
+        case Command::Hide: return tr("Selección de cotas para ocultarlas en planos.");
+    }
+    return QString();
+}
+
+QString DimensionsBar::statusText(Command command) {
+    switch (command) {
+        case Command::Add:
+            return tr("Cotas - Añadir | - LMB: Seleccione las dos líneas de referencia o planos entre los que se define la cota que desea introducir. - RMB: Comenzar otra vez.");
+        case Command::Delete:
+            return tr("Cotas - Borrar | - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.");
+        case Command::Show:
+            return tr("Cotas - Mostrar | - LMB: Seleccione las dos líneas de referencia o planos entre los que se define la cota que desea introducir. - RMB: Comenzar otra vez.");
+        case Command::Hide:
+            return tr("Cotas - Ocultar | - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.");
+    }
+    return QString();
+}
+
+DimensionsBar::DimensionsBar(QWidget* parent) : QFrame(parent) {
+    setObjectName(QStringLiteral("dimensionsBar"));
+    setFrameShape(QFrame::Box);
+    setStyleSheet(QStringLiteral("QFrame#dimensionsBar { background: #F4F4F4; border: 1px solid #B0B0B0; }"
+                                 "QToolButton { border: 1px solid transparent; padding: 2px; }"
+                                 "QToolButton:hover { border: 1px solid #7AA7D6; background: #E6F0FA; }"));
+    setFixedSize(115, 45);
+    auto* column = new QVBoxLayout(this);
+    column->setContentsMargins(2, 0, 2, 2);
+    column->setSpacing(0);
+    auto* header = new QHBoxLayout;
+    auto* caption = new QLabel(tr("Cotas"), this);
+    caption->setStyleSheet(QStringLiteral("font-size: 10px; color: #404040;"));
+    auto* close = new QToolButton(this);
+    close->setText(QStringLiteral("✕"));
+    close->setAutoRaise(true);
+    close->setFixedSize(14, 14);
+    close->setToolTip(tr("Cerrar"));
+    header->addWidget(caption);
+    header->addStretch(1);
+    header->addWidget(close);
+    column->addLayout(header);
+    auto* row = new QHBoxLayout;
+    row->setSpacing(0);
+    for (Command command : {Command::Add, Command::Delete, Command::Show, Command::Hide}) {
+        auto* b = new QToolButton(this);
+        b->setIcon(dimensionIcon(command));
+        b->setIconSize(QSize(20, 20));
+        const QString body = tooltipBody(command);
+        b->setToolTip(body.isEmpty() ? title(command) : QStringLiteral("<b>%1</b><br>%2").arg(title(command), body.toHtmlEscaped()));
+        b->setStatusTip(statusText(command));  // shown while the pointer is over the button
+        m_buttons[static_cast<int>(command)] = b;
+        row->addWidget(b);
+        connect(b, &QToolButton::clicked, this, [this, command] { emit commandChosen(command); });
+    }
+    column->addLayout(row);
+    connect(close, &QToolButton::clicked, this, &QWidget::hide);
+}
 
 }  // namespace cc::app

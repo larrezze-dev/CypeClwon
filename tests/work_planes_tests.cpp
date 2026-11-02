@@ -154,6 +154,96 @@ TEST(WorkPlanes, GridValidationMessages) {
     EXPECT_NE(validateGridLines(fresh), "");
 }
 
+TEST(WorkPlanes, GridCoordinatesAreRoundedToThreeDecimalsAndToleranceIsOneMillimetre) {
+    EXPECT_DOUBLE_EQ(roundCoordinate(3.0004), 3.0);
+    EXPECT_DOUBLE_EQ(roundCoordinate(3.0009), 3.001);
+    EXPECT_DOUBLE_EQ(roundCoordinate(-3.0009), -3.001);
+    const auto same = [](double a, double b) {
+        return validateGridLines({{"A", a, LabelPosition::Origin}, {"E", b, LabelPosition::Origin}}) ==
+               "Las líneas 'A' y 'E' están situadas en la misma coordenada.";
+    };
+    EXPECT_TRUE(same(3.0, 3.0));
+    EXPECT_TRUE(same(3.0, 3.001)) << "3.001 against 3.000 is rejected";
+    EXPECT_TRUE(same(3.001, 3.0));
+    EXPECT_TRUE(same(0.3, 0.301));
+    EXPECT_FALSE(same(3.0, 3.002)) << "3.002 is accepted";
+    EXPECT_FALSE(same(3.0, 3.01));
+}
+
+TEST(WorkPlanes, ValidationChecksLabelsBeforeCoordinatesAndAllowsEmptyLabels) {
+    // Both problems at once: the repeated label is reported first.
+    EXPECT_EQ(validateGridLines({{"A", 0.0, LabelPosition::Origin}, {"A", 0.0, LabelPosition::Origin}}),
+              "La etiqueta 'A' está repetida.");
+    // An empty label is allowed, and shows as '' in the coordinate message.
+    EXPECT_EQ(validateGridLines({{"B", 3.0, LabelPosition::Origin}, {"", 3.0, LabelPosition::Origin}}),
+              "Las líneas 'B' y '' están situadas en la misma coordenada.");
+    EXPECT_EQ(validateGridLines({{"B", 3.0, LabelPosition::Origin}, {"", 4.0, LabelPosition::Origin}}), "");
+}
+
+TEST(WorkPlanes, LabelsOf30LinesRunFromZToAa) {
+    GridAxisSpec spec;
+    spec.count = 30;
+    spec.firstLabel = "A";
+    const auto lines = generateGridAxis(spec);
+    EXPECT_EQ(lines[25].label, "Z");
+    EXPECT_EQ(lines[26].label, "AA");
+    EXPECT_EQ(lines[29].label, "AD");
+    EXPECT_DOUBLE_EQ(lines[29].coordinate, 87.0);
+}
+
+TEST(WorkPlanes, VisibilityAndReferencesDefaultsAndStorage) {
+    const WorkPlanes w;
+    EXPECT_TRUE(w.visible);
+    EXPECT_EQ(w.references, ReferenceOptions{});
+    EXPECT_TRUE(w.references.showGrid);
+    EXPECT_TRUE(w.references.referenceLines);
+    EXPECT_FALSE(w.references.onlyWithNode);
+    EXPECT_TRUE(w.references.parallelX && w.references.parallelY && w.references.parallelZ);
+    EXPECT_FALSE(w.references.colourByDirection);
+    // Defaults are not written: a project saved before these fields existed (or untouched) means "visible".
+    EXPECT_EQ(toJson(w).find("visible"), std::string::npos);
+    EXPECT_EQ(toJson(w).find("references"), std::string::npos);
+    const auto absent = workPlanesFromJson("{}");
+    ASSERT_TRUE(absent.has_value());
+    EXPECT_TRUE(absent->visible);
+    WorkPlanes hidden;
+    hidden.visible = false;
+    hidden.references.colourByDirection = true;
+    hidden.references.parallelZ = false;
+    const auto back = workPlanesFromJson(toJson(hidden));
+    ASSERT_TRUE(back.has_value());
+    EXPECT_FALSE(back->visible);
+    EXPECT_TRUE(back->references.colourByDirection);
+    EXPECT_FALSE(back->references.parallelZ);
+    EXPECT_EQ(*back, hidden);
+    EXPECT_FALSE(workPlanesFromJson("{\"visible\":1}").has_value());
+    EXPECT_FALSE(workPlanesFromJson("{\"references\":[]}").has_value());
+    // The hidden state is undoable and named.
+    Project p;
+    UndoStack stack;
+    WorkPlanes edited = p.workPlanes;
+    edited.visible = false;
+    stack.push(std::make_unique<EditWorkPlanesCommand>(p, edited, WorkPlanesEdit::Visibility));
+    EXPECT_FALSE(p.workPlanes.visible);
+    EXPECT_EQ(stack.undoText(), "Visibilidad");
+    stack.undo();
+    EXPECT_TRUE(p.workPlanes.visible);
+    WorkPlanes refs = p.workPlanes;
+    refs.references.referenceLines = false;
+    stack.push(std::make_unique<EditWorkPlanesCommand>(p, refs, WorkPlanesEdit::References));
+    EXPECT_EQ(stack.undoText(), "Referencias");
+}
+
+TEST(WorkPlanes, HiddenStateSurvivesTheProjectSection) {
+    Project p;
+    p.workPlanes.visible = false;
+    p.workPlanes.references.onlyWithNode = true;
+    Project loaded;
+    project_json::loadSection(loaded, "work_planes", project_json::dumpSection(p, "work_planes"));
+    EXPECT_FALSE(loaded.workPlanes.visible);
+    EXPECT_TRUE(loaded.workPlanes.references.onlyWithNode);
+}
+
 TEST(WorkPlanes, LevelValidationMessages) {
     EXPECT_EQ(validateLevels({}), "Debe definir al menos dos niveles.");
     EXPECT_EQ(validateLevels({{"A", 0.0}}), "Debe definir al menos dos niveles.");

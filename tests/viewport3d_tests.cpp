@@ -555,25 +555,24 @@ TEST_F(ViewportTest, RotationModesEmitSignalsOnlyOnChange) {
     EXPECT_TRUE(view->rotateAroundCamera());
 }
 
-TEST_F(ViewportTest, WorkPlanesDrawAGridLinePerCoordinateAndOneRectanglePerLevel) {
+TEST_F(ViewportTest, WorkPlanesDrawAGridLinePerCoordinateAndNothingForLevels) {
     cc::core::WorkPlanes planes;
     cc::core::generateGrid(planes, cc::core::GridSpec{});  // 4 + 4 lines
-    planes.levels = {{"Nivel 0", 0.0}, {"Nivel 1", 3.0}};
+    planes.levels = {{"Nivel 0", 0.0}, {"Nivel 1", 3.0}};  // levels are not drawn in 3D (measured in the original)
     EXPECT_TRUE(view->workPlaneSegments().empty());  // nothing defined yet
-    view->setWorkPlanes(&planes, true);
+    view->setWorkPlanes(&planes);
     const auto segments = view->workPlaneSegments();
-    int gridX = 0, gridY = 0, levelEdges = 0, labelled = 0;
+    int gridX = 0, gridY = 0, labelled = 0;
     for (const auto& s : segments) {
         using Kind = Viewport3D::PlaneSegment::Kind;
         gridX += s.kind == Kind::GridX;
         gridY += s.kind == Kind::GridY;
-        levelEdges += s.kind == Kind::Level;
         labelled += s.labelAt != Viewport3D::PlaneSegment::LabelAt::None;
     }
     EXPECT_EQ(gridX, 4);
     EXPECT_EQ(gridY, 4);
-    EXPECT_EQ(levelEdges, 8);
-    EXPECT_EQ(labelled, 4 + 4 + 2);  // every grid line and one corner per level
+    EXPECT_EQ(segments.size(), 8u) << "no segment for the levels";
+    EXPECT_EQ(labelled, 4 + 4);
     // Line "B" of X: x = 3 m, label at the origin end by default.
     EXPECT_DOUBLE_EQ(segments[1].a.x, 3.0);
     EXPECT_EQ(segments[1].label, "B");
@@ -583,14 +582,22 @@ TEST_F(ViewportTest, WorkPlanesDrawAGridLinePerCoordinateAndOneRectanglePerLevel
     EXPECT_EQ(view->workPlaneSegments()[0].labelAt, Viewport3D::PlaneSegment::LabelAt::B);
 }
 
-TEST_F(ViewportTest, HiddenWorkPlanesDrawNothing) {
+TEST_F(ViewportTest, HiddenWorkPlanesKeepTheLabelsButNotTheLines) {
     cc::core::WorkPlanes planes;
     cc::core::generateGrid(planes, cc::core::GridSpec{});
-    view->setWorkPlanes(&planes, false);
+    view->setWorkPlanes(&planes);
+    EXPECT_TRUE(view->workPlanesVisible());
+    EXPECT_TRUE(view->workPlaneSegments()[0].lineVisible);
+    planes.visible = false;  // "Visibilidad > Ocultar" (saved with the project)
     EXPECT_FALSE(view->workPlanesVisible());
+    ASSERT_EQ(view->workPlaneSegments().size(), 8u);
+    for (const auto& s : view->workPlaneSegments()) {
+        EXPECT_FALSE(s.lineVisible);
+        EXPECT_FALSE(s.label.isEmpty()) << "the labels stay";
+    }
+    planes.visible = true;
+    planes.references.showGrid = false;  // "Referencias > Mostrar la rejilla" off
     EXPECT_TRUE(view->workPlaneSegments().empty());
-    view->setWorkPlanes(&planes, true);
-    EXPECT_FALSE(view->workPlaneSegments().empty());
     view->setWorkPlanes(nullptr);
     EXPECT_TRUE(view->workPlaneSegments().empty());
 }

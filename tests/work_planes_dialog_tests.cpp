@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QToolButton>
 #include <QTableWidget>
 
 #include "WorkPlanesDialogs.h"
@@ -219,4 +220,90 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+TEST(GridDialog, TypedCoordinatesAreRoundedToThreeDecimals) {
+    ensureApp();
+    WorkPlanes planes;
+    planes.gridX = {{"A", 0.0, LabelPosition::Origin}};
+    GridDialog dialog{planes};
+    QTableWidget* table = dialog.findChildren<QTableWidget*>().at(0);
+    table->item(0, 1)->setText("3.0004");
+    EXPECT_DOUBLE_EQ(dialog.value().gridX[0].coordinate, 3.0);
+    table->item(0, 1)->setText("3,0009");
+    EXPECT_DOUBLE_EQ(dialog.value().gridX[0].coordinate, 3.001);
+    EXPECT_EQ(table->item(0, 1)->text(), "3.001");
+    NewGridLineDialog line;
+    EXPECT_DOUBLE_EQ(line.value().coordinate, 0.0);
+}
+
+TEST(GridDialog, AcceptUsesTheMeasuredMessagesAndTolerance) {
+    ensureApp();
+    Recorder rec;
+    GridDialog dialog{WorkPlanes{}};
+    dialog.prompts = rec.prompts();
+    dialog.addLine(0, GridLine{"A", 3.0, LabelPosition::Origin});
+    dialog.addLine(0, GridLine{"E", 3.001, LabelPosition::Origin});
+    dialog.accept();
+    ASSERT_EQ(rec.warnings.size(), 1);
+    EXPECT_EQ(rec.warnings[0], "Las líneas 'A' y 'E' están situadas en la misma coordenada.");
+    EXPECT_NE(dialog.result(), QDialog::Accepted);
+    dialog.deleteLine(0, 1);
+    dialog.addLine(0, GridLine{"E", 3.002, LabelPosition::Origin});
+    dialog.accept();
+    EXPECT_EQ(rec.warnings.size(), 1) << "3.002 is accepted";
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+}
+
+TEST(ReferencesDialog, DefaultsDependencyAndValue) {
+    ensureApp();
+    ReferencesDialog dialog{ReferenceOptions{}};
+    EXPECT_EQ(dialog.size(), QSize(246, 262));
+    const auto boxes = dialog.findChildren<QCheckBox*>();
+    ASSERT_EQ(boxes.size(), 7);
+    const auto box = [&](const QString& text) {
+        for (QCheckBox* b : boxes)
+            if (b->text() == text) return b;
+        ADD_FAILURE() << "missing box " << text.toStdString();
+        return boxes.first();
+    };
+    EXPECT_TRUE(box("Mostrar la rejilla")->isChecked());
+    EXPECT_TRUE(box("Líneas de referencia")->isChecked());
+    EXPECT_FALSE(box("Sólo las que tienen nudo")->isChecked());
+    EXPECT_TRUE(box("Paralelas a X")->isChecked());
+    EXPECT_TRUE(box("Paralelas a Y")->isChecked());
+    EXPECT_TRUE(box("Paralelas a Z")->isChecked());
+    EXPECT_FALSE(box("Dibujar con color según dirección")->isChecked());
+    EXPECT_EQ(dialog.value(), ReferenceOptions{});
+    box("Dibujar con color según dirección")->setChecked(true);
+    box("Líneas de referencia")->setChecked(false);  // greys the five boxes below
+    for (const char* name : {"Sólo las que tienen nudo", "Paralelas a X", "Paralelas a Y", "Paralelas a Z", "Dibujar con color según dirección"})
+        EXPECT_FALSE(box(name)->isEnabled()) << name;
+    EXPECT_TRUE(box("Mostrar la rejilla")->isEnabled());
+    box("Líneas de referencia")->setChecked(true);
+    EXPECT_TRUE(box("Paralelas a X")->isEnabled());
+    const ReferenceOptions v = dialog.value();
+    EXPECT_TRUE(v.colourByDirection);
+    EXPECT_TRUE(v.referenceLines);
+}
+
+TEST(DimensionsBar, FourButtonsWithTheTextsOfTheOriginal) {
+    ensureApp();
+    DimensionsBar bar;
+    EXPECT_EQ(bar.findChildren<QToolButton*>().size(), 5);  // four commands and the close button
+    using C = DimensionsBar::Command;
+    EXPECT_EQ(DimensionsBar::title(C::Add), "Añadir");
+    EXPECT_EQ(DimensionsBar::title(C::Delete), "Borrar");
+    EXPECT_EQ(DimensionsBar::title(C::Show), "Mostrar");
+    EXPECT_EQ(DimensionsBar::title(C::Hide), "Ocultar");
+    EXPECT_TRUE(DimensionsBar::tooltipBody(C::Delete).isEmpty());
+    EXPECT_EQ(DimensionsBar::tooltipBody(C::Hide), "Selección de cotas para ocultarlas en planos.");
+    EXPECT_EQ(DimensionsBar::statusText(C::Add),
+              "Cotas - Añadir | - LMB: Seleccione las dos líneas de referencia o planos entre los que se define la cota que desea introducir. - RMB: Comenzar otra vez.");
+    EXPECT_EQ(DimensionsBar::statusText(C::Delete), "Cotas - Borrar | - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.");
+    EXPECT_EQ(bar.button(C::Show)->statusTip(), DimensionsBar::statusText(C::Show));
+    int chosen = -1;
+    QObject::connect(&bar, &DimensionsBar::commandChosen, [&](DimensionsBar::Command c) { chosen = static_cast<int>(c); });
+    bar.button(C::Hide)->click();
+    EXPECT_EQ(chosen, static_cast<int>(C::Hide));
 }

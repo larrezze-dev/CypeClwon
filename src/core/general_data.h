@@ -71,15 +71,15 @@ private:
 };
 
 /// Which part of "Planos" an EditWorkPlanesCommand changes; it only names the entry of the undo menu.
-enum class WorkPlanesEdit { Grid, Levels };
+enum class WorkPlanesEdit { Grid, Levels, Visibility, References };
 
-/// Undoable change of the work planes (Geometria > Planos > Rejilla / Niveles): text "Rejilla" or "Niveles".
+/// Undoable change of the work planes (Geometria > Planos): text "Rejilla", "Niveles", "Visibilidad" or "Referencias".
 class EditWorkPlanesCommand : public UndoCommand {
 public:
     EditWorkPlanesCommand(Project& project, WorkPlanes newPlanes, WorkPlanesEdit kind);
     void redo() override { m_project.workPlanes = m_after; }
     void undo() override { m_project.workPlanes = m_before; }
-    std::string text() const override { return m_kind == WorkPlanesEdit::Grid ? "Rejilla" : "Niveles"; }
+    std::string text() const override;
 
 private:
     Project& m_project;
