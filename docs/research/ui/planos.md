@@ -82,3 +82,10 @@ Dónde buscar: (a) xrefs a las funciones `FUN_1807ca620` (crea una línea de rej
 5. Cuándo se validan duplicados (en edición o al aceptar) y si la tabla se reordena por coordenada/cota; nombres por defecto de "Nueva línea"/"Nuevo nivel".
 6. Dibujo 3D (color, estilo, posición de etiquetas, botones de navegación de líneas/niveles 25935-25940) y formato en el .ed3.
 7. Agrupar/desagrupar: comprobación empírica de la numeración mostrada y del color de selección.
+
+## 9. Medido en el original (sesión 23, capturas pl_1, pl_menu, pl_rej, pl_niv en docs/screenshots)
+- Geometría > **Planos** es un botón con menú desplegable (pl_1.png, debajo del botón, 140x190 aprox., items de 24 px): Rejilla, Niveles, Cotas ▸ (submenú), Referencias, Visibilidad, Mostrar nuevos, Agrupar, Desagrupar. Origen del menú en pantalla (1920x1080): Rejilla y≈156, Niveles 180, Cotas 204, Referencias 228, Visibilidad 252, Mostrar nuevos 276, Agrupar 300, Desagrupar 324 (x≈50); el botón está en (20,72), pestaña Geometría (130,36).
+- Con la obra abierta, un clic en (50,116) abrió **Visibilidad** (diálogo «Mostrar/ocultar planos», ~243x135: radios Mostrar / Ocultar (por defecto Ocultar), Aceptar / Cancelar) y la barra de estado puso «Planos - Visibilidad». El script de clic y el menú no coinciden con lo esperado: repetir con fshot tras abrir el menú antes de pulsar.
+- Clic en Rejilla (50,156) y en Niveles (50,180): ambos mostraron la misma ventana **«Propiedades - Planos»** (278x370, ventana propia con maximizar/cerrar) con tres radios con icono: «Planos paralelos a YZ» (marcado y en negrita), «Planos paralelos a XZ», «Planos paralelos a XY». No se vio más contenido (probablemente la ventana abre vacía hasta elegir; falta comprobar si Niveles era realmente otra ventana: la ESC intermedia pudo no cerrarla).
+- PENDIENTE de medir: qué cambia al elegir cada radio (tabla de líneas/niveles), botones de la ventana, diálogos de generar rejilla/niveles (ver §2-§3 del código), Cotas, Referencias, Mostrar nuevos, Agrupar/Desagrupar.
+- El script drive_original.ps1 cierra la app al terminar: cada prueba debe ser una sola ejecución; no redirigir su salida (bloquea su propio log).
