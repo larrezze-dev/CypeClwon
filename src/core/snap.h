@@ -44,6 +44,8 @@ struct SnapOptions {
 struct SnapParams {
     double nodeRadiusPx = 12.0;  ///< original: between 10 and 15 px
     double lineRadiusPx = 22.0;  ///< original: between 20 and 25 px
+    bool nodesVisible = true;    ///< false when the Nudos category is hidden: endpoints are not snapped
+    bool barsVisible = true;     ///< false when the Barras category is hidden: bar midpoints/nearest points are not snapped
 };
 
 struct SnapResult {

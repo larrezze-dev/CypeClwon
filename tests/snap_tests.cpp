@@ -137,3 +137,24 @@ TEST(Snap, EmptyViewportOrModelNeverSnaps) {
     g.model = StructuralModel{};
     EXPECT_FALSE(g.snap(g.at(0, 0)).snapped());
 }
+
+TEST(Snap, HiddenNodesAreNotSnappedToButBarsStill) {
+    Fixture f;
+    SnapParams p;
+    p.nodesVisible = false;
+    const Px n = f.at(0, 0);
+    const SnapResult r = snapCursor(f.model, f.map, n.x, n.y, f.options, p);
+    EXPECT_NE(r.kind, SnapKind::Endpoint);
+    EXPECT_TRUE(r.snapped());  // still lands on the bar or its guide line
+}
+
+TEST(Snap, HiddenBarsAreNotSnappedTo) {
+    Fixture f;
+    SnapParams p;
+    p.barsVisible = false;
+    const Px m = f.at(2, 3);  // middle of the lintel
+    f.options.enabled = true;
+    const SnapResult r = snapCursor(f.model, f.map, m.x, m.y, f.options, p);
+    EXPECT_NE(r.kind, SnapKind::Midpoint);
+    EXPECT_NE(r.kind, SnapKind::Nearest);
+}

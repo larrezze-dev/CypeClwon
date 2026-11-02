@@ -153,7 +153,12 @@ void Viewport3D::setSnapMode(bool on) {
 
 void Viewport3D::updateSnap(const QPointF& pos) {
     core::SnapResult snap;
-    if (m_structure) snap = core::snapCursor(*m_structure, mapper(), pos.x(), pos.y(), m_snapOptions);
+    if (m_structure) {
+        core::SnapParams params;
+        params.nodesVisible = m_categories.nodesDrawn();  // hidden elements are not snapped to
+        params.barsVisible = m_categories.barsDrawn();
+        snap = core::snapCursor(*m_structure, mapper(), pos.x(), pos.y(), m_snapOptions, params);
+    }
     m_cursor = pos;
     const bool changed = snap.kind != m_snap.kind || !(snap.point == m_snap.point);
     m_snap = snap;

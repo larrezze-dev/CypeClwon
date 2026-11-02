@@ -75,7 +75,7 @@ SnapResult snapCursor(const StructuralModel& model, const ScreenMapper& map, dou
     };
 
     // 1. Endpoints: the node closest to the cursor within the node radius.
-    if (options.active(SnapKind::Endpoint)) {
+    if (params.nodesVisible && options.active(SnapKind::Endpoint)) {
         Candidate best;
         for (const Node& n : model.nodes) {
             double d;
@@ -85,12 +85,12 @@ SnapResult snapCursor(const StructuralModel& model, const ScreenMapper& map, dou
     }
 
     // 2. Midpoints (object snap only).
-    if (options.active(SnapKind::Midpoint)) {
+    if (params.barsVisible && options.active(SnapKind::Midpoint)) {
         Candidate best;
         for (const Bar& b : model.bars) {
             const Node* na = model.findNode(b.startNode);
             const Node* nb = model.findNode(b.endNode);
-            if (!na || !nb) continue;
+            if (!na || !nb || !model.elementVisible(b.layerIds)) continue;
             const Vec3 mid = (toVec(na->position) + toVec(nb->position)) * 0.5;
             double d;
             if (pixels(mid, d)) consider(best, {SnapKind::Midpoint, mid, ElementRef{ElementKind::Bar, b.id}, std::nullopt, -1, d}, params.nodeRadiusPx);
@@ -102,11 +102,11 @@ SnapResult snapCursor(const StructuralModel& model, const ScreenMapper& map, dou
     const double aspect = map.width / map.height;
     const Ray ray = map.camera->ray(2.0 * x / map.width - 1.0, 1.0 - 2.0 * y / map.height, aspect);
     Candidate best;
-    if (options.active(SnapKind::Nearest)) {
+    if (params.barsVisible && options.active(SnapKind::Nearest)) {
         for (const Bar& b : model.bars) {
             const Node* na = model.findNode(b.startNode);
             const Node* nb = model.findNode(b.endNode);
-            if (!na || !nb) continue;
+            if (!na || !nb || !model.elementVisible(b.layerIds)) continue;
             const Vec3 a = toVec(na->position), dir = toVec(nb->position) - a;
             double t = 0.0;
             if (!closestOnLine(a, dir, ray, t)) continue;
