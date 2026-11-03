@@ -1,4 +1,4 @@
-﻿#include "MainWindow.h"
+#include "MainWindow.h"
 #include "CategoriesPanel.h"
 #include "DisplayOptionsPanel.h"
 #include <QTabBar>
@@ -182,6 +182,11 @@ void MainWindow::createWorkArea() {
     });
     // Geometria > Nudos: its status text goes to the bar; a command and the "Asignar elementos" tool exclude each other.
     connect(m_nodeTool, &NodeTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    // Leaving the ribbon button clears the bar (its status tip ends): while a command is active its text comes back.
+    connect(statusBar(), &QStatusBar::messageChanged, this, [this](const QString& text) {
+        if (text.isEmpty() && m_nodeTool->mode() != NodeTool::Mode::None)
+            statusBar()->showMessage(NodeTool::statusText(m_nodeTool->mode(), m_nodeTool->movePending()));
+    });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] { m_leftPanel->layersPanel()->assignToolButton()->setChecked(false); });
     setProjectOpen(false);
 
