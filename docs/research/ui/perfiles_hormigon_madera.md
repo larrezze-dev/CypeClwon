@@ -27,3 +27,10 @@ Etiquetas: [UI] = observado en capturas (`dialogs_biblioteca_perfiles.md` §2); 
 
 ## 4. Huecos → tickets
 TK-061 (GUI, dimensiones por defecto del resto de formas, tooltips), TK-062 (ley del canto variable en el cálculo), TK-063 (materiales hormigón/madera por defecto: E, G, ν, α, peso; no deducidos), TK-064 (verificación en la app de los valores mostrados y de Av de madera según norma).
+
+## 5. GUI en la biblioteca (T-P5-06, clon)
+- Diálogo Nuevo/Editar perfil (`ProfileEditDialog`): filas Referencia, **Material** (Acero laminado / Hormigón / Madera; solo editable en el primer perfil de una serie nueva, que fija la familia de la serie), **Tipo de sección** (hormigón y madera; «Forma» en acero) con los textos de este documento, y dimensiones. Al cambiar familia o forma, las dimensiones se rehacen: 30 cm para hormigón y madera (solo el rectangular de hormigón 30,0 x 30,0 cm está medido; el resto es [clon], TK-061).
+- Etiquetas: Ancho (#65243), Canto (#65244), Canto inicial (#131436), Canto final (#131437); Diámetro y Lado son [clon] (sin texto verificado).
+- Unidades: las de «Unidades de acotación > Dimensiones» de la obra (cm por defecto, como el original); el acero laminado sigue en mm.
+- Propiedades calculadas: A, Iy, Iz, It, Wel, Wpl, Avy, Avz (sin Iw, nulo en macizas); en canto variable se listan los dos extremos («Canto inicial» y «Canto final»). Validaciones del núcleo.
+- Verificación visual: `CC_SNAPSHOT_DIR` genera `clone_perfil_hormigon*.png` (offscreen; no se lanzó ventana: el original solo tiene la pantalla Describir, T-P5-07, orig_describir_mat07.png).

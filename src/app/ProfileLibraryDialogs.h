@@ -62,7 +62,12 @@ class ProfileEditDialog : public CypeDialog {
 public:
     /// `shapeChangeable`: the first profile of a new series chooses the shape of the series (the original takes it from the
     /// shape icons of "Describir"; the clone has no such context, TK-059).
-    ProfileEditDialog(cc::core::Section initial, bool isNew, bool shapeChangeable = false, QWidget* parent = nullptr);
+    /// `sectionUnit`: length unit of the work ("Unidades de acotación" > Dimensiones) used for concrete / timber dimensions;
+    /// hot-rolled steel stays in millimetres.
+    ProfileEditDialog(cc::core::Section initial, bool isNew, bool shapeChangeable = false, QWidget* parent = nullptr,
+                      cc::core::LengthUnit sectionUnit = cc::core::LengthUnit::Centimetres);
+    QComboBox* familyCombo() const { return m_familyCombo; }
+    cc::core::SectionFamily family() const { return m_family; }
     QComboBox* shapeCombo() const { return m_shape; }
     /// Section as edited (tabulated values of the initial section are kept).
     cc::core::Section value() const;
@@ -74,9 +79,15 @@ public:
 private:
     void refreshProperties();
     void buildDims(cc::core::ShapeKind kind, const std::vector<double>& dims);
+    void fillShapes(bool selectDefault);
+    void updateShapeLabel();
     cc::core::Section m_initial;
     cc::core::ShapeKind m_kind;
+    cc::core::SectionFamily m_family;
+    cc::core::LengthUnit m_unit;
     QFormLayout* m_form;
+    QComboBox* m_familyCombo;
+    QLabel* m_shapeLabel;
     QComboBox* m_shape;
     QLineEdit* m_reference;
     QList<QDoubleSpinBox*> m_dims;
@@ -88,7 +99,8 @@ private:
 class SeriesEditDialog : public CypeDialog {
     Q_OBJECT
 public:
-    SeriesEditDialog(cc::core::ProfileSeries initial, bool isNew, QWidget* parent = nullptr);
+    SeriesEditDialog(cc::core::ProfileSeries initial, bool isNew, QWidget* parent = nullptr,
+                     cc::core::LengthUnit sectionUnit = cc::core::LengthUnit::Centimetres);
     const cc::core::ProfileSeries& value() const { return m_series; }
     QLineEdit* referenceEdit() const { return m_reference; }
     QPlainTextEdit* descriptionEdit() const { return m_description; }
@@ -108,9 +120,11 @@ public:
 private:
     void refreshTable();
     void syncFromFields();
+    void setShapeOfSeries(cc::core::ShapeKind kind);
     void onNew();
     void onEdit();
     cc::core::ProfileSeries m_series;
+    cc::core::LengthUnit m_unit;
     QLineEdit* m_reference;
     QPlainTextEdit* m_description;
     QTableWidget* m_table;
@@ -176,7 +190,8 @@ private:
 class ProfileLibraryDialog : public CypeDialog {
     Q_OBJECT
 public:
-    explicit ProfileLibraryDialog(const cc::core::ProfileLibrary& library, QWidget* parent = nullptr);
+    explicit ProfileLibraryDialog(const cc::core::ProfileLibrary& library, QWidget* parent = nullptr,
+                                  cc::core::LengthUnit sectionUnit = cc::core::LengthUnit::Centimetres);
     /// Library as edited.
     const cc::core::ProfileLibrary& library() const { return m_scratch.library(); }
     QPushButton* button(const QString& name) const;

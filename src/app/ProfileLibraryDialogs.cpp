@@ -12,6 +12,8 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QSignalBlocker>
 #include <QStyle>
 #include <QTableWidget>
 #include <QToolButton>
@@ -68,28 +70,80 @@ int selectedRow(const QTableWidget* t) {
 
 bool isSlopeKey(const std::string& key) { return key == "slope"; }
 
+QString formatOneProperties(const SectionProperties& p, bool solid) {
+    const auto line = [](const QString& name, double value, double scale, const QString& unit) {
+        return QStringLiteral("%1 = %2 %3").arg(name, QString::number(value * scale, 'f', 2), unit);
+    };
+    QStringList lines;
+    lines << line(QStringLiteral("A"), p.area, 1e4, QStringLiteral("cm²"))
+          << line(QStringLiteral("Iy"), p.iy, 1e8, QStringLiteral("cm⁴"))
+          << line(QStringLiteral("Iz"), p.iz, 1e8, QStringLiteral("cm⁴"))
+          << line(QStringLiteral("It"), p.it, 1e8, QStringLiteral("cm⁴"));
+    if (!solid) lines << line(QStringLiteral("Iw"), p.iw, 1e12, QStringLiteral("cm⁶"));  // zero for solid sections: not listed
+    lines << line(QStringLiteral("Wel,y"), p.welY, 1e6, QStringLiteral("cm³"))
+          << line(QStringLiteral("Wel,z"), p.welZ, 1e6, QStringLiteral("cm³"))
+          << line(QStringLiteral("Wpl,y"), p.wplY, 1e6, QStringLiteral("cm³"))
+          << line(QStringLiteral("Wpl,z"), p.wplZ, 1e6, QStringLiteral("cm³"))
+          << line(QStringLiteral("Avy"), p.avy, 1e4, QStringLiteral("cm²"))
+          << line(QStringLiteral("Avz"), p.avz, 1e4, QStringLiteral("cm²"));
+    return lines.join(QLatin1Char('\n'));
+}
+
 QString formatProperties(const Section& section) {
+    const bool solid = shapeFamily(section.kind).has_value();
+    if (isVariableDepth(section.kind)) {
+        // Variable depth: the properties of both ends of the piece (linear law assumed, TK-062).
+        const auto first = propertiesAt(section, 0.0);
+        const auto last = propertiesAt(section, 1.0);
+        if (first && last)
+            return QObject::tr("Canto inicial") + QLatin1Char('\n') + formatOneProperties(*first, true) + QStringLiteral("\n\n") +
+                   QObject::tr("Canto final") + QLatin1Char('\n') + formatOneProperties(*last, true);
+    }
     const auto p = effectiveProperties(section);
     if (!p) {
         const std::string problem = validateSection(section);
         return problem.empty() ? QObject::tr("No se pueden calcular las propiedades.") : q(problem);
     }
-    const auto line = [](const QString& name, double value, double scale, const QString& unit) {
-        return QStringLiteral("%1 = %2 %3").arg(name, QString::number(value * scale, 'f', 2), unit);
-    };
-    QStringList lines;
-    lines << line(QStringLiteral("A"), p->area, 1e4, QStringLiteral("cm²"))
-          << line(QStringLiteral("Iy"), p->iy, 1e8, QStringLiteral("cm⁴"))
-          << line(QStringLiteral("Iz"), p->iz, 1e8, QStringLiteral("cm⁴"))
-          << line(QStringLiteral("It"), p->it, 1e8, QStringLiteral("cm⁴"))
-          << line(QStringLiteral("Iw"), p->iw, 1e12, QStringLiteral("cm⁶"))
-          << line(QStringLiteral("Wel,y"), p->welY, 1e6, QStringLiteral("cm³"))
-          << line(QStringLiteral("Wel,z"), p->welZ, 1e6, QStringLiteral("cm³"))
-          << line(QStringLiteral("Wpl,y"), p->wplY, 1e6, QStringLiteral("cm³"))
-          << line(QStringLiteral("Wpl,z"), p->wplZ, 1e6, QStringLiteral("cm³"))
-          << line(QStringLiteral("Avy"), p->avy, 1e4, QStringLiteral("cm²"))
-          << line(QStringLiteral("Avz"), p->avz, 1e4, QStringLiteral("cm²"));
-    return lines.join(QLatin1Char('\n'));
+    return formatOneProperties(*p, solid);
+}
+
+/// Label of a dimension. Concrete / timber: texts of the original (#65243 Ancho, #65244 Canto, #131436 Canto inicial,
+/// #131437 Canto final); diameter and side have no verified text (TK-061). Steel keeps the key (h, b, tw...).
+QString dimensionLabel(ShapeKind kind, const std::string& key) {
+    if (!shapeFamily(kind)) return q(key);
+    if (key == "b") return QObject::tr("Ancho");
+    if (key == "h") return QObject::tr("Canto");
+    if (key == "h0") return QObject::tr("Canto inicial");
+    if (key == "h1") return QObject::tr("Canto final");
+    if (key == "d") return QObject::tr("Diámetro");
+    return QObject::tr("Lado");
+}
+
+struct DimensionScale {
+    double perMetre;
+    int decimals;
+    QString suffix;
+};
+DimensionScale scaleOf(ShapeKind kind, const std::string& key, LengthUnit unit) {
+    if (isSlopeKey(key)) return {1.0, 2, QStringLiteral(" %")};
+    if (!shapeFamily(kind)) return {1000.0, 2, QStringLiteral(" mm")};  // hot-rolled steel stays in millimetres
+    const QString suffix = QLatin1Char(' ') + QString::fromUtf8(unitSymbol(unit));
+    switch (unit) {
+    case LengthUnit::Metres: return {1.0, 4, suffix};
+    case LengthUnit::Centimetres: return {100.0, 2, suffix};
+    case LengthUnit::Millimetres: break;
+    }
+    return {1000.0, 1, suffix};
+}
+
+/// Dimensions of a freshly chosen shape: concrete / timber 30 cm (the original's default for the rectangular concrete section;
+/// the other shapes were not measured, TK-061); steel starts from zero, the slopes from their standard value.
+std::vector<double> defaultDims(ShapeKind kind) {
+    const auto& keys = dimensionKeys(kind);
+    std::vector<double> dims(keys.size(), shapeFamily(kind) ? 0.30 : 0.0);
+    for (std::size_t i = 0; i < keys.size(); ++i)
+        if (isSlopeKey(keys[i])) dims[i] = kind == ShapeKind::ISloped ? kIpnSlopePercent : kUpnSlopePercent;
+    return dims;
 }
 
 // "Aviso" message of the original (orig_describir_series_nueva_valid): red frame, warning icon, text, centred Aceptar.
@@ -206,22 +260,32 @@ bool exportSeriesFile(QWidget* parent, const std::vector<ProfileSeries>& series,
 
 // --- ProfileEditDialog -------------------------------------------------------------------------------------------------------
 
-ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, bool shapeChangeable, QWidget* parent)
-    : CypeDialog(isNew ? tr("Nuevo perfil") : tr("Editar perfil"), parent), m_initial(std::move(initial)), m_kind(m_initial.kind) {
+ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, bool shapeChangeable, QWidget* parent, LengthUnit sectionUnit)
+    : CypeDialog(isNew ? tr("Nuevo perfil") : tr("Editar perfil"), parent),
+      m_initial(std::move(initial)),
+      m_kind(m_initial.kind),
+      m_family(shapeFamily(m_initial.kind).value_or(SectionFamily::HotRolledSteel)),
+      m_unit(sectionUnit) {
     setFixedSize(360, 520);
     m_form = new QFormLayout;
     m_form->setContentsMargins(4, 0, 4, 0);
     m_reference = new QLineEdit(q(m_initial.reference), this);
     m_form->addRow(tr("Referencia"), m_reference);
-    m_shape = new QComboBox(this);
-    for (ShapeKind kind : allShapes()) {
-        if (kind == ShapeKind::Generic) continue;  // generic sections need tabulated values (TK-052)
-        if (shapeFamily(kind)) continue;           // concrete / timber shapes have their own dialog (T-P5-06 GUI)
-        m_shape->addItem(tr(shapeNameEs(kind)), static_cast<int>(kind));
-        if (kind == m_kind) m_shape->setCurrentIndex(m_shape->count() - 1);
+    // Material: only the first profile of a new series chooses it (the original takes it from the material icons of "Describir").
+    m_familyCombo = new QComboBox(this);
+    for (SectionFamily family : {SectionFamily::HotRolledSteel, SectionFamily::Concrete, SectionFamily::Timber}) {
+        m_familyCombo->addItem(family == SectionFamily::HotRolledSteel ? tr("Acero laminado") : tr(familyNameEs(family)),
+                               static_cast<int>(family));
+        if (family == m_family) m_familyCombo->setCurrentIndex(m_familyCombo->count() - 1);
     }
+    m_familyCombo->setEnabled(shapeChangeable);
+    m_form->addRow(tr("Material"), m_familyCombo);
+    m_shape = new QComboBox(this);
+    fillShapes(false);
     m_shape->setEnabled(shapeChangeable);
-    m_form->addRow(tr("Forma"), m_shape);
+    m_shapeLabel = new QLabel(this);
+    m_form->addRow(m_shapeLabel, m_shape);
+    updateShapeLabel();
     contentLayout()->addLayout(m_form);
     contentLayout()->addWidget(new QLabel(tr("Propiedades calculadas"), this));
     m_properties = new QLabel(this);
@@ -229,35 +293,63 @@ ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, bool shapeChan
     m_properties->setFrameShape(QFrame::StyledPanel);
     m_properties->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     m_properties->setWordWrap(true);
-    m_properties->setMinimumHeight(200);
-    contentLayout()->addWidget(m_properties, 1);
+    // Scrollable: a variable-depth section lists the properties of both ends.
+    auto* scroll = new QScrollArea(this);
+    scroll->setWidgetResizable(true);
+    scroll->setMinimumHeight(150);
+    scroll->setWidget(m_properties);
+    contentLayout()->addWidget(scroll, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
     buildDims(m_kind, m_initial.dims);
+    connect(m_familyCombo, &QComboBox::currentIndexChanged, this, [this] {
+        m_family = static_cast<SectionFamily>(m_familyCombo->currentData().toInt());
+        updateShapeLabel();
+        {
+            QSignalBlocker block(m_shape);
+            fillShapes(true);
+        }
+        m_kind = static_cast<ShapeKind>(m_shape->currentData().toInt());
+        buildDims(m_kind, defaultDims(m_kind));
+    });
     connect(m_shape, &QComboBox::currentIndexChanged, this, [this] {
         m_kind = static_cast<ShapeKind>(m_shape->currentData().toInt());
-        std::vector<double> dims(dimensionKeys(m_kind).size(), 0.0);
-        const auto& keys = dimensionKeys(m_kind);
-        for (std::size_t i = 0; i < keys.size(); ++i)
-            if (isSlopeKey(keys[i])) dims[i] = m_kind == ShapeKind::ISloped ? kIpnSlopePercent : kUpnSlopePercent;
-        buildDims(m_kind, dims);
+        buildDims(m_kind, defaultDims(m_kind));
     });
 }
 
+void ProfileEditDialog::updateShapeLabel() {
+    m_shapeLabel->setText(m_family == SectionFamily::HotRolledSteel ? tr("Forma") : tr("Tipo de sección"));  // #27957
+}
+
+void ProfileEditDialog::fillShapes(bool selectDefault) {
+    QSignalBlocker block(m_shape);
+    m_shape->clear();
+    for (ShapeKind kind : shapesOfFamily(m_family)) {
+        m_shape->addItem(tr(shapeNameEs(kind)), static_cast<int>(kind));  // #65245 for "Rectangular de canto variable"
+        if (!selectDefault && kind == m_kind) m_shape->setCurrentIndex(m_shape->count() - 1);
+    }
+    if (selectDefault) {
+        // Concrete opens on "Rectangular" (the original's default); the other families on their first shape.
+        const int rect = m_shape->findData(static_cast<int>(ShapeKind::ConcreteRectangular));
+        m_shape->setCurrentIndex(m_family == SectionFamily::Concrete && rect >= 0 ? rect : 0);
+    }
+}
+
 void ProfileEditDialog::buildDims(ShapeKind kind, const std::vector<double>& dims) {
-    while (m_form->rowCount() > 2) m_form->removeRow(2);
+    while (m_form->rowCount() > 3) m_form->removeRow(3);
     m_dims.clear();
     const auto& keys = dimensionKeys(kind);
     for (std::size_t i = 0; i < keys.size(); ++i) {
         auto* spin = new QDoubleSpinBox(this);
-        const bool slope = isSlopeKey(keys[i]);
-        spin->setDecimals(2);
+        const DimensionScale scale = scaleOf(kind, keys[i], m_unit);
+        spin->setDecimals(scale.decimals);
         spin->setRange(0.0, 100000.0);
-        spin->setSuffix(slope ? QStringLiteral(" %") : QStringLiteral(" mm"));
+        spin->setSuffix(scale.suffix);
         const double stored = i < dims.size() ? dims[i] : 0.0;
-        spin->setValue(slope ? stored : stored * 1000.0);
+        spin->setValue(stored * scale.perMetre);
         connect(spin, &QDoubleSpinBox::valueChanged, this, [this] { refreshProperties(); });
         m_dims.append(spin);
-        m_form->addRow(q(keys[i]), spin);
+        m_form->addRow(dimensionLabel(kind, keys[i]), spin);
     }
     refreshProperties();
 }
@@ -269,8 +361,8 @@ Section ProfileEditDialog::value() const {
     const auto& keys = dimensionKeys(s.kind);
     s.dims.clear();
     for (int i = 0; i < m_dims.size(); ++i) {
-        const double v = m_dims[i]->value();
-        s.dims.push_back(isSlopeKey(keys[static_cast<std::size_t>(i)]) ? v : v / 1000.0);
+        const std::string& key = keys[static_cast<std::size_t>(i)];
+        s.dims.push_back(m_dims[i]->value() / scaleOf(s.kind, key, m_unit).perMetre);
     }
     return s;
 }
@@ -312,8 +404,8 @@ const char* kTableStyle =
     "QHeaderView::section { background: white; border: none; border-right: 1px solid #E3E3E3; border-bottom: 1px solid #E3E3E3; padding: 2px 3px; }";
 }  // namespace
 
-SeriesEditDialog::SeriesEditDialog(ProfileSeries initial, bool isNew, QWidget* parent)
-    : CypeDialog(tr("Series de Perfiles"), parent), m_series(std::move(initial)) {  // the original keeps the manager's title
+SeriesEditDialog::SeriesEditDialog(ProfileSeries initial, bool isNew, QWidget* parent, LengthUnit sectionUnit)
+    : CypeDialog(tr("Series de Perfiles"), parent), m_series(std::move(initial)), m_unit(sectionUnit) {  // the original keeps the manager's title
     (void)isNew;
     setFixedSize(330, 421);
     auto* outer = new QHBoxLayout;
@@ -425,10 +517,18 @@ bool SeriesEditDialog::exportFile(const QString& path) {
 }
 
 void SeriesEditDialog::addProfile(const Section& profile) {
-    if (m_series.profiles.empty()) m_series.kind = profile.kind;  // the first profile fixes the shape of the series
+    if (m_series.profiles.empty()) setShapeOfSeries(profile.kind);  // the first profile fixes the shape of the series
     m_series.profiles.push_back(profile);
     refreshTable();
     m_table->selectRow(m_table->rowCount() - 1);
+}
+
+void SeriesEditDialog::setShapeOfSeries(ShapeKind kind) {
+    m_series.kind = kind;
+    // Concrete / timber shapes belong to their family; going back to steel from them restores the default steel family.
+    if (const auto fixed = shapeFamily(kind)) m_series.family = *fixed;
+    else if (m_series.family == SectionFamily::Concrete || m_series.family == SectionFamily::Timber)
+        m_series.family = SectionFamily::HotRolledSteel;
 }
 
 void SeriesEditDialog::replaceProfile(int row, const Section& profile) {
@@ -476,16 +576,16 @@ void SeriesEditDialog::onNew() {
         blank.reference.clear();
         blank.tabulated = {};
     }
-    ProfileEditDialog dialog(blank, true, first, this);
+    ProfileEditDialog dialog(blank, true, first, this, m_unit);
     if (dialog.exec() == QDialog::Accepted) addProfile(dialog.value());
 }
 
 void SeriesEditDialog::onEdit() {
     const int row = selectedRow(m_table);
     if (row < 0) return;
-    ProfileEditDialog dialog(m_series.profiles[static_cast<std::size_t>(row)], false, m_series.profiles.size() == 1, this);
+    ProfileEditDialog dialog(m_series.profiles[static_cast<std::size_t>(row)], false, m_series.profiles.size() == 1, this, m_unit);
     if (dialog.exec() == QDialog::Accepted) {
-        if (m_series.profiles.size() == 1) m_series.kind = dialog.value().kind;
+        if (m_series.profiles.size() == 1) setShapeOfSeries(dialog.value().kind);
         replaceProfile(row, dialog.value());
     }
 }
@@ -622,14 +722,14 @@ bool SeriesManagerDialog::exportFile(const QString& path) {
 void SeriesManagerDialog::onNew() {
     ProfileSeries blank;
     blank.reference = "";
-    SeriesEditDialog dialog(blank, true, this);
+    SeriesEditDialog dialog(blank, true, this, m_scratch.project.units.dimensions);
     if (dialog.exec() == QDialog::Accepted) newSeries(dialog.value());
 }
 
 void SeriesManagerDialog::onEdit() {
     const int row = currentRow();
     if (row < 0) return;
-    SeriesEditDialog dialog(m_scratch.library().series[static_cast<std::size_t>(row)], false, this);
+    SeriesEditDialog dialog(m_scratch.library().series[static_cast<std::size_t>(row)], false, this, m_scratch.project.units.dimensions);
     if (dialog.exec() == QDialog::Accepted) editSeries(row, dialog.value());
 }
 
@@ -753,8 +853,9 @@ void PredefinedImportDialog::accept() {
 
 // --- ProfileLibraryDialog ----------------------------------------------------------------------------------------------------
 
-ProfileLibraryDialog::ProfileLibraryDialog(const ProfileLibrary& library, QWidget* parent)
+ProfileLibraryDialog::ProfileLibraryDialog(const ProfileLibrary& library, QWidget* parent, LengthUnit sectionUnit)
     : CypeDialog(tr("Gestión de la biblioteca de perfiles"), parent), m_scratch(library) {
+    m_scratch.project.units.dimensions = sectionUnit;
     setFixedSize(328, 224);
     struct Def { const char* name; const char* text; };
     const Def defs[] = {{"predefined", QT_TR_NOOP("Importación de series de perfiles predefinidas")},

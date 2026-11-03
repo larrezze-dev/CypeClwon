@@ -669,7 +669,7 @@ void MainWindow::editUnits() {
 void MainWindow::editProfileLibrary() {
     if (!m_projectOpen || !m_document) return;
     cc::core::Project& project = m_document->project;
-    ProfileLibraryDialog dialog(project.profileLibrary, this);
+    ProfileLibraryDialog dialog(project.profileLibrary, this, project.units.dimensions);
     if (dialog.exec() != QDialog::Accepted) return;
     if (dialog.library() == project.profileLibrary) return;
     m_undo.push(std::make_unique<cc::core::ReplaceLibraryCommand>(project, dialog.library(), "Biblioteca de perfiles"));

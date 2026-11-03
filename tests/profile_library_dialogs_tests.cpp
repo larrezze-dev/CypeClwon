@@ -317,6 +317,121 @@ TEST(ProfileLibraryDialog, SnapshotsForVisualComparison) {
     d.grab().save(base + "/clone_series_nueva.png");
     ProfileEditDialog e(scratch.library().series[0].profiles[0], false);
     e.grab().save(base + "/clone_perfil_editar.png");
+    Section concrete = defaultConcreteSection();
+    ProfileEditDialog f(concrete, true, true);
+    f.familyCombo()->setCurrentIndex(f.familyCombo()->findData(static_cast<int>(SectionFamily::Concrete)));
+    f.grab().save(base + "/clone_perfil_hormigon.png");
+    f.shapeCombo()->setCurrentIndex(2);
+    f.grab().save(base + "/clone_perfil_hormigon_variable.png");
+}
+
+
+// --- T-P5-06 GUI: concrete and timber ---------------------------------------------------------------------------------------
+
+TEST(ProfileEditDialog, ConcreteFamilyOffersTheDocumentedShapesWithDefault30x30) {
+    Sink sink;
+    Section blank;
+    blank.kind = ShapeKind::IParallel;
+    blank.dims.assign(5, 0.0);
+    ProfileEditDialog dialog(blank, true, true);  // default unit: cm
+    ASSERT_TRUE(dialog.familyCombo()->isEnabled());
+    dialog.familyCombo()->setCurrentIndex(dialog.familyCombo()->findData(static_cast<int>(SectionFamily::Concrete)));
+    EXPECT_EQ(dialog.family(), SectionFamily::Concrete);
+    ASSERT_EQ(dialog.shapeCombo()->count(), 3);
+    EXPECT_EQ(dialog.shapeCombo()->itemText(0), "Circular");
+    EXPECT_EQ(dialog.shapeCombo()->itemText(1), "Rectangular");
+    EXPECT_EQ(dialog.shapeCombo()->itemText(2), "Rectangular de canto variable");
+    EXPECT_EQ(dialog.value().kind, ShapeKind::ConcreteRectangular);  // the original's default
+    ASSERT_NE(dialog.dimensionSpin(1), nullptr);
+    EXPECT_DOUBLE_EQ(dialog.dimensionSpin(0)->value(), 30.0);  // Ancho, cm
+    EXPECT_DOUBLE_EQ(dialog.dimensionSpin(1)->value(), 30.0);  // Canto, cm
+    EXPECT_TRUE(dialog.dimensionSpin(0)->suffix().contains("cm"));
+    EXPECT_NEAR(dialog.value().dims[0], 0.30, 1e-12);
+    EXPECT_TRUE(dialog.propertiesLabel()->text().contains("A = 900.00 cm²"));
+    EXPECT_TRUE(dialog.propertiesLabel()->text().contains("Avz = 750.00 cm²"));  // 5/6 A
+    EXPECT_FALSE(dialog.propertiesLabel()->text().contains("Iw"));
+}
+
+TEST(ProfileEditDialog, DimensionsFollowTheUnitsOfTheWork) {
+    Sink sink;
+    Section s;
+    s.reference = "R";
+    s.kind = ShapeKind::ConcreteRectangular;
+    s.dims = {0.30, 0.40};
+    ProfileEditDialog metres(s, false, false, nullptr, LengthUnit::Metres);
+    EXPECT_DOUBLE_EQ(metres.dimensionSpin(1)->value(), 0.40);
+    ProfileEditDialog mm(s, false, false, nullptr, LengthUnit::Millimetres);
+    EXPECT_DOUBLE_EQ(mm.dimensionSpin(1)->value(), 400.0);
+    mm.dimensionSpin(0)->setValue(250.0);
+    EXPECT_NEAR(mm.value().dims[0], 0.25, 1e-12);
+    EXPECT_NEAR(mm.value().dims[1], 0.40, 1e-12);
+}
+
+TEST(ProfileEditDialog, VariableDepthShowsInitialAndFinalDepthAndBothEnds) {
+    Sink sink;
+    Section s;
+    s.reference = "V";
+    s.kind = ShapeKind::ConcreteRectangularVariable;
+    s.dims = {0.30, 0.30, 0.60};
+    ProfileEditDialog dialog(s, false, false);
+    EXPECT_NE(dialog.dimensionSpin(2), nullptr);
+    EXPECT_EQ(dialog.dimensionSpin(3), nullptr);
+    const QString text = dialog.propertiesLabel()->text();
+    EXPECT_TRUE(text.contains("Canto inicial"));
+    EXPECT_TRUE(text.contains("Canto final"));
+    EXPECT_TRUE(text.contains("A = 900.00 cm²"));
+    EXPECT_TRUE(text.contains("A = 1800.00 cm²"));
+    dialog.dimensionSpin(2)->setValue(0.0);  // zero final depth is invalid
+    dialog.accept();
+    EXPECT_EQ(dialog.result(), QDialog::Rejected);
+    ASSERT_EQ(sink.warnings.size(), 1);
+}
+
+TEST(ProfileEditDialog, TimberFamilyOffersFourShapes) {
+    Sink sink;
+    Section blank;
+    blank.kind = ShapeKind::IParallel;
+    blank.dims.assign(5, 0.0);
+    ProfileEditDialog dialog(blank, true, true);
+    dialog.familyCombo()->setCurrentIndex(dialog.familyCombo()->findData(static_cast<int>(SectionFamily::Timber)));
+    ASSERT_EQ(dialog.shapeCombo()->count(), 4);
+    EXPECT_EQ(dialog.shapeCombo()->itemText(0), "Redondo");
+    EXPECT_EQ(dialog.shapeCombo()->itemText(1), "Cuadrado");
+    EXPECT_EQ(dialog.shapeCombo()->itemText(3), "Rectangular de canto variable");
+    EXPECT_EQ(dialog.value().kind, ShapeKind::TimberRound);
+    dialog.shapeCombo()->setCurrentIndex(2);
+    EXPECT_EQ(dialog.value().kind, ShapeKind::TimberRectangular);
+    EXPECT_EQ(dialog.value().dims.size(), 2u);
+    // Back to steel restores the steel shapes.
+    dialog.familyCombo()->setCurrentIndex(0);
+    EXPECT_EQ(dialog.shapeCombo()->count(), 9);  // the nine steel shapes of the clone (IPN is separate)
+}
+
+TEST(SeriesEditDialog, ConcreteSeriesDeclaresItsFamilyAndIsAccepted) {
+    Sink sink;
+    SeriesEditDialog dialog(ProfileSeries{}, true);
+    dialog.referenceEdit()->setText("PILARES");
+    Section s = defaultConcreteSection();
+    dialog.addProfile(s);
+    EXPECT_EQ(dialog.value().family, SectionFamily::Concrete);
+    EXPECT_EQ(dialog.value().kind, ShapeKind::ConcreteRectangular);
+    dialog.accept();
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+    EXPECT_TRUE(sink.warnings.isEmpty());
+}
+
+TEST(SeriesManagerDialog, NewConcreteSeriesGoesIntoTheLibrary) {
+    Sink sink;
+    LibraryScratch scratch{ProfileLibrary{}};
+    SeriesManagerDialog dialog(scratch);
+    ProfileSeries series;
+    series.reference = "HA";
+    series.family = SectionFamily::Concrete;
+    series.kind = ShapeKind::ConcreteRectangular;
+    series.profiles = {defaultConcreteSection()};
+    EXPECT_TRUE(dialog.newSeries(series));
+    ASSERT_EQ(scratch.library().series.size(), 1u);
+    EXPECT_EQ(scratch.library().series[0].family, SectionFamily::Concrete);
 }
 
 int main(int argc, char** argv) {
