@@ -6,8 +6,10 @@
 #include <QPointF>
 #include <QRectF>
 #include <QSizeF>
+#include <QChar>
 #include <QString>
 #include <QStringList>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -63,6 +65,17 @@ public:
     /// Structure shown (not owned; must outlive the viewport or be reset to nullptr). Bars and shells are drawn from it,
     /// it feeds the guide lines and it is what picking works on. Clears the selection.
     void setStructure(const core::StructuralModel* structure);
+    /// The structure changed in place (an edit, an undo or a redo): rebuilds the node list the guide lines are drawn through,
+    /// drops the hover / selection / moving node that no longer exist and repaints.
+    void refreshStructure();
+    /// "N<id>" labels (bold green, right of and above every node) shown while a command of Geometria > Nudos is active; in the
+    /// normal view the original draws none (nudos.md section 8).
+    void setNodeLabelsVisible(bool on);
+    bool nodeLabelsVisible() const { return m_nodeLabels; }
+    /// Node being moved (Nudos > Mover, second step): drawn at the cursor position with the bars that reach it following it,
+    /// and left out of the snap together with those bars so that it cannot snap to itself.
+    void setMovingNode(std::optional<int> nodeId);
+    const std::optional<int>& movingNode() const { return m_movingNode; }
     const core::StructuralModel* structure() const { return m_structure; }
 
     /// Selection mode: what the original does inside a command of the Geometria ribbon tab. The guide lines are hidden,
@@ -257,6 +270,12 @@ signals:
     void pointEntered(const cc::core::Vec3& world, const cc::core::SnapResult& snap);
     /// Right button in selection mode: act on the selected elements.
     void actOnSelection();
+    /// Right button in snap mode (Nudos > Mover cancels with it).
+    void rightClicked();
+    /// A digit typed while the snap mode is active: the original opens its "Calculadora" with it.
+    void digitTyped(QChar digit);
+    /// Esc pressed in selection or snap mode (after the viewport cancelled a pending window / cleared the selection).
+    void escapePressed();
     /// Status bar text of the current mode (empty when leaving selection mode).
     void statusHint(const QString& text);
 
@@ -290,6 +309,10 @@ private:
     void drawRubberBand(class QPainter& painter) const;
     void drawZoomMark(class QPainter& painter) const;
     void drawNodeLabel(class QPainter& painter) const;
+    void drawNodeTags(class QPainter& painter) const;
+    void rebuildSnapModel();
+    void updateFocusPolicy();
+    bool elementExists(const core::ElementRef& e) const;
     void drawSnap(class QPainter& painter) const;
     void updateSnap(const QPointF& pos);
     core::ScreenMapper mapper() const;
@@ -319,6 +342,9 @@ private:
     bool m_fillShells = false;
     double m_nodeSizeCm = 15.0;
     bool m_cursorInside = false;
+    bool m_nodeLabels = false;
+    std::optional<int> m_movingNode;
+    std::shared_ptr<core::StructuralModel> m_snapModel;  ///< structure without the moving node and its bars (null when none moves)
 
     void notifyCameraChanged();
     void fitAll();  ///< the camera part of frameAll(), without history

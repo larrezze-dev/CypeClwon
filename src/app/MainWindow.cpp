@@ -40,6 +40,7 @@
 #include "StartPage.h"
 #include <QMdiArea>
 #include "LayersPanel.h"
+#include "NodeTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
 #include "Viewport3D.h"
@@ -169,12 +170,19 @@ void MainWindow::createWorkArea() {
             }
     });
     connect(m_leftPanel->layersPanel(), &LayersPanel::assignToolToggled, this, [this](bool on) {
+        if (on) m_nodeTool->deactivate();  // one viewport tool at a time: RMB must not also act as a node command
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
                 viewport->setSelectionFilter({false, true, true});
                 viewport->setSelectionMode(on);
             }
+        // After the viewport's own, generic hint; same format as the original (n7_borrar.png).
+        statusBar()->showMessage(on ? tr("Herramientas - Asignar elementos a etiquetas |  - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.")
+                                    : NodeTool::defaultStatusText());
     });
+    // Geometria > Nudos: its status text goes to the bar; a command and the "Asignar elementos" tool exclude each other.
+    connect(m_nodeTool, &NodeTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] { m_leftPanel->layersPanel()->assignToolButton()->setChecked(false); });
     setProjectOpen(false);
 
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
@@ -192,6 +200,7 @@ void MainWindow::createWorkArea() {
     m_undo.setChangeCallback([this] {
         refreshUndoActions();
         syncViewSettings();
+        if (m_projectOpen && m_document) m_nodeTool->structureChanged();  // every push / undo / redo: node buttons and 3D windows follow
     });
     loadRecentFiles();
 }
@@ -407,6 +416,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_projectPath.clear();
     }
     m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+    m_nodeTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);  // ends any node command
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
@@ -432,11 +442,15 @@ void MainWindow::setProjectOpen(bool open) {
         });
         DisplayOptionsPanel::applyTo(*viewport, m_leftPanel->displayOptions()->options());
         viewport->setCategorySettings(m_leftPanel->categoriesPanel()->settings());
+        m_nodeTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
     }
-    if (open) m_leftPanel->restoreSections();
+    if (open) {
+        m_nodeTool->structureChanged();  // enables Nuevo / Borrar / Mover and redraws a window kept from the previous project
+        m_leftPanel->restoreSections();
+    }
     m_leftPanel->setVisible(open);
     m_modeTabs->setVisible(open);
     updateViewActions();
@@ -693,6 +707,16 @@ void MainWindow::buildGeometryTab() {
     entry(tr("Agrupar"), tr("Planos - Agrupar"), notYet);
     entry(tr("Desagrupar"), tr("Planos - Desagrupar"), notYet);
     tab->addPanel(tr("Planos"))->addLargeMenu(menu, QToolButton::InstantPopup);
+
+    // "Nudos" (orig_geometria_ribbon.png): Nuevo large on the left, Borrar and Mover small and stacked on its right.
+    m_nodeTool = new NodeTool(this);
+    m_nodeTool->newAction()->setIcon(themedIcon(QStringLiteral("node_new")));
+    m_nodeTool->deleteAction()->setIcon(themedIcon(QStringLiteral("node_delete")));
+    m_nodeTool->moveAction()->setIcon(themedIcon(QStringLiteral("node_move")));
+    SARibbonPanel* nodes = tab->addPanel(tr("Nudos"));
+    nodes->addLargeAction(m_nodeTool->newAction());
+    nodes->addSmallAction(m_nodeTool->deleteAction());
+    nodes->addSmallAction(m_nodeTool->moveAction());
 }
 
 void MainWindow::buildObraTab() {

@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPushButton>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -10,10 +11,15 @@
 namespace cc::app {
 
 namespace {
-constexpr int kTitleBarHeight = 34;
+// Measured on the "Nueva obra" window of the original (docs/research/ui/nudos.md section 8): the frame is 5 px on the left, right
+// and bottom (1 px #841E14 outside + 4 px #B1291C inside); the title bar is #B1291C, about 31 px high with 1 px #841E14 on top.
+constexpr int kTitleBarHeight = 30;  // below the 1 px outline: 31 px with it
+constexpr int kFrame = 5;
+const QColor kFrameDark(0x84, 0x1E, 0x14);
+const QColor kFrameRed(0xB1, 0x29, 0x1C);
 constexpr const char* kStyle =
-    "QDialog#cypeDialog { background: #F0F0F0; border: 1px solid #B22A20; }"
-    "QWidget#dlgTitleBar { background: #B22A20; }"
+    "QDialog#cypeDialog { background: transparent; }"
+    "QWidget#dlgTitleBar { background: transparent; }"
     "QLabel#dlgTitle { color: white; font-size: 13px; }"
     "QToolButton#dlgClose { color: white; background: transparent; border: none; font-size: 18px; }"
     "QToolButton#dlgClose:hover { background: rgba(255,255,255,0.2); }"
@@ -38,7 +44,7 @@ CypeDialog::CypeDialog(const QString& title, QWidget* parent) : QDialog(parent) 
     setStyleSheet(QString::fromLatin1(kStyle));
 
     m_root = new QVBoxLayout(this);
-    m_root->setContentsMargins(1, 1, 1, 1);
+    m_root->setContentsMargins(kFrame, 1, kFrame, kFrame);
     m_root->setSpacing(0);
 
     m_titleBar = new QWidget(this);
@@ -63,7 +69,7 @@ CypeDialog::CypeDialog(const QString& title, QWidget* parent) : QDialog(parent) 
 
     auto* body = new QWidget(this);
     m_content = new QVBoxLayout(body);
-    m_content->setContentsMargins(14, 12, 14, 12);
+    m_content->setContentsMargins(10, 12, 10, 12);  // 14 px side margin minus the 4 px the thicker frame takes
     m_root->addWidget(body, 1);
 }
 
@@ -82,7 +88,7 @@ void CypeDialog::setupFooter(const QString& acceptText, const QString& cancelTex
     auto* footer = new QWidget(this);
     footer->setObjectName(QStringLiteral("dlgFooter"));
     auto* row = new QHBoxLayout(footer);
-    row->setContentsMargins(10, 10, 10, 10);
+    row->setContentsMargins(6, 10, 6, 10);
     m_accept = new QPushButton(acceptText, footer);
     m_accept->setDefault(true);
     m_cancel = new QPushButton(cancelText, footer);
@@ -98,9 +104,22 @@ QHBoxLayout* CypeDialog::setupCustomFooter() {
     auto* footer = new QWidget(this);
     footer->setObjectName(QStringLiteral("dlgFooter"));
     auto* row = new QHBoxLayout(footer);
-    row->setContentsMargins(10, 10, 10, 10);
+    row->setContentsMargins(6, 10, 6, 10);
     m_root->addWidget(footer);
     return row;
+}
+
+void CypeDialog::paintEvent(QPaintEvent*) {
+    QPainter painter(this);
+    const QRect all = rect();
+    painter.fillRect(all, QColor(0xF0, 0xF0, 0xF0));
+    painter.fillRect(QRect(0, 0, all.width(), 1 + kTitleBarHeight), kFrameRed);                       // title bar
+    painter.fillRect(QRect(0, 0, kFrame, all.height()), kFrameRed);                                   // left
+    painter.fillRect(QRect(all.width() - kFrame, 0, kFrame, all.height()), kFrameRed);                // right
+    painter.fillRect(QRect(0, all.height() - kFrame, all.width(), kFrame), kFrameRed);                // bottom
+    painter.setPen(kFrameDark);                                                                       // 1 px outline all round
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(all.adjusted(0, 0, -1, -1));
 }
 
 void CypeDialog::mousePressEvent(QMouseEvent* event) {

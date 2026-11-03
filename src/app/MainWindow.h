@@ -17,6 +17,7 @@ class QTabBar;
 namespace cc::app {
 
 class LeftPanel;
+class NodeTool;
 class Viewport3D;
 class SessionBar;
 class StartPage;
@@ -88,7 +89,7 @@ private:
     void editUnits();
     /// Builds the groups of the Obra tab (reference: docs/screenshots/orig_obra_tab.png).
     void buildObraTab();
-    /// Builds the groups of the Geometria tab built so far ("Planos"; the rest arrives with nodes and bars).
+    /// Builds the groups of the Geometria tab built so far ("Planos", "Nudos"; the rest arrives with the bars).
     void buildGeometryTab();
     /// Geometria > Planos > Rejilla / Niveles / Visibilidad (each edit is one undoable step).
     void editGrid();
@@ -113,6 +114,7 @@ private:
     QAction* m_planesVisibilityAction = nullptr;
     QAction* m_showNewPlanesAction = nullptr;
     class DimensionsBar* m_dimensionsBar = nullptr;
+    NodeTool* m_nodeTool = nullptr;  ///< Geometria > Nudos (Nuevo / Borrar / Mover)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;
     QAction* m_doubleViewAction = nullptr;

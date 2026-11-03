@@ -134,6 +134,20 @@ void DeleteNodesCommand::undo() {
     for (const Shell& s : m_shells) model.insertShell(s);
 }
 
+std::optional<int> findNodeAt(const StructuralModel& model, const Point3& p, double toleranceM) {
+    std::optional<int> best;
+    double bestDist = toleranceM;
+    for (const Node& n : model.nodes) {
+        const Point3 d = sub(n.position, p);
+        const double dist = std::sqrt(dot(d, d));
+        if (best ? dist < bestDist : dist <= toleranceM) {
+            bestDist = dist;
+            best = n.id;
+        }
+    }
+    return best;
+}
+
 // --- wrappers ---------------------------------------------------------------------------------------------------
 
 int addNode(Project& project, UndoStack& stack, const Point3& position) {
@@ -142,6 +156,11 @@ int addNode(Project& project, UndoStack& stack, const Point3& position) {
     const int id = cmd->id();
     stack.push(std::move(cmd));
     return id;
+}
+
+int addNodeIfFree(Project& project, UndoStack& stack, const Point3& position) {
+    if (!validPosition(position) || findNodeAt(project.structure, position)) return 0;
+    return addNode(project, stack, position);
 }
 
 bool moveNode(Project& project, UndoStack& stack, int nodeId, const Point3& newPosition) {

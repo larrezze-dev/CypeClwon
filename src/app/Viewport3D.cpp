@@ -193,6 +193,7 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
         }
     }
     m_drag = actionFor(event->buttons());
+    const bool selectionAtStart = m_selectionMode, snapAtStart = m_snapMode;  // a handler may switch the mode under our feet
     if (!m_committed) m_committed = m_camera.view();
     if (m_drag == DragAction::Orbit && m_rotateAroundPoint) m_orbitPivot = orbitPivotAt(event->position());
     if (m_zoomMark && event->button() == Qt::LeftButton && width() > 0 && height() > 0) {
@@ -205,11 +206,12 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
         event->accept();
         return;
     }
-    if (m_selectionMode && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) selectionPress(event);
-    if (m_snapMode && event->button() == Qt::LeftButton) {
+    if (selectionAtStart && (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) selectionPress(event);
+    if (snapAtStart && event->button() == Qt::LeftButton) {
         updateSnap(event->position());
         emit pointEntered(cursorWorld(), m_snap);
     }
+    if (snapAtStart && event->button() == Qt::RightButton) emit rightClicked();
     event->accept();
 }
 
@@ -339,9 +341,63 @@ void Viewport3D::setStructure(const core::StructuralModel* structure) {
         for (const core::Node& n : structure->nodes) m_nodes.push_back({n.position.x, n.position.y, n.position.z});
     m_hover.reset();
     m_windowStart.reset();
+    m_movingNode.reset();
+    m_snapModel.reset();
+    m_snap = {};
     clearSelection();
     update();
 }
+
+bool Viewport3D::elementExists(const core::ElementRef& e) const {
+    if (!m_structure) return false;
+    switch (e.kind) {
+        case core::ElementKind::Node: return m_structure->findNode(e.id) != nullptr;
+        case core::ElementKind::Bar: return m_structure->findBar(e.id) != nullptr;
+        case core::ElementKind::Shell: return m_structure->findShell(e.id) != nullptr;
+    }
+    return false;
+}
+
+void Viewport3D::refreshStructure() {
+    m_nodes.clear();
+    if (m_structure)
+        for (const core::Node& n : m_structure->nodes) m_nodes.push_back({n.position.x, n.position.y, n.position.z});
+    if (m_hover && !elementExists(*m_hover)) m_hover.reset();
+    std::vector<core::ElementRef> stale;
+    for (const core::ElementRef& e : m_selection.items())
+        if (!elementExists(e)) stale.push_back(e);
+    if (!stale.empty() && m_selection.apply(stale, core::SelectMode::Remove)) emit selectionChanged();
+    if (m_movingNode && !(m_structure && m_structure->findNode(*m_movingNode))) m_movingNode.reset();
+    rebuildSnapModel();
+    m_snap = {};
+    update();
+}
+
+void Viewport3D::setNodeLabelsVisible(bool on) {
+    if (m_nodeLabels == on) return;
+    m_nodeLabels = on;
+    update();
+}
+
+void Viewport3D::setMovingNode(std::optional<int> nodeId) {
+    m_movingNode = nodeId;
+    m_snap = {};
+    rebuildSnapModel();
+    update();
+}
+
+void Viewport3D::rebuildSnapModel() {
+    m_snapModel.reset();
+    if (!m_structure || !m_movingNode) return;
+    auto model = std::make_shared<core::StructuralModel>(*m_structure);
+    const int id = *m_movingNode;
+    std::erase_if(model->nodes, [id](const core::Node& n) { return n.id == id; });
+    std::erase_if(model->bars, [id](const core::Bar& b) { return b.startNode == id || b.endNode == id; });
+    std::erase_if(model->shells, [id](const core::Shell& s) { return std::find(s.nodeIds.begin(), s.nodeIds.end(), id) != s.nodeIds.end(); });
+    m_snapModel = std::move(model);
+}
+
+void Viewport3D::updateFocusPolicy() { setFocusPolicy(m_selectionMode || m_snapMode ? Qt::ClickFocus : Qt::NoFocus); }
 
 void Viewport3D::setNodeSizeCm(double cm) {
     if (!(cm > 0.0) || m_nodeSizeCm == cm) return;
@@ -353,17 +409,18 @@ void Viewport3D::setSnapMode(bool on) {
     if (m_snapMode == on) return;
     m_snapMode = on;
     m_snap = {};
+    updateFocusPolicy();  // digits and Esc reach the viewport (calculator, leaving the command)
     emit snapChanged();
     update();
 }
 
 void Viewport3D::updateSnap(const QPointF& pos) {
     core::SnapResult snap;
-    if (m_structure) {
+    if (const core::StructuralModel* model = m_snapModel ? m_snapModel.get() : m_structure) {
         core::SnapParams params;
         params.nodesVisible = m_categories.nodesDrawn();  // hidden elements are not snapped to
         params.barsVisible = m_categories.barsDrawn();
-        snap = core::snapCursor(*m_structure, mapper(), pos.x(), pos.y(), m_snapOptions, params);
+        snap = core::snapCursor(*model, mapper(), pos.x(), pos.y(), m_snapOptions, params);
     }
     m_cursor = pos;
     const bool changed = snap.kind != m_snap.kind || !(snap.point == m_snap.point);
@@ -382,7 +439,7 @@ void Viewport3D::setSelectionMode(bool on) {
     m_hover.reset();
     m_windowStart.reset();
     if (!on) clearSelection();
-    setFocusPolicy(on ? Qt::ClickFocus : Qt::NoFocus);
+    updateFocusPolicy();
     emit statusHint(on ? tr("LMB: Seleccione un grupo de elementos. RMB: Actuar sobre los elementos seleccionados") : QString());
     update();
 }
@@ -461,10 +518,20 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
 }
 
 void Viewport3D::keyPressEvent(QKeyEvent* event) {
-    if (m_selectionMode && event->key() == Qt::Key_Escape) {
-        if (m_windowStart) cancelWindow();
-        else clearSelection();
+    if (event->key() == Qt::Key_Escape && (m_selectionMode || m_snapMode)) {
         event->accept();
+        if (m_selectionMode && m_windowStart) {  // first Esc only cancels the pending window
+            cancelWindow();
+            return;
+        }
+        if (m_selectionMode) clearSelection();
+        emit escapePressed();
+        return;
+    }
+    if (m_snapMode && !(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier)) && event->text().size() == 1 &&
+        event->text().at(0) >= QLatin1Char('0') && event->text().at(0) <= QLatin1Char('9')) {
+        event->accept();
+        emit digitTyped(event->text().at(0));
         return;
     }
     QOpenGLWidget::keyPressEvent(event);
@@ -480,6 +547,7 @@ void Viewport3D::leaveEvent(QEvent* event) {
 void Viewport3D::enterEvent(QEnterEvent* event) {
     m_cursorInside = true;
     m_cursor = event->position();
+    if (focusPolicy() != Qt::NoFocus) setFocus();  // the keyboard acts on the window the pointer is in
     update();
     QOpenGLWidget::enterEvent(event);
 }
@@ -658,6 +726,11 @@ void Viewport3D::drawStructure(QPainter& painter) const {
     };
     const bool clipping = m_clip.anyActive();
     const std::vector<core::ClipHalfSpace> spaces = m_clip.halfSpaces();
+    // Nudos > Mover: the node being moved is drawn at the cursor and the bars that reach it follow it.
+    const Vec3 movedTo = m_movingNode ? cursorWorld() : Vec3{};
+    const auto positionOf = [&](const core::Node& n) -> Vec3 {
+        return m_movingNode && n.id == *m_movingNode ? movedTo : Vec3{n.position.x, n.position.y, n.position.z};
+    };
     for (const core::Shell& shell : m_structure->shells) {
         if (!m_categories.shellsDrawn()) break;
         if (!m_structure->elementVisible(shell.layerIds)) continue;  // layer hidden with the eye
@@ -665,7 +738,7 @@ void Viewport3D::drawStructure(QPainter& painter) const {
         std::vector<Vec3> corners;
         for (int id : shell.nodeIds) {
             const core::Node* n = m_structure->findNode(id);
-            if (n) corners.push_back({n->position.x, n->position.y, n->position.z});
+            if (n) corners.push_back(positionOf(*n));
         }
         if (corners.size() != shell.nodeIds.size()) continue;
         if (clipping) corners = core::clipPolygon(corners, spaces);  // sections / clipping volume cut the shell
@@ -693,7 +766,7 @@ void Viewport3D::drawStructure(QPainter& painter) const {
         const core::Node* a = m_structure->findNode(bar.startNode);
         const core::Node* b = m_structure->findNode(bar.endNode);
         if (!(a && b)) continue;
-        Vec3 pa{a->position.x, a->position.y, a->position.z}, pb{b->position.x, b->position.y, b->position.z};
+        Vec3 pa = positionOf(*a), pb = positionOf(*b);
         if (clipping) {
             const auto cut = core::clipSegment(pa, pb, spaces);
             if (!cut) continue;
@@ -722,8 +795,35 @@ void Viewport3D::drawNodes(QPainter& painter) const {
     painter.setPen(QPen(kNodeBlue, 1));
     for (const core::Node& n : m_structure->nodes) {
         double x, y;
+        if (m_movingNode && n.id == *m_movingNode) continue;  // drawn at the cursor below
         if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z})) continue;
         if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+    }
+    if (m_movingNode) {
+        double x, y;
+        painter.setPen(QPen(kHighlight, 1));  // the node in motion is orange like a selected one
+        if (map.toScreen(cursorWorld(), x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+    }
+}
+
+void Viewport3D::drawNodeTags(QPainter& painter) const {
+    // Nudos > Nuevo (nudos.md section 8, n5_on_bar.png): "N<id>" in bold green, its left edge 33 px right of the node and its
+    // middle 7 px above it.
+    if (!m_nodeLabels || !m_structure || !m_categories.nodesDrawn()) return;
+    QFont font = painter.font();
+    font.setPixelSize(13);
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(QColor(QStringLiteral("#008000")));
+    const core::ScreenMapper map = mapper();
+    const QFontMetrics metrics(font);
+    for (const core::Node& n : m_structure->nodes) {
+        if (m_movingNode && n.id == *m_movingNode) continue;
+        double x, y;
+        if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z}) || !map.toScreen(n.position, x, y)) continue;
+        const QString text = QStringLiteral("N%1").arg(n.id);
+        painter.drawText(QRectF(x + 33, y - 7 - metrics.height() / 2.0, metrics.horizontalAdvance(text) + 2, metrics.height()),
+                         Qt::AlignLeft | Qt::AlignVCenter, text);
     }
 }
 
@@ -840,8 +940,10 @@ void Viewport3D::drawSnap(QPainter& painter) const {
 }
 
 void Viewport3D::drawNodeLabel(QPainter& painter) const {
-    if (!m_hover || m_hover->kind != core::ElementKind::Node || !m_structure) return;
-    const core::Node* n = m_structure->findNode(m_hover->id);
+    if (!m_structure) return;
+    const core::Node* n = nullptr;
+    if (m_hover && m_hover->kind == core::ElementKind::Node) n = m_structure->findNode(m_hover->id);
+    else if (m_selection.size() == 1 && m_selection.count(core::ElementKind::Node) == 1) n = m_structure->findNode(m_selection.ids(core::ElementKind::Node).front());
     if (!n) return;
     const auto fmt = [](double v) { return QString::number(v, 'g', 6).replace('.', ','); };
     const QString text =
@@ -853,8 +955,14 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     double nx = 0, ny = 0;
     mapper().toScreen(n->position, nx, ny);
     const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, {nx, ny});  // "Posición de los tooltips"
-    painter.setPen(kNodeBlue);
+    // Original (c4_borrar_sel.png): white box with a dark border and bold black text.
+    painter.setBrush(Qt::white);
+    painter.setPen(QPen(QColor(30, 30, 30), 1));
+    painter.drawRect(box);
+    font.setBold(true);
+    painter.setFont(font);
     painter.drawText(box, Qt::AlignCenter, text);
+    painter.setBrush(Qt::NoBrush);
 }
 
 
@@ -884,7 +992,14 @@ void Viewport3D::drawGuideLines(QPainter& painter) const {
         pen.setStyle(Qt::DotLine);
         painter.setPen(pen);
     };
-    if (m_nodes.empty()) {
+    std::vector<Vec3> nodes = m_nodes;
+    if (m_movingNode && m_structure)
+        if (const core::Node* moving = m_structure->findNode(*m_movingNode)) {
+            const Vec3 old{moving->position.x, moving->position.y, moving->position.z};
+            const auto it = std::find_if(nodes.begin(), nodes.end(), [&](const Vec3& v) { return v == old; });
+            if (it != nodes.end()) nodes.erase(it);  // the old place of the node in motion no longer carries guide lines
+        }
+    if (nodes.empty()) {
         if (refs.onlyWithNode) return;  // the three lines through the origin have no node
         const Vec3 axes[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
         for (int d = 0; d < 3; ++d) {
@@ -904,12 +1019,12 @@ void Viewport3D::drawGuideLines(QPainter& painter) const {
     // Y: a full-length line through every node.
     if (wanted[1]) {
         usePen(1);
-        for (const Vec3& n : m_nodes) drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
+        for (const Vec3& n : nodes) drawGuideLine(painter, n + Vec3{0, -kGuideExtent, 0}, n + Vec3{0, kGuideExtent, 0});
     }
     // X and Z: nodes that share the other two coordinates are joined by one segment, extended a few pixels at both ends.
     const auto key = [](double a, double b) { return std::make_pair(std::llround(a * 1e6), std::llround(b * 1e6)); };
     std::map<std::pair<long long, long long>, std::pair<Vec3, Vec3>> alongX, alongZ;  // line -> (lowest, highest) node
-    for (const Vec3& n : m_nodes) {
+    for (const Vec3& n : nodes) {
         auto [ix, newX] = alongX.try_emplace(key(n.y, n.z), n, n);
         if (!newX) { if (n.x < ix->second.first.x) ix->second.first = n; if (n.x > ix->second.second.x) ix->second.second = n; }
         auto [iz, newZ] = alongZ.try_emplace(key(n.x, n.y), n, n);
@@ -1044,6 +1159,7 @@ void Viewport3D::paintGL() {
     drawStructure(painter);
     drawClipping(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
+    drawNodeTags(painter);
     drawZoomMark(painter);
     if (m_selectionMode) {
         for (const core::ElementRef& e : m_selection.items()) drawHighlight(painter, e, true);

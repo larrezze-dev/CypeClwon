@@ -155,3 +155,34 @@ TEST(NodeEdit, MergedBarKeepsDirectionOfFirstBar) {
     EXPECT_EQ(p.structure.bars[0].startNode, b);
     EXPECT_EQ(p.structure.bars[0].endNode, a);
 }
+
+TEST(NodeEdit, FindNodeAtToleranceAndNearest) {
+    Project p;
+    const int a = p.structure.addNode({0, 0, 0});
+    const int b = p.structure.addNode({1, 0, 0});
+    EXPECT_EQ(findNodeAt(p.structure, {0, 0, 0}), a);
+    EXPECT_EQ(findNodeAt(p.structure, {5e-7, 0, 0}), a);
+    EXPECT_FALSE(findNodeAt(p.structure, {2e-6, 0, 0}).has_value());
+    EXPECT_FALSE(findNodeAt(p.structure, {3, 3, 3}).has_value());
+    EXPECT_EQ(findNodeAt(p.structure, {0.6, 0, 0}, 0.5), b);  // nearest within a wide tolerance
+    EXPECT_EQ(findNodeAt(p.structure, {0.5, 0, 0}, 0.5), a);  // tie: first (lower id) wins
+}
+
+TEST(NodeEdit, AddNodeIfFreeSkipsDuplicatesWithoutTouchingUndo) {
+    Project p;
+    UndoStack stack;
+    const int a = addNodeIfFree(p, stack, {1, 1, 1});
+    EXPECT_EQ(a, 1);
+    const auto count = stack.count();
+    stack.setClean();
+    EXPECT_EQ(addNodeIfFree(p, stack, {1, 1, 1}), 0);
+    EXPECT_EQ(addNodeIfFree(p, stack, {1, 1, 1 + 5e-7}), 0);
+    EXPECT_EQ(addNodeIfFree(p, stack, {NAN, 0, 0}), 0);
+    EXPECT_EQ(addNodeIfFree(p, stack, {2e6, 0, 0}), 0);
+    EXPECT_EQ(stack.count(), count);
+    EXPECT_TRUE(stack.isClean());
+    EXPECT_EQ(p.structure.nodes.size(), 1u);
+    EXPECT_EQ(addNodeIfFree(p, stack, {2, 1, 1}), 2);
+    EXPECT_EQ(stack.count(), count + 1);
+    EXPECT_FALSE(stack.isClean());
+}

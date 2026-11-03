@@ -92,3 +92,14 @@ add_executable(work_planes_dialog_tests work_planes_dialog_tests.cpp ${CMAKE_SOU
 target_include_directories(work_planes_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(work_planes_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(work_planes_dialog_tests)
+
+add_executable(cypedialog_tests cypedialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp)
+target_include_directories(cypedialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(cypedialog_tests PRIVATE Qt6::Widgets GTest::gtest)
+gtest_discover_tests(cypedialog_tests)
+
+add_executable(node_tool_tests node_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/NodeTool.cpp ${CMAKE_SOURCE_DIR}/src/app/NodeCalculatorDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+target_include_directories(node_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(node_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
+gtest_discover_tests(node_tool_tests)

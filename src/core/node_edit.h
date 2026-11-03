@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -75,9 +76,15 @@ private:
     std::vector<Bar> m_merged;
 };
 
+/// Id of the node nearest to `p` at a distance <= toleranceM, or nullopt when there is none.
+std::optional<int> findNodeAt(const StructuralModel& model, const Point3& p, double toleranceM = kCoincidentNodeToleranceM);
+
 /// Convenience wrappers: build the command, push it on `stack` and return the result (0 / false when invalid, in which
 /// case nothing is pushed).
 int addNode(Project& project, UndoStack& stack, const Point3& position);
+/// Like addNode, but returns 0 and pushes nothing when a node already lies within kCoincidentNodeToleranceM of
+/// `position`, or when the position is not finite / out of range.
+int addNodeIfFree(Project& project, UndoStack& stack, const Point3& position);
 bool moveNode(Project& project, UndoStack& stack, int nodeId, const Point3& newPosition);
 bool deleteNodes(Project& project, UndoStack& stack, const std::vector<int>& nodeIds);
 

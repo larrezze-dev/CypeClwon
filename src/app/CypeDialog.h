@@ -29,6 +29,7 @@ protected:
     /// Adds an empty footer band and returns its layout, for dialogs with their own button row.
     QHBoxLayout* setupCustomFooter();
 
+    void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
 
