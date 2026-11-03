@@ -18,6 +18,7 @@ namespace cc::app {
 
 class LeftPanel;
 class NodeTool;
+class BarTool;
 class Viewport3D;
 class SessionBar;
 class StartPage;
@@ -115,6 +116,7 @@ private:
     QAction* m_showNewPlanesAction = nullptr;
     class DimensionsBar* m_dimensionsBar = nullptr;
     NodeTool* m_nodeTool = nullptr;  ///< Geometria > Nudos (Nuevo / Borrar / Mover)
+    BarTool* m_barTool = nullptr;    ///< Geometria > Barras (Barra / Pilar / Viga)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;
     QAction* m_doubleViewAction = nullptr;

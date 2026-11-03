@@ -279,6 +279,7 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     m_cursorInside = true;
     if (m_selectionMode) updateHover(m_cursor);
     if (m_snapMode) updateSnap(m_cursor);
+    if (!m_rubberChain.empty()) update();  // the elastic line follows the pointer
     emit cursorMoved(screenToTargetPlane(event->position()));
     event->accept();
 }
@@ -384,6 +385,36 @@ void Viewport3D::setMovingNode(std::optional<int> nodeId) {
     m_snap = {};
     rebuildSnapModel();
     update();
+}
+
+void Viewport3D::setRubberChain(std::vector<int> nodeIds) {
+    if (nodeIds == m_rubberChain) return;
+    m_rubberChain = std::move(nodeIds);
+    update();
+}
+
+void Viewport3D::drawBarRubber(QPainter& painter) const {
+    if (m_rubberChain.empty() || !m_structure) return;
+    const core::ScreenMapper map = mapper();
+    std::vector<QPointF> points;
+    for (int id : m_rubberChain) {
+        double x, y;
+        const core::Node* node = m_structure->findNode(id);
+        if (node && map.toScreen(node->position, x, y)) points.emplace_back(x, y);
+    }
+    if (points.empty()) return;
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(Qt::black, 1.5));
+    for (std::size_t i = 1; i < points.size(); ++i) painter.drawLine(points[i - 1], points[i]);
+    QPointF end = m_cursor;
+    if (m_hover && m_hover->kind == core::ElementKind::Node)  // the line ends on the node about to be chosen
+        if (const core::Node* node = m_structure->findNode(m_hover->id)) {
+            double x, y;
+            if (map.toScreen(node->position, x, y)) end = QPointF(x, y);
+        }
+    if (m_cursorInside) painter.drawLine(points.back(), end);
+    painter.setPen(QPen(kHighlight, 2));
+    for (const QPointF& p : points) painter.drawRect(QRectF(p.x() - nodeHalf(), p.y() - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
 }
 
 void Viewport3D::rebuildSnapModel() {
@@ -1212,6 +1243,7 @@ void Viewport3D::paintGL() {
     drawClipping(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
     drawMoveRubber(painter);
+    drawBarRubber(painter);
     drawNodeTags(painter);
     drawZoomMark(painter);
     if (m_selectionMode) {

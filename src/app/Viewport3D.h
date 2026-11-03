@@ -76,6 +76,10 @@ public:
     /// and left out of the snap together with those bars so that it cannot snap to itself.
     void setMovingNode(std::optional<int> nodeId);
     const std::optional<int>& movingNode() const { return m_movingNode; }
+    /// Geometria > Barras (Barra / Viga): nodes already chosen, in order. They are drawn as orange squares, joined by black
+    /// lines, with an elastic black line from the last one to the cursor (the node under it when there is one). Empty: none.
+    void setRubberChain(std::vector<int> nodeIds);
+    const std::vector<int>& rubberChain() const { return m_rubberChain; }
     const core::StructuralModel* structure() const { return m_structure; }
 
     /// Selection mode: what the original does inside a command of the Geometria ribbon tab. The guide lines are hidden,
@@ -310,6 +314,7 @@ private:
     void drawStructure(class QPainter& painter) const;
     void drawNodes(class QPainter& painter) const;
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
+    void drawBarRubber(class QPainter& painter) const;  ///< Barras > Barra / Viga: chosen nodes and the elastic line
     void drawHighlight(class QPainter& painter, const core::ElementRef& e, bool selected) const;
     void drawRubberBand(class QPainter& painter) const;
     void drawZoomMark(class QPainter& painter) const;
@@ -351,6 +356,7 @@ private:
     bool m_coordTooltipDismissed = false;
     bool m_nodeLabels = false;
     std::optional<int> m_movingNode;
+    std::vector<int> m_rubberChain;
     std::shared_ptr<core::StructuralModel> m_snapModel;  ///< structure without the moving node and its bars (null when none moves)
 
     void notifyCameraChanged();
