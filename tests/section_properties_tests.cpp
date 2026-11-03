@@ -64,14 +64,14 @@ struct Worst {
 }  // namespace
 
 TEST(SectionProperties, ShapeTablesAreConsistent) {
-    EXPECT_EQ(allShapes().size(), 10u);
+    EXPECT_EQ(allShapes().size(), 17u);
     for (ShapeKind k : allShapes()) {
         EXPECT_EQ(shapeFromKey(shapeKey(k)), k);
         EXPECT_FALSE(dimensionKeys(k).empty());
         EXPECT_FALSE(std::string(shapeNameEs(k)).empty());
     }
     for (SectionFamily f : {SectionFamily::HotRolledSteel, SectionFamily::BuiltUpSteel, SectionFamily::ColdFormedSteel,
-                            SectionFamily::Aluminium, SectionFamily::Timber, SectionFamily::Generic})
+                            SectionFamily::Aluminium, SectionFamily::Timber, SectionFamily::Generic, SectionFamily::Concrete})
         EXPECT_EQ(familyFromKey(familyKey(f)), f);
     EXPECT_FALSE(shapeFromKey("nope").has_value());
 }

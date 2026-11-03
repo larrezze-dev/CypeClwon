@@ -49,6 +49,9 @@ std::string ProfileLibrary::suggestedSeriesReference(const std::string& base) co
 std::string validateSeries(const ProfileSeries& s) {
     if (s.reference.empty()) return "Debe introducir una referencia para la serie de perfiles.";  // #131965
     if (s.profiles.empty()) return "Debe introducir, al menos, un perfil en la serie.";            // #131925
+    if (const auto fixed = shapeFamily(s.kind); fixed && *fixed != s.family)
+        return std::string("La forma '") + shapeNameEs(s.kind) + "' solo puede pertenecer a una serie de " +
+               (*fixed == SectionFamily::Concrete ? "hormigón." : "madera.");
     std::set<std::string> seen;
     for (const Section& p : s.profiles) {
         if (p.reference.empty()) return "Debe introducir una referencia para el perfil.";  // #131966

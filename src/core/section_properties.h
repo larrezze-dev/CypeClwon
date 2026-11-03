@@ -35,12 +35,21 @@ enum class ShapeKind {
     FlatBar,       ///< "Plano": h (depth, along z), b (width, along y)
     RoundBar,      ///< "Redondo": d
     SquareBar,     ///< "Cuadrado": a
-    Generic        ///< "Genérico": distances from the centre of gravity to the envelope (yNeg, yPos, zNeg, zPos); values tabulated
+    Generic,       ///< "Genérico": distances from the centre of gravity to the envelope (yNeg, yPos, zNeg, zPos); values tabulated
+    // --- reinforced concrete and timber (T-P5-06; docs/research/ui/perfiles_hormigon_madera.md). Solid sections without tabulated
+    //     values; the rectangular ones are described by b (width, along y, #65243) and h (depth, along z, #65244).
+    ConcreteCircular,             ///< "Circular": d
+    ConcreteRectangular,          ///< "Rectangular" (default 30 x 30 cm): b, h
+    ConcreteRectangularVariable,  ///< "Rectangular de canto variable": b, h0 (depth at the initial end, #65246), h1 (final end, #65247)
+    TimberRound,                  ///< "Redondo": d
+    TimberSquare,                 ///< "Cuadrado": a
+    TimberRectangular,            ///< "Rectangular": b, h
+    TimberRectangularVariable     ///< "Rectangular de canto variable": b, h0, h1
 };
 
 /// Material family that a series belongs to ("Perfil de acero laminado", "conformado", ...). Only HotRolledSteel and Generic
 /// have shapes with formulas today.
-enum class SectionFamily { HotRolledSteel, BuiltUpSteel, ColdFormedSteel, Aluminium, Timber, Generic };
+enum class SectionFamily { HotRolledSteel, BuiltUpSteel, ColdFormedSteel, Aluminium, Timber, Generic, Concrete };
 
 /// Stable machine name of a shape / family (JSON) and its Spanish name (GUI).
 const char* shapeKey(ShapeKind kind);
@@ -51,6 +60,15 @@ std::optional<ShapeKind> shapeFromKey(const std::string& key);
 std::optional<SectionFamily> familyFromKey(const std::string& key);
 /// Every shape, in declaration order.
 const std::vector<ShapeKind>& allShapes();
+/// Family a concrete / timber shape belongs to (Concrete, Timber); nullopt for the steel shapes and Generic, which have no
+/// fixed family (a series declares it).
+std::optional<SectionFamily> shapeFamily(ShapeKind kind);
+/// Shapes offered for a family, in the order of the original's icons: Concrete = Circular, Rectangular, Rectangular de canto
+/// variable; Timber = Redondo, Cuadrado, Rectangular, Rectangular de canto variable; the steel families = the legacy shapes
+/// without fixed family (Generic excluded).
+std::vector<ShapeKind> shapesOfFamily(SectionFamily family);
+/// True for the two shapes whose depth varies linearly between the ends of the piece (b, h0, h1).
+bool isVariableDepth(ShapeKind kind);
 
 /// Names of the dimensions of a shape, in the order of Section::dims (e.g. {"h","b","tw","tf","r"}).
 const std::vector<std::string>& dimensionKeys(ShapeKind kind);
@@ -94,8 +112,20 @@ struct SectionProperties {
 /// strings where the REA pass found them, otherwise the clone's own wording).
 std::string validateSection(const Section& section);
 
+/// Default section of the original's "Describir" dialog for concrete: rectangular 30.0 x 30.0 cm (b = h = 0.30 m, reference
+/// "30x30"; dialogs_biblioteca_perfiles.md §2). The default dimensions of the other concrete / timber shapes were not measured
+/// (TK-061).
+Section defaultConcreteSection();
+
+/// Constant-depth section equivalent to a variable-depth one at `t` in [0, 1] along the piece (0 = initial end, 1 = final end):
+/// the depth is interpolated linearly (ASSUMPTION: the original only documents the depths at both ends, #65246/#65247; TK-062).
+/// A section that is not of variable depth is returned unchanged. nullopt when `t` is outside [0, 1] or the section is invalid.
+std::optional<Section> sectionAt(const Section& section, double t);
+/// effectiveProperties(sectionAt(section, t)); for a constant section `t` is irrelevant (but must still lie in [0, 1]).
+std::optional<SectionProperties> propertiesAt(const Section& section, double t);
+
 /// Properties from the geometry alone, ignoring tabulated values. nullopt when validateSection() fails or the shape has no
-/// geometry (Generic).
+/// geometry (Generic). For variable-depth shapes these are the properties at the initial end (t = 0); use propertiesAt().
 std::optional<SectionProperties> calculatedProperties(const Section& section);
 
 /// Properties with the rule "tabulated if it exists, otherwise calculated". nullopt when the section is invalid or a Generic

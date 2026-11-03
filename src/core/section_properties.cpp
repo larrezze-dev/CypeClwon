@@ -30,6 +30,13 @@ const std::vector<ShapeInfo>& shapeTable() {
         {ShapeKind::RoundBar, "round", "Redondo", {"d"}},
         {ShapeKind::SquareBar, "square", "Cuadrado", {"a"}},
         {ShapeKind::Generic, "generic", "Genérico", {"yNeg", "yPos", "zNeg", "zPos"}},
+        {ShapeKind::ConcreteCircular, "concreteCircular", "Circular", {"d"}},
+        {ShapeKind::ConcreteRectangular, "concreteRectangular", "Rectangular", {"b", "h"}},
+        {ShapeKind::ConcreteRectangularVariable, "concreteRectangularVariable", "Rectangular de canto variable", {"b", "h0", "h1"}},  // #65245
+        {ShapeKind::TimberRound, "timberRound", "Redondo", {"d"}},
+        {ShapeKind::TimberSquare, "timberSquare", "Cuadrado", {"a"}},
+        {ShapeKind::TimberRectangular, "timberRectangular", "Rectangular", {"b", "h"}},
+        {ShapeKind::TimberRectangularVariable, "timberRectangularVariable", "Rectangular de canto variable", {"b", "h0", "h1"}},
     };
     return table;
 }
@@ -53,6 +60,7 @@ const FamilyInfo kFamilies[] = {
     {SectionFamily::Aluminium, "aluminium", "Aluminio extruido"},
     {SectionFamily::Timber, "timber", "Madera"},
     {SectionFamily::Generic, "generic", "Genérico"},
+    {SectionFamily::Concrete, "concrete", "Hormigón"},  // #27639
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -226,12 +234,32 @@ double rectangleTorsion(double b, double t) {
     return l * s * s * s * (1.0 / 3.0 - 0.21 * (s / l) * (1.0 - std::pow(s, 4) / (12.0 * std::pow(l, 4))));
 }
 
+/// Torsion constant of a solid rectangle as the original computes it (seccion.dll FUN_18001ef90, called by
+/// paramsec_inercia_torsion_rectangulo): It = beta(l/s) * l * s^3 with beta piecewise linear through the classical table
+/// (l/s: 1 -> 0.140, 1.25 -> 0.171, 1.5 -> 0.196, 2 -> 0.229, 3 -> 0.263, 4 -> 0.281, 6 -> 0.299, 10 -> 0.333) and constant 0.333
+/// beyond 10. `l` is the longer side. Exactly the original's table, NOT Saint-Venant's series.
+double rectangleTorsionOriginal(double l, double s) {
+    static const double kRatio[] = {1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 10.0};
+    static const double kBeta[] = {0.14, 0.171, 0.196, 0.229, 0.263, 0.281, 0.299, 0.333};
+    const double r = l / s;
+    double beta = kBeta[7];
+    if (r <= kRatio[7]) {
+        int i = 0;
+        while (i < 6 && r > kRatio[i + 1]) ++i;
+        beta = kBeta[i] + (r - kRatio[i]) * (kBeta[i + 1] - kBeta[i]) / (kRatio[i + 1] - kRatio[i]);
+    }
+    return beta * l * s * s * s;
+}
+
 /// Contribution of the web-flange junction of an I / T section (Bach-Roark inscribed circle): alpha * D^4.
 double junctionTorsion(double tw, double tf, double r) {
     const double D = (std::pow(r + tw / 2, 2) + std::pow(r + tf, 2) - r * r) / (2 * r + tf);
     const double alpha = (tw / tf) * (0.1 * r / tf + 0.145);
     return alpha * std::pow(D, 4);
 }
+
+/// Smallest dimension (m) accepted by the original's rectangle / circle routines.
+constexpr double kMinDimension = 1e-5;
 
 bool positive(double v) { return std::isfinite(v) && v > 0; }
 bool nonNegative(double v) { return std::isfinite(v) && v >= 0; }
@@ -272,6 +300,36 @@ const std::vector<ShapeKind>& allShapes() {
 }
 const std::vector<std::string>& dimensionKeys(ShapeKind kind) { return info(kind).dims; }
 
+std::optional<SectionFamily> shapeFamily(ShapeKind kind) {
+    switch (kind) {
+    case ShapeKind::ConcreteCircular:
+    case ShapeKind::ConcreteRectangular:
+    case ShapeKind::ConcreteRectangularVariable:
+        return SectionFamily::Concrete;
+    case ShapeKind::TimberRound:
+    case ShapeKind::TimberSquare:
+    case ShapeKind::TimberRectangular:
+    case ShapeKind::TimberRectangularVariable:
+        return SectionFamily::Timber;
+    default:
+        return std::nullopt;
+    }
+}
+
+std::vector<ShapeKind> shapesOfFamily(SectionFamily family) {
+    std::vector<ShapeKind> out;
+    for (ShapeKind k : allShapes()) {
+        if (k == ShapeKind::Generic) continue;
+        const auto f = shapeFamily(k);
+        if (f ? *f == family : family == SectionFamily::HotRolledSteel) out.push_back(k);
+    }
+    return out;
+}
+
+bool isVariableDepth(ShapeKind kind) {
+    return kind == ShapeKind::ConcreteRectangularVariable || kind == ShapeKind::TimberRectangularVariable;
+}
+
 bool SectionOverrides::any() const {
     return area || iy || iz || it || iw || wplY || wplZ || avy || avz;
 }
@@ -288,6 +346,14 @@ std::string validateSection(const Section& s) {
                                            &s.tabulated.avz})
         if (*v && !nonNegative(**v)) return "Los valores tabulados del perfil no pueden ser negativos.";
     const char* kPositive = "Las dimensiones del perfil deben ser mayores que cero.";
+    if (shapeFamily(s.kind)) {
+        // Concrete and timber sections are solid, computed from their dimensions only. The minimum 1e-5 m is the limit the
+        // original asserts on the rectangle / circle routines ("ancho > .00001", "canto > .00001"; seccion.dll paramsec_*).
+        if (s.tabulated.any()) return "Las secciones de hormigón y madera no admiten valores tabulados.";
+        for (double v : d)
+            if (!(v > kMinDimension)) return kPositive;
+        return {};
+    }
     switch (s.kind) {
     case ShapeKind::IParallel:
     case ShapeKind::Tee: {
@@ -360,28 +426,37 @@ SectionProperties solid(const Section& s) {
     SectionProperties p;
     const std::vector<double>& d = s.dims;
     switch (s.kind) {
+    case ShapeKind::ConcreteCircular:
+    case ShapeKind::TimberRound:
     case ShapeKind::RoundBar: {
         const double D = d[0];
         p.area = kPi * D * D / 4;
         p.iy = p.iz = kPi * std::pow(D, 4) / 64;
-        p.it = kPi * std::pow(D, 4) / 32;
+        p.it = kPi * std::pow(D, 4) / 32;  // original: 2 * flexural inertia (paramsec_inercia_torsion_redondo)
         p.wplY = p.wplZ = D * D * D / 6;
-        p.avy = p.avz = 0.9 * p.area;  // Timoshenko shear area of a circle (NOT verified against the original)
+        p.avy = p.avz = 0.9 * p.area;  // original: 0.9 * A (paramsec_area_cortante_redondo)
         p.yNeg = p.yPos = p.zNeg = p.zPos = D / 2;
         break;
     }
+    case ShapeKind::ConcreteRectangular:
+    case ShapeKind::TimberRectangular:
+    case ShapeKind::TimberSquare:
     case ShapeKind::SquareBar:
     case ShapeKind::FlatBar: {
-        const double h = d[0], b = s.kind == ShapeKind::SquareBar ? d[0] : d[1];
+        const bool concreteOrTimber = shapeFamily(s.kind).has_value();
+        // dimension order: FlatBar {h, b}; concrete / timber rectangle {b, h}; squares {a}
+        const bool square = s.kind == ShapeKind::SquareBar || s.kind == ShapeKind::TimberSquare;
+        const double h = concreteOrTimber && !square ? d[1] : d[0];
+        const double b = square ? d[0] : (concreteOrTimber ? d[0] : d[1]);
         p.area = h * b;
         p.iy = b * h * h * h / 12;
         p.iz = h * b * b * b / 12;
-        p.it = rectangleTorsion(b, h);
+        p.it = concreteOrTimber ? rectangleTorsionOriginal(std::max(b, h), std::min(b, h)) : rectangleTorsion(b, h);
         p.iw = std::pow(b * h, 3) / 144;  // thin rectangle: negligible but non-zero
-        if (s.kind == ShapeKind::SquareBar) p.iw = 0;
+        if (square || concreteOrTimber) p.iw = 0;
         p.wplY = b * h * h / 4;
         p.wplZ = h * b * b / 4;
-        p.avy = p.avz = 5.0 / 6.0 * p.area;  // Timoshenko shear area of a rectangle (NOT verified against the original)
+        p.avy = p.avz = 5.0 / 6.0 * p.area;  // original: 5 A / 6 (paramsec_area_cortante_rectangulo), same in both directions
         p.yNeg = p.yPos = b / 2;
         p.zNeg = p.zPos = h / 2;
         break;
@@ -398,7 +473,20 @@ SectionProperties solid(const Section& s) {
 
 std::optional<SectionProperties> calculatedProperties(const Section& s) {
     if (!validateSection(s).empty() || s.kind == ShapeKind::Generic) return std::nullopt;
-    if (s.kind == ShapeKind::RoundBar || s.kind == ShapeKind::SquareBar || s.kind == ShapeKind::FlatBar) return solid(s);
+    if (isVariableDepth(s.kind)) return calculatedProperties(*sectionAt(s, 0.0));
+    switch (s.kind) {
+    case ShapeKind::RoundBar:
+    case ShapeKind::SquareBar:
+    case ShapeKind::FlatBar:
+    case ShapeKind::ConcreteCircular:
+    case ShapeKind::ConcreteRectangular:
+    case ShapeKind::TimberRound:
+    case ShapeKind::TimberSquare:
+    case ShapeKind::TimberRectangular:
+        return solid(s);
+    default:
+        break;
+    }
 
     const Poly poly = contour(s);
     const Moments m = momentsOf(poly);
@@ -469,8 +557,33 @@ std::optional<SectionProperties> calculatedProperties(const Section& s) {
     return p;
 }
 
+Section defaultConcreteSection() {
+    Section s;
+    s.reference = "30x30";
+    s.kind = ShapeKind::ConcreteRectangular;
+    s.dims = {0.30, 0.30};
+    return s;
+}
+
+std::optional<Section> sectionAt(const Section& s, double t) {
+    if (!(t >= 0.0 && t <= 1.0) || !validateSection(s).empty()) return std::nullopt;
+    if (!isVariableDepth(s.kind)) return s;
+    Section out;
+    out.reference = s.reference;
+    out.kind = s.kind == ShapeKind::ConcreteRectangularVariable ? ShapeKind::ConcreteRectangular : ShapeKind::TimberRectangular;
+    out.dims = {s.dims[0], s.dims[1] + (s.dims[2] - s.dims[1]) * t};
+    return out;
+}
+
+std::optional<SectionProperties> propertiesAt(const Section& s, double t) {
+    const auto at = sectionAt(s, t);
+    if (!at) return std::nullopt;
+    return effectiveProperties(*at);
+}
+
 std::optional<SectionProperties> effectiveProperties(const Section& s) {
     if (!validateSection(s).empty()) return std::nullopt;
+    if (isVariableDepth(s.kind)) return propertiesAt(s, 0.0);
     SectionProperties p;
     if (s.kind == ShapeKind::Generic) {
         const SectionOverrides& t = s.tabulated;

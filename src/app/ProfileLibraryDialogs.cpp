@@ -216,6 +216,7 @@ ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, bool shapeChan
     m_shape = new QComboBox(this);
     for (ShapeKind kind : allShapes()) {
         if (kind == ShapeKind::Generic) continue;  // generic sections need tabulated values (TK-052)
+        if (shapeFamily(kind)) continue;           // concrete / timber shapes have their own dialog (T-P5-06 GUI)
         m_shape->addItem(tr(shapeNameEs(kind)), static_cast<int>(kind));
         if (kind == m_kind) m_shape->setCurrentIndex(m_shape->count() - 1);
     }
