@@ -40,3 +40,26 @@ No verificado por REA (no se ha abierto el formato; ver docs/research/ui/obra.md
 5. Borrar: confirmación, fusión de barras alineadas (criterio de alineación), qué pasa con nudos con cargas/vínculos.
 6. Mover: restricción a plano/eje, efecto sobre cotas (el original dice que mueve "esté acotado o no"), mensaje al mover sobre otro nudo.
 7. Nombre de campos de nudo en el .ed3.
+
+## 8. Medido en el original (2026-11-03, obra docs/sample_project/pl_base.ed3; capturas n0-n11, c1-c5 en docs/screenshots)
+
+Ribbon Geometría > grupo Nudos (coordenadas de ventana maximizada 1920x1032): Nuevo (69,75), Borrar (123,68), Mover (123,97). El botón activo queda con el fondo azul claro (modo persistente hasta ESC / otro botón).
+
+**Estructura de pl_base.ed3:** 4 nudos N1 (0,0,0 con apoyo), N2 (0,0,3), N3 y N4; los nudos se rotulan «N1», «N2»... en verde, a la derecha y encima del nudo, SOLO mientras hay un comando de Nudos activo (en la vista normal no hay rótulos).
+
+**Nuevo**
+- Barra de estado: «Nudos - Nuevo |  - LMB: Introduzca un punto.» (el 1.er segmento va en negrita-normal: «Nudos - Nuevo», barra vertical, texto).
+- Un tooltip junto al cursor muestra las coordenadas con 3 decimales: «188.107, -185.671, 153.795 m» (fondo gris oscuro, texto blanco, posición según la opción «Posición de los tooltips»).
+- Al pulsar una tecla numérica con el puntero en el visor se abre la ventana modal «Calculadora» (borde rojo, 322x286 px aprox.): campos «Coordenada X», «Coordenada Y», «Coordenada Z»; el campo activo se ve en gris; teclado numérico con 9 8 7 6 5 4 3 2 1 0 . =  + +/- MC - ??? M- * C M+ / AC MR, botón de retroceso y botón Intro (grande). La primera cifra pulsada se pasa a X.
+- **Tab NO cambia de campo.** Las cifras se acumulan en el campo activo («5»,«6»,«7» seguidas dan 567). **Intro** confirma el campo y pasa X -> Y -> Z; el Intro del campo Z crea el nudo y cierra la calculadora (la calculadora vuelve a abrirse al teclear otra cifra; el comando sigue activo).
+- Crear un nudo en (5,6,7) añade **líneas de referencia** nuevas por ese punto (naranja, ejes X, Y y Z) en la vista.
+- Teclear dos veces el mismo punto: sin mensaje ni cambio visible (el segundo no añade nada).
+
+**Borrar**
+- Barra de estado: «Nudos - Borrar |  - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.»
+- LMB sobre un nudo lo marca: cuadrado naranja y tooltip en la esquina superior derecha del visor «N2 (0, 0, 3)» (formato «N<id> (x, y, z)», coordenadas sin decimales si son enteras).
+- RMB borra de inmediato, **sin confirmación**: se van el nudo, todas las barras conectadas, los rótulos «N»... y las líneas de referencia sobrantes que solo pasaban por él. Los nudos que quedan sin barra siguen existiendo (el apoyo N1 quedó dibujado).
+
+**Borde rojo de los diálogos (pendiente del backlog):** medido sobre la ventana «Nueva obra» (537x285): 5 px a izquierda, derecha y abajo = 1 px #841E14 (132,30,20) + 4 px #B1291C (177,41,28); la barra de título es #B1291C de unos 31 px (1 px #841E14 arriba) con el rótulo blanco centrado y una cruz a la derecha; interior #F0F0F0.
+
+**Pendiente de medir:** Mover (botón no probado; comportamiento esperado por 64745-64747), borrado de nudo intermedio con fusión de barras (obra sin esa geometría), clic con LMB en el visor para crear nudo (necesita snap a línea de referencia), longitud de las verticales de la rejilla (TK-038), campos de nudo en el .ed3 (guardar y leer).
