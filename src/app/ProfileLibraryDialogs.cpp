@@ -12,6 +12,7 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QStyle>
 #include <QTableWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -50,7 +51,11 @@ QTableWidget* makeTable(const QStringList& headers, QWidget* parent) {
     t->horizontalHeader()->setStretchLastSection(true);
     t->setWordWrap(false);
     t->setTextElideMode(Qt::ElideRight);
-    t->verticalHeader()->setDefaultSectionSize(22);
+    t->verticalHeader()->setMinimumSectionSize(16);  // the Windows style imposes a larger minimum
+    t->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    t->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    t->verticalHeader()->setDefaultSectionSize(20);
+    t->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     return t;
 }
 
@@ -87,11 +92,36 @@ QString formatProperties(const Section& section) {
     return lines.join(QLatin1Char('\n'));
 }
 
+// "Aviso" message of the original (orig_describir_series_nueva_valid): red frame, warning icon, text, centred Aceptar.
+class NoticeDialog : public CypeDialog {
+public:
+    NoticeDialog(const QString& text, QWidget* parent) : CypeDialog(QObject::tr("Aviso"), parent) {
+        setFixedSize(367, 161);
+        auto* row = new QHBoxLayout;
+        row->setContentsMargins(14, 8, 14, 0);
+        auto* icon = new QLabel(this);
+        icon->setPixmap(style()->standardIcon(QStyle::SP_MessageBoxWarning).pixmap(40, 40));
+        row->addWidget(icon);
+        auto* label = new QLabel(text, this);
+        label->setWordWrap(true);
+        row->addWidget(label, 1);
+        contentLayout()->addLayout(row);
+        contentLayout()->addStretch(1);
+        auto* footer = setupCustomFooter();
+        auto* ok = new QPushButton(QObject::tr("Aceptar"), this);
+        ok->setDefault(true);
+        footer->addStretch(1);
+        footer->addWidget(ok);
+        footer->addStretch(1);
+        connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+    }
+};
+
 }  // namespace
 
 ProfileMessageSink& profileMessageSink() {
     static ProfileMessageSink sink{
-        [](QWidget* parent, const QString& title, const QString& text) { QMessageBox::warning(parent, title, text); },
+        [](QWidget* parent, const QString&, const QString& text) { NoticeDialog(text, parent).exec(); },
         [](QWidget* parent, const QString& title, const QString& text, const QString& first, const QString& second) {
             QMessageBox box(QMessageBox::Question, title, text, QMessageBox::NoButton, parent);
             auto* a = box.addButton(first, QMessageBox::AcceptRole);
@@ -176,28 +206,22 @@ bool exportSeriesFile(QWidget* parent, const std::vector<ProfileSeries>& series,
 
 // --- ProfileEditDialog -------------------------------------------------------------------------------------------------------
 
-ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, QWidget* parent)
-    : CypeDialog(isNew ? tr("Nuevo perfil") : tr("Editar perfil"), parent), m_initial(std::move(initial)) {
+ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, bool shapeChangeable, QWidget* parent)
+    : CypeDialog(isNew ? tr("Nuevo perfil") : tr("Editar perfil"), parent), m_initial(std::move(initial)), m_kind(m_initial.kind) {
     setFixedSize(360, 520);
-    auto* form = new QFormLayout;
-    form->setContentsMargins(4, 0, 4, 0);
+    m_form = new QFormLayout;
+    m_form->setContentsMargins(4, 0, 4, 0);
     m_reference = new QLineEdit(q(m_initial.reference), this);
-    form->addRow(tr("Referencia"), m_reference);
-    form->addRow(tr("Forma"), new QLabel(tr(shapeNameEs(m_initial.kind)), this));
-    const auto& keys = dimensionKeys(m_initial.kind);
-    for (std::size_t i = 0; i < keys.size(); ++i) {
-        auto* spin = new QDoubleSpinBox(this);
-        const bool slope = isSlopeKey(keys[i]);
-        spin->setDecimals(2);
-        spin->setRange(0.0, 100000.0);
-        spin->setSuffix(slope ? QStringLiteral(" %") : QStringLiteral(" mm"));
-        const double stored = i < m_initial.dims.size() ? m_initial.dims[i] : 0.0;
-        spin->setValue(slope ? stored : stored * 1000.0);
-        connect(spin, &QDoubleSpinBox::valueChanged, this, [this] { refreshProperties(); });
-        m_dims.append(spin);
-        form->addRow(q(keys[i]), spin);
+    m_form->addRow(tr("Referencia"), m_reference);
+    m_shape = new QComboBox(this);
+    for (ShapeKind kind : allShapes()) {
+        if (kind == ShapeKind::Generic) continue;  // generic sections need tabulated values (TK-052)
+        m_shape->addItem(tr(shapeNameEs(kind)), static_cast<int>(kind));
+        if (kind == m_kind) m_shape->setCurrentIndex(m_shape->count() - 1);
     }
-    contentLayout()->addLayout(form);
+    m_shape->setEnabled(shapeChangeable);
+    m_form->addRow(tr("Forma"), m_shape);
+    contentLayout()->addLayout(m_form);
     contentLayout()->addWidget(new QLabel(tr("Propiedades calculadas"), this));
     m_properties = new QLabel(this);
     m_properties->setObjectName(QStringLiteral("profileProperties"));
@@ -207,11 +231,39 @@ ProfileEditDialog::ProfileEditDialog(Section initial, bool isNew, QWidget* paren
     m_properties->setMinimumHeight(200);
     contentLayout()->addWidget(m_properties, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
+    buildDims(m_kind, m_initial.dims);
+    connect(m_shape, &QComboBox::currentIndexChanged, this, [this] {
+        m_kind = static_cast<ShapeKind>(m_shape->currentData().toInt());
+        std::vector<double> dims(dimensionKeys(m_kind).size(), 0.0);
+        const auto& keys = dimensionKeys(m_kind);
+        for (std::size_t i = 0; i < keys.size(); ++i)
+            if (isSlopeKey(keys[i])) dims[i] = m_kind == ShapeKind::ISloped ? kIpnSlopePercent : kUpnSlopePercent;
+        buildDims(m_kind, dims);
+    });
+}
+
+void ProfileEditDialog::buildDims(ShapeKind kind, const std::vector<double>& dims) {
+    while (m_form->rowCount() > 2) m_form->removeRow(2);
+    m_dims.clear();
+    const auto& keys = dimensionKeys(kind);
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        auto* spin = new QDoubleSpinBox(this);
+        const bool slope = isSlopeKey(keys[i]);
+        spin->setDecimals(2);
+        spin->setRange(0.0, 100000.0);
+        spin->setSuffix(slope ? QStringLiteral(" %") : QStringLiteral(" mm"));
+        const double stored = i < dims.size() ? dims[i] : 0.0;
+        spin->setValue(slope ? stored : stored * 1000.0);
+        connect(spin, &QDoubleSpinBox::valueChanged, this, [this] { refreshProperties(); });
+        m_dims.append(spin);
+        m_form->addRow(q(keys[i]), spin);
+    }
     refreshProperties();
 }
 
 Section ProfileEditDialog::value() const {
     Section s = m_initial;
+    s.kind = m_kind;
     s.reference = s8(m_reference->text().trimmed());
     const auto& keys = dimensionKeys(s.kind);
     s.dims.clear();
@@ -240,41 +292,75 @@ void ProfileEditDialog::accept() {
 
 // --- SeriesEditDialog --------------------------------------------------------------------------------------------------------
 
+namespace {
+// Flat tool button with the colour of the original's icon (the original uses pictograms; these are glyphs, TK-060).
+QToolButton* flatButton(const QString& name, const QString& glyph, const QString& colour, const QString& tip, QWidget* parent) {
+    auto* b = toolButton(name, glyph, tip, parent);
+    b->setAutoRaise(true);
+    b->setFixedSize(26, 24);
+    b->setStyleSheet(QStringLiteral("QToolButton { border: none; background: transparent; color: %1; font-size: 16px; font-weight: bold; }"
+                                    "QToolButton:hover { background: #E5F1FB; }"
+                                    "QToolButton:disabled { color: #B5B5B5; }").arg(colour));
+    return b;
+}
+const char* kTableStyle =
+    "QTableWidget { background: white; border: 1px solid #A0A0A0; gridline-color: #E3E3E3; alternate-background-color: #F6F6F6; }"
+    "QTableWidget::item { padding: 0px 2px; }"
+    "QTableWidget::item:selected { background: #CCE8FF; color: black; }"
+    "QTableView::indicator { width: 13px; height: 13px; }"
+    "QHeaderView::section { background: white; border: none; border-right: 1px solid #E3E3E3; border-bottom: 1px solid #E3E3E3; padding: 2px 3px; }";
+}  // namespace
+
 SeriesEditDialog::SeriesEditDialog(ProfileSeries initial, bool isNew, QWidget* parent)
-    : CypeDialog(isNew ? tr("Nueva serie") : tr("Editar serie"), parent), m_series(std::move(initial)) {
+    : CypeDialog(tr("Series de Perfiles"), parent), m_series(std::move(initial)) {  // the original keeps the manager's title
+    (void)isNew;
     setFixedSize(330, 421);
+    auto* outer = new QHBoxLayout;
+    auto* left = new QVBoxLayout;
     auto* form = new QFormLayout;
-    form->setContentsMargins(4, 0, 4, 0);
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setLabelAlignment(Qt::AlignLeft);
     m_reference = new QLineEdit(q(m_series.reference), this);
     form->addRow(tr("Referencia"), m_reference);
+    left->addLayout(form);
+    left->addWidget(new QLabel(tr("Descripción"), this));
     m_description = new QPlainTextEdit(q(m_series.description), this);
-    m_description->setFixedHeight(60);
-    form->addRow(tr("Descripción"), m_description);
-    // PROVISIONAL: the original chooses the shape through the material / shape icons of "Describir".
-    m_shape = new QComboBox(this);
-    for (ShapeKind kind : allShapes()) {
-        if (kind == ShapeKind::Generic) continue;  // generic sections need tabulated values (TK-052)
-        m_shape->addItem(tr(shapeNameEs(kind)), static_cast<int>(kind));
-        if (kind == m_series.kind) m_shape->setCurrentIndex(m_shape->count() - 1);
-    }
-    form->addRow(tr("Forma"), m_shape);
-    contentLayout()->addLayout(form);
-
-    contentLayout()->addWidget(new QLabel(tr("Perfiles"), this));
+    m_description->setFixedHeight(42);
+    left->addWidget(m_description);
     auto* row = new QHBoxLayout;
-    struct Def { const char* name; const char* glyph; const char* tip; };
-    const Def defs[] = {{"new", "+", QT_TR_NOOP("Nuevo perfil")},      {"edit", "✎", QT_TR_NOOP("Editar perfil")},
-                        {"duplicate", "⧉", QT_TR_NOOP("Duplicar perfil")}, {"delete", "✕", QT_TR_NOOP("Borrar perfil")},
-                        {"up", "▲", QT_TR_NOOP("Subir")},               {"down", "▼", QT_TR_NOOP("Bajar")}};
+    struct Def { const char* name; const char* glyph; const char* colour; const char* tip; };
+    const Def defs[] = {{"new", "+", "#202020", QT_TR_NOOP("Nuevo perfil")},      {"edit", "✎", "#D9A400", QT_TR_NOOP("Editar perfil")},
+                        {"duplicate", "⧉", "#7F7F7F", QT_TR_NOOP("Duplicar perfil")}, {"delete", "✕", "#D0021B", QT_TR_NOOP("Borrar perfil")},
+                        {"up", "▲", "#303030", QT_TR_NOOP("Subir")},               {"down", "▼", "#303030", QT_TR_NOOP("Bajar")}};
     for (const Def& d : defs) {
-        auto* b = toolButton(QString::fromLatin1(d.name), QString::fromUtf8(d.glyph), tr(d.tip), this);
+        auto* b = flatButton(QString::fromLatin1(d.name), QString::fromUtf8(d.glyph), QString::fromLatin1(d.colour), tr(d.tip), this);
         m_buttons.append(b);
         row->addWidget(b);
     }
     row->addStretch(1);
-    contentLayout()->addLayout(row);
-    m_table = makeTable({tr("Referencia")}, this);
-    contentLayout()->addWidget(m_table, 1);
+    left->addLayout(row);
+    m_table = makeTable({tr("Perfiles")}, this);
+    m_table->setStyleSheet(QString::fromLatin1(kTableStyle));
+    left->addWidget(m_table, 1);
+    outer->addLayout(left, 1);
+
+    // Right column of the original: four pictogram buttons (meaning of the first two not measured, TK-060); the folder buttons
+    // import / export the series as a file.
+    auto* right = new QVBoxLayout;
+    struct Side { const char* name; const char* glyph; const char* colour; const char* tip; bool on; };
+    const Side sides[] = {{"catalogue", "I", "#8B1A1A", QT_TR_NOOP("Importar perfiles de un catálogo"), false},
+                          {"cube", "⬢", "#C0392B", QT_TR_NOOP("Importar desde otra aplicación"), false},
+                          {"importFile", "⤓", "#D9A400", QT_TR_NOOP("Importar la serie desde un fichero"), true},
+                          {"exportFile", "⤒", "#D9A400", QT_TR_NOOP("Exportar la serie a un fichero"), true}};
+    for (const Side& d : sides) {
+        auto* b = flatButton(QString::fromLatin1(d.name), QString::fromUtf8(d.glyph), QString::fromLatin1(d.colour), tr(d.tip), this);
+        b->setEnabled(d.on);
+        m_buttons.append(b);
+        right->addWidget(b);
+    }
+    right->addStretch(1);
+    outer->addLayout(right);
+    contentLayout()->addLayout(outer, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
 
     connect(button(QStringLiteral("new")), &QToolButton::clicked, this, [this] { onNew(); });
@@ -283,6 +369,14 @@ SeriesEditDialog::SeriesEditDialog(ProfileSeries initial, bool isNew, QWidget* p
     connect(button(QStringLiteral("delete")), &QToolButton::clicked, this, [this] { removeProfile(selectedRow(m_table)); });
     connect(button(QStringLiteral("up")), &QToolButton::clicked, this, [this] { moveProfile(selectedRow(m_table), -1); });
     connect(button(QStringLiteral("down")), &QToolButton::clicked, this, [this] { moveProfile(selectedRow(m_table), +1); });
+    connect(button(QStringLiteral("importFile")), &QToolButton::clicked, this, [this] {
+        const QString path = profileFileSink().openFile(this);
+        if (!path.isEmpty()) importFile(path);
+    });
+    connect(button(QStringLiteral("exportFile")), &QToolButton::clicked, this, [this] {
+        const QString path = profileFileSink().saveFile(this);
+        if (!path.isEmpty()) exportFile(path);
+    });
     connect(m_table, &QTableWidget::cellDoubleClicked, this, [this] { onEdit(); });
     refreshTable();
 }
@@ -294,8 +388,6 @@ QToolButton* SeriesEditDialog::button(const QString& name) const {
 }
 
 void SeriesEditDialog::refreshTable() {
-    const bool noProfiles = m_series.profiles.empty();
-    m_shape->setEnabled(noProfiles);  // every profile of a series has the shape of the series
     m_table->setRowCount(0);
     for (const Section& p : m_series.profiles) {
         const int r = m_table->rowCount();
@@ -307,10 +399,32 @@ void SeriesEditDialog::refreshTable() {
 void SeriesEditDialog::syncFromFields() {
     m_series.reference = s8(m_reference->text().trimmed());
     m_series.description = s8(m_description->toPlainText().trimmed());
-    m_series.kind = static_cast<ShapeKind>(m_shape->currentData().toInt());
+}
+
+bool SeriesEditDialog::importFile(const QString& path) {
+    if (!QFileInfo::exists(path)) {
+        warn(this, tr("El fichero a importar '%1' no existe o no se puede leer").arg(path));
+        return false;
+    }
+    const SeriesImport read = importSeriesFromFile(s8(path));
+    if (!read.error.empty() || read.series.empty()) {
+        warn(this, read.error.empty() ? tr("El fichero no contiene ninguna serie de perfiles.") : q(read.error));
+        return false;
+    }
+    m_series = read.series.front();
+    m_reference->setText(q(m_series.reference));
+    m_description->setPlainText(q(m_series.description));
+    refreshTable();
+    return true;
+}
+
+bool SeriesEditDialog::exportFile(const QString& path) {
+    syncFromFields();
+    return exportSeriesFile(this, {m_series}, path);
 }
 
 void SeriesEditDialog::addProfile(const Section& profile) {
+    if (m_series.profiles.empty()) m_series.kind = profile.kind;  // the first profile fixes the shape of the series
     m_series.profiles.push_back(profile);
     refreshTable();
     m_table->selectRow(m_table->rowCount() - 1);
@@ -354,31 +468,31 @@ void SeriesEditDialog::onNew() {
     syncFromFields();
     Section blank;
     blank.kind = m_series.kind;
-    blank.dims.assign(dimensionKeys(blank.kind).size(), 0.0);
-    // Start from the last profile when there is one: dimensions are rarely typed from zero.
-    if (!m_series.profiles.empty()) {
+    const bool first = m_series.profiles.empty();
+    if (!first) {
+        // Start from the last profile: dimensions are rarely typed from zero.
         blank = m_series.profiles.back();
         blank.reference.clear();
         blank.tabulated = {};
-    } else {
-        const auto& keys = dimensionKeys(blank.kind);
-        for (std::size_t i = 0; i < keys.size(); ++i)
-            if (isSlopeKey(keys[i])) blank.dims[i] = blank.kind == ShapeKind::ISloped ? kIpnSlopePercent : kUpnSlopePercent;
     }
-    ProfileEditDialog dialog(blank, true, this);
+    ProfileEditDialog dialog(blank, true, first, this);
     if (dialog.exec() == QDialog::Accepted) addProfile(dialog.value());
 }
 
 void SeriesEditDialog::onEdit() {
     const int row = selectedRow(m_table);
     if (row < 0) return;
-    ProfileEditDialog dialog(m_series.profiles[static_cast<std::size_t>(row)], false, this);
-    if (dialog.exec() == QDialog::Accepted) replaceProfile(row, dialog.value());
+    ProfileEditDialog dialog(m_series.profiles[static_cast<std::size_t>(row)], false, m_series.profiles.size() == 1, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        if (m_series.profiles.size() == 1) m_series.kind = dialog.value().kind;
+        replaceProfile(row, dialog.value());
+    }
 }
 
 void SeriesEditDialog::accept() {
     syncFromFields();
-    const std::string problem = validateSeries(m_series);
+    // The original checks the profiles first: an empty form says "Debe introducir, al menos, un perfil" even without reference.
+    const std::string problem = m_series.profiles.empty() ? "Debe introducir, al menos, un perfil en la serie." : validateSeries(m_series);
     if (!problem.empty()) {
         warn(this, q(problem));  // "Debe introducir, al menos, un perfil en la serie." (#131925)
         return;
@@ -390,24 +504,26 @@ void SeriesEditDialog::accept() {
 
 SeriesManagerDialog::SeriesManagerDialog(LibraryScratch& scratch, QWidget* parent)
     : CypeDialog(tr("Series de Perfiles"), parent), m_scratch(scratch), m_snapshot(scratch.library()) {
-    setFixedSize(530, 520);
+    resize(530, 520);
     auto* row = new QHBoxLayout;
-    struct Def { const char* name; const char* glyph; const char* tip; };
-    const Def defs[] = {{"new", "+", QT_TR_NOOP("Nueva serie")},         {"edit", "✎", QT_TR_NOOP("Editar serie")},
-                        {"duplicate", "⧉", QT_TR_NOOP("Duplicar serie")}, {"delete", "✕", QT_TR_NOOP("Borrar serie")},
-                        {"up", "▲", QT_TR_NOOP("Subir")},                 {"down", "▼", QT_TR_NOOP("Bajar")},
-                        {"import", "⤓", QT_TR_NOOP("Importar series de perfiles desde un fichero")},
-                        {"export", "⤒", QT_TR_NOOP("Exportar series de perfiles a un fichero")}};
+    setMaximizable();  // the original window is resizable (maximise button in the title bar)
+    struct Def { const char* name; const char* glyph; const char* colour; const char* tip; };
+    const Def defs[] = {{"new", "+", "#202020", QT_TR_NOOP("Nueva serie")},         {"edit", "✎", "#D9A400", QT_TR_NOOP("Editar serie")},
+                        {"duplicate", "⧉", "#7F7F7F", QT_TR_NOOP("Duplicar serie")}, {"delete", "✕", "#D0021B", QT_TR_NOOP("Borrar serie")},
+                        {"up", "▲", "#303030", QT_TR_NOOP("Subir")},                 {"down", "▼", "#303030", QT_TR_NOOP("Bajar")},
+                        {"import", "⤓", "#D9A400", QT_TR_NOOP("Importar series de perfiles desde un fichero")},
+                        {"export", "⤒", "#D9A400", QT_TR_NOOP("Exportar series de perfiles a un fichero")}};
     for (const Def& d : defs) {
-        auto* b = toolButton(QString::fromLatin1(d.name), QString::fromUtf8(d.glyph), tr(d.tip), this);
+        auto* b = flatButton(QString::fromLatin1(d.name), QString::fromUtf8(d.glyph), QString::fromLatin1(d.colour), tr(d.tip), this);
         m_buttons.append(b);
         row->addWidget(b);
     }
     row->addStretch(1);
     contentLayout()->addLayout(row);
     m_table = makeTable({tr("Referencia"), tr("Catálogo"), tr("Descripción")}, this);
-    m_table->setColumnWidth(0, 110);
-    m_table->setColumnWidth(1, 110);
+    m_table->setColumnWidth(0, 120);
+    m_table->setColumnWidth(1, 60);
+    m_table->setStyleSheet(QString::fromLatin1(kTableStyle));
     contentLayout()->addWidget(m_table, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
 
@@ -552,10 +668,15 @@ bool PredefinedImportDialog::isAvailable(const QString& libraryName) {
 PredefinedImportDialog::PredefinedImportDialog(LibraryScratch& scratch, QWidget* parent)
     : CypeDialog(tr("Importación de series de perfiles predefinidas"), parent), m_scratch(scratch) {
     setFixedSize(312, 555);
+    setCompactTitle();
+    contentLayout()->setContentsMargins(7, 6, 7, 6);
     m_table = makeTable({tr("Importar"), tr("Nombre Biblioteca"), tr("Editar")}, this);
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
-    m_table->setColumnWidth(0, 55);
-    m_table->setColumnWidth(1, 160);
+    m_table->setColumnWidth(0, 56);
+    m_table->setColumnWidth(1, 186);
+    m_table->setStyleSheet(QString::fromLatin1(kTableStyle));
+    m_table->verticalHeader()->setDefaultSectionSize(19);
+    m_table->horizontalHeader()->setFixedHeight(22);
     for (const QString& name : libraryNames()) {
         const int r = m_table->rowCount();
         m_table->insertRow(r);
@@ -571,13 +692,23 @@ PredefinedImportDialog::PredefinedImportDialog(LibraryScratch& scratch, QWidget*
         } else {
             check->setFlags((check->flags() | Qt::ItemIsUserCheckable) & ~Qt::ItemIsEditable);
         }
-        edit->setFlags(Qt::NoItemFlags);  // "Editar": meaning not measured (TK-053)
+        // "Editar": meaning not measured; in the clone it opens the series manager (the original reaches it from "Describir").
+        edit->setFlags(available ? Qt::ItemIsEnabled : Qt::NoItemFlags);
+        if (available) edit->setToolTip(tr("Editar las series de perfiles"));
         m_table->setItem(r, 0, check);
         m_table->setItem(r, 1, label);
         m_table->setItem(r, 2, edit);
     }
     contentLayout()->addWidget(m_table, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
+    connect(m_table, &QTableWidget::cellClicked, this, [this](int row, int column) {
+        if (column == 2 && isAvailable(m_table->item(row, 1)->text())) openSeriesManager();
+    });
+}
+
+void PredefinedImportDialog::openSeriesManager() {
+    SeriesManagerDialog dialog(m_scratch, this);
+    dialog.exec();
 }
 
 bool PredefinedImportDialog::importChecked() {
@@ -623,19 +754,18 @@ void PredefinedImportDialog::accept() {
 
 ProfileLibraryDialog::ProfileLibraryDialog(const ProfileLibrary& library, QWidget* parent)
     : CypeDialog(tr("Gestión de la biblioteca de perfiles"), parent), m_scratch(library) {
-    setFixedSize(328, 254);  // the original is 328x224 with four buttons; the provisional fifth adds 30 px
+    setFixedSize(328, 224);
     struct Def { const char* name; const char* text; };
     const Def defs[] = {{"predefined", QT_TR_NOOP("Importación de series de perfiles predefinidas")},
                         {"catalogues", QT_TR_NOOP("Importar catálogos de fabricante")},
                         {"initial", QT_TR_NOOP("Importación inicial de series predefinidas de perfiles")},
-                        {"export", QT_TR_NOOP("Exportar series de perfiles")},
-                        {"manager", QT_TR_NOOP("Series de perfiles...")}};  // PROVISIONAL, see header
+                        {"export", QT_TR_NOOP("Exportar series de perfiles")}};
     auto* column = new QVBoxLayout;
-    column->setSpacing(4);
+    column->setSpacing(8);
     for (const Def& d : defs) {
         auto* b = new QPushButton(tr(d.text), this);
         b->setObjectName(QString::fromLatin1(d.name));
-        b->setFixedHeight(26);
+        b->setFixedHeight(25);
         b->setAutoDefault(false);
         b->setStyleSheet(QStringLiteral("padding: 4px 4px;"));
         m_buttons.append(b);
@@ -648,7 +778,6 @@ ProfileLibraryDialog::ProfileLibraryDialog(const ProfileLibrary& library, QWidge
     connect(button(QStringLiteral("catalogues")), &QPushButton::clicked, this, [this] { openManufacturerCatalogues(); });
     connect(button(QStringLiteral("initial")), &QPushButton::clicked, this, [this] { openInitialImport(); });
     connect(button(QStringLiteral("export")), &QPushButton::clicked, this, [this] { exportSeries(); });
-    connect(button(QStringLiteral("manager")), &QPushButton::clicked, this, [this] { openSeriesManager(); });
 }
 
 QPushButton* ProfileLibraryDialog::button(const QString& name) const {
@@ -675,11 +804,6 @@ void ProfileLibraryDialog::openInitialImport() {
 void ProfileLibraryDialog::exportSeries() {
     const QString path = profileFileSink().saveFile(this);
     if (!path.isEmpty()) exportSeriesFile(this, m_scratch.library().series, path);
-}
-
-void ProfileLibraryDialog::openSeriesManager() {
-    SeriesManagerDialog dialog(m_scratch, this);
-    dialog.exec();
 }
 
 }  // namespace cc::app

@@ -70,7 +70,8 @@ TEST(ProfileLibraryDialog, HasTheDocumentedButtonsAndTitle) {
     EXPECT_EQ(dialog.button("catalogues")->text(), "Importar catálogos de fabricante");
     EXPECT_EQ(dialog.button("initial")->text(), "Importación inicial de series predefinidas de perfiles");
     EXPECT_EQ(dialog.button("export")->text(), "Exportar series de perfiles");
-    EXPECT_EQ(dialog.size().width(), 328);
+    EXPECT_EQ(dialog.size(), QSize(328, 224));
+    EXPECT_EQ(dialog.findChildren<QPushButton*>().size(), 6);  // four buttons + Aceptar + Cancelar
     EXPECT_EQ(dialog.acceptButton()->text(), "Aceptar");
 }
 
@@ -98,6 +99,7 @@ TEST(PredefinedImportDialog, ListsTheOriginalRowsAndEnablesOnlyWhatTheCoreOffers
         }
     }
     EXPECT_EQ(enabled, 1);
+    EXPECT_EQ(dialog.table()->rowHeight(0), 19);  // the original's row pitch
 }
 
 TEST(PredefinedImportDialog, ImportsAsOneUndoableStepAndAsksOnConflict) {
@@ -123,10 +125,9 @@ TEST(PredefinedImportDialog, ImportsAsOneUndoableStepAndAsksOnConflict) {
 TEST(SeriesEditDialog, EmptySeriesIsRefusedWithTheOriginalMessage) {
     Sink sink;
     SeriesEditDialog dialog(ProfileSeries{}, true);
-    EXPECT_EQ(dialog.windowTitle(), "Nueva serie");
+    EXPECT_EQ(dialog.windowTitle(), "Series de Perfiles");
     EXPECT_EQ(dialog.size(), QSize(330, 421));
-    dialog.referenceEdit()->setText("MIA");
-    dialog.accept();
+    dialog.accept();  // even without a reference the profile message comes first (orig_describir_series_nueva_valid)
     EXPECT_EQ(dialog.result(), QDialog::Rejected);
     ASSERT_EQ(sink.warnings.size(), 1);
     EXPECT_EQ(sink.warnings[0], "Debe introducir, al menos, un perfil en la serie.");
@@ -148,13 +149,48 @@ TEST(SeriesEditDialog, ProfileOperationsAndAccept) {
     EXPECT_EQ(dialog.table()->item(0, 0)->text(), "A");
     dialog.removeProfile(2);
     EXPECT_EQ(dialog.table()->rowCount(), 2);
-    EXPECT_FALSE(dialog.shapeCombo()->isEnabled());  // shape fixed once there are profiles
     dialog.accept();
     EXPECT_EQ(dialog.result(), QDialog::Accepted);
     EXPECT_EQ(dialog.value().reference, "MIA");
     EXPECT_EQ(dialog.value().description, "Mi serie");
     EXPECT_EQ(dialog.value().profiles.size(), 2u);
     EXPECT_TRUE(sink.warnings.isEmpty());
+}
+
+TEST(SeriesEditDialog, FirstProfileFixesTheShapeOfTheSeries) {
+    Sink sink;
+    SeriesEditDialog dialog(ProfileSeries{}, true);
+    Section u;
+    u.reference = "U 100";
+    u.kind = ShapeKind::RoundBar;
+    u.dims = {0.05};
+    dialog.referenceEdit()->setText("R");
+    dialog.addProfile(u);
+    dialog.accept();
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+    EXPECT_EQ(dialog.value().kind, ShapeKind::RoundBar);
+}
+
+TEST(ProfileEditDialog, ShapeComboRebuildsTheDimensions) {
+    Sink sink;
+    Section blank;
+    blank.kind = ShapeKind::IParallel;
+    blank.dims.assign(5, 0.0);
+    ProfileEditDialog dialog(blank, true, true);
+    EXPECT_TRUE(dialog.shapeCombo()->isEnabled());
+    EXPECT_NE(dialog.dimensionSpin(4), nullptr);
+    EXPECT_EQ(dialog.dimensionSpin(5), nullptr);
+    dialog.shapeCombo()->setCurrentIndex(dialog.shapeCombo()->findData(static_cast<int>(ShapeKind::RoundBar)));
+    EXPECT_EQ(dialog.value().kind, ShapeKind::RoundBar);
+    EXPECT_EQ(dialog.value().dims.size(), 1u);
+}
+
+TEST(PredefinedImportDialog, EditCellOpensNothingOnDisabledRows) {
+    Sink sink;
+    LibraryScratch scratch{ProfileLibrary{}};
+    PredefinedImportDialog dialog(scratch);
+    EXPECT_FALSE(dialog.table()->item(1, 2)->flags() == Qt::NoItemFlags);
+    EXPECT_TRUE(dialog.table()->item(0, 2)->flags() == Qt::NoItemFlags);
 }
 
 TEST(SeriesEditDialog, RepeatedProfileIsRefused) {
@@ -194,7 +230,7 @@ TEST(SeriesManagerDialog, ManagesSeriesOnTheScratchAndCancelRestores) {
     Sink sink;
     LibraryScratch scratch{ProfileLibrary{}};
     SeriesManagerDialog dialog(scratch);
-    EXPECT_EQ(dialog.size(), QSize(530, 520));
+    EXPECT_EQ(dialog.size(), QSize(530, 520));  // resizable in the original
     EXPECT_EQ(dialog.table()->horizontalHeaderItem(0)->text(), "Referencia");
     EXPECT_EQ(dialog.table()->horizontalHeaderItem(1)->text(), "Catálogo");
     EXPECT_EQ(dialog.table()->horizontalHeaderItem(2)->text(), "Descripción");

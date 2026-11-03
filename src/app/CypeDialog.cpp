@@ -84,6 +84,11 @@ void CypeDialog::setMaximizable() {
     m_titleLayout->setContentsMargins(2 * kTitleBarHeight, 0, 0, 0);  // balances both buttons
 }
 
+void CypeDialog::setCompactTitle() {
+    m_titleLayout->setContentsMargins(0, 0, 0, 0);
+    if (auto* label = m_titleBar->findChild<QLabel*>(QStringLiteral("dlgTitle"))) label->setStyleSheet(QStringLiteral("font-size: 12px;"));
+}
+
 void CypeDialog::setupFooter(const QString& acceptText, const QString& cancelText) {
     auto* footer = new QWidget(this);
     footer->setObjectName(QStringLiteral("dlgFooter"));

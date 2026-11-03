@@ -9,6 +9,7 @@
 #include "core/undo_stack.h"
 
 class QDoubleSpinBox;
+class QFormLayout;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -59,7 +60,10 @@ bool exportSeriesFile(QWidget* parent, const std::vector<cc::core::ProfileSeries
 class ProfileEditDialog : public CypeDialog {
     Q_OBJECT
 public:
-    ProfileEditDialog(cc::core::Section initial, bool isNew, QWidget* parent = nullptr);
+    /// `shapeChangeable`: the first profile of a new series chooses the shape of the series (the original takes it from the
+    /// shape icons of "Describir"; the clone has no such context, TK-059).
+    ProfileEditDialog(cc::core::Section initial, bool isNew, bool shapeChangeable = false, QWidget* parent = nullptr);
+    QComboBox* shapeCombo() const { return m_shape; }
     /// Section as edited (tabulated values of the initial section are kept).
     cc::core::Section value() const;
     QLineEdit* referenceEdit() const { return m_reference; }
@@ -69,7 +73,11 @@ public:
 
 private:
     void refreshProperties();
+    void buildDims(cc::core::ShapeKind kind, const std::vector<double>& dims);
     cc::core::Section m_initial;
+    cc::core::ShapeKind m_kind;
+    QFormLayout* m_form;
+    QComboBox* m_shape;
     QLineEdit* m_reference;
     QList<QDoubleSpinBox*> m_dims;
     QLabel* m_properties;
@@ -84,10 +92,11 @@ public:
     const cc::core::ProfileSeries& value() const { return m_series; }
     QLineEdit* referenceEdit() const { return m_reference; }
     QPlainTextEdit* descriptionEdit() const { return m_description; }
-    QComboBox* shapeCombo() const { return m_shape; }
     QTableWidget* table() const { return m_table; }
     QToolButton* button(const QString& name) const;
     void accept() override;
+    bool importFile(const QString& path);  ///< loads reference, description and profiles of the first series of a file
+    bool exportFile(const QString& path);
 
     // Operations behind the buttons (also used by tests); `row` is the selected profile.
     void addProfile(const cc::core::Section& profile);
@@ -104,7 +113,6 @@ private:
     cc::core::ProfileSeries m_series;
     QLineEdit* m_reference;
     QPlainTextEdit* m_description;
-    QComboBox* m_shape;
     QTableWidget* m_table;
     QList<QToolButton*> m_buttons;
 };
@@ -155,14 +163,16 @@ public:
     void accept() override;
     /// Imports the series of the checked rows; false when nothing is checked or the import fails (reported).
     bool importChecked();
+    /// The "Editar" cell of an available row opens the series manager (PROVISIONAL access, TK-059).
+    void openSeriesManager();
 
 private:
     LibraryScratch& m_scratch;
     QTableWidget* m_table;
 };
 
-/// "Gestión de la biblioteca de perfiles" (328x224): four buttons of the original plus a PROVISIONAL "Series de perfiles"
-/// button (the manager is reached from "Describir" in the original, T-P5-07).
+/// "Gestión de la biblioteca de perfiles" (328x224): the four buttons of the original (the series manager is reached from
+/// "Describir" in the original, T-P5-07; the clone reaches it from "Editar" in the predefined import, TK-059).
 class ProfileLibraryDialog : public CypeDialog {
     Q_OBJECT
 public:
@@ -175,7 +185,6 @@ public:
     void openManufacturerCatalogues();
     void openInitialImport();
     void exportSeries();
-    void openSeriesManager();
 
 private:
     LibraryScratch m_scratch;

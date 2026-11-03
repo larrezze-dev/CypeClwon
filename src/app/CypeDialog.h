@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <QDialog>
 
 class QHBoxLayout;
@@ -21,6 +21,8 @@ public:
     QPushButton* cancelButton() const { return m_cancel; }
     /// Adds the maximise / restore button the original shows on its resizable windows (Rejilla, Niveles).
     void setMaximizable();
+    /// For long titles ("Importación de series de perfiles predefinidas"): 12 px font and the title centred over the whole bar.
+    void setCompactTitle();
 
 protected:
     QVBoxLayout* contentLayout() const { return m_content; }
