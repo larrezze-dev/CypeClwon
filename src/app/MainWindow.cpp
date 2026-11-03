@@ -41,6 +41,7 @@
 #include <QMdiArea>
 #include "LayersPanel.h"
 #include "BarTool.h"
+#include "PieceTool.h"
 #include "NodeTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -174,6 +175,7 @@ void MainWindow::createWorkArea() {
         if (on) {  // one viewport tool at a time: RMB must not also act as a node or bar command
             m_nodeTool->deactivate();
             m_barTool->deactivate();
+            m_pieceTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -193,16 +195,30 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(NodeTool::statusText(m_nodeTool->mode(), m_nodeTool->movePending()));
         else if (m_barTool->mode() != BarTool::Mode::None)
             statusBar()->showMessage(BarTool::statusText(m_barTool->mode(), static_cast<int>(m_barTool->chain().size())));
+        else if (m_pieceTool->mode() != PieceTool::Mode::None)
+            statusBar()->showMessage(PieceTool::statusText(m_pieceTool->mode(), static_cast<int>(m_pieceTool->chain().size()) + m_pieceTool->moveStep()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
         m_barTool->deactivate();
+        m_pieceTool->deactivate();
     });
     // Geometria > Barras: same rules as Nudos; Pilar without levels asks for a message (#65140).
     connect(m_barTool, &BarTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_barTool, &BarTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
         m_nodeTool->deactivate();
+        m_pieceTool->deactivate();
+    });
+    connect(m_pieceTool, &PieceTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_pieceTool, &PieceTool::aboutToActivate, this, [this] {
+        m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+        m_nodeTool->deactivate();
+        m_barTool->deactivate();
+    });
+    connect(m_pieceTool, &PieceTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Barras"), text); });
+    m_pieceTool->setConfirmer([this](const QString& question) {
+        return QMessageBox::question(this, tr("Barras"), question, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
     });
     connect(m_barTool, &BarTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Barras"), text); });
     setProjectOpen(false);
@@ -225,6 +241,7 @@ void MainWindow::createWorkArea() {
         if (m_projectOpen && m_document) {
             m_nodeTool->structureChanged();
             m_barTool->structureChanged();
+            m_pieceTool->structureChanged();
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
     loadRecentFiles();
@@ -443,6 +460,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
     m_nodeTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);  // ends any node command
     m_barTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_pieceTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
@@ -470,6 +488,7 @@ void MainWindow::setProjectOpen(bool open) {
         viewport->setCategorySettings(m_leftPanel->categoriesPanel()->settings());
         m_nodeTool->addViewport(viewport);
         m_barTool->addViewport(viewport);
+        m_pieceTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -747,6 +766,7 @@ void MainWindow::buildGeometryTab() {
 
     // "Barras": Barra, Pilar and Viga (the other buttons of the group arrive with the rest of T-P5-03..).
     m_barTool = new BarTool(this);
+    m_pieceTool = new PieceTool(this);
     m_barTool->barAction()->setIcon(themedIcon(QStringLiteral("bar_new")));
     m_barTool->columnAction()->setIcon(themedIcon(QStringLiteral("bar_column")));
     m_barTool->beamAction()->setIcon(themedIcon(QStringLiteral("bar_beam")));
@@ -754,6 +774,16 @@ void MainWindow::buildGeometryTab() {
     bars->addLargeAction(m_barTool->barAction());
     bars->addLargeAction(m_barTool->columnAction());
     bars->addLargeAction(m_barTool->beamAction());
+    m_pieceTool->pieceAction()->setIcon(themedIcon(QStringLiteral("piece_new")));
+    m_pieceTool->groupAction()->setIcon(themedIcon(QStringLiteral("piece_group")));
+    m_pieceTool->ungroupAction()->setIcon(themedIcon(QStringLiteral("piece_ungroup")));
+    m_pieceTool->moveEndAction()->setIcon(themedIcon(QStringLiteral("bar_move_end")));
+    m_pieceTool->invertAction()->setIcon(themedIcon(QStringLiteral("bar_invert_axis")));
+    bars->addLargeAction(m_pieceTool->pieceAction());
+    bars->addLargeAction(m_pieceTool->groupAction());
+    bars->addLargeAction(m_pieceTool->ungroupAction());
+    bars->addLargeAction(m_pieceTool->moveEndAction());
+    bars->addLargeAction(m_pieceTool->invertAction());
 }
 
 void MainWindow::buildObraTab() {

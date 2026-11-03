@@ -108,3 +108,8 @@ add_executable(bar_tool_tests bar_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/Bar
 target_include_directories(bar_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(bar_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(bar_tool_tests)
+
+add_executable(piece_tool_tests piece_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/PieceTool.cpp ${CMAKE_SOURCE_DIR}/src/app/BarTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+target_include_directories(piece_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(piece_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
+gtest_discover_tests(piece_tool_tests)

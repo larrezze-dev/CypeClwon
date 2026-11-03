@@ -17,6 +17,11 @@
     <file>icons/bar_new.svg</file>
     <file>icons/bar_column.svg</file>
     <file>icons/bar_beam.svg</file>
+    <file>icons/piece_new.svg</file>
+    <file>icons/piece_group.svg</file>
+    <file>icons/piece_ungroup.svg</file>
+    <file>icons/bar_move_end.svg</file>
+    <file>icons/bar_invert_axis.svg</file>
     <file>icons/levels_generate.svg</file>
     <file>icons/compress.svg</file>
     <file>icons/decompress.svg</file>
