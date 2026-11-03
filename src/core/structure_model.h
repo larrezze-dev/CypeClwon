@@ -99,6 +99,23 @@ struct Bar {
     bool operator==(const Bar&) const = default;
 };
 
+/// Structural element type mark of a piece ("Tipo de elemento estructural", docs/research/ui/pieza.md section 6).
+enum class ElementType { Generic, Pillar, Beam };
+
+/// Piece ("Pieza", T-P5-04): a group of aligned, consecutive bars described as one element. A bar that belongs to no
+/// record is an implicit one-bar generic piece, so only multi-bar pieces, marked pieces and grouped pieces are stored.
+/// `nodeIds` is the chain of nodes from the start node of the first bar to the end node of the last one
+/// (barIds.size() + 1 entries); bar i runs between nodeIds[i] and nodeIds[i + 1] (in either bar direction).
+/// `groupId` (0 = none) is shared by the pieces of one "Agrupar" group.
+struct Piece {
+    int id = 0;
+    std::vector<int> barIds;
+    std::vector<int> nodeIds;
+    ElementType type = ElementType::Generic;
+    int groupId = 0;
+    bool operator==(const Piece&) const = default;
+};
+
 /// Flat plate or shell with 3 (triangle) or 4 (quadrilateral) corner nodes, listed in order around the contour.
 struct Shell {
     int id = 0;
@@ -117,6 +134,7 @@ public:
     std::vector<CrossSection> sections;
     std::vector<Bar> bars;
     std::vector<Shell> shells;
+    std::vector<Piece> pieces;  ///< sorted by id; section absent in older files = empty
     std::vector<Layer> layers{Layer{kDefaultLayerId, kDefaultLayerName, 0x000000, true, true, false}};
 
     // Next free id of each collection. Public so the file loader can restore them; use the add* functions otherwise.
@@ -126,6 +144,7 @@ public:
     int nextBarId = 1;
     int nextShellId = 1;
     int nextLayerId = kDefaultLayerId + 1;
+    int nextPieceId = 1;
 
     // --- lookup (nullptr when absent) ---
     const Node* findNode(int id) const;
@@ -191,6 +210,13 @@ public:
     bool layerNameTaken(const std::string& name, int exceptId) const;
     /// Empty when a layer list of an element is valid, otherwise the problem (without the element name).
     std::string checkLayerIds(const std::vector<int>& ids) const;
+
+    // --- pieces ---
+    const Piece* findPiece(int id) const;
+    /// Record of the piece that contains the bar; nullptr for an implicit one-bar piece (or an unknown bar).
+    const Piece* pieceOfBar(int barId) const;
+    bool insertPiece(const Piece& piece);  ///< false when the id is taken or invalid
+    bool removePiece(int id);
 
     // --- deletion: false when the object does not exist or is still referenced (see the cascade helpers) ---
     bool removeBar(int id);

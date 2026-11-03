@@ -43,9 +43,43 @@ std::vector<int> nodesOnSegment(const StructuralModel& model, int a, int b) {
     return ids;
 }
 
+/// The stretches created for one user-drawn segment: `count` bars starting at index `firstBar` of the plan, between the
+/// nodes `nodes` (count + 1 entries when `complete`, i.e. no stretch of the segment already existed).
+struct PlannedSegment {
+    std::vector<int> nodes;
+    std::size_t firstBar = 0;
+    std::size_t count = 0;
+    bool complete = false;
+};
+
+/// Piece records for a plan: the divisions of one segment form a single piece (#63985); a marked type (pillar / beam)
+/// also gives every isolated new bar a record. Plain generic one-bar pieces stay implicit.
+std::vector<Piece> planPieces(const std::vector<Bar>& bars, const std::vector<PlannedSegment>& segments, ElementType type,
+                              int& nextPieceId) {
+    std::vector<Piece> out;
+    for (const PlannedSegment& seg : segments) {
+        if (seg.count == 0) continue;
+        if (seg.complete && (seg.count > 1 || type != ElementType::Generic)) {
+            Piece p;
+            p.id = nextPieceId++;
+            p.type = type;
+            p.nodeIds = seg.nodes;
+            for (std::size_t k = 0; k < seg.count; ++k) p.barIds.push_back(bars[seg.firstBar + k].id);
+            out.push_back(std::move(p));
+        } else if (type != ElementType::Generic) {
+            for (std::size_t k = 0; k < seg.count; ++k) {
+                const Bar& b = bars[seg.firstBar + k];
+                out.push_back(Piece{nextPieceId++, {b.id}, {b.startNode, b.endNode}, type, 0});
+            }
+        }
+    }
+    return out;
+}
+
 /// Plans the bars of a polyline of nodes. `strict`: a pair that already has a bar invalidates the plan (single bar);
 /// otherwise such pairs are skipped. Returns false when the plan is invalid.
-bool planBars(const Project& project, const std::vector<int>& nodeIds, bool cut, bool strict, std::vector<Bar>& out) {
+bool planBars(const Project& project, const std::vector<int>& nodeIds, bool cut, bool strict, std::vector<Bar>& out,
+              std::vector<PlannedSegment>& segments) {
     const StructuralModel& model = project.structure;
     if (nodeIds.size() < 2) return false;
     for (int id : nodeIds)
@@ -70,6 +104,9 @@ bool planBars(const Project& project, const std::vector<int>& nodeIds, bool cut,
             stops.insert(stops.end(), mid.begin(), mid.end());
         }
         stops.push_back(b);
+        PlannedSegment seg;
+        seg.nodes = stops;
+        seg.firstBar = out.size();
         for (std::size_t k = 0; k + 1 < stops.size(); ++k) {
             const auto key = unordered(stops[k], stops[k + 1]);
             if (pairExists(model, key.first, key.second) || pending.count(key)) continue;
@@ -81,15 +118,20 @@ bool planBars(const Project& project, const std::vector<int>& nodeIds, bool cut,
             bar.layerIds = {layer};
             out.push_back(bar);
         }
+        seg.count = out.size() - seg.firstBar;
+        seg.complete = seg.count == stops.size() - 1;
+        segments.push_back(std::move(seg));
     }
     return !out.empty();
 }
 
-void insertBars(StructuralModel& model, const std::vector<Bar>& bars) {
+void insertBars(StructuralModel& model, const std::vector<Bar>& bars, const std::vector<Piece>& pieces) {
     for (const Bar& b : bars) model.insertBar(b);
+    for (const Piece& p : pieces) model.insertPiece(p);
 }
 
-void removeBars(StructuralModel& model, const std::vector<Bar>& bars) {
+void removeBars(StructuralModel& model, const std::vector<Bar>& bars, const std::vector<Piece>& pieces) {
+    for (const Piece& p : pieces) model.removePiece(p.id);
     for (const Bar& b : bars) model.removeBar(b.id);
 }
 
@@ -106,36 +148,48 @@ bool validCoordinate(double v) { return std::isfinite(v) && std::fabs(v) <= kMax
 // --- AddBarCommand ----------------------------------------------------------------------------------------------
 
 AddBarCommand::AddBarCommand(Project& project, int startNode, int endNode, bool generateCutNodes) : m_project(project) {
-    m_valid = planBars(project, {startNode, endNode}, generateCutNodes, true, m_bars);
-    if (!m_valid) m_bars.clear();
+    std::vector<PlannedSegment> segments;
+    m_valid = planBars(project, {startNode, endNode}, generateCutNodes, true, m_bars, segments);
+    if (m_valid) {
+        int next = project.structure.nextPieceId;
+        m_pieces = planPieces(m_bars, segments, ElementType::Generic, next);
+    } else {
+        m_bars.clear();
+    }
 }
 
 std::vector<int> AddBarCommand::barIds() const { return idsOf(m_bars); }
 
 void AddBarCommand::redo() {
-    if (m_valid) insertBars(m_project.structure, m_bars);
+    if (m_valid) insertBars(m_project.structure, m_bars, m_pieces);
 }
 
 void AddBarCommand::undo() {
-    if (m_valid) removeBars(m_project.structure, m_bars);
+    if (m_valid) removeBars(m_project.structure, m_bars, m_pieces);
 }
 
 // --- AddBeamChainCommand ----------------------------------------------------------------------------------------
 
 AddBeamChainCommand::AddBeamChainCommand(Project& project, const std::vector<int>& nodeIds, bool generateCutNodes)
     : m_project(project) {
-    m_valid = planBars(project, nodeIds, generateCutNodes, false, m_bars);
-    if (!m_valid) m_bars.clear();
+    std::vector<PlannedSegment> segments;
+    m_valid = planBars(project, nodeIds, generateCutNodes, false, m_bars, segments);
+    if (m_valid) {
+        int next = project.structure.nextPieceId;
+        m_pieces = planPieces(m_bars, segments, ElementType::Beam, next);
+    } else {
+        m_bars.clear();
+    }
 }
 
 std::vector<int> AddBeamChainCommand::barIds() const { return idsOf(m_bars); }
 
 void AddBeamChainCommand::redo() {
-    if (m_valid) insertBars(m_project.structure, m_bars);
+    if (m_valid) insertBars(m_project.structure, m_bars, m_pieces);
 }
 
 void AddBeamChainCommand::undo() {
-    if (m_valid) removeBars(m_project.structure, m_bars);
+    if (m_valid) removeBars(m_project.structure, m_bars, m_pieces);
 }
 
 // --- AddColumnCommand -------------------------------------------------------------------------------------------
@@ -189,7 +243,13 @@ AddColumnCommand::AddColumnCommand(Project& project, double x, double y, std::ve
         m_bars.push_back(bar);
     }
     m_valid = !m_bars.empty();
-    if (!m_valid) m_nodes.clear();
+    if (!m_valid) {
+        m_nodes.clear();
+        return;
+    }
+    int nextPieceId = model.nextPieceId;
+    for (const Bar& b : m_bars)
+        m_pieces.push_back(Piece{nextPieceId++, {b.id}, {b.startNode, b.endNode}, ElementType::Pillar, 0});
 }
 
 std::vector<int> AddColumnCommand::barIds() const { return idsOf(m_bars); }
@@ -203,12 +263,12 @@ std::vector<int> AddColumnCommand::createdNodeIds() const {
 void AddColumnCommand::redo() {
     if (!m_valid) return;
     for (const Node& n : m_nodes) m_project.structure.insertNode(n);
-    insertBars(m_project.structure, m_bars);
+    insertBars(m_project.structure, m_bars, m_pieces);
 }
 
 void AddColumnCommand::undo() {
     if (!m_valid) return;
-    removeBars(m_project.structure, m_bars);
+    removeBars(m_project.structure, m_bars, m_pieces);
     for (const Node& n : m_nodes) m_project.structure.removeNode(n.id);
 }
 
@@ -219,11 +279,20 @@ DeleteBarsCommand::DeleteBarsCommand(Project& project, std::vector<int> barIds) 
     barIds.erase(std::unique(barIds.begin(), barIds.end()), barIds.end());
     for (int id : barIds)
         if (const Bar* b = project.structure.findBar(id)) m_bars.push_back(*b);
+    m_piecesBefore = project.structure.pieces;
+    m_nextPieceBefore = project.structure.nextPieceId;
 }
 
-void DeleteBarsCommand::redo() { removeBars(m_project.structure, m_bars); }
+void DeleteBarsCommand::redo() {
+    for (const Bar& b : m_bars) m_project.structure.removeBar(b.id);
+}
 
-void DeleteBarsCommand::undo() { insertBars(m_project.structure, m_bars); }
+void DeleteBarsCommand::undo() {
+    for (const Bar& b : m_bars) m_project.structure.insertBar(b);
+    // Deleting bars splits or drops their pieces: put the records (and the id counter) back as they were.
+    m_project.structure.pieces = m_piecesBefore;
+    m_project.structure.nextPieceId = m_nextPieceBefore;
+}
 
 // --- wrappers ---------------------------------------------------------------------------------------------------
 

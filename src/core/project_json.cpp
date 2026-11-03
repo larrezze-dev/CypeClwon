@@ -104,6 +104,8 @@ CC_STRUCT(Node, id, position)
 CC_STRUCT(Material, id, name, kind, elasticModulusMPa, poissonRatio, densityKnM3, thermalExpansion)
 CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM4, shearAreaYM2, shearAreaZM2)
 CC_STRUCT(Layer, id, name, color, active, visible, locked, rendered)
+CC_ENUM(ElementType, {{ElementType::Generic, "generic"}, {ElementType::Pillar, "pillar"}, {ElementType::Beam, "beam"}})
+CC_STRUCT(Piece, id, barIds, nodeIds, type, groupId)
 CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
 CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerIds)
 
@@ -254,6 +256,7 @@ const std::vector<Section>& sections() {
         makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),
         makeCollection<Bar>("bars", "Barras", &StructuralModel::bars, &StructuralModel::nextBarId),
         makeCollection<Shell>("shells", "Láminas", &StructuralModel::shells, &StructuralModel::nextShellId),
+        makeCollection<Piece>("pieces", "Piezas", &StructuralModel::pieces, &StructuralModel::nextPieceId),
         makeCollection<Layer>("layers", "Capas", &StructuralModel::layers, &StructuralModel::nextLayerId),
     };
     return all;

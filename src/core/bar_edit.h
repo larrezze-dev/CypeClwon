@@ -39,8 +39,13 @@ public:
 private:
     Project& m_project;
     std::vector<Bar> m_bars;
+    std::vector<Piece> m_pieces;  // the divisions of one drawn bar form a single piece
     bool m_valid = false;
 };
+
+/// Piece marks (T-P5-04): the divisions of a bar split by "Generar nudos en puntos de corte" form one piece; "Viga" marks
+/// the pieces it creates ElementType::Beam and "Pilar" ElementType::Pillar (one piece per bar). Deleting a bar splits or
+/// drops its piece (StructuralModel::removeBar); undo restores the piece records.
 
 /// "Viga": one bar per pair of consecutive nodes of an ordered list (continuous beam), in one command. Consecutive equal
 /// nodes and pairs that already have a bar (existing or earlier in the list) are skipped. With `generateCutNodes` each
@@ -59,6 +64,7 @@ public:
 private:
     Project& m_project;
     std::vector<Bar> m_bars;
+    std::vector<Piece> m_pieces;  // marked ElementType::Beam
     bool m_valid = false;
 };
 
@@ -83,6 +89,7 @@ private:
     Project& m_project;
     std::vector<Node> m_nodes;  // new nodes only
     std::vector<Bar> m_bars;
+    std::vector<Piece> m_pieces;  // one piece per bar, marked ElementType::Pillar
     std::string m_error;
     bool m_valid = false;
 };
@@ -100,6 +107,8 @@ public:
 private:
     Project& m_project;
     std::vector<Bar> m_bars;
+    std::vector<Piece> m_piecesBefore;
+    int m_nextPieceBefore = 1;
 };
 
 /// Wrappers: build the command, push it on `stack`; empty vector / false (and nothing pushed) when invalid.

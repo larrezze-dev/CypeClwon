@@ -1,6 +1,7 @@
 #include "core/structure_model.h"
 
 #include <algorithm>
+#include <set>
 #include <cctype>
 #include <cmath>
 
@@ -158,7 +159,56 @@ bool StructuralModel::insertShell(const Shell& shell) {
     return true;
 }
 
-bool StructuralModel::removeBar(int id) { return eraseById(bars, id); }
+bool StructuralModel::removeBar(int id) {
+    if (!findBar(id)) return false;
+    // The bar leaves its piece; the stretches left on each side become pieces of their own (the first keeps the id).
+    if (const Piece* found = pieceOfBar(id)) {
+        const Piece old = *found;
+        removePiece(old.id);
+        const auto at = static_cast<std::size_t>(std::find(old.barIds.begin(), old.barIds.end(), id) - old.barIds.begin());
+        const std::pair<std::size_t, std::size_t> runs[2] = {{0, at}, {at + 1, old.barIds.size()}};
+        bool first = true;
+        for (const auto& [from, to] : runs) {
+            if (from >= to) continue;
+            Piece part;
+            part.id = first ? old.id : nextPieceId++;
+            first = false;
+            part.barIds.assign(old.barIds.begin() + from, old.barIds.begin() + to);
+            part.nodeIds.assign(old.nodeIds.begin() + from, old.nodeIds.begin() + to + 1);
+            part.type = old.type;
+            part.groupId = old.groupId;
+            if (part.barIds.size() > 1 || part.type != ElementType::Generic || part.groupId != 0) insertPiece(part);
+        }
+    }
+    return eraseById(bars, id);
+}
+
+const Piece* StructuralModel::findPiece(int id) const {
+    const auto it = std::lower_bound(pieces.begin(), pieces.end(), id, [](const Piece& p, int v) { return p.id < v; });
+    return it != pieces.end() && it->id == id ? &*it : nullptr;
+}
+
+const Piece* StructuralModel::pieceOfBar(int barId) const {
+    for (const Piece& p : pieces)
+        if (std::find(p.barIds.begin(), p.barIds.end(), barId) != p.barIds.end()) return &p;
+    return nullptr;
+}
+
+bool StructuralModel::insertPiece(const Piece& piece) {
+    if (piece.id <= 0 || piece.barIds.empty() || piece.nodeIds.size() != piece.barIds.size() + 1) return false;
+    const auto it = std::lower_bound(pieces.begin(), pieces.end(), piece.id, [](const Piece& p, int v) { return p.id < v; });
+    if (it != pieces.end() && it->id == piece.id) return false;
+    pieces.insert(it, piece);
+    nextPieceId = std::max(nextPieceId, piece.id + 1);
+    return true;
+}
+
+bool StructuralModel::removePiece(int id) {
+    const auto it = std::lower_bound(pieces.begin(), pieces.end(), id, [](const Piece& p, int v) { return p.id < v; });
+    if (it == pieces.end() || it->id != id) return false;
+    pieces.erase(it);
+    return true;
+}
 bool StructuralModel::removeShell(int id) { return eraseById(shells, id); }
 
 bool StructuralModel::removeNode(int id) {
@@ -457,6 +507,25 @@ std::string StructuralModel::validate() const {
         if (b.sectionId != 0 && !findSection(b.sectionId)) return name + " hace referencia a una sección que no existe.";
         if (const std::string e = checkLayerIds(b.layerIds); !e.empty()) return name + " " + e;
         if (!std::isfinite(b.rollAngleDeg)) return name + " tiene un ángulo de giro no válido.";
+    }
+    {
+        std::set<int> used;
+        int previous = 0;
+        for (const Piece& p : pieces) {
+            const std::string name = "La pieza " + std::to_string(p.id);
+            if (p.id <= previous || p.id >= nextPieceId) return "Los identificadores de piezas no son válidos.";
+            previous = p.id;
+            if (p.barIds.empty() || p.nodeIds.size() != p.barIds.size() + 1) return name + " no es coherente.";
+            if (p.groupId < 0) return name + " tiene un grupo no válido.";
+            for (std::size_t i = 0; i < p.barIds.size(); ++i) {
+                const Bar* b = findBar(p.barIds[i]);
+                if (!b) return name + " hace referencia a una barra que no existe.";
+                if (!used.insert(p.barIds[i]).second) return "La barra " + std::to_string(b->id) + " está en más de una pieza.";
+                const bool forward = b->startNode == p.nodeIds[i] && b->endNode == p.nodeIds[i + 1];
+                const bool backward = b->endNode == p.nodeIds[i] && b->startNode == p.nodeIds[i + 1];
+                if (!forward && !backward) return name + " no está conectada por sus nudos.";
+            }
+        }
     }
     for (const Shell& s : shells) {
         const std::string name = "La lámina " + std::to_string(s.id);
