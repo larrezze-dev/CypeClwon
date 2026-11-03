@@ -42,9 +42,10 @@ QString NodeTool::statusText(Mode mode, bool moveSecondStep) {
         case Mode::New: return tr("Nudos - Nuevo |  - LMB: Introduzca un punto.");
         case Mode::Delete:
             return tr("Nudos - Borrar |  - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados.");
-        case Mode::Move:  // PROVISIONAL: summarised from the help texts #64745-#64747 in the same format (not captured in the original)
-            return moveSecondStep ? tr("Nudos - Mover |  - LMB: Seleccione la nueva posición. - RMB: Cancelar.")
-                                  : tr("Nudos - Mover |  - LMB: Seleccione un nudo.");
+        case Mode::Move:  // measured in the original (nudos.md section 9.2)
+            return moveSecondStep
+                       ? tr("Nudos - Mover |  - LMB: Seleccione la nueva posición del elemento. - RMB: Volver al paso anterior.")
+                       : tr("Nudos - Mover |  - LMB: Seleccione un elemento.");
     }
     return {};
 }
@@ -68,9 +69,12 @@ void NodeTool::addViewport(Viewport3D* viewport) {
     connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] { onActOnSelection(viewport); });
     connect(viewport, &Viewport3D::digitTyped, this, [this, viewport](QChar digit) { onDigitTyped(viewport, digit); });
     connect(viewport, &Viewport3D::rightClicked, this, [this] {
-        if (movePending()) endMove();  // RMB cancels the move without changing anything
+        if (movePending()) endMove();  // RMB: "Volver al paso anterior" (the command goes on in its first step, nothing changes)
     });
-    connect(viewport, &Viewport3D::escapePressed, this, [this] { deactivate(); });
+    connect(viewport, &Viewport3D::escapePressed, this, [this] {
+        deactivate();
+        for (const QPointer<Viewport3D>& v : m_viewports) v->hideCoordinateTooltip();  // measured: Esc hides the tooltip next to the cursor
+    });
     if (m_mode != Mode::None) configureViewports();
 }
 
@@ -119,9 +123,10 @@ void NodeTool::configureViewports() {
         viewport->setSelectionMode(false);
         viewport->setSnapMode(false);
         viewport->setMovingNode(movePending() ? m_moveNode : std::nullopt);
-        // The labels "N<id>" are shown by Nuevo (n5_on_bar.png) but not by Borrar (c3_borrar_hover.png, c4_borrar_sel.png); the
-        // second step of Mover, which works like Nuevo, shows them too (provisional).
-        viewport->setNodeLabelsVisible(snapping);
+        // The labels "N<id>" are shown by Nuevo (n5_on_bar.png) but neither by Borrar (c3_borrar_hover.png, c4_borrar_sel.png) nor by
+        // Mover, in any of its steps (nudos.md section 9.2). Borrar shows no tooltip with the coordinates next to the cursor either.
+        viewport->setNodeLabelsVisible(m_mode == Mode::New);
+        viewport->setCoordinateTooltipEnabled(m_mode != Mode::Delete);
         if (snapping) viewport->setSnapMode(true);
         if (selecting) {
             viewport->setSelectionFilter(cc::core::SelectionFilter::only(cc::core::ElementKind::Node));
@@ -173,11 +178,11 @@ void NodeTool::place(const cc::core::Point3& position) {
     if (!movePending()) return;
     const int id = *m_moveNode;
     const auto occupied = cc::core::findNodeAt(m_project->structure, position);
-    if (occupied && *occupied != id) return;  // another node is there (provisional: the original's behaviour is not measured)
-    if (occupied && *occupied == id) {        // dropped where it was
+    if (occupied && *occupied == id) {  // dropped where it was
         endMove();
         return;
     }
+    // Another node there: no message, the nodes merge (MoveNodeCommand). After fixing the node the command stays in its first step.
     if (cc::core::moveNode(*m_project, *m_undo, id, position)) endMove();  // refused (a bar would degenerate): the move goes on
 }
 
@@ -195,6 +200,8 @@ void NodeTool::openCalculator(Viewport3D* viewport, QChar first) {
         if (guard) guard->setFocus();
     });
     dialog->start(first);
+    if (movePending() && m_project)  // measured: in Mover Y and Z start with the current coordinates of the chosen node
+        if (const cc::core::Node* node = m_project->structure.findNode(*m_moveNode)) dialog->presetYZ(node->position.y, node->position.z);
     dialog->open();
 }
 

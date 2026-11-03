@@ -36,12 +36,17 @@ private:
 };
 
 /// "Mover": moves a node; the bars and shells that use it follow by reference.
+/// Measured in the original (nudos.md section 9.2): dropping the node on another node merges them, with no message. The moved
+/// node disappears, the bar that joined the two (now of length zero) disappears and the other bars of the moved node are
+/// attached to the destination node. It is one single undoable command.
 class MoveNodeCommand : public UndoCommand {
 public:
     MoveNodeCommand(Project& project, int nodeId, const Point3& newPosition);
-    /// False when the node does not exist, the position is not finite / out of range, or a connected bar would become
-    /// degenerate (shorter than the minimum bar length).
+    /// False when the node does not exist, the position is not finite / out of range, a connected bar would become
+    /// degenerate (shorter than the minimum bar length) or a merge would collapse a shell (two corners on the same node).
     bool valid() const { return m_valid; }
+    /// Id of the node the moved one was merged into; 0 when the command is a plain move.
+    int mergedInto() const { return m_mergeTarget; }
     void redo() override;
     void undo() override;
     std::string text() const override { return "Mover nudo"; }
@@ -52,6 +57,11 @@ private:
     Point3 m_before;
     Point3 m_after;
     bool m_valid;
+    // Merge only: the node that goes away, and the bars / shells before and after the merge.
+    int m_mergeTarget = 0;
+    Node m_node;
+    std::vector<Bar> m_oldBars, m_newBars;
+    std::vector<Shell> m_oldShells, m_newShells;
 };
 
 /// "Borrar": deletes nodes together with the bars and shells that use them. Exception: a deleted node that joins exactly

@@ -26,6 +26,8 @@ public:
 
     /// Clears the three fields to "0", makes X active and types `first` (the digit that opened the window).
     void start(QChar first);
+    /// Mover: Y and Z start with the current coordinates of the chosen node instead of "0" (measured, nudos.md section 9.2).
+    void presetYZ(double y, double z);
     int activeField() const { return m_active; }
     QString fieldText(int index) const { return m_text.at(static_cast<std::size_t>(index)); }
     double value(int index) const;
@@ -53,6 +55,7 @@ private:
 
     std::array<QString, 3> m_text{QStringLiteral("0"), QStringLiteral("0"), QStringLiteral("0")};
     std::array<QLabel*, 3> m_fields{};
+    std::array<bool, 3> m_preset{};  ///< field holds a preset value that the first typed key replaces
     int m_active = 0;
     std::array<QPushButton*, 28> m_buttons{};
     int m_buttonCount = 0;

@@ -111,12 +111,25 @@ void NodeCalculatorDialog::refreshFields() {
 
 void NodeCalculatorDialog::start(QChar first) {
     m_text = {QStringLiteral("0"), QStringLiteral("0"), QStringLiteral("0")};
+    m_preset = {false, false, false};
     m_active = 0;
     pressDigit(first);
 }
 
+void NodeCalculatorDialog::presetYZ(double y, double z) {
+    m_text[1] = QString::number(y, 'g', 10);
+    m_text[2] = QString::number(z, 'g', 10);
+    m_preset = {false, true, true};
+    refreshFields();
+}
+
 void NodeCalculatorDialog::pressDigit(QChar ch) {
     QString& text = m_text[static_cast<std::size_t>(m_active)];
+    bool& preset = m_preset[static_cast<std::size_t>(m_active)];
+    if (preset) {  // a preset value is replaced by the first key typed (assumed: the original's behaviour was not measured)
+        text = QStringLiteral("0");
+        preset = false;
+    }
     if (ch == QLatin1Char('.') || ch == QLatin1Char(',')) {
         if (!text.contains(QLatin1Char('.')) && text.size() < kMaxLength) text += QLatin1Char('.');
     } else if (ch.isDigit() && ch.unicode() < 128) {

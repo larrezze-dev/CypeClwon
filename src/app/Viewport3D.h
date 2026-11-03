@@ -134,7 +134,11 @@ public:
     std::optional<int> infoBarId() const;
     /// True while the coordinate tooltip is visible: whenever the cursor is inside the viewport (the original shows it
     /// without any command active too: tp1_after_esc.png), snapped to elements in snap mode, free otherwise.
-    bool coordinateTooltipVisible() const { return m_cursorInside; }
+    bool coordinateTooltipVisible() const { return m_cursorInside && m_coordTooltipEnabled && !m_coordTooltipDismissed; }
+    /// Nudos > Borrar shows no coordinate tooltip next to the cursor (nudos.md section 9.3).
+    void setCoordinateTooltipEnabled(bool on) { m_coordTooltipEnabled = on; update(); }
+    /// Esc hides the tooltip (nudos.md section 9.4) until the pointer leaves and re-enters the window.
+    void hideCoordinateTooltip() { m_coordTooltipDismissed = true; update(); }
 
     /// "187.596, -186.215, 153.756 m": three decimals, point as decimal separator, unit at the end.
     static QString coordinatesText(const core::Vec3& world);
@@ -305,6 +309,7 @@ private:
     void drawGuideLine(class QPainter& painter, core::Vec3 a, core::Vec3 b) const;
     void drawStructure(class QPainter& painter) const;
     void drawNodes(class QPainter& painter) const;
+    void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
     void drawHighlight(class QPainter& painter, const core::ElementRef& e, bool selected) const;
     void drawRubberBand(class QPainter& painter) const;
     void drawZoomMark(class QPainter& painter) const;
@@ -342,6 +347,8 @@ private:
     bool m_fillShells = false;
     double m_nodeSizeCm = 15.0;
     bool m_cursorInside = false;
+    bool m_coordTooltipEnabled = true;
+    bool m_coordTooltipDismissed = false;
     bool m_nodeLabels = false;
     std::optional<int> m_movingNode;
     std::shared_ptr<core::StructuralModel> m_snapModel;  ///< structure without the moving node and its bars (null when none moves)

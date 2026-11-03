@@ -55,20 +55,74 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     const Node* node = model.findNode(nodeId);
     if (!node || !validPosition(newPosition)) return;
     m_before = node->position;
-    for (int barId : model.barsUsingNode(nodeId)) {
-        const Bar* bar = model.findBar(barId);
-        const Node* far = model.findNode(otherEnd(*bar, nodeId));
-        if (!far || distance(far->position, newPosition) < kMinBarLengthM) return;
+    m_node = *node;
+
+    // Another node already lies at the destination: the two merge (nudos.md section 9.2).
+    for (const Node& other : model.nodes)
+        if (other.id != nodeId && distance(other.position, newPosition) <= kCoincidentNodeToleranceM) {
+            m_mergeTarget = other.id;
+            break;
+        }
+
+    std::vector<int> barIds = model.barsUsingNode(nodeId);
+    std::sort(barIds.begin(), barIds.end());
+    if (m_mergeTarget == 0) {
+        for (int barId : barIds) {
+            const Bar* bar = model.findBar(barId);
+            const Node* far = model.findNode(otherEnd(*bar, nodeId));
+            if (!far || distance(far->position, newPosition) < kMinBarLengthM) return;
+        }
+        m_valid = true;
+        return;
+    }
+
+    for (int barId : barIds) {
+        const Bar& bar = *model.findBar(barId);
+        m_oldBars.push_back(bar);
+        if (otherEnd(bar, nodeId) == m_mergeTarget) continue;  // the bar between the two nodes has length zero: it disappears
+        Bar moved = bar;
+        (moved.startNode == nodeId ? moved.startNode : moved.endNode) = m_mergeTarget;
+        m_newBars.push_back(moved);
+    }
+    std::vector<int> shellIds = model.shellsUsingNode(nodeId);
+    std::sort(shellIds.begin(), shellIds.end());
+    for (int shellId : shellIds) {
+        const Shell& shell = *model.findShell(shellId);
+        if (std::find(shell.nodeIds.begin(), shell.nodeIds.end(), m_mergeTarget) != shell.nodeIds.end()) return;  // would collapse
+        m_oldShells.push_back(shell);
+        Shell moved = shell;
+        std::replace(moved.nodeIds.begin(), moved.nodeIds.end(), nodeId, m_mergeTarget);
+        m_newShells.push_back(moved);
     }
     m_valid = true;
 }
 
 void MoveNodeCommand::redo() {
-    if (Node* n = m_project.structure.findNode(m_id)) n->position = m_after;
+    if (!m_valid) return;
+    StructuralModel& model = m_project.structure;
+    if (m_mergeTarget == 0) {
+        if (Node* n = model.findNode(m_id)) n->position = m_after;
+        return;
+    }
+    for (const Shell& s : m_oldShells) model.removeShell(s.id);
+    for (const Bar& b : m_oldBars) model.removeBar(b.id);
+    model.removeNode(m_id);
+    for (const Bar& b : m_newBars) model.insertBar(b);
+    for (const Shell& s : m_newShells) model.insertShell(s);
 }
 
 void MoveNodeCommand::undo() {
-    if (Node* n = m_project.structure.findNode(m_id)) n->position = m_before;
+    if (!m_valid) return;
+    StructuralModel& model = m_project.structure;
+    if (m_mergeTarget == 0) {
+        if (Node* n = model.findNode(m_id)) n->position = m_before;
+        return;
+    }
+    for (const Shell& s : m_newShells) model.removeShell(s.id);
+    for (const Bar& b : m_newBars) model.removeBar(b.id);
+    model.insertNode(m_node);
+    for (const Bar& b : m_oldBars) model.insertBar(b);
+    for (const Shell& s : m_oldShells) model.insertShell(s);
 }
 
 // --- DeleteNodesCommand -----------------------------------------------------------------------------------------

@@ -26,7 +26,8 @@ class Viewport3D;
 ///    when a node already lies there); a typed digit opens the "Calculadora". The node labels "N<id>" are shown.
 ///  - Borrar: node-only selection; LMB marks a node, RMB deletes the marked nodes at once (no confirmation).
 ///  - Mover: LMB on a node, then the node follows the pointer with the bars that reach it, LMB sets the new position (like
-///    Nuevo), RMB cancels. The command stays active for another node. The second step has no measured text or labels (provisional).
+///    Nuevo), RMB goes back to the first step ("Volver al paso anterior"). The command stays active for another node; no
+///    labels "N" are shown; dropping the node on another one merges them (MoveNodeCommand). Texts: nudos.md section 9.2.
 class NodeTool : public QObject {
     Q_OBJECT
 public:

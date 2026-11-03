@@ -51,9 +51,55 @@ TEST(NodeEdit, MoveNodeFollowsBarsAndUndoes) {
     EXPECT_DOUBLE_EQ(p.structure.barLength(bar), 3.0);
     stack.redo();
     EXPECT_DOUBLE_EQ(p.structure.barLength(bar), 5.0);
-    EXPECT_FALSE(moveNode(p, stack, b, {0, 0, 0}));  // would collapse the bar
+    EXPECT_FALSE(moveNode(p, stack, b, {NAN, 0, 3}));
     EXPECT_FALSE(moveNode(p, stack, 99, {1, 1, 1}));
     EXPECT_EQ(stack.count(), 1u);
+}
+
+TEST(NodeEdit, MoveOntoAnotherNodeMergesThemInOneUndoableCommand) {
+    // N1 (0,0,0) - N2 (0,0,3) - N3 (4,0,3): moving N2 onto N3 (as measured in the original).
+    Project p = baseProject();
+    UndoStack stack;
+    const int n1 = p.structure.addNode({0, 0, 0});
+    const int n2 = p.structure.addNode({0, 0, 3});
+    const int n3 = p.structure.addNode({4, 0, 3});
+    const int b12 = p.structure.addBar(n1, n2, 1, 1);
+    const int b23 = p.structure.addBar(n2, n3, 1, 1);
+    const StructuralModel before = p.structure;
+    ASSERT_TRUE(moveNode(p, stack, n2, {4, 0, 3}));
+    EXPECT_EQ(stack.count(), 1u);
+    EXPECT_EQ(p.structure.findNode(n2), nullptr) << "the moved node disappears";
+    EXPECT_EQ(p.structure.findBar(b23), nullptr) << "the bar of length zero disappears";
+    const Bar* joined = p.structure.findBar(b12);
+    ASSERT_NE(joined, nullptr) << "the other bar is attached to the destination node";
+    EXPECT_EQ(joined->startNode, n1);
+    EXPECT_EQ(joined->endNode, n3);
+    EXPECT_DOUBLE_EQ(p.structure.barLength(b12), 5.0);
+    stack.undo();
+    EXPECT_EQ(p.structure.nodes.size(), before.nodes.size());
+    EXPECT_EQ(p.structure.bars, before.bars);
+    EXPECT_EQ(p.structure.findNode(n2)->position, (Point3{0, 0, 3}));
+    stack.redo();
+    EXPECT_EQ(p.structure.findNode(n2), nullptr);
+    EXPECT_EQ(p.structure.findBar(b12)->endNode, n3);
+}
+
+TEST(NodeEdit, MergeCarriesShellsAndRefusesToCollapseOne) {
+    Project p = baseProject();
+    UndoStack stack;
+    const int a = p.structure.addNode({0, 0, 0});
+    const int b = p.structure.addNode({1, 0, 0});
+    const int c = p.structure.addNode({0, 1, 0});
+    const int d = p.structure.addNode({1, 1, 0});
+    const int shell = p.structure.addShell({a, b, c}, 0.1, 1);
+    ASSERT_NE(shell, 0);
+    EXPECT_FALSE(moveNode(p, stack, a, {1, 0, 0}));  // a and b are corners of the same shell
+    EXPECT_EQ(stack.count(), 0u);
+    ASSERT_TRUE(moveNode(p, stack, c, {1, 1, 0}));  // c onto d: the shell follows
+    EXPECT_EQ(p.structure.findShell(shell)->nodeIds, (std::vector<int>{a, b, d}));
+    stack.undo();
+    EXPECT_EQ(p.structure.findShell(shell)->nodeIds, (std::vector<int>{a, b, c}));
+    ASSERT_NE(p.structure.findNode(c), nullptr);
 }
 
 TEST(NodeEdit, DeleteNodeCascadesBarsAndShells) {

@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QApplication>
+#include <QEnterEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPushButton>
@@ -169,9 +170,26 @@ TEST_F(NodeToolTest, StatusBarTextsHaveTheSeparatorsOfTheOriginal) {
     tool->deleteAction()->trigger();
     EXPECT_EQ(status, QStringLiteral("Nudos - Borrar |  - LMB: Seleccione un grupo de elementos. - RMB: Actuar sobre los elementos seleccionados."));
     tool->moveAction()->trigger();
-    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione un nudo."));
+    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione un elemento."));
     click(*view, screenOf(4, 0, 3));
-    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione la nueva posición. - RMB: Cancelar."));
+    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione la nueva posición del elemento. - RMB: Volver al paso anterior."));
+}
+
+TEST_F(NodeToolTest, MoverShowsNoNodeLabelsAndBorrarNoCoordinateTooltip) {
+    tool->moveAction()->trigger();
+    EXPECT_FALSE(view->nodeLabelsVisible());
+    click(*view, screenOf(4, 0, 3));
+    ASSERT_TRUE(tool->movePending());
+    EXPECT_FALSE(view->nodeLabelsVisible()) << "not even in the second step";
+    tool->deleteAction()->trigger();
+    hover(*view, screenOf(2, 0, 3));
+    EXPECT_FALSE(view->coordinateTooltipVisible());
+    tool->newAction()->trigger();
+    QEnterEvent enter(QPointF(10, 10), QPointF(10, 10), QPointF(10, 10));
+    QApplication::sendEvent(view.get(), &enter);
+    EXPECT_TRUE(view->coordinateTooltipVisible());
+    key(*view, Qt::Key_Escape);
+    EXPECT_FALSE(view->coordinateTooltipVisible()) << "Esc hides the tooltip";
 }
 
 TEST_F(NodeToolTest, NuevoEntersANodeOnABarAndIgnoresClicksWithoutSnap) {
@@ -350,7 +368,7 @@ TEST_F(NodeToolTest, MoverNeedsANodeThenFollowsThePointerAndSetsTheNewPosition) 
     EXPECT_NEAR(project.structure.findNode(4)->position.x, 4.0, 1e-9);
 }
 
-TEST_F(NodeToolTest, MoverIgnoresClicksWithoutSnapAndRmbCancels) {
+TEST_F(NodeToolTest, MoverIgnoresClicksWithoutSnapAndRmbGoesBackToTheFirstStep) {
     tool->moveAction()->trigger();
     click(*view, screenOf(4, 0, 3));
     ASSERT_TRUE(tool->movePending());
@@ -358,12 +376,32 @@ TEST_F(NodeToolTest, MoverIgnoresClicksWithoutSnapAndRmbCancels) {
     ASSERT_FALSE(view->currentSnap().snapped());
     EXPECT_TRUE(tool->movePending());
     EXPECT_TRUE(undo.isClean());
-    click(*view, QPointF(30, 30), Qt::RightButton);  // RMB cancels
+    click(*view, QPointF(30, 30), Qt::RightButton);  // RMB: "Volver al paso anterior"
     EXPECT_FALSE(tool->movePending());
     EXPECT_FALSE(view->movingNode().has_value());
     EXPECT_TRUE(undo.isClean());
+    EXPECT_EQ(tool->mode(), Mode::Move) << "RMB does not leave the command";
+    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione un elemento."));
+    click(*view, QPointF(30, 30), Qt::RightButton);  // a second RMB in the first step: still in the command
     EXPECT_EQ(tool->mode(), Mode::Move);
-    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione un nudo."));
+    click(*view, screenOf(4, 0, 3));  // and another node can be chosen
+    EXPECT_TRUE(tool->movePending());
+}
+
+TEST_F(NodeToolTest, MoverOntoAnotherNodeMergesThemWithoutMessage) {
+    tool->moveAction()->trigger();
+    click(*view, screenOf(0, 0, 3));  // N3 (0,0,3), bars N1-N3 and N3-N4
+    ASSERT_TRUE(tool->movePending());
+    click(*view, screenOf(4, 0, 3));  // onto N4
+    EXPECT_EQ(nodeCount(), 3u);
+    EXPECT_EQ(project.structure.findNode(3), nullptr);
+    EXPECT_EQ(project.structure.bars.size(), 2u) << "the bar of length zero disappears";
+    EXPECT_FALSE(tool->movePending());
+    EXPECT_EQ(tool->mode(), Mode::Move) << "after fixing, the command is in its first step";
+    EXPECT_EQ(status, QStringLiteral("Nudos - Mover |  - LMB: Seleccione un elemento."));
+    undo.undo();
+    EXPECT_EQ(nodeCount(), 4u);
+    EXPECT_EQ(project.structure.bars.size(), 3u);
 }
 
 TEST_F(NodeToolTest, MoverAcceptsTheCalculatorInTheSecondStep) {
@@ -382,6 +420,24 @@ TEST_F(NodeToolTest, MoverAcceptsTheCalculatorInTheSecondStep) {
     EXPECT_DOUBLE_EQ(moved->position.x, 7);
     EXPECT_DOUBLE_EQ(moved->position.y, 0);
     EXPECT_DOUBLE_EQ(moved->position.z, 2);
+}
+
+TEST_F(NodeToolTest, MoverCalculatorStartsWithTheCurrentYAndZOfTheNode) {
+    tool->moveAction()->trigger();
+    click(*view, screenOf(4, 0, 3));  // N4 at (4, 0, 3)
+    ASSERT_TRUE(tool->movePending());
+    digit(*view, '9');
+    NodeCalculatorDialog* calc = tool->calculator();
+    ASSERT_NE(calc, nullptr);
+    EXPECT_EQ(calc->fieldText(0), QStringLiteral("9"));
+    EXPECT_EQ(calc->fieldText(1), QStringLiteral("0"));
+    EXPECT_EQ(calc->fieldText(2), QStringLiteral("3"));
+    key(*calc, Qt::Key_Return);
+    key(*calc, Qt::Key_Return);
+    key(*calc, Qt::Key_Return);  // Y and Z untouched: only X changes
+    const auto* moved = project.structure.findNode(4);
+    EXPECT_DOUBLE_EQ(moved->position.x, 9);
+    EXPECT_DOUBLE_EQ(moved->position.z, 3);
 }
 
 TEST_F(NodeToolTest, ProjectClosedEndsTheCommand) {

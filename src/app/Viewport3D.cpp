@@ -539,6 +539,7 @@ void Viewport3D::keyPressEvent(QKeyEvent* event) {
 
 void Viewport3D::leaveEvent(QEvent* event) {
     m_cursorInside = false;
+    m_coordTooltipDismissed = false;
     if (m_hover) m_hover.reset();
     update();
     QOpenGLWidget::leaveEvent(event);
@@ -726,11 +727,9 @@ void Viewport3D::drawStructure(QPainter& painter) const {
     };
     const bool clipping = m_clip.anyActive();
     const std::vector<core::ClipHalfSpace> spaces = m_clip.halfSpaces();
-    // Nudos > Mover: the node being moved is drawn at the cursor and the bars that reach it follow it.
-    const Vec3 movedTo = m_movingNode ? cursorWorld() : Vec3{};
-    const auto positionOf = [&](const core::Node& n) -> Vec3 {
-        return m_movingNode && n.id == *m_movingNode ? movedTo : Vec3{n.position.x, n.position.y, n.position.z};
-    };
+    // Nudos > Mover: the original bars stay where they are until the new position is fixed; the rubber bars to the cursor are
+    // drawn by drawMoveRubber() (nudos.md section 9.2).
+    const auto positionOf = [&](const core::Node& n) -> Vec3 { return Vec3{n.position.x, n.position.y, n.position.z}; };
     for (const core::Shell& shell : m_structure->shells) {
         if (!m_categories.shellsDrawn()) break;
         if (!m_structure->elementVisible(shell.layerIds)) continue;  // layer hidden with the eye
@@ -795,15 +794,68 @@ void Viewport3D::drawNodes(QPainter& painter) const {
     painter.setPen(QPen(kNodeBlue, 1));
     for (const core::Node& n : m_structure->nodes) {
         double x, y;
-        if (m_movingNode && n.id == *m_movingNode) continue;  // drawn at the cursor below
+        if (m_movingNode && n.id == *m_movingNode) continue;  // drawn orange with its cross below
         if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z})) continue;
         if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
     }
-    if (m_movingNode) {
+    if (m_movingNode) {  // measured: the chosen node is an orange square with a long orange cross, the node in motion a black square
         double x, y;
-        painter.setPen(QPen(kHighlight, 1));  // the node in motion is orange like a selected one
-        if (map.toScreen(cursorWorld(), x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+        if (const core::Node* chosen = m_structure->findNode(*m_movingNode); chosen && map.toScreen(chosen->position, x, y)) {
+            painter.setPen(QPen(kHighlight, 2));
+            painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+            painter.setPen(QPen(kHighlight, 1));
+            painter.drawLine(QPointF(x - 65, y), QPointF(x + 65, y));
+            painter.drawLine(QPointF(x, y - 65), QPointF(x, y + 65));
+        }
+        if (map.toScreen(cursorWorld(), x, y)) {
+            painter.setPen(QPen(Qt::black, 1));
+            painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+        }
     }
+}
+
+void Viewport3D::drawMoveRubber(QPainter& painter) const {
+    if (!m_movingNode || !m_structure) return;
+    const core::Node* chosen = m_structure->findNode(*m_movingNode);
+    if (!chosen) return;
+    const core::ScreenMapper map = mapper();
+    const Vec3 target = cursorWorld();
+    double tx, ty;
+    if (!map.toScreen(target, tx, ty)) return;
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(Qt::black, 1.5));  // the bars that reach the node follow the cursor in black
+    for (int barId : m_structure->barsUsingNode(*m_movingNode)) {
+        const core::Bar* bar = m_structure->findBar(barId);
+        const core::Node* far = m_structure->findNode(bar->startNode == *m_movingNode ? bar->endNode : bar->startNode);
+        double fx, fy;
+        if (far && map.toScreen(far->position, fx, fy)) painter.drawLine(QPointF(fx, fy), QPointF(tx, ty));
+    }
+    // Orange dimension "<length> m < <angle>°": horizontal distance to the original node and angle from +X, rotated along the line.
+    double ox, oy;
+    if (!map.toScreen(chosen->position, ox, oy)) return;
+    const double dx = target.x - chosen->position.x, dy = target.y - chosen->position.y;
+    const double length = std::hypot(dx, dy);
+    if (length < 1e-9) return;
+    double angle = std::atan2(dy, dx) * 180.0 / 3.14159265358979323846;
+    if (angle < 0.0) angle += 360.0;
+    const QString text = QStringLiteral("%1 m < %2°").arg(length, 0, 'f', 4).arg(angle, 0, 'f', 2);
+    const QPointF from(ox, oy), to(tx, ty);
+    const double screenLength = std::hypot(tx - ox, ty - oy);
+    if (screenLength < 20.0) return;
+    painter.setPen(QPen(kHighlight, 1, Qt::DashLine));
+    painter.drawLine(from, to);
+    painter.save();
+    painter.translate((from + to) / 2.0);
+    double rotation = std::atan2(ty - oy, tx - ox) * 180.0 / 3.14159265358979323846;
+    if (rotation > 90.0) rotation -= 180.0;  // keep the text upright
+    if (rotation < -90.0) rotation += 180.0;
+    painter.rotate(rotation);
+    QFont font = painter.font();
+    font.setPixelSize(13);
+    painter.setFont(font);
+    painter.setPen(kHighlight);
+    painter.drawText(QRectF(-90, -22, 180, 18), Qt::AlignCenter, text);
+    painter.restore();
 }
 
 void Viewport3D::drawNodeTags(QPainter& painter) const {
@@ -1159,6 +1211,7 @@ void Viewport3D::paintGL() {
     drawStructure(painter);
     drawClipping(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
+    drawMoveRubber(painter);
     drawNodeTags(painter);
     drawZoomMark(painter);
     if (m_selectionMode) {
