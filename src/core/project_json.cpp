@@ -251,6 +251,14 @@ const std::vector<Section>& sections() {
                     p.workPlanes = *parsed;
                 },
                 [](const Project& p) { return p.workPlanes.isValid(); }},
+        Section{"profile_library", "Biblioteca de perfiles",
+                [](const Project& p) { return toJson(p.profileLibrary); },
+                [](Project& p, const std::string& text) {
+                    const auto parsed = profileLibraryFromJson(text);
+                    if (!parsed) throw std::invalid_argument("valores no válidos");
+                    p.profileLibrary = *parsed;
+                },
+                [](const Project& p) { return validateLibrary(p.profileLibrary).empty(); }},
         makeCollection<Node>("nodes", "Nudos", &StructuralModel::nodes, &StructuralModel::nextNodeId),
         makeCollection<Material>("materials", "Materiales", &StructuralModel::materials, &StructuralModel::nextMaterialId),
         makeCollection<CrossSection>("cross_sections", "Secciones", &StructuralModel::sections, &StructuralModel::nextSectionId),

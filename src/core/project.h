@@ -6,6 +6,7 @@
 #include "core/display_options.h"
 #include "core/limit_states.h"
 #include "core/options_settings.h"
+#include "core/profile_series.h"
 #include "core/project_settings.h"
 #include "core/standards.h"
 #include "core/structure_model.h"
@@ -31,6 +32,7 @@ struct Project {
     DisplayOptions display;        ///< "Opciones de visualización"; stored with the project like the original
     CategorySettings categories;   ///< "Categorías" panel state
     WorkPlanes workPlanes;         ///< "Planos": grid lines, levels and plane groups (section work_planes)
+    ProfileLibrary profileLibrary;  ///< "Biblioteca de perfiles" of the work (section profile_library); empty in a new work
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 
