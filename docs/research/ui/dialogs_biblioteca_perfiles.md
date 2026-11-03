@@ -27,3 +27,6 @@ Mismo contenido que *Resistencia al fuego* (radios: No considerar la situación 
 
 ## Huecos
 Tooltips y nombres exactos de los 8 materiales; iconos de forma de la familia 2 y aluminio; botón (i); diálogos de editar serie/perfil; orden de tabulación.
+
+## 5. Implementación en el clon (T-P5-05 GUI)
+Código: `src/app/ProfileLibraryDialogs.*`; tests `tests/profile_library_dialogs_tests.cpp`; capturas offscreen `docs/screenshots/clone_biblioteca_perfiles_0*.png`, `clone_series_*.png`, `clone_perfil_editar.png` (generadas con `CC_SNAPSHOT_DIR`; el entorno offscreen carece de fuentes, solo sirven para la maquetación). Medido solo lo documentado arriba; lo demás es provisional (TK-058..060, TK-053). Las ventanas con aplicación real no se lanzaron en esta pasada.

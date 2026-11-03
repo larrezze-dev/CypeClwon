@@ -113,3 +113,9 @@ add_executable(piece_tool_tests piece_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app
 target_include_directories(piece_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(piece_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(piece_tool_tests)
+
+add_executable(profile_library_dialogs_tests profile_library_dialogs_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ProfileLibraryDialogs.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(profile_library_dialogs_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(profile_library_dialogs_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
+gtest_discover_tests(profile_library_dialogs_tests)

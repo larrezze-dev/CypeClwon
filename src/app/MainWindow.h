@@ -89,6 +89,7 @@ private:
     void editGeneralData();
     /// Obra > Unidades de acotación.
     void editUnits();
+    void editProfileLibrary();
     /// Builds the groups of the Obra tab (reference: docs/screenshots/orig_obra_tab.png).
     void buildObraTab();
     /// Builds the groups of the Geometria tab built so far ("Planos", "Nudos"; the rest arrives with the bars).

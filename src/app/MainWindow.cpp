@@ -33,6 +33,7 @@
 #include "FileManagerDialog.h"
 #include "FileOpsDialogs.h"
 #include "LimitStatesDialog.h"
+#include "ProfileLibraryDialogs.h"
 #include "UnitsDialog.h"
 #include "WorkPlanesDialogs.h"
 #include <QMenu>
@@ -665,6 +666,15 @@ void MainWindow::editUnits() {
     m_undo.push(std::make_unique<cc::core::EditUnitsCommand>(project, edited));
 }
 
+void MainWindow::editProfileLibrary() {
+    if (!m_projectOpen || !m_document) return;
+    cc::core::Project& project = m_document->project;
+    ProfileLibraryDialog dialog(project.profileLibrary, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    if (dialog.library() == project.profileLibrary) return;
+    m_undo.push(std::make_unique<cc::core::ReplaceLibraryCommand>(project, dialog.library(), "Biblioteca de perfiles"));
+}
+
 void MainWindow::editGrid() {
     if (!m_projectOpen || !m_document) return;
     cc::core::Project& project = m_document->project;
@@ -805,7 +815,7 @@ void MainWindow::buildObraTab() {
 
     // Obra: three rows of small buttons, two columns
     SARibbonPanel* obra = tab->addPanel(tr("Obra"));
-    obra->addSmallAction(make(QStringLiteral("profile_library"), tr("Biblioteca de perfiles"), true, notYet));
+    obra->addSmallAction(make(QStringLiteral("profile_library"), tr("Biblioteca de perfiles"), true, [this] { editProfileLibrary(); }));
     obra->addSmallAction(make(QStringLiteral("manufacturer_catalogs"), tr("Catálogos de fabricante"), true, notYet));
     obra->addSmallAction(make(QStringLiteral("plastic_hinges"), tr("Biblioteca de rótulas plásticas"), true, notYet));
     obra->addSmallAction(make(QStringLiteral("performance"), tr("Rendimiento"), true, notYet));
