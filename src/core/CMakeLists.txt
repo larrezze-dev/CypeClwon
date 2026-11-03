@@ -6,6 +6,7 @@
   project_archive.cpp project_archive.h project.h project_json.cpp project_json.h project_file.cpp project_file.h
   structure_model.cpp structure_model.h general_data.cpp general_data.h camera.cpp camera.h selection.cpp selection.h picking.cpp picking.h snap.cpp snap.h display_options.cpp display_options.h categories.cpp categories.h clipping.cpp clipping.h work_planes.cpp work_planes.h node_edit.cpp node_edit.h bar_edit.cpp bar_edit.h piece_edit.cpp piece_edit.h
   section_properties.cpp section_properties.h profile_series.cpp profile_series.h profile_library.cpp profile_library.h
+  bar_description.cpp bar_description.h bar_description_edit.cpp bar_description_edit.h
   predefined_profiles.cpp predefined_profiles.h profile_catalogue_data.inc)
 target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json)
 target_include_directories(cc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

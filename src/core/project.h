@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 
+#include "core/bar_description.h"
 #include "core/categories.h"
 #include "core/display_options.h"
 #include "core/limit_states.h"
@@ -33,6 +34,7 @@ struct Project {
     CategorySettings categories;   ///< "Categorías" panel state
     WorkPlanes workPlanes;         ///< "Planos": grid lines, levels and plane groups (section work_planes)
     ProfileLibrary profileLibrary;  ///< "Biblioteca de perfiles" of the work (section profile_library); empty in a new work
+    BarDescriptions barDescriptions;  ///< "Describir" of bars (section bar_descriptions); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 
