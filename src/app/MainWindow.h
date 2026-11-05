@@ -21,6 +21,7 @@ class NodeTool;
 class BarTool;
 class PieceTool;
 class BarDescribeTool;
+class ContinuousTool;
 class Viewport3D;
 class SessionBar;
 class StartPage;
@@ -121,6 +122,7 @@ private:
     NodeTool* m_nodeTool = nullptr;  ///< Geometria > Nudos (Nuevo / Borrar / Mover)
     BarDescribeTool* m_describeTool = nullptr;  ///< Geometria > Barras (Seccion / Material, T-P5-07)
     PieceTool* m_pieceTool = nullptr;  ///< Geometria > Barras (Pieza / Agrupar / Desagrupar / Mover extremo / Invertir eje)
+    ContinuousTool* m_continuousTool = nullptr;  ///< Geometria > Barras (Edición de pilares / vigas, T-P5-08)
     BarTool* m_barTool = nullptr;    ///< Geometria > Barras (Barra / Pilar / Viga)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;

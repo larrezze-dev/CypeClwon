@@ -4,6 +4,7 @@
 
 #include "core/bar_description.h"
 #include "core/categories.h"
+#include "core/continuous_model.h"
 #include "core/display_options.h"
 #include "core/limit_states.h"
 #include "core/options_settings.h"
@@ -35,6 +36,7 @@ struct Project {
     WorkPlanes workPlanes;         ///< "Planos": grid lines, levels and plane groups (section work_planes)
     ProfileLibrary profileLibrary;  ///< "Biblioteca de perfiles" of the work (section profile_library); empty in a new work
     BarDescriptions barDescriptions;  ///< "Describir" of bars (section bar_descriptions); empty in older files
+    ContinuousElements continuous;  ///< continuous pillars / beams, references, slab depths, deflection limits (section continuous_elements); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 

@@ -106,6 +106,13 @@ CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM
 CC_STRUCT(Layer, id, name, color, active, visible, locked, rendered)
 CC_ENUM(ElementType, {{ElementType::Generic, "generic"}, {ElementType::Pillar, "pillar"}, {ElementType::Beam, "beam"}})
 CC_STRUCT(Piece, id, barIds, nodeIds, type, groupId)
+CC_STRUCT(SlabDepth, nodeId, depthM)
+CC_STRUCT(ContinuousColumn, id, pieceIds, reference)
+CC_STRUCT(ContinuousBeam, id, pieceIds, reference)
+CC_STRUCT(PieceReference, pieceId, text)
+CC_STRUCT(BeamDeflectionLimit, relative, absoluteMm)
+CC_STRUCT(DeflectionGroup, id, barIds, limit)
+CC_STRUCT(ContinuousElements, columns, beams, pieceReferences, slabDepths, deflectionGroups, nextColumnId, nextBeamId, nextGroupId)
 CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
 CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerIds)
 
@@ -348,6 +355,8 @@ const std::vector<Section>& sections() {
         makeCollection<Shell>("shells", "Láminas", &StructuralModel::shells, &StructuralModel::nextShellId),
         makeCollection<Piece>("pieces", "Piezas", &StructuralModel::pieces, &StructuralModel::nextPieceId),
         makeCollection<Layer>("layers", "Capas", &StructuralModel::layers, &StructuralModel::nextLayerId),
+        make<ContinuousElements>("continuous_elements", "Pilares y vigas continuos", &Project::continuous,
+                                 [](const auto& v) { return v.isValid(); }),
         Section{"bar_descriptions", "Descripciones de barras",
                 [](const Project& p) { return json{{"next", p.barDescriptions.next}, {"items", p.barDescriptions.items}}.dump(2); },
                 [](Project& p, const std::string& text) {

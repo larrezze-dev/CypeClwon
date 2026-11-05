@@ -24,6 +24,8 @@
     <file>icons/bar_invert_axis.svg</file>
     <file>icons/bar_section.svg</file>
     <file>icons/bar_material.svg</file>
+    <file>icons/edit_pillars.svg</file>
+    <file>icons/edit_beams.svg</file>
     <file>icons/levels_generate.svg</file>
     <file>icons/compress.svg</file>
     <file>icons/decompress.svg</file>
