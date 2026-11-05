@@ -44,7 +44,7 @@ QString trc(const char* text) { return QCoreApplication::translate("BarDescribeD
 QString q(const std::string& s) { return QString::fromStdString(s); }
 std::string s8(const QString& s) { return s.toStdString(); }
 
-constexpr double kGravity = 9.80665;
+constexpr double kGravity = cc::core::kOriginalGravity;
 
 // --- pictograms (original artwork drawn in code; the original's bitmaps are not copied) -----------------------------------------
 
@@ -638,7 +638,7 @@ std::vector<std::pair<QString, QString>> profilePropertyRows(const Section& sect
         default:  // ColdFormedC: PROVISIONAL, no capture of its dialog; the rows follow those of the U plus the lip
             rows.emplace_back(L(N_("Canto total")), mm(d[0]));
             rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
-            rows.emplace_back(L(N_("Longitud del labio")), mm(d[2]));  // TODO(captura): label not seen
+            rows.emplace_back(L(N_("Canto rigidizador")), mm(d[2]));  // REA: perfil3.dll string 131936 (pf3texto.msg), third row of the CF (i)
             rows.emplace_back(L(N_("Espesor")), mm(d[3]));
             rows.emplace_back(L(N_("Radio de acuerdo interior")), mm(d[4]));
             area(); cgY(); iyy(); izz(); it(); avy(); avz(); weight();

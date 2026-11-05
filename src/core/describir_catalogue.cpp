@@ -48,7 +48,9 @@ Section makeSection(ShapeKind kind, const char* reference, const std::vector<dou
         s.tabulated.area = tab[0] * 1e-4;  // cm2 -> m2
         s.tabulated.iy = tab[1] * 1e-8;    // cm4 -> m4
     }
-    if (tab.size() >= 3) s.tabulated.iz = tab[2] * 1e-8;
+    // The lipped C (CF) carries a third catalogue value (Izz) that the original does NOT use: perfil3.dll passes it with the flag off (FUN_1802a6380),
+    // so the Izz shown is the computed one. Only A and Iyy are overridden (UF and CF).
+    if (tab.size() >= 3 && kind != ShapeKind::ColdFormedC) s.tabulated.iz = tab[2] * 1e-8;
     return s;
 }
 

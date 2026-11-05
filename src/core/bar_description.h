@@ -9,6 +9,10 @@
 
 namespace cc::core {
 
+/// Acceleration used by the original to turn tonnes into kilonewtons: basicos.dll magnitud_Tn_a_kN multiplies by 9.81 (FUN_180103bb0 returns the
+/// double 0x40239eb851eb851f = 9.81), e.g. steel 7.85 T/m3 -> 77.01 kN/m3 and concrete 2.5 T/m3 -> 24.525 kN/m3.
+inline constexpr double kOriginalGravity = 9.81;
+
 /// Description of a bar ("Describir" dialog of the original, T-P5-07; behaviour source docs/research/ui/dialogs_biblioteca_perfiles.md
 /// section 2). A description groups everything the dialog collects: structural element type, behaviour, material icon, shape,
 /// series / profile of the library, arrangement ("disposición") and the data of the generic section. Descriptions are shared:
@@ -151,7 +155,7 @@ std::optional<TimberClassProperties> timberClassProperties(const std::string& st
 ///  - concrete: E (MPa) of the grade from the block "Norma Eurocodigo 2" of datmater.dll (REA exact, C25/30 = 31476, the "Bc" grades
 ///    included), nu = 0.2, alpha = 1e-5 1/C, weight 25 kN/m3 (the original loads 2.5 T/m3; the factor T -> kN is taken as 10, not
 ///    verified). G = E / (2 (1 + nu)) as `cypemat_modulo_cortadura`.
-///  - timber: E0,mean and mean density of the class from ec5.dll (REA; default set CteSeM, see TimberPropertySet), weight = rho * 9.80665.
+///  - timber: E0,mean and mean density of the class from ec5.dll (REA; default set CteSeM, see TimberPropertySet), weight = rho * kOriginalGravity (9.81).
 ///    nu stays 0.3 and alpha 5e-6 as defaultMaterialData(Timber): the original derives nu = E0 / (2 G) - 1 (about 7), a value this
 ///    model rejects (nu must be below 0.5), and the thermal expansion of timber was not found. The timber type must match the class
 ///    (a class of another type returns the default).

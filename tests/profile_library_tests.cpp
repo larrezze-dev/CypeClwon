@@ -179,7 +179,7 @@ TEST(ProfileLibrary, PredefinedLibraryImportsAndSurvivesTheProjectJson) {
     UndoStack stack;
     int imported = 0;
     ASSERT_EQ(importSeries(project, stack, predefinedSeries(), ImportPolicy::KeepExisting, &imported), "");
-    EXPECT_EQ(imported, 7);
+    EXPECT_EQ(imported, static_cast<int>(predefinedSeries().size()));  // 21 series: IPE, HEA, HEB, HEM, IPN, UPN, L + 14 more of the original
     ASSERT_EQ(validateLibrary(project.profileLibrary), "");
     EXPECT_EQ(project_json::validate(project), "");
     EXPECT_TRUE(project_json::isKnownSection("profile_library"));

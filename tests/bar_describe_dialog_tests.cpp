@@ -543,11 +543,11 @@ TEST(BarDescribeDialog, ProfilePropertiesOfTheCatalogueShapesMatchTheCaptures) {
         EXPECT_EQ(v[12], "2.59 kg/m");
         const auto num = [&](int i) { return v[i].section(' ', 0, 0).toDouble(); };
         EXPECT_NEAR(num(5), -6.1, 0.1);        // y of the centre of gravity
-        EXPECT_NEAR(num(7), 2.82, 2.82 * 0.02);  // Izz, approximate (original 2.82)
+        EXPECT_NEAR(num(7), 2.82, 0.005);  // Izz (original 2.82)
         EXPECT_NEAR(num(8), 0.10, 0.01);       // It (original 0.10)
-        EXPECT_NEAR(num(9), 1.42, 1.42 * 0.02);   // Avy
-        EXPECT_NEAR(num(10), 1.42, 1.42 * 0.02);  // Avz
-        EXPECT_NEAR(num(11), 14.78, 14.78 * 0.06);  // warping, approximate
+        EXPECT_NEAR(num(9), 1.42, 0.005);   // Avy
+        EXPECT_NEAR(num(10), 1.42, 0.005);  // Avz
+        EXPECT_NEAR(num(11), 14.78, 0.005);  // warping (original 14.78)
     }
     {   // madera redondo Ø100: 5 rows
         const auto* p = catalogueProfile("Redondo", "\xC3\x98" "100");

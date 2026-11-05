@@ -98,7 +98,7 @@ TEST(DescribirCatalogue, DesignationsGiveTheDimensions) {
     EXPECT_EQ(cf.reference, "CF-60x2.0");
     EXPECT_EQ(cf.dims.size(), 5u);
     EXPECT_NEAR(cf.dims[2], 0.015, 1e-12);  // lip
-    EXPECT_NEAR(*cf.tabulated.iz, 7.16e-8, 1e-15);
+    EXPECT_FALSE(cf.tabulated.iz.has_value());  // the original does not override Izz of the lipped C (REA: flag off)
     EXPECT_EQ(find("C")->profiles.size(), 36u);
     EXPECT_EQ(find("C")->profiles.back().reference, "CF-300x4.0");
     EXPECT_NEAR(find("(EP) I")->profiles[7].dims[1], 0.0465, 1e-12);  // I-82x46.5x3
@@ -253,7 +253,7 @@ TEST(DescribirCatalogue, ConcreteValuesAreTheExactOnesOfTheOriginal) {
         const MaterialData m = concreteMaterialData(g);
         EXPECT_NEAR(m.poissonRatio, 0.2, 1e-12) << g;
         EXPECT_NEAR(m.thermalExpansion, 1e-5, 1e-15) << g;
-        EXPECT_NEAR(m.densityKnM3, 25.0, 1e-12) << g;
+        EXPECT_NEAR(m.densityKnM3, 24.525, 1e-12) << g;
         EXPECT_GT(m.elasticModulusMPa, 27000.0) << g;
     }
     EXPECT_NEAR(shearModulusMPa(concreteMaterialData("C25/30")), 13115.0, 0.5);  // G = E / (2 (1 + nu)); 13115 in the REA table
@@ -303,7 +303,7 @@ TEST(DescribirCatalogue, TimberClassesOfTheFourTypes) {
 TEST(DescribirCatalogue, TimberMaterialValues) {
     const auto& types = timberMaterials();
     EXPECT_NEAR(timberMaterialData(types[0], "C24").elasticModulusMPa, 11000.0, 1e-9);
-    EXPECT_NEAR(timberMaterialData(types[0], "C24").densityKnM3, 420.0 * 9.80665 / 1000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").densityKnM3, 420.0 * 9.81 / 1000.0, 1e-9);
     EXPECT_NEAR(timberMaterialData(types[0], "C14").elasticModulusMPa, 7000.0, 1e-9);
     EXPECT_NEAR(timberMaterialData(types[0], "C27").elasticModulusMPa, 11500.0, 1e-9);  // default set = CTE DB SE-M
     EXPECT_NEAR(timberMaterialData(types[0], "C27", TimberPropertySet::En).elasticModulusMPa, 12000.0, 1e-9);
@@ -370,37 +370,40 @@ TEST(DescribirCatalogue, DoubleTProfilesMatchTheOriginalExactly) {
     }
 }
 
-TEST(DescribirCatalogue, ColdFormedProfilesUseTheTabulatedValuesAndApproximateTheRest) {
-    // UF-60x3: tabulated A / Iyy are the ones the original shows; the rest is approximate (tolerances documented in 7.2)
+TEST(DescribirCatalogue, ColdFormedProfilesReproduceTheOriginalThinWalledModel) {
+    // UF-60x3: every value of the original (i) (REA: seccion.dll calconf_Calcular_CANAL_SIMPLE, polyline of 5-point arcs) to 2 decimals.
     const Section& uf = *find("U")->findProfile("UF-60x3");
     const auto p = effectiveProperties(uf);
     ASSERT_TRUE(p.has_value());
-    EXPECT_NEAR(p->area * 1e4, 3.30, 1e-9);
-    EXPECT_NEAR(p->iy * 1e8, 17.50, 1e-9);
-    EXPECT_NEAR(p->iz * 1e8, 2.82, 2.82 * 0.01);     // 2.84 (+0.7 %)
-    EXPECT_NEAR(p->it * 1e8, 0.10, 0.005);           // 0.099
-    EXPECT_NEAR((p->yCg - 0.030 / 2) * 1000.0, -6.10, 0.05);
-    EXPECT_NEAR(p->avy * 1e4, 1.42, 1.42 * 0.02);    // 1.44 (+1.4 %)
-    EXPECT_NEAR(p->avz * 1e4, 1.42, 1.42 * 0.02);
-    EXPECT_NEAR(p->iw * 1e12, 14.78, 14.78 * 0.06);  // 14.2 (-4 %)
+    EXPECT_NEAR(p->area * 1e4, 3.30, 0.005);
+    EXPECT_NEAR(p->iy * 1e8, 17.50, 0.005);
+    EXPECT_NEAR(p->iz * 1e8, 2.82, 0.005);
+    EXPECT_NEAR(p->it * 1e8, 0.10, 0.005);
+    EXPECT_NEAR((p->yCg - 0.030 / 2) * 1000.0, -6.10, 0.015);
+    EXPECT_NEAR(p->avy * 1e4, 1.42, 0.005);
+    EXPECT_NEAR(p->avz * 1e4, 1.42, 0.005);
+    EXPECT_NEAR(p->iw * 1e12, 14.78, 0.005);
     EXPECT_NEAR(*catalogueMassPerMetre(uf), 2.59, 0.006);
-    // the contour model reproduces the tabulated A / Iyy / Izz of every UF within 1 % (A, Iyy) and 1.5 % (Izz is not tabulated)
+    // the model reproduces the tabulated A / Iyy of every UF
     for (const Section& s : find("U")->profiles) {
         const auto calc = calculatedProperties(s);
         ASSERT_TRUE(calc.has_value()) << s.reference;
-        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.01) << s.reference;
+        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.005) << s.reference;
         EXPECT_NEAR(calc->iy, *s.tabulated.iy, *s.tabulated.iy * 0.01) << s.reference;
     }
-    // CF: DEDUCED columns (A, Iyy, Izz): the contour model agrees with most rows within 2 %; the rows whose REA depth differs from the
-    // designation (CF-140, 180, 225, 250, 275 and 300) differ by up to 10 % (see the notes): only the effective value is the tabulated one
-    std::size_t close = 0;
+    // CF: the REA depth h is the designation (perfil3.dll checks the name against "%.0fx%.1f" of h and t); A and Iyy are tabulated and shown,
+    // Izz is NOT overridden (flag off) but the model agrees with the catalogue column
     for (const Section& s : find("C")->profiles) {
         const auto calc = calculatedProperties(s);
         ASSERT_TRUE(calc.has_value()) << s.reference;
-        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.06) << s.reference;
-        if (std::fabs(calc->iy / *s.tabulated.iy - 1.0) < 0.02 && std::fabs(calc->iz / *s.tabulated.iz - 1.0) < 0.02) ++close;
+        EXPECT_NEAR(s.dims[0] * 1000.0, std::stod(s.reference.substr(3, s.reference.find('x') - 3)), 1e-9) << s.reference;
+        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.005) << s.reference;
+        EXPECT_NEAR(calc->iy, *s.tabulated.iy, *s.tabulated.iy * 0.03) << s.reference;
         const auto eff = effectiveProperties(s);
-        EXPECT_NEAR(eff->iz, *s.tabulated.iz, 1e-15) << s.reference;
+        EXPECT_NEAR(eff->area, *s.tabulated.area, 1e-15) << s.reference;
+        EXPECT_NEAR(eff->iy, *s.tabulated.iy, 1e-15) << s.reference;
+        EXPECT_FALSE(s.tabulated.iz.has_value()) << s.reference;
+        EXPECT_NEAR(eff->iz, calc->iz, 1e-15) << s.reference;
+        EXPECT_GT(eff->iw, 0.0) << s.reference;
     }
-    EXPECT_GE(close, 20u);
 }

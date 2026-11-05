@@ -1,6 +1,7 @@
 #include "core/predefined_profiles.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 
 namespace cc::core {
@@ -16,6 +17,7 @@ struct Row {
 const std::vector<Row>& rows() {
     static const std::vector<Row> all = {
 #include "core/profile_catalogue_data.inc"
+#include "core/profile_catalogue_rea_data.inc"
     };
     return all;
 }
@@ -25,7 +27,7 @@ const std::vector<Row>& rows() {
 struct TabulatedRow {
     const char* series;
     const char* reference;
-    double v[7];  ///< A, Iyy, Izz, It, Iw, Wply, Wplz
+    double v[8];  ///< A, Iyy, Izz, It, Iw, Wply, Wplz, Avz; -1 = the table of the original has no such value
 };
 
 const std::vector<TabulatedRow>& tabulatedRows() {
@@ -53,6 +55,20 @@ const std::vector<ProfileSeries>& predefinedSeries() {
             {"IPN", "Perfiles IPN (alas inclinadas, DIN 1025-1)", ShapeKind::ISloped},
             {"UPN", "Perfiles UPN (alas inclinadas, DIN 1026-1)", ShapeKind::Channel},
             {"L", "Perfiles L de lados iguales (EN 10056-1)", ShapeKind::AngleEqual},
+            {"IPE A", "Perfiles IPE A (alas paralelas, serie ligera)", ShapeKind::IParallel},
+            {"IPE AA", "Perfiles IPE AA (alas paralelas, serie extraligera)", ShapeKind::IParallel},
+            {"IPE O", "Perfiles IPE O (alas paralelas, serie pesada)", ShapeKind::IParallel},
+            {"HEAA", "Perfiles HE AA (alas anchas, serie extraligera)", ShapeKind::IParallel},
+            {"HE", "Perfiles HE (alas anchas, series de gran tamaño)", ShapeKind::IParallel},
+            {"HEC", "Perfiles HE C (alas anchas, serie para pilares)", ShapeKind::IParallel},
+            {"HL", "Perfiles HL (alas anchas, series de gran tamaño)", ShapeKind::IParallel},
+            {"HD", "Perfiles HD (alas anchas, pilares)", ShapeKind::IParallel},
+            {"HP", "Perfiles HP (pilotes)", ShapeKind::IParallel},
+            {"UBP", "Perfiles UBP (pilotes, alas paralelas)", ShapeKind::IParallel},
+            {"UC", "Perfiles UC (pilares universales, alas paralelas)", ShapeKind::IParallel},
+            {"J", "Perfiles J (alas inclinadas)", ShapeKind::ISloped},
+            {"UPE", "Perfiles UPE (U de alas paralelas)", ShapeKind::Channel},
+            {"PFC", "Perfiles PFC (U de alas paralelas, serie británica)", ShapeKind::Channel},
         };
         std::vector<ProfileSeries> out;
         for (const SeriesDef& def : defs) {
@@ -72,17 +88,28 @@ const std::vector<ProfileSeries>& predefinedSeries() {
                 // radius cannot exceed the leg thickness, so it is limited to it.
                 if (def.kind == ShapeKind::AngleEqual) p.dims[3] = std::min(p.dims[3], p.dims[1]);
                 // The sloped series store the slope as the last dimension, in percent (not a length).
-                if (def.kind == ShapeKind::ISloped) p.dims.push_back(kIpnSlopePercent);
-                if (def.kind == ShapeKind::Channel) p.dims.push_back(kUpnSlopePercent);
+                if (def.kind == ShapeKind::ISloped) {
+                    p.dims.push_back(kIpnSlopePercent);
+                    // With the assumed slope the toe radius of J 114 x 114 x 27 (7.6 mm) would exceed the thickness at the tip (6.7 mm): limit it.
+                    const double tip = p.dims[3] - kIpnSlopePercent / 100.0 * p.dims[1] / 4;
+                    p.dims[5] = std::min(p.dims[5], tip);
+                }
+                // The parallel-flange channels (UPE, PFC) have no slope; J is built by the original with the same helper as the IPN (the slope
+                // of the J is NOT read from its own table: the IPN value is assumed, it only affects the non-tabulated derived values).
+                if (def.kind == ShapeKind::Channel) p.dims.push_back(s.reference == "UPN" ? kUpnSlopePercent : 0.0);
                 for (const TabulatedRow& t : tabulatedRows()) {  // tabulated if the original has the profile, otherwise calculated
                     if (s.reference != t.series || p.reference != t.reference) continue;
-                    p.tabulated.area = t.v[0] * 1e-4;
-                    p.tabulated.iy = t.v[1] * 1e-8;
-                    p.tabulated.iz = t.v[2] * 1e-8;
-                    p.tabulated.it = t.v[3] * 1e-8;
-                    p.tabulated.iw = t.v[4] * 1e-9;
-                    p.tabulated.wplY = t.v[5] * 1e-6;
-                    p.tabulated.wplZ = t.v[6] * 1e-6;
+                    const auto set = [&t](int i, double unit, std::optional<double>& target) {
+                        if (t.v[i] >= 0) target = t.v[i] * unit;
+                    };
+                    set(0, 1e-4, p.tabulated.area);
+                    set(1, 1e-8, p.tabulated.iy);
+                    set(2, 1e-8, p.tabulated.iz);
+                    set(3, 1e-8, p.tabulated.it);
+                    set(4, 1e-9, p.tabulated.iw);
+                    set(5, 1e-6, p.tabulated.wplY);
+                    set(6, 1e-6, p.tabulated.wplZ);
+                    set(7, 1e-4, p.tabulated.avz);  // shear area Avz of the table (I / H / IPN shapes)
                     break;
                 }
                 s.profiles.push_back(std::move(p));

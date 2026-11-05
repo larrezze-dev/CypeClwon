@@ -9,6 +9,9 @@ Usage:  pdftotext -layout catalogue.pdf catalogue.txt  (then convert to UTF-8)
 Writes
   src/core/profile_catalogue_data.inc    nominal dimensions only (mm); properties are COMPUTED by the clone
   tests/profile_reference_data.inc       published A, I, W... of the same catalogue, used by the tests as reference
+NOTE (2026-11-05): the angles "L" of src/core/profile_catalogue_data.inc were removed by hand afterwards (the clone now uses the original's own list,
+tools/gen_rolled_catalogue.py) and the IPN 120/140/160/180 correction of the header of the .inc must be re-applied if this script is re-run
+(IPN/UPN dimensions were verified identical to the original's tables, docs/research/ui/data/describir_perfiles_*_rea.tsv).
 Each dimension row is joined with its property row by mass per metre; the mass must agree with A * 0.785 kg/m per cm2
 and every join must be unique, otherwise the script aborts (nothing is guessed).
 """

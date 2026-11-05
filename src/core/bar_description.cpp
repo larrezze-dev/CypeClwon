@@ -191,7 +191,7 @@ MaterialData defaultMaterialData(BarMaterialIcon icon) {
     case BarMaterialIcon::ColdFormedSteel: m = {210000.0, 0.3, 1.2e-5, 78.5}; break;
     case BarMaterialIcon::ExtrudedAluminium:
     case BarMaterialIcon::SpecialAluminium: m = {70000.0, 0.3, 2.3e-5, 27.0}; break;
-    case BarMaterialIcon::Concrete: m = {31476.0, 0.2, 1.0e-5, 25.0}; break;  // C25/30; nu, alpha and weight: REA constants of datmater.dll
+    case BarMaterialIcon::Concrete: m = {31476.0, 0.2, 1.0e-5, 2.5 * kOriginalGravity}; break;  // C25/30; nu, alpha and 2.5 T/m3 (x 9.81 = 24.525 kN/m3): REA constants of datmater.dll / basicos.dll
     case BarMaterialIcon::Timber: m = {11000.0, 0.3, 5.0e-6, 4.2}; break;
     case BarMaterialIcon::Generic: break;  // dialog defaults
     }
@@ -260,7 +260,7 @@ MaterialData timberMaterialData(const std::string& timberMaterial, const std::st
     const auto props = timberClassProperties(strengthClass, set);
     if (!type || !props || props->type != type) return m;
     m.elasticModulusMPa = props->e0MeanMPa;
-    m.densityKnM3 = props->densityKgM3 * 9.80665 / 1000.0;
+    m.densityKnM3 = props->densityKgM3 * kOriginalGravity / 1000.0;
     // poissonRatio stays 0.3: the original derives nu = E0 / (2 G) - 1 (about 7, see timberClassProperties), which this model rejects.
     return m;
 }
@@ -418,7 +418,7 @@ std::string compactNumber(double value) {
 
 std::string barLabelText(const BarDescription& d) {
     if (d.materialIcon == BarMaterialIcon::Generic) {
-        constexpr double g = 9.80665;
+        constexpr double g = kOriginalGravity;
         char buffer[48];
         std::snprintf(buffer, sizeof buffer, "Gen.(%.1f kg/m)", d.generic.areaM2 * d.material.densityKnM3 * 1000.0 / g);
         return buffer;

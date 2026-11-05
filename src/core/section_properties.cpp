@@ -518,6 +518,120 @@ SectionProperties solid(const Section& s) {
     return p;
 }
 
+
+// ---- Thin-walled open sections of the original (seccion.dll calconf_Calcular_CANAL_SIMPLE / _RIGIDIZADO) -----------------------------------
+// The original builds the CENTRE LINE of the cold-formed channel as a polyline (creaconf_Puntos_CANAL_*): straight parts plus corner arcs of
+// radius r + t/2, each arc discretised in 5 points INCLUDING its end points (arr_AnyadirArcoPunto2D_numPuntosArco(..., 5)), with the origin
+// at the centre of the bounding box (web outer face at y = -b/2, flange tips at y = +b/2). Then (calconf_Calcular):
+//  A = sum(L t); centroid of the polyline; Iy, Iz = integrals of z^2 / y^2 over each segment (the local t^3 term is not added);
+//  It = sum(L) t^3 / 3 (open section, FUN_180006430); Avy = 0.83333 t sum|dy|, Avz = 0.83333 t sum|dz| (FUN_180005ff0);
+//  Iw = integral of the normalised sectorial coordinate squared about the shear centre (FUN_180009a90, FUN_180006800).
+// Verified against the (i) of UF-60x3 (A 3.30, Iyy 17.50, Izz 2.82, It 0.10, Avy = Avz 1.42, Iw 14.78, y = -6.1): all exact to 2 decimals.
+struct ThinWall {
+    double area = 0, yc = 0, zc = 0, iy = 0, iz = 0, it = 0, avy = 0, avz = 0, iw = 0;
+};
+
+void appendArc(Poly& pts, P2 centre, P2 from, P2 to, int count) {
+    const double a0 = std::atan2(from.z - centre.z, from.y - centre.y);
+    double da = std::atan2(to.z - centre.z, to.y - centre.y) - a0;
+    while (da > kPi) da -= 2 * kPi;
+    while (da < -kPi) da += 2 * kPi;
+    const double radius = std::hypot(from.y - centre.y, from.z - centre.z);
+    for (int i = 0; i < count; ++i) {
+        const double a = a0 + da * i / (count - 1);
+        pts.push_back({centre.y + radius * std::cos(a), centre.z + radius * std::sin(a)});
+    }
+}
+
+/// Centre line of the simple channel (UF): h = outer web depth, b = outer flange width, t, r = inner corner radius. Order of the original:
+/// upper flange tip, upper arc, web, lower arc, lower flange tip.
+Poly channelCentreLine(double h, double b, double t, double r) {
+    const double rr = r + t / 2, d1 = (t - b) / 2, d2 = (t - h) / 2, d3 = (h - t) / 2;
+    Poly pts{{b / 2, d3}};
+    appendArc(pts, {d1 + rr, d3 - rr}, {d1 + rr, d3}, {d1, d3 - rr}, 5);
+    appendArc(pts, {d1 + rr, d2 + rr}, {d1, d2 + rr}, {d1 + rr, d2}, 5);
+    pts.push_back({b / 2, d2});
+    return pts;
+}
+
+/// Centre line of the lipped channel (CF): c = lip depth measured from the outer face (scsegcon_segmentos_canal_rigidizado_posicion_C).
+Poly lippedChannelCentreLine(double h, double b, double c, double t, double r) {
+    const double rr = r + t / 2, yR = (b - t) / 2, zb = -(h - t) / 2, zt = -zb;
+    Poly pts{{yR, h / 2 - c}};
+    appendArc(pts, {yR - rr, zt - rr}, {yR, zt - rr}, {yR - rr, zt}, 5);
+    appendArc(pts, {-yR + rr, zt - rr}, {-yR + rr, zt}, {-yR, zt - rr}, 5);
+    appendArc(pts, {-yR + rr, zb + rr}, {-yR, zb + rr}, {-yR + rr, zb}, 5);
+    appendArc(pts, {yR - rr, zb + rr}, {yR - rr, zb}, {yR, zb + rr}, 5);
+    pts.push_back({yR, c - h / 2});
+    return pts;
+}
+
+ThinWall thinWallOpen(const Poly& pts, double t) {
+    ThinWall w;
+    const std::size_t n = pts.size() - 1;
+    std::vector<double> len(n);
+    double total = 0, sy = 0, sz = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        len[i] = std::hypot(pts[i + 1].y - pts[i].y, pts[i + 1].z - pts[i].z);
+        total += len[i];
+        sy += len[i] * (pts[i].y + pts[i + 1].y) / 2;
+        sz += len[i] * (pts[i].z + pts[i + 1].z) / 2;
+        w.avy += std::fabs(pts[i + 1].y - pts[i].y);
+        w.avz += std::fabs(pts[i + 1].z - pts[i].z);
+    }
+    w.area = total * t;
+    w.yc = sy / total;
+    w.zc = sz / total;
+    w.it = total * t * t * t / 3;
+    w.avy *= 0.83333 * t;
+    w.avz *= 0.83333 * t;
+    for (std::size_t i = 0; i < n; ++i) {
+        const double y0 = pts[i].y - w.yc, y1 = pts[i + 1].y - w.yc, z0 = pts[i].z - w.zc, z1 = pts[i + 1].z - w.zc;
+        w.iy += t * len[i] * (z0 * z0 + z0 * z1 + z1 * z1) / 3;
+        w.iz += t * len[i] * (y0 * y0 + y0 * y1 + y1 * y1) / 3;
+    }
+    // Sectorial coordinate about a pole; the shear centre is the pole for which the sectorial products with y and z vanish (they are affine
+    // in the pole, so two probes plus the origin solve it exactly).
+    struct Products {
+        double iyw, izw;
+    };
+    const auto sectorial = [&](double py, double pz, std::vector<double>& om, double& mean) {
+        om.assign(n + 1, 0.0);
+        for (std::size_t i = 0; i < n; ++i)
+            om[i + 1] = om[i] + (pts[i].y - py) * (pts[i + 1].z - pts[i].z) - (pts[i].z - pz) * (pts[i + 1].y - pts[i].y);
+        mean = 0;
+        for (std::size_t i = 0; i < n; ++i) mean += len[i] * t * (om[i] + om[i + 1]) / 2;
+        mean /= w.area;
+    };
+    const auto products = [&](double py, double pz) {
+        std::vector<double> om;
+        double mean;
+        sectorial(py, pz, om, mean);
+        Products r{0, 0};
+        for (std::size_t i = 0; i < n; ++i) {
+            const double w0 = om[i] - mean, w1 = om[i + 1] - mean;
+            const double y0 = pts[i].y - w.yc, y1 = pts[i + 1].y - w.yc, z0 = pts[i].z - w.zc, z1 = pts[i + 1].z - w.zc;
+            r.iyw += t * len[i] * (2 * y0 * w0 + y0 * w1 + y1 * w0 + 2 * y1 * w1) / 6;
+            r.izw += t * len[i] * (2 * z0 * w0 + z0 * w1 + z1 * w0 + 2 * z1 * w1) / 6;
+        }
+        return r;
+    };
+    const Products f0 = products(w.yc, w.zc), fy = products(w.yc + 1, w.zc), fz = products(w.yc, w.zc + 1);
+    const double a = fy.iyw - f0.iyw, bb = fz.iyw - f0.iyw, c = fy.izw - f0.izw, d = fz.izw - f0.izw;
+    const double det = a * d - bb * c;
+    if (std::fabs(det) > 0) {
+        const double dy = (-f0.iyw * d + bb * f0.izw) / det, dz = (-a * f0.izw + c * f0.iyw) / det;
+        std::vector<double> om;
+        double mean;
+        sectorial(w.yc + dy, w.zc + dz, om, mean);
+        for (std::size_t i = 0; i < n; ++i) {
+            const double w0 = om[i] - mean, w1 = om[i + 1] - mean;
+            w.iw += t * len[i] * (w0 * w0 + w0 * w1 + w1 * w1) / 3;
+        }
+    }
+    return w;
+}
+
 }  // namespace
 
 std::optional<SectionProperties> calculatedProperties(const Section& s) {
@@ -597,23 +711,20 @@ std::optional<SectionProperties> calculatedProperties(const Section& s) {
     }
     case ShapeKind::ColdFormedU:
     case ShapeKind::ColdFormedC: {
-        // APPROXIMATE (not exact against the original, see the 7.2 note): thin-walled estimates.
-        //  - It = sum(L t^3) / 3 over the developed centre line (straight parts + corner arcs): UF-60x3 0.099 cm4 (original 0.10).
-        //  - Avy / Avz = t x straight length of the flanges / the web, outside the corner arcs: UF-60x3 1.44 cm2 (original 1.42, +1.4 %).
-        //  - Iw (U only) = classical thin-walled channel formula with the flange length b - t: UF-60x3 14.2 cm6 (original 14.78, -4 %).
-        //    The lipped C has no warping value (left at 0 = not shown).
+        // Exact against the original: its own thin-walled polyline model (see thinWallOpen). The contour above only supplies the plastic moduli.
         const bool lipped = s.kind == ShapeKind::ColdFormedC;
         const double h = d[0], b = d[1], t = d[lipped ? 3 : 2], r = d[lipped ? 4 : 3];
-        const double ro = r + t, rm = r + t / 2;
-        const double web = h - 2 * ro;
-        double length = web + (lipped ? 2 * (b - 2 * ro) + 2 * (d[2] - ro) + 2 * kPi * rm : 2 * (b - ro) + kPi * rm);
-        p.it = length * t * t * t / 3;
-        p.avz = t * web;
-        p.avy = 2 * t * (lipped ? b - 2 * ro : b - ro);
-        if (!lipped) {
-            const double bf = b - t, hc = h - t;
-            p.iw = t * std::pow(bf, 3) * hc * hc / 12 * (3 * bf * t + 2 * hc * t) / (6 * bf * t + hc * t);
-        }
+        const ThinWall w = thinWallOpen(lipped ? lippedChannelCentreLine(h, b, d[2], t, r) : channelCentreLine(h, b, t, r), t);
+        p.area = w.area;
+        p.iy = w.iy;
+        p.iz = w.iz;
+        p.it = w.it;
+        p.avy = w.avy;
+        p.avz = w.avz;
+        p.iw = w.iw;
+        p.yCg = w.yc + b / 2;  // measured from the outer face of the web
+        p.yNeg = p.yCg;
+        p.yPos = b - p.yCg;
         break;
     }
     case ShapeKind::Tee: {
