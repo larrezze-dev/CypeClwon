@@ -18,6 +18,7 @@
 #include "core/categories.h"
 #include "core/clipping.h"
 #include "core/picking.h"
+#include "core/project_settings.h"
 #include "core/selection.h"
 #include "core/snap.h"
 #include "core/structure_model.h"
@@ -113,6 +114,8 @@ public:
     const core::SelectionFilter& selectionFilter() const { return m_filter; }
     const core::Selection& selection() const { return m_selection; }
     void clearSelection();
+    /// Replaces the selection with the given elements (used by "Buscar" to show what it found).
+    void setSelectionItems(const std::vector<core::ElementRef>& items);
     /// Element under the cursor in selection mode.
     const std::optional<core::ElementRef>& hovered() const { return m_hover; }
     /// True between the first and the second click of a window.
@@ -148,6 +151,13 @@ public:
     /// Bar the information box describes: the snapped bar (or a bar meeting at the snapped node) in snap mode, the
     /// hovered bar in selection mode. Empty when nothing applies or the option is off.
     std::optional<int> infoBarId() const;
+    /// Shell the information box describes: the hovered shell in selection mode (the "ficha" of the original, laminas.md 7.3).
+    std::optional<int> infoShellId() const;
+    /// Profile settings of the work, used to name the "Material" of a shell that takes it from the general data.
+    void setProfileSettings(const core::ProfileSettings* profiles) { m_profiles = profiles; update(); }
+    /// Rows of the shell information box: "L1", "Capa : ...", "Espesor : 100.00 mm", "Material : C25/30", the stiffness factors (1 by
+    /// default) and the buckling / modal analysis lines, as measured in the original.
+    static QStringList shellInfoLines(const core::StructuralModel& structure, int shellId, const core::ProfileSettings& profiles);
     /// True while the coordinate tooltip is visible: whenever the cursor is inside the viewport (the original shows it
     /// without any command active too: tp1_after_esc.png), snapped to elements in snap mode, free otherwise.
     bool coordinateTooltipVisible() const { return m_cursorInside && m_coordTooltipEnabled && !m_coordTooltipDismissed; }
@@ -357,6 +367,7 @@ private:
     core::CategorySettings m_categories;
     core::Selection m_selection;
     std::optional<core::ElementRef> m_hover;
+    const core::ProfileSettings* m_profiles = nullptr;
     std::optional<QPointF> m_windowStart;
     QPointF m_cursor;
     bool m_snapMode = false;

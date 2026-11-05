@@ -29,6 +29,8 @@ double distance(const Point3& a, const Point3& b);
 struct Node {
     int id = 0;
     Point3 position;
+    /// "Asignar referencia" (Geometría > Herramientas): text typed by the user; empty = automatic reference "N<id>".
+    std::string reference;
 };
 
 enum class MaterialKind { Steel, Concrete, Timber, Aluminium, Generic };
@@ -119,6 +121,42 @@ struct Piece {
 /// "Comportamiento" of the local-Z ballast modulus of a shell (#377936): "Lineal" (#379172) or "Sólo compresión" (#377979).
 enum class BallastBehaviour { Linear, CompressionOnly };
 
+/// Material family of a shell ("Material" panel of "Nueva" / "Describir material", laminas.md section 7.1).
+enum class ShellMaterialKind { Concrete, RolledSteel, ColdFormedSteel, Aluminium, GenericIsotropic, GenericOrthotropic };
+
+/// Material of a shell, as the panel "Material" of the original holds it. Defaults are the measured ones: concrete taken from the
+/// general data of the work. `useGeneralData` is the radio "Material seleccionado en datos generales (...)"; when it is off the
+/// grade / alloy fields below are the chosen ones ("Seleccionar el material de la lámina"). Generic values: MPa, kN/m3, 1/ºC.
+struct ShellMaterial {
+    ShellMaterialKind kind = ShellMaterialKind::Concrete;
+    bool useGeneralData = true;
+    std::string grade;                     ///< concrete grade, rolled steel grade or cold-formed grade (empty = first of the list)
+    std::string alloy = "EN AW-5083";      ///< aluminium "Aleación"
+    std::string temper = "F";              ///< aluminium "Estado de entrega"
+    double isoElasticModulusMPa = 206010.0;
+    double isoPoissonRatio = 0.30;
+    double isoThermalExpansion = 0.000012;
+    double isoDensityKnM3 = 24.53;
+    double orthoElasticModulusXMPa = 1098.72;
+    double orthoElasticModulusYMPa = 878.98;
+    double orthoPoissonRatioXY = 0.25;
+    double orthoShearModulusXYMPa = 397.31;
+    double orthoShearModulusXZMPa = 397.31;
+    double orthoShearModulusYZMPa = 39.73;
+    double orthoThermalExpansionX = 0.000005;
+    double orthoThermalExpansionY = 0.000005;
+    double orthoDensityKnM3 = 14.72;
+    bool operator==(const ShellMaterial&) const = default;
+};
+
+/// "Disposición" of a shell with respect to its definition plane (laminas.md section 7.2): the checkbox "Considerar las
+/// excentricidades en el cálculo" and the "Desplazamiento del plano central" Z (whole millimetres in the dialog, stored in metres).
+struct ShellLayout {
+    bool considerEccentricity = true;
+    double centralPlaneOffsetM = 0.0;
+    bool operator==(const ShellLayout&) const = default;
+};
+
 /// Flat plate or shell with 3 (triangle) or 4 (quadrilateral) corner nodes, listed in order around the contour.
 struct Shell {
     int id = 0;
@@ -136,6 +174,9 @@ struct Shell {
     bool ballastEnabled = false;
     double ballastKnM3 = 0.0;
     BallastBehaviour ballastBehaviour = BallastBehaviour::Linear;
+    ShellMaterial material;  ///< "Material" panel (files without the key load as concrete from the general data)
+    ShellLayout layout;      ///< "Disposición" (files without the key load as the defaults)
+    std::string reference;   ///< "Asignar referencia": empty = automatic reference "L<id>" (measured: the first shell is L1)
     std::vector<int> layerIds{kDefaultLayerId};  ///< sorted, unique, never empty
     bool operator==(const Shell&) const = default;
 };

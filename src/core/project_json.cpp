@@ -100,7 +100,7 @@ CC_STRUCT(DimensioningUnits, dimensions, reinforcement, lengths)
 
 // --- structure_model.h ---
 CC_STRUCT(Point3, x, y, z)
-CC_STRUCT(Node, id, position)
+CC_STRUCT(Node, id, position, reference)
 CC_STRUCT(Material, id, name, kind, elasticModulusMPa, poissonRatio, densityKnM3, thermalExpansion)
 CC_STRUCT(CrossSection, id, name, kind, areaM2, inertiaYM4, inertiaZM4, torsionM4, shearAreaYM2, shearAreaZM2)
 CC_STRUCT(Layer, id, name, color, active, visible, locked, rendered)
@@ -115,8 +115,18 @@ CC_STRUCT(DeflectionGroup, id, barIds, limit)
 CC_STRUCT(ContinuousElements, columns, beams, pieceReferences, slabDepths, deflectionGroups, nextColumnId, nextBeamId, nextGroupId)
 CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
 CC_ENUM(BallastBehaviour, {{BallastBehaviour::Linear, "linear"}, {BallastBehaviour::CompressionOnly, "compressionOnly"}})
+CC_ENUM(ShellMaterialKind, {{ShellMaterialKind::Concrete, "concrete"},
+                            {ShellMaterialKind::RolledSteel, "rolledSteel"},
+                            {ShellMaterialKind::ColdFormedSteel, "coldFormedSteel"},
+                            {ShellMaterialKind::Aluminium, "aluminium"},
+                            {ShellMaterialKind::GenericIsotropic, "genericIsotropic"},
+                            {ShellMaterialKind::GenericOrthotropic, "genericOrthotropic"}})
+CC_STRUCT(ShellMaterial, kind, useGeneralData, grade, alloy, temper, isoElasticModulusMPa, isoPoissonRatio, isoThermalExpansion, isoDensityKnM3,
+          orthoElasticModulusXMPa, orthoElasticModulusYMPa, orthoPoissonRatioXY, orthoShearModulusXYMPa, orthoShearModulusXZMPa,
+          orthoShearModulusYZMPa, orthoThermalExpansionX, orthoThermalExpansionY, orthoDensityKnM3)
+CC_STRUCT(ShellLayout, considerEccentricity, centralPlaneOffsetM)
 CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, xEdgeStart, xEdgeEnd, ballastEnabled, ballastKnM3, ballastBehaviour,
-          layerIds)
+          material, layout, reference, layerIds)
 
 // --- bar_description.h (T-P5-07) ---
 CC_ENUM(BarMaterialIcon, {{BarMaterialIcon::RolledSteel, "rolledSteel"},

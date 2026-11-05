@@ -3,15 +3,17 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QDialogButtonBox>
-#include <QDoubleSpinBox>
-#include <QFormLayout>
+#include <QCursor>
+#include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
-#include <QMenu>
-#include <QSpinBox>
+#include <QToolButton>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
 
+#include "NodeCalculatorDialog.h"
 #include "Viewport3D.h"
 
 namespace cc::app {
@@ -20,31 +22,50 @@ using namespace cc::core;
 
 // ---- dialogs ---------------------------------------------------------------------------------------------------------------
 
-ToolValueDialog::ToolValueDialog(Kind kind, QWidget* parent) : QDialog(parent), m_kind(kind) {
-    auto* form = new QFormLayout(this);
-    if (kind == Kind::Angle) {
-        setWindowTitle(tr("Girar elementos"));
-        m_angle = new QDoubleSpinBox(this);
-        m_angle->setRange(-360.0, 360.0);
-        m_angle->setDecimals(2);
-        m_angle->setValue(90.0);
-        m_angle->setSuffix(QStringLiteral(" °"));
-        form->addRow(tr("Ángulo de giro"), m_angle);
-    } else {
-        setWindowTitle(tr("Copiar elementos"));
-        m_copies = new QSpinBox(this);
-        m_copies->setRange(1, 1000);
-        m_copies->setValue(1);
-        form->addRow(tr("Número de copias"), m_copies);
-    }
-    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-    form->addRow(buttons);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+InlineAngleEditor::InlineAngleEditor(QWidget* parent) : QFrame(parent) {
+    setObjectName(QStringLiteral("inlineAngleEditor"));
+    setFrameShape(QFrame::Box);
+    setAutoFillBackground(true);
+    setStyleSheet(QStringLiteral("QFrame#inlineAngleEditor { background: white; border: 1px solid #6A6A6A; } QLabel { background: transparent; }"));
+    auto* row = new QHBoxLayout(this);
+    row->setContentsMargins(6, 3, 3, 3);
+    row->setSpacing(2);
+    row->addWidget(new QLabel(tr("Ángulo de giro ["), this));
+    // Measured: default 0.000, range -360.000 to 360.000 grados (herramientas.md 6.3).
+    m_edit = new RangedEdit(tr("Ángulo de giro"), cc::core::ValueRange{-360.0, 360.0}, 3, this);
+    m_edit->setBoundUnit(tr("grados"));
+    m_edit->setValue(0.0);
+    m_edit->setMaximumWidth(70);
+    row->addWidget(m_edit);
+    row->addWidget(new QLabel(tr("] grados"), this));
+    m_accept = new QToolButton(this);
+    m_accept->setText(QStringLiteral("\u2713"));
+    m_accept->setToolTip(tr("Aceptar"));
+    m_accept->setStyleSheet(QStringLiteral("QToolButton { color: white; background: #2E9B3A; border: none; min-width: 22px; min-height: 22px; font-weight: bold; }"));
+    m_cancel = new QToolButton(this);
+    m_cancel->setText(QStringLiteral("\u2717"));
+    m_cancel->setToolTip(tr("Cancelar"));
+    m_cancel->setStyleSheet(QStringLiteral("QToolButton { color: white; background: #C0392B; border: none; min-width: 22px; min-height: 22px; font-weight: bold; }"));
+    row->addWidget(m_accept);
+    row->addWidget(m_cancel);
+    connect(m_accept, &QToolButton::clicked, this, [this] { tryAccept(); });
+    connect(m_cancel, &QToolButton::clicked, this, &InlineAngleEditor::cancelled);
+    connect(m_edit, &QLineEdit::returnPressed, this, [this] { tryAccept(); });
 }
 
-double ToolValueDialog::angleDegrees() const { return m_angle ? m_angle->value() : 0.0; }
-int ToolValueDialog::copies() const { return m_copies ? m_copies->value() : 1; }
+bool InlineAngleEditor::tryAccept() {
+    if (!m_edit->commit()) return false;  // out of range: the warning was shown and the previous value restored
+    emit acceptedValue(m_edit->value());
+    return true;
+}
+
+void InlineAngleEditor::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Escape) {
+        emit cancelled();
+        return;
+    }
+    QFrame::keyPressEvent(event);
+}
 
 RepairResultDialog::RepairResultDialog(const QString& result, const std::vector<RepairIssue>& issues, QWidget* parent) : QDialog(parent) {
     setWindowTitle(tr("Reparar"));
@@ -120,19 +141,6 @@ TransformTool::TransformTool(QObject* parent) : QObject(parent) {
         repair();
     });
 
-    // "Generar" (#392581): a drop-down with the five generators (#63976, #63979, #63977, #63971, #63964). Pending (TK-generate).
-    m_generateMenu = new QMenu(tr("Generar"));
-    connect(this, &QObject::destroyed, m_generateMenu, &QObject::deleteLater);
-    for (const QString& title : {tr("Generación de una malla de nudos tridimensional"), tr("Generación de una malla de nudos bidimensional"),
-                                 tr("Generación de nudos sobre un segmento"), tr("Generación de planos"), tr("Generación de una malla de tetraedros")}) {
-        QAction* action = m_generateMenu->addAction(title);
-        action->setStatusTip(title);
-        connect(action, &QAction::triggered, this, [this] {
-            deactivate();
-            emit notAvailable();  // TODO(TK-generate): dialog and generator
-        });
-        m_generateActions.push_back(action);
-    }
     updateEnabled();
 }
 
@@ -188,10 +196,18 @@ void TransformTool::addViewport(Viewport3D* viewport) {
     connect(viewport, &Viewport3D::pointEntered, this, &TransformTool::onPointEntered);
     connect(viewport, &Viewport3D::rightClicked, this, &TransformTool::onRightClicked);
     connect(viewport, &Viewport3D::escapePressed, this, [this] { deactivate(); });
+    connect(viewport, &Viewport3D::digitTyped, this, [this, viewport](QChar digit) { onDigitTyped(viewport, digit); });
     if (m_mode != Mode::None) configureViewports();
 }
 
+void TransformTool::closeEditors() {
+    if (m_angleEditor) m_angleEditor->deleteLater();
+    m_angleEditor.clear();
+    if (m_calculator) m_calculator->reject();
+}
+
 void TransformTool::deactivate() {
+    closeEditors();
     if (QAction* checked = m_actions->checkedAction()) checked->setChecked(false);
     setMode(Mode::None);
 }
@@ -204,8 +220,6 @@ void TransformTool::updateEnabled() {
         if (!elements && action->isChecked()) action->setChecked(false);
     }
     m_repair->setEnabled(elements);
-    m_generateMenu->setEnabled(elements);
-    m_generateMenu->menuAction()->setEnabled(elements);
 }
 
 void TransformTool::structureChanged() {
@@ -248,6 +262,7 @@ void TransformTool::configureViewports() {
 }
 
 void TransformTool::resetSteps() {
+    closeEditors();
     m_step = 0;
     m_points.clear();
     m_selection = {};
@@ -280,6 +295,13 @@ void TransformTool::onActOnSelection(Viewport3D* viewport) {
 void TransformTool::onRightClicked() {
     // Snap mode only (step 1): "Volver al paso anterior".
     if (m_mode == Mode::None || m_step != 1) return;
+    if (m_angleEditor) {  // RMB closes the inline editor and goes back to the points
+        closeEditors();
+        m_points.clear();
+        configureViewports();
+        emit statusChanged(statusText(m_mode, 1));
+        return;
+    }
     if (!m_points.empty()) {
         m_points.clear();
         configureViewports();
@@ -291,11 +313,34 @@ void TransformTool::onRightClicked() {
 
 void TransformTool::onPointEntered(const Vec3& world, const SnapResult& snap) {
     if (m_mode == Mode::None || m_step != 1 || !snap.snapped()) return;  // like Nudos: a snap is needed under the pointer
+    addPoint(world);
+}
+
+void TransformTool::onDigitTyped(Viewport3D* viewport, QChar digit) {
+    // Measured: typing a digit while a point is expected opens the "Calculadora" (Coordenada X / Y / Z).
+    if (m_mode == Mode::None || m_step != 1 || m_angleEditor || m_calculator) return;
+    auto* dialog = new NodeCalculatorDialog(viewport);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    m_calculator = dialog;
+    connect(dialog, &NodeCalculatorDialog::pointConfirmed, this, [this](double x, double y, double z) { addPoint({x, y, z}); });
+    connect(dialog, &QDialog::finished, this, [guard = QPointer<Viewport3D>(viewport)] {
+        if (guard) guard->setFocus();
+    });
+    dialog->start(digit);
+    dialog->open();
+}
+
+void TransformTool::addPoint(const Vec3& world) {
+    if (m_mode == Mode::None || m_step != 1 || m_angleEditor) return;
     if (!m_points.empty() && m_points.back() == world) return;
     m_points.push_back(world);
     if (static_cast<int>(m_points.size()) < pointsNeeded(m_mode)) {
         for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->setRubberPoints(m_points);
         emit statusChanged(statusText(m_mode, 1));
+        return;
+    }
+    if (m_mode == Mode::RotateAxis) {  // the two points of the axis are known: the angle comes from the inline editor
+        askAngle(m_viewports.isEmpty() ? nullptr : m_viewports.front().data());
         return;
     }
     const std::vector<Vec3> points = m_points;
@@ -308,7 +353,40 @@ void TransformTool::onPointEntered(const Vec3& world, const SnapResult& snap) {
     }
 }
 
-bool TransformTool::apply(Mode mode, const ToolSelection& selection, const std::vector<Vec3>& points) {
+void TransformTool::askAngle(Viewport3D* viewport) {
+    if (!viewport) return;
+    auto* editor = new InlineAngleEditor(viewport);
+    m_angleEditor = editor;
+    // Next to the cursor, kept inside the window.
+    QPoint at = viewport->mapFromGlobal(QCursor::pos()) + QPoint(16, 16);
+    editor->adjustSize();
+    at.setX(std::clamp(at.x(), 0, std::max(0, viewport->width() - editor->width())));
+    at.setY(std::clamp(at.y(), 0, std::max(0, viewport->height() - editor->height())));
+    editor->move(at);
+    connect(editor, &InlineAngleEditor::acceptedValue, this, [this](double degrees) {
+        const std::vector<Vec3> points = m_points;
+        const ToolSelection selection = m_selection;
+        closeEditors();
+        if (apply(Mode::RotateAxis, selection, points, degrees)) {
+            resetSteps();
+        } else {
+            m_points.clear();
+            configureViewports();
+        }
+    });
+    connect(editor, &InlineAngleEditor::cancelled, this, [this, guard = QPointer<Viewport3D>(viewport)] {
+        closeEditors();
+        m_points.clear();
+        configureViewports();
+        if (guard) guard->setFocus();
+    });
+    editor->show();
+    editor->raise();
+    editor->edit()->setFocus();
+    editor->edit()->selectAll();
+}
+
+bool TransformTool::apply(Mode mode, const ToolSelection& selection, const std::vector<Vec3>& points, std::optional<double> angleDegrees) {
     if (!m_project || !m_undo || static_cast<int>(points.size()) < pointsNeeded(mode)) return false;
     const auto point = [&](std::size_t i) { return Point3{points[i].x, points[i].y, points[i].z}; };
     constexpr double kPi = 3.14159265358979323846;
@@ -318,21 +396,16 @@ bool TransformTool::apply(Mode mode, const ToolSelection& selection, const std::
     };
     std::optional<Transform3> transform;
     bool copy = false;
-    int copies = 1;
     switch (mode) {
         case Mode::Move: transform = translation(point(0), point(1)); break;
         case Mode::Copy: {
             transform = translation(point(0), point(1));
-            copy = true;
-            ToolValueDialog dialog(ToolValueDialog::Kind::Copies, m_dialogParent);
-            if (run(dialog) != QDialog::Accepted) return false;
-            copies = dialog.copies();
+            copy = true;  // measured: no number of copies, a single copy
             break;
         }
         case Mode::RotateAxis: {
-            ToolValueDialog dialog(ToolValueDialog::Kind::Angle, m_dialogParent);
-            if (run(dialog) != QDialog::Accepted) return false;
-            transform = rotationAboutAxis(point(0), point(1), dialog.angleDegrees());
+            if (!angleDegrees) return false;
+            transform = rotationAboutAxis(point(0), point(1), *angleDegrees);
             break;
         }
         case Mode::RotateXY: {
@@ -359,7 +432,7 @@ bool TransformTool::apply(Mode mode, const ToolSelection& selection, const std::
         case Mode::None: return false;
     }
     if (!transform) return fail(ToolError::InvalidTransform);
-    const ToolError error = transformElements(*m_project, *m_undo, selection, *transform, copy, copies);
+    const ToolError error = transformElements(*m_project, *m_undo, selection, *transform, copy, 1);
     if (error != ToolError::None) return fail(error);
     return true;
 }

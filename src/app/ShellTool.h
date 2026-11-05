@@ -36,13 +36,14 @@ class Viewport3D;
 ///  - Ejes locales (#392577): a toggle that draws the local axes of the shells in the 3D windows.
 ///  - Seccion (#65122, laminas.md section 5): LMB selects shells, RMB opens "Sección de la lámina" (thickness, local-Z ballast
 ///    modulus and its behaviour) and applies it to all of them as one undo step.
-///  - Disposicion and Material: the buttons exist but their dialogs are pending (laminas.md section 4: the fields are not
-///    known; the "Describir material" dialog of the bars is for bars and its groups differ from #94482-94486) and only
-///    emit notAvailable(). TODO(TK-shell-dialogs): link them once the fields are known.
+///  - Nueva opens first the dialog "Nueva" (Sección de la lámina + Material, measured in the original, laminas.md 7.1) and then asks
+///    for the points; the section and material it accepted are given to every shell created until the button is pressed again.
+///  - Material ("Describir material", #64718) and Disposición ("Describir disposición", #64713): LMB selects shells, RMB opens the
+///    dialog and applies it to all of them as one undo step (laminas.md 7.2). The shell information box: Viewport3D::shellInfoLines.
 class ShellTool : public QObject {
     Q_OBJECT
 public:
-    enum class Mode { None, New, Delete, Move, Join, Divide, InvertZ, DefineX, Section };
+    enum class Mode { None, New, Delete, Move, Join, Divide, InvertZ, DefineX, Section, Material, Layout };
 
     explicit ShellTool(QObject* parent = nullptr);
 
@@ -85,8 +86,16 @@ public:
     bool deleteShells(const std::vector<int>& shellIds);
     bool joinShells(const std::vector<int>& shellIds);
     bool invertZ(const std::vector<int>& shellIds);
-    /// Opens "Sección de la lámina" (initial values of the first shell) and applies it to every given shell; false if cancelled.
+    /// Opens "Describir sección" (initial values of the first shell) and applies it to every given shell; false if cancelled.
     bool editSection(const std::vector<int>& shellIds);
+    /// Opens "Describir material" / "Describir disposición" (values of the first shell) and applies them to every given shell.
+    bool editMaterial(const std::vector<int>& shellIds);
+    bool editLayout(const std::vector<int>& shellIds);
+    /// Section and material the dialog "Nueva" last accepted (the defaults of the original before the first time).
+    const cc::core::ShellSection& newSection() const { return m_newSection; }
+    const cc::core::ShellMaterial& newMaterial() const { return m_newMaterial; }
+    /// Opens the dialog "Nueva"; true when accepted (the values are kept for the shells that follow).
+    bool askNewProperties();
 
 signals:
     void statusChanged(const QString& text);
@@ -95,8 +104,6 @@ signals:
     void modeChanged(cc::app::ShellTool::Mode mode);
     /// A message the main window shows to the user (the shellErrorMessage texts).
     void messageRequested(const QString& text);
-    /// The button has no dialog yet (pending): the main window says so in the status bar.
-    void notAvailable();
 
 private:
     void setMode(Mode mode);
@@ -135,6 +142,8 @@ private:
     QList<QPointer<Viewport3D>> m_viewports;
     QPointer<QWidget> m_dialogParent;
     std::function<int(QDialog&)> m_runner;
+    cc::core::ShellSection m_newSection;
+    cc::core::ShellMaterial m_newMaterial;
     Mode m_mode = Mode::None;
     int m_step = 0;
     std::vector<cc::core::Vec3> m_points;

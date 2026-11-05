@@ -586,6 +586,13 @@ void Viewport3D::clearSelection() {
     update();
 }
 
+void Viewport3D::setSelectionItems(const std::vector<core::ElementRef>& items) {
+    m_selection.clear();
+    m_selection.apply(items, core::SelectMode::Add);
+    emit selectionChanged();
+    update();
+}
+
 void Viewport3D::cancelWindow() {
     if (!m_windowStart) return;
     m_windowStart.reset();
@@ -697,6 +704,29 @@ std::optional<int> Viewport3D::infoBarId() const {
     return std::nullopt;
 }
 
+std::optional<int> Viewport3D::infoShellId() const {
+    if (!m_showElementInfo || !m_structure || !m_selectionMode) return std::nullopt;
+    if (m_hover && m_hover->kind == core::ElementKind::Shell) return m_hover->id;
+    return std::nullopt;
+}
+
+QStringList Viewport3D::shellInfoLines(const core::StructuralModel& structure, int shellId, const core::ProfileSettings& profiles) {
+    const core::Shell* shell = structure.findShell(shellId);
+    if (!shell) return {};
+    QStringList lines;
+    lines << QStringLiteral("L%1").arg(shell->id);  // automatic reference (laminas.md 7.3)
+    lines << QStringLiteral("Capa : %1").arg(QString::fromStdString(structure.layerNames(shell->layerIds)));
+    lines << QStringLiteral("Espesor : %1 mm").arg(QString::number(shell->thicknessM * 1000.0, 'f', 2));
+    lines << QStringLiteral("Material : %1").arg(QString::fromStdString(core::shellMaterialName(shell->material, profiles)));
+    // Stiffness factors: always 1 for now (the original's default; there is no command that edits them yet).
+    lines << QStringLiteral("Membrana Fxx : 1, Fyy : 1, Fxy : 1");
+    lines << QStringLiteral("Flexión Mxx : 1, Myy : 1, Mxy : 1");
+    lines << QStringLiteral("Cortante Vxz : 1, Vyz : 1");
+    lines << QStringLiteral("Análisis de pandeo: No se considera en el análisis");
+    lines << QStringLiteral("Análisis modal: Se considera en el análisis");
+    return lines;
+}
+
 QString Viewport3D::coordinatesText(const Vec3& world) {
     const auto fmt = [](double v) {
         QString s = QString::number(v, 'f', 3);
@@ -792,8 +822,10 @@ void Viewport3D::drawCoordinateTooltip(QPainter& painter) const {
 
 void Viewport3D::drawInfoBox(QPainter& painter) const {
     const std::optional<int> id = infoBarId();
-    if (!id) return;
-    const QStringList lines = barInfoLines(*m_structure, *id);
+    const std::optional<int> shellId = id ? std::nullopt : infoShellId();
+    if (!id && !shellId) return;
+    const core::ProfileSettings noProfiles;
+    const QStringList lines = id ? barInfoLines(*m_structure, *id) : shellInfoLines(*m_structure, *shellId, m_profiles ? *m_profiles : noProfiles);
     if (lines.isEmpty()) return;
     QFont font = painter.font();
     font.setPixelSize(14);
@@ -984,7 +1016,7 @@ void Viewport3D::drawNodeTags(QPainter& painter) const {
         if (m_movingNode && n.id == *m_movingNode) continue;
         double x, y;
         if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z}) || !map.toScreen(n.position, x, y)) continue;
-        const QString text = QStringLiteral("N%1").arg(n.id);
+        const QString text = n.reference.empty() ? QStringLiteral("N%1").arg(n.id) : QString::fromStdString(n.reference);
         painter.drawText(QRectF(x + 33, y - 7 - metrics.height() / 2.0, metrics.horizontalAdvance(text) + 2, metrics.height()),
                          Qt::AlignLeft | Qt::AlignVCenter, text);
     }

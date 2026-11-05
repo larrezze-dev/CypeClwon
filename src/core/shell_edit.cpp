@@ -88,8 +88,10 @@ std::string shellErrorMessage(ShellError error) {
         case ShellError::ContourTooComplex: return "El contorno de la lámina resultante tiene más de cuatro nudos.";
         case ShellError::InvalidMove: return "El desplazamiento deja una barra o una lámina con una geometría no válida.";
         case ShellError::InvalidEdge: return "Los nudos indicados no forman una arista de la lámina.";
-        case ShellError::InvalidThickness: return "El espesor de la lámina debe ser mayor que cero.";
-        case ShellError::InvalidBallast: return "El módulo de balasto debe ser mayor que cero.";
+        case ShellError::InvalidThickness: return rangeWarning("Espesor", kShellThicknessMm, 2);
+        case ShellError::InvalidBallast: return rangeWarning("Módulo de balasto en Z local", kShellBallastKnM3, 2);
+        case ShellError::InvalidMaterial: return "El material de la lámina no es válido.";
+        case ShellError::InvalidOffset: return rangeWarning("Z", kShellOffsetMm, 0);
         case ShellError::NothingToChange: return "No hay nada que modificar.";
     }
     return {};
@@ -210,8 +212,54 @@ std::optional<ShellAxes> shellLocalAxes(const StructuralModel& m, const Shell& s
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-AddShellCommand::AddShellCommand(Project& project, const std::vector<int>& nodeIds, double thicknessM, int materialId)
+namespace {
+/// Range checks shared by the commands; the thickness is in metres.
+ShellError checkSection(const ShellSection& section) {
+    // A little slack: mm -> m -> mm conversions must not reject the bounds. Also refuses NaN.
+    const double mm = section.thicknessM * 1000.0;
+    if (!(mm > kShellThicknessMm.min - 1e-9 && mm < kShellThicknessMm.max + 1e-9)) return ShellError::InvalidThickness;
+    if (section.ballastEnabled && !kShellBallastKnM3.contains(section.ballastKnM3)) return ShellError::InvalidBallast;
+    return ShellError::None;
+}
+
+ShellError checkLayout(const ShellLayout& layout) {
+    const double mm = layout.centralPlaneOffsetM * 1000.0;
+    return mm >= kShellOffsetMm.min - 1e-9 && mm <= kShellOffsetMm.max + 1e-9 ? ShellError::None : ShellError::InvalidOffset;
+}
+
+void applySection(Shell& s, const ShellSection& section) {
+    s.thicknessM = section.thicknessM;
+    s.ballastEnabled = section.ballastEnabled;
+    if (section.ballastEnabled) {
+        s.ballastKnM3 = section.ballastKnM3;
+        s.ballastBehaviour = section.ballastBehaviour;
+    }
+}
+}  // namespace
+
+AddShellCommand::AddShellCommand(Project& project, const std::vector<int>& nodeIds, double thicknessM, int materialId,
+                                 const ShellSection* section, const ShellMaterial* material, const ShellLayout* layout)
     : SnapshotCommand(project, "Nueva lámina") {
+    if (section) thicknessM = section->thicknessM;
+    if (section) {
+        if (const ShellError e = checkSection(*section); e != ShellError::None) {
+            m_error = e;
+            return;
+        }
+    }
+    if (material) {
+        m_message = validateShellMaterial(*material);
+        if (!m_message.empty()) {
+            m_error = ShellError::InvalidMaterial;
+            return;
+        }
+    }
+    if (layout) {
+        if (const ShellError e = checkLayout(*layout); e != ShellError::None) {
+            m_error = e;
+            return;
+        }
+    }
     if (checkContour(work, nodeIds) != ShellError::None || !std::isfinite(thicknessM) || thicknessM <= 0 ||
         (materialId != 0 && !work.findMaterial(materialId))) {
         m_error = ShellError::InvalidContour;
@@ -232,6 +280,10 @@ AddShellCommand::AddShellCommand(Project& project, const std::vector<int>& nodeI
         m_error = ShellError::InvalidContour;
         return;
     }
+    Shell* created = work.findShell(m_shellId);
+    if (section) applySection(*created, *section);
+    if (material) created->material = *material;
+    if (layout) created->layout = *layout;
     commit();
 }
 
@@ -496,12 +548,8 @@ SetShellSectionCommand::SetShellSectionCommand(Project& project, const std::vect
         m_error = ShellError::NothingToChange;
         return;
     }
-    if (!(section.thicknessM > 0.0)) {  // also refuses NaN
-        m_error = ShellError::InvalidThickness;
-        return;
-    }
-    if (section.ballastEnabled && !(section.ballastKnM3 > 0.0)) {
-        m_error = ShellError::InvalidBallast;
+    if (const ShellError e = checkSection(section); e != ShellError::None) {  // also refuses NaN
+        m_error = e;
         return;
     }
     for (int id : ids) {
@@ -510,12 +558,7 @@ SetShellSectionCommand::SetShellSectionCommand(Project& project, const std::vect
             m_error = ShellError::UnknownElement;
             return;
         }
-        s->thicknessM = section.thicknessM;
-        s->ballastEnabled = section.ballastEnabled;
-        if (section.ballastEnabled) {
-            s->ballastKnM3 = section.ballastKnM3;
-            s->ballastBehaviour = section.ballastBehaviour;
-        }
+        applySection(*s, section);
     }
     commit();
 }
@@ -591,11 +634,77 @@ ShellError run(Project& project, UndoStack& stack, Cmd*& out, Args&&... args) {
 }
 }  // namespace
 
-ShellError addShell(Project& project, UndoStack& stack, const std::vector<int>& nodeIds, double thicknessM, int materialId, int* shellId) {
+SetShellMaterialCommand::SetShellMaterialCommand(Project& project, const std::vector<int>& shellIds, const ShellMaterial& material)
+    : SnapshotCommand(project, "Material de la lámina") {
+    std::vector<int> ids = shellIds;
+    sortedUnique(ids);
+    if (ids.empty()) {
+        m_error = ShellError::NothingToChange;
+        return;
+    }
+    m_message = validateShellMaterial(material);
+    if (!m_message.empty()) {
+        m_error = ShellError::InvalidMaterial;
+        return;
+    }
+    for (int id : ids) {
+        Shell* s = work.findShell(id);
+        if (!s) {
+            m_error = ShellError::UnknownElement;
+            return;
+        }
+        s->material = material;
+    }
+    commit();
+}
+
+SetShellLayoutCommand::SetShellLayoutCommand(Project& project, const std::vector<int>& shellIds, const ShellLayout& layout)
+    : SnapshotCommand(project, "Disposición de la lámina") {
+    std::vector<int> ids = shellIds;
+    sortedUnique(ids);
+    if (ids.empty()) {
+        m_error = ShellError::NothingToChange;
+        return;
+    }
+    if (const ShellError e = checkLayout(layout); e != ShellError::None) {
+        m_error = e;
+        return;
+    }
+    for (int id : ids) {
+        Shell* s = work.findShell(id);
+        if (!s) {
+            m_error = ShellError::UnknownElement;
+            return;
+        }
+        s->layout = layout;
+    }
+    commit();
+}
+
+ShellError setShellMaterial(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellMaterial& material,
+                            std::string* message) {
+    auto cmd = std::make_unique<SetShellMaterialCommand>(project, shellIds, material);
+    if (!cmd->valid()) {
+        if (message) *message = cmd->message();
+        return cmd->error();
+    }
+    stack.push(std::move(cmd));
+    return ShellError::None;
+}
+
+ShellError setShellLayout(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellLayout& layout) {
+    auto cmd = std::make_unique<SetShellLayoutCommand>(project, shellIds, layout);
+    if (!cmd->valid()) return cmd->error();
+    stack.push(std::move(cmd));
+    return ShellError::None;
+}
+
+ShellError addShell(Project& project, UndoStack& stack, const std::vector<int>& nodeIds, double thicknessM, int materialId, int* shellId,
+                    const ShellSection* section, const ShellMaterial* material, const ShellLayout* layout) {
     AddShellCommand* c = nullptr;
     int id = 0;
     {
-        auto cmd = std::make_unique<AddShellCommand>(project, nodeIds, thicknessM, materialId);
+        auto cmd = std::make_unique<AddShellCommand>(project, nodeIds, thicknessM, materialId, section, material, layout);
         if (!cmd->valid()) return cmd->error();
         id = cmd->shellId();
         c = cmd.get();

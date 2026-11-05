@@ -73,21 +73,11 @@ ShellTool::ShellTool(QObject* parent) : QObject(parent) {
     // Seccion (#65122): selects shells, RMB opens the dialog (laminas.md section 5).
     m_section = make(tr("Sección"), tr("Sección de la lámina"), tr("Sección de la lámina"), Mode::Section);
 
-    // Disposicion (#64713) and Material (#64718): the dialogs are pending (see the header).
-    const auto pending = [this](const QString& text, const QString& tip, const QString& tooltip) {
-        auto* action = new QAction(text, this);
-        action->setEnabled(false);
-        action->setStatusTip(tip);
-        action->setToolTip(tooltip);
-        connect(action, &QAction::triggered, this, [this] {
-            deactivate();
-            emit notAvailable();  // TODO(TK-shell-dialogs): open the dialog on the selected shells
-        });
-        return action;
-    };
-    m_layout = pending(tr("Disposición"), tr("Permite ajustar la posición de varias láminas a la vez con respecto a su plano de definición."),
-                       tr("Permite ajustar la posición de varias láminas a la vez con respecto a su plano de definición.\nSeleccione las láminas que desea editar con el botón izquierdo del ratón o mediante selección por rectángulo y, a continuación, pulse el botón derecho del ratón."));
-    m_material = pending(tr("Material"), tr("Permite editar el material de un grupo de láminas."), tr("Permite editar el material de un grupo de láminas."));
+    // Material (#64718) and Disposición (#64713): select shells + RMB, then the dialog (laminas.md 7.2).
+    m_layout = make(tr("Disposición"), tr("Permite ajustar la posición de varias láminas a la vez con respecto a su plano de definición."),
+                    tr("Permite ajustar la posición de varias láminas a la vez con respecto a su plano de definición.\nSeleccione las láminas que desea editar con el botón izquierdo del ratón o mediante selección por rectángulo y, a continuación, pulse el botón derecho del ratón."),
+                    Mode::Layout);
+    m_material = make(tr("Material"), tr("Permite editar el material de un grupo de láminas."), tr("Permite editar el material de un grupo de láminas."), Mode::Material);
 }
 
 QString ShellTool::statusText(Mode mode, int step, int selected) {
@@ -99,12 +89,15 @@ QString ShellTool::statusText(Mode mode, int step, int selected) {
     switch (mode) {
         case Mode::None: return tr("Seleccione una opción del menú.");
         case Mode::New:
-            return step > 0 ? tr("Láminas - Nueva |  - LMB: Introduzca un punto. - RMB: Actuar sobre los elementos seleccionados.")
-                            : tr("Láminas - Nueva |  - LMB: Introduzca un punto.");
+            // The first part is measured (laminas.md 7): "LMB: Introduzca los puntos de la polilínea"; the closing RMB text is PROVISIONAL.
+            return step > 0 ? tr("Láminas - Nueva |  - LMB: Introduzca los puntos de la polilínea. - RMB: Actuar sobre los elementos seleccionados.")
+                            : tr("Láminas - Nueva |  - LMB: Introduzca los puntos de la polilínea.");
         case Mode::Delete: return selectable(tr("Láminas - Borrar"));
         case Mode::Join: return selectable(tr("Láminas - Unir"));
         case Mode::InvertZ: return selectable(tr("Láminas - Invertir eje 'z'"));
         case Mode::Section: return selectable(tr("Láminas - Sección"));
+        case Mode::Material: return selectable(tr("Láminas - Material"));
+        case Mode::Layout: return selectable(tr("Láminas - Disposición"));
         case Mode::Move:
             if (step == 0) return tr("Láminas - Mover |  - LMB: Seleccione un elemento.");
             if (step == 1) return tr("Láminas - Mover |  - LMB: Seleccione un elemento.") + (selected > 0 ? act : back);
@@ -191,6 +184,11 @@ bool ShellTool::consumesPick() const {
 
 void ShellTool::setMode(Mode mode) {
     if (mode == m_mode) return;
+    // "Nueva" asks for the section and the material first, then for the points (measured). Cancelling releases the button.
+    if (mode == Mode::New && !askNewProperties()) {
+        if (QAction* checked = m_actions->checkedAction()) checked->setChecked(false);
+        return;
+    }
     if (mode != Mode::None) emit aboutToActivate();
     m_mode = mode;
     m_step = 0;
@@ -290,12 +288,16 @@ void ShellTool::onActOnSelection(Viewport3D* viewport) {
         case Mode::Delete:
         case Mode::Join:
         case Mode::InvertZ:
-        case Mode::Section: {
+        case Mode::Section:
+        case Mode::Material:
+        case Mode::Layout: {
             const std::vector<int> shells = viewport->selection().ids(ElementKind::Shell);
             if (shells.empty()) return;
             if (m_mode == Mode::Delete) deleteShells(shells);
             else if (m_mode == Mode::Join) joinShells(shells);
             else if (m_mode == Mode::Section) editSection(shells);
+            else if (m_mode == Mode::Material) editMaterial(shells);
+            else if (m_mode == Mode::Layout) editLayout(shells);
             else invertZ(shells);
             m_internalSelection = true;
             viewport->clearSelection();
@@ -436,7 +438,7 @@ bool ShellTool::createShell(const std::vector<Vec3>& contour) {
     for (const std::vector<int>& piece : contours) {
         std::vector<int> ids;
         for (int id : piece) ids.push_back(realId.at(id));
-        ok = report(addShell(*m_project, *m_undo, ids)) && ok;
+        ok = report(addShell(*m_project, *m_undo, ids, m_newSection.thicknessM, 0, nullptr, &m_newSection, &m_newMaterial)) && ok;
     }
     m_undo->endMacro();
     return ok;
@@ -448,10 +450,44 @@ bool ShellTool::editSection(const std::vector<int>& shellIds) {
     if (!m_project || !m_undo || shellIds.empty()) return false;
     const Shell* first = m_project->structure.findShell(*std::min_element(shellIds.begin(), shellIds.end()));
     if (!first) return report(ShellError::UnknownElement);
-    ShellSection initial{first->thicknessM, first->ballastEnabled, first->ballastKnM3, first->ballastBehaviour};
+    ShellSection initial{first->thicknessM, first->ballastEnabled, first->ballastKnM3 > 0.0 ? first->ballastKnM3 : kDefaultShellBallastKnM3,
+                         first->ballastBehaviour};
     ShellSectionDialog dialog(initial, m_project->units.dimensions, m_dialogParent);
     if (run(dialog) != QDialog::Accepted) return false;
     return report(setShellSection(*m_project, *m_undo, shellIds, dialog.section()));
+}
+
+bool ShellTool::askNewProperties() {
+    if (!m_project) return false;
+    ShellNewDialog dialog(m_newSection, m_newMaterial, *m_project, m_dialogParent);
+    if (run(dialog) != QDialog::Accepted) return false;
+    m_newSection = dialog.section();
+    m_newMaterial = dialog.material();
+    return true;
+}
+
+bool ShellTool::editMaterial(const std::vector<int>& shellIds) {
+    if (!m_project || !m_undo || shellIds.empty()) return false;
+    const Shell* first = m_project->structure.findShell(*std::min_element(shellIds.begin(), shellIds.end()));
+    if (!first) return report(ShellError::UnknownElement);
+    ShellMaterialDialog dialog(first->material, *m_project, m_dialogParent);
+    if (run(dialog) != QDialog::Accepted) return false;
+    std::string message;
+    const ShellError error = setShellMaterial(*m_project, *m_undo, shellIds, dialog.material(), &message);
+    if (error == ShellError::InvalidMaterial) {
+        emit messageRequested(QString::fromStdString(message));
+        return false;
+    }
+    return report(error);
+}
+
+bool ShellTool::editLayout(const std::vector<int>& shellIds) {
+    if (!m_project || !m_undo || shellIds.empty()) return false;
+    const Shell* first = m_project->structure.findShell(*std::min_element(shellIds.begin(), shellIds.end()));
+    if (!first) return report(ShellError::UnknownElement);
+    ShellLayoutDialog dialog(first->layout, first->thicknessM, m_dialogParent);
+    if (run(dialog) != QDialog::Accepted) return false;
+    return report(setShellLayout(*m_project, *m_undo, shellIds, dialog.layout()));
 }
 
 bool ShellTool::deleteShells(const std::vector<int>& shellIds) {

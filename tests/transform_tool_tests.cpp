@@ -5,16 +5,15 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QApplication>
-#include <QDoubleSpinBox>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
-#include <QMenu>
 #include <QMouseEvent>
 #include <QSignalSpy>
-#include <QSpinBox>
+#include <QToolButton>
 #include <memory>
 
+#include "NodeCalculatorDialog.h"
 #include "TransformTool.h"
 #include "Viewport3D.h"
 
@@ -73,13 +72,12 @@ protected:
         QObject::connect(tool.get(), &TransformTool::messageRequested, [this](const QString& text) { message = text; });
         tool->setDialogRunner([this](QDialog& dialog) {
             ++dialogs;
-            if (auto* angle = dialog.findChild<QDoubleSpinBox*>()) angle->setValue(angleToSet);
-            if (auto* copies = dialog.findChild<QSpinBox*>()) copies->setValue(copiesToSet);
             if (auto* label = dialog.findChild<QLabel*>()) lastLabel = label->text();
             if (auto* list = dialog.findChild<QListWidget*>())
                 for (int i = 0; i < list->count(); ++i) lastList << list->item(i)->text();
             return static_cast<int>(accept ? QDialog::Accepted : QDialog::Rejected);
         });
+        cc::app::RangedEdit::setWarningHandler([this](QWidget*, const QString& text) { warnings << text; });
         undo.setClean();
     }
     QPointF nodeScreen(int id) {
@@ -96,8 +94,7 @@ protected:
     QString status, message, lastLabel;
     QStringList lastList, questions;
     int dialogs = 0;
-    double angleToSet = 90.0;
-    int copiesToSet = 1;
+    QStringList warnings;
     bool accept = true;
     bool answer = true;
 };
@@ -128,21 +125,9 @@ TEST_F(TransformToolTest, GreyOnAnEmptyWorkAsInTheOriginal) {
     UndoStack stack;
     other.setProject(&empty, &stack);
     EXPECT_FALSE(other.moveAction()->isEnabled());
-    EXPECT_FALSE(other.generateMenu()->isEnabled());
     other.setProject(&project, &undo);
     EXPECT_TRUE(other.moveAction()->isEnabled());
     EXPECT_TRUE(other.repairAction()->isEnabled());
-    EXPECT_TRUE(other.generateMenu()->isEnabled());
-}
-
-TEST_F(TransformToolTest, GenerarHasFiveEntriesThatOnlyReportNotAvailable) {
-    ASSERT_EQ(tool->generateActions().size(), 5);
-    EXPECT_EQ(tool->generateActions().at(0)->text(), QStringLiteral("Generación de una malla de nudos tridimensional"));
-    QSignalSpy pending(tool.get(), &TransformTool::notAvailable);
-    for (QAction* action : tool->generateActions()) action->trigger();
-    EXPECT_EQ(pending.count(), 5);
-    EXPECT_EQ(dialogs, 0);
-    EXPECT_EQ(tool->mode(), Mode::None);
 }
 
 TEST_F(TransformToolTest, ActivatingAnnouncesItselfAndEscapeStops) {
@@ -187,41 +172,81 @@ TEST_F(TransformToolTest, RightClickGoesBackOneStepAtATime) {
     EXPECT_EQ(tool->step(), 0);
 }
 
-TEST_F(TransformToolTest, CopiarAsksForTheNumberOfCopies) {
-    copiesToSet = 2;
+TEST_F(TransformToolTest, CopiarHasNoDialogAndMakesOneCopy) {
     tool->copyAction()->trigger();
     click(*view, nodeScreen(5));
     click(*view, nodeScreen(5), Qt::RightButton);
+    EXPECT_EQ(tool->step(), 1);
     click(*view, nodeScreen(1));
     click(*view, nodeScreen(4));
-    EXPECT_EQ(dialogs, 1);
-    ASSERT_EQ(project.structure.nodes.size(), 7u);
+    EXPECT_EQ(dialogs, 0) << "measured: Copiar has no number-of-copies dialog";
+    ASSERT_EQ(project.structure.nodes.size(), 6u);
     EXPECT_DOUBLE_EQ(project.structure.nodes[5].position.z, 9.0);
-    EXPECT_DOUBLE_EQ(project.structure.nodes[6].position.z, 12.0);
+    EXPECT_EQ(tool->step(), 0);
 }
 
-TEST_F(TransformToolTest, CancellingTheDialogChangesNothing) {
-    accept = false;
-    tool->copyAction()->trigger();
-    click(*view, nodeScreen(5));
-    click(*view, nodeScreen(5), Qt::RightButton);
-    click(*view, nodeScreen(1));
+TEST_F(TransformToolTest, GirarAlrededorDeUnEjeUsesTheInlineAngleEditor) {
+    tool->rotateAxisAction()->trigger();
+    click(*view, nodeScreen(2));
+    click(*view, nodeScreen(2), Qt::RightButton);
+    click(*view, nodeScreen(1));  // axis: N1 -> N4 (vertical through the origin)
     click(*view, nodeScreen(4));
-    EXPECT_EQ(dialogs, 1);
-    EXPECT_EQ(project.structure.nodes.size(), 5u);
-    EXPECT_EQ(tool->step(), 1) << "waits for other points";
-    EXPECT_TRUE(tool->points().empty());
-}
-
-TEST_F(TransformToolTest, GirarAlrededorDeUnEjeAsksForTheAngle) {
-    ToolSelection selection;
-    selection.nodeIds = {2};
-    angleToSet = 90.0;
-    // axis: the vertical line through the origin; N2 (4, 0, 0) goes to (0, 4, 0)
-    EXPECT_TRUE(tool->apply(Mode::RotateAxis, selection, {{0, 0, 0}, {0, 0, 1}}));
-    EXPECT_EQ(dialogs, 1);
+    ASSERT_NE(tool->angleEditor(), nullptr) << "an inline editor, not a dialog";
+    EXPECT_EQ(dialogs, 0);
+    auto* editor = tool->angleEditor();
+    EXPECT_EQ(editor->edit()->text(), QStringLiteral("0.000")) << "measured default";
+    EXPECT_EQ(editor->edit()->toolTip(), QStringLiteral("Debe estar entre -360.000 grados y 360.000 grados."));
+    // Out of range: the warning of the original, the editor stays.
+    editor->edit()->setText(QStringLiteral("400"));
+    EXPECT_FALSE(editor->tryAccept());
+    ASSERT_EQ(warnings.size(), 1);
+    EXPECT_EQ(warnings.front(), QStringLiteral("El valor de 'Ángulo de giro' debe estar entre -360.000 grados y 360.000 grados."));
+    ASSERT_NE(tool->angleEditor(), nullptr);
+    editor->edit()->setText(QStringLiteral("90"));
+    editor->acceptButton()->click();
+    EXPECT_EQ(tool->angleEditor(), nullptr);
     EXPECT_NEAR(pos(2).x, 0.0, 1e-9);
     EXPECT_NEAR(pos(2).y, 4.0, 1e-9);
+    EXPECT_EQ(tool->step(), 0) << "done: back to the selection";
+}
+
+TEST_F(TransformToolTest, TheInlineAngleEditorCanBeCancelled) {
+    tool->rotateAxisAction()->trigger();
+    click(*view, nodeScreen(2));
+    click(*view, nodeScreen(2), Qt::RightButton);
+    click(*view, nodeScreen(1));
+    click(*view, nodeScreen(4));
+    ASSERT_NE(tool->angleEditor(), nullptr);
+    tool->angleEditor()->cancelButton()->click();
+    EXPECT_NEAR(pos(2).x, 4.0, 1e-12) << "nothing moved";
+    EXPECT_TRUE(tool->points().empty());
+    EXPECT_EQ(tool->step(), 1) << "waits for another axis";
+    // Right click also closes it.
+    click(*view, nodeScreen(1));
+    click(*view, nodeScreen(4));
+    ASSERT_NE(tool->angleEditor(), nullptr);
+    click(*view, nodeScreen(1), Qt::RightButton);
+    EXPECT_EQ(tool->angleEditor(), nullptr);
+}
+
+TEST_F(TransformToolTest, TypingADigitOpensTheCalculatorThatGivesThePoint) {
+    tool->moveAction()->trigger();
+    click(*view, nodeScreen(5));
+    click(*view, nodeScreen(5), Qt::RightButton);
+    ASSERT_EQ(tool->step(), 1);
+    click(*view, nodeScreen(1));  // first point (0, 0, 0)
+    QKeyEvent digit(QEvent::KeyPress, Qt::Key_1, Qt::NoModifier, QStringLiteral("1"));
+    QApplication::sendEvent(view.get(), &digit);
+    auto* calculator = tool->calculator();
+    ASSERT_NE(calculator, nullptr);
+    EXPECT_EQ(calculator->fieldText(0), QStringLiteral("1"));
+    calculator->pressEnter();  // X = 1 -> Y
+    calculator->pressEnter();  // Y = 0 -> Z
+    calculator->pressDigit('2');
+    calculator->pressEnter();  // Z = 02: the point (1, 0, 2)
+    EXPECT_NEAR(pos(5).x, 1.0, 1e-9);
+    EXPECT_NEAR(pos(5).z, 8.0, 1e-9) << "N5 moved by (1, 0, 2)";
+    EXPECT_EQ(tool->step(), 0);
 }
 
 TEST_F(TransformToolTest, GirarEnElPlanoXyBothVariants) {

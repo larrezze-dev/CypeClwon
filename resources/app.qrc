@@ -78,5 +78,7 @@
     <file>icons/tool_mirror_xy.svg</file>
     <file>icons/tool_mirror_plane.svg</file>
     <file>icons/tool_repair.svg</file>
+    <file>icons/tool_assign_reference.svg</file>
+    <file>icons/tool_find.svg</file>
   </qresource>
 </RCC>

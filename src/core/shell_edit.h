@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "core/project.h"
+#include "core/shell_material.h"
 #include "core/structure_snapshot.h"
 #include "core/undo_stack.h"
 
@@ -17,8 +18,8 @@ namespace cc::core {
 inline constexpr double kShellCoplanarityToleranceM = 0.001;
 /// Distance under which a point of a division counts as an existing node / a vertex of the contour. NOT MEASURED: provisional.
 inline constexpr double kShellDivideToleranceM = 1e-6;
-/// Thickness proposed for a new shell. NOT MEASURED (laminas.md section 4: default thickness [NV]): provisional.
-inline constexpr double kDefaultShellThicknessM = 0.2;
+/// Thickness proposed for a new shell: 100 mm, measured in the original (laminas.md section 7.1).
+inline constexpr double kDefaultShellThicknessM = kDefaultShellThicknessMm / 1000.0;
 
 /// Why a shell operation was refused. Messages are the original strings where there is one.
 enum class ShellError {
@@ -33,8 +34,10 @@ enum class ShellError {
     ContourTooComplex, ///< the union has more than 4 corner nodes, which the model cannot hold (PROVISIONAL, no original message)
     InvalidMove,       ///< the move would break a bar or a shell (no original message)
     InvalidEdge,       ///< the pair of nodes is not an edge of the shell (no original message)
-    InvalidThickness,  ///< thickness <= 0 (the original checks espesor > 0, laminas.md section 5)
-    InvalidBallast,    ///< ballast modulus enabled with a value <= 0 (the original checks modulo_de_balasto_en_z_local > 0)
+    InvalidThickness,  ///< thickness outside 0.10 .. 10000.00 mm (measured, laminas.md section 7.1)
+    InvalidBallast,    ///< ballast modulus enabled with a value outside 0.01 .. 1000000.00 kN/m3 (measured)
+    InvalidMaterial,   ///< a material value outside its measured range (the command's message() has the warning of the original)
+    InvalidOffset,     ///< central plane displacement outside -5000 .. 5000 mm (measured)
     NothingToChange    ///< nothing selected / the operation changes nothing (no original message)
 };
 
@@ -62,16 +65,29 @@ struct ShellAxes {
 };
 std::optional<ShellAxes> shellLocalAxes(const StructuralModel& model, const Shell& shell);
 
+/// "Sección de la lámina" values (see SetShellSectionCommand).
+struct ShellSection {
+    double thicknessM = kDefaultShellThicknessM;
+    bool ballastEnabled = false;
+    double ballastKnM3 = kDefaultShellBallastKnM3;
+    BallastBehaviour ballastBehaviour = BallastBehaviour::Linear;
+};
+
 /// "Nueva": adds a shell on 3 or 4 nodes given in contour order. The new shell takes the active layer.
 class AddShellCommand : public SnapshotCommand {
 public:
-    AddShellCommand(Project& project, const std::vector<int>& nodeIds, double thicknessM = kDefaultShellThicknessM, int materialId = 0);
+    /// `section`, `material` and `layout` (when given) are the panels of the dialog "Nueva" and replace `thicknessM` / the defaults.
+    AddShellCommand(Project& project, const std::vector<int>& nodeIds, double thicknessM = kDefaultShellThicknessM, int materialId = 0,
+                    const ShellSection* section = nullptr, const ShellMaterial* material = nullptr, const ShellLayout* layout = nullptr);
     bool valid() const { return m_error == ShellError::None; }
     ShellError error() const { return m_error; }
+    /// Warning of the original for a value out of range; empty otherwise.
+    const std::string& message() const { return m_message; }
     int shellId() const { return m_shellId; }  ///< 0 when invalid
 
 private:
     ShellError m_error = ShellError::None;
+    std::string m_message;
     int m_shellId = 0;
 };
 
@@ -163,12 +179,6 @@ private:
 
 /// "Sección": thickness and local-Z ballast modulus of every given shell in one step (panel "Sección de la lámina", #65122).
 /// A disabled ballast keeps the stored value and behaviour untouched. InvalidThickness / InvalidBallast refuse the whole edit.
-struct ShellSection {
-    double thicknessM = kDefaultShellThicknessM;
-    bool ballastEnabled = false;
-    double ballastKnM3 = 0.0;
-    BallastBehaviour ballastBehaviour = BallastBehaviour::Linear;
-};
 class SetShellSectionCommand : public SnapshotCommand {
 public:
     SetShellSectionCommand(Project& project, const std::vector<int>& shellIds, const ShellSection& section);
@@ -179,10 +189,36 @@ private:
     ShellError m_error = ShellError::None;
 };
 
+/// "Material" / "Describir material": the material of every given shell (panel "Material", laminas.md section 7.1). An out-of-range
+/// value refuses the whole edit (InvalidMaterial; message() is the warning of the original).
+class SetShellMaterialCommand : public SnapshotCommand {
+public:
+    SetShellMaterialCommand(Project& project, const std::vector<int>& shellIds, const ShellMaterial& material);
+    bool valid() const { return m_error == ShellError::None; }
+    ShellError error() const { return m_error; }
+    const std::string& message() const { return m_message; }
+
+private:
+    ShellError m_error = ShellError::None;
+    std::string m_message;
+};
+
+/// "Disposición" / "Describir disposición": the eccentricity flag and the central plane displacement of every given shell.
+class SetShellLayoutCommand : public SnapshotCommand {
+public:
+    SetShellLayoutCommand(Project& project, const std::vector<int>& shellIds, const ShellLayout& layout);
+    bool valid() const { return m_error == ShellError::None; }
+    ShellError error() const { return m_error; }
+
+private:
+    ShellError m_error = ShellError::None;
+};
+
 /// Wrappers: build the command and push it on `stack`; they return ShellError::None on success, otherwise the error and
 /// nothing is pushed.
 ShellError addShell(Project& project, UndoStack& stack, const std::vector<int>& nodeIds, double thicknessM = kDefaultShellThicknessM,
-                    int materialId = 0, int* shellId = nullptr);
+                    int materialId = 0, int* shellId = nullptr, const ShellSection* section = nullptr,
+                    const ShellMaterial* material = nullptr, const ShellLayout* layout = nullptr);
 ShellError deleteShells(Project& project, UndoStack& stack, const std::vector<int>& shellIds);
 ShellError divideShells(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const Point3& p, const Point3& q,
                         std::vector<int>* createdIds = nullptr);
@@ -190,6 +226,9 @@ ShellError joinShells(Project& project, UndoStack& stack, const std::vector<int>
 ShellError invertShellZ(Project& project, UndoStack& stack, const std::vector<int>& shellIds);
 ShellError setShellXEdge(Project& project, UndoStack& stack, int shellId, int nodeA, int nodeB);
 ShellError setShellSection(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellSection& section);
+ShellError setShellMaterial(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellMaterial& material,
+                            std::string* message = nullptr);
+ShellError setShellLayout(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellLayout& layout);
 ShellError moveShellNodes(Project& project, UndoStack& stack, int shellId, const std::vector<int>& nodeIds, const Point3& delta);
 
 }  // namespace cc::core
