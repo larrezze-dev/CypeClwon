@@ -466,6 +466,15 @@ TEST(BarDescribeDialog, ProfilePropertiesRowsOfTheIpe80) {
     EXPECT_EQ(rows[2].second, "3.8 mm");
     EXPECT_EQ(rows[3].second, "5.2 mm");
     EXPECT_EQ(rows[4].second, "5.0 mm");
+    // Values of the (i) of the original (orig_describir_info_ipe80.png): the rolled profiles carry the original's tabulated properties.
+    EXPECT_EQ(rows[5].second, "7.60 cm²");
+    EXPECT_EQ(rows[6].second, "80.10 cm4");
+    EXPECT_EQ(rows[7].second, "23.20 cm³");
+    EXPECT_EQ(rows[8].second, "8.49 cm4");
+    EXPECT_EQ(rows[9].second, "5.80 cm³");
+    EXPECT_EQ(rows[10].second, "0.67 cm4");
+    EXPECT_EQ(rows[11].second, "120.00 cm6");
+    EXPECT_EQ(rows[12].second, "5.97 kg/m");
     EXPECT_TRUE(rows[5].second.endsWith(" cm²"));
     EXPECT_TRUE(rows[6].second.endsWith(" cm4"));
     EXPECT_TRUE(rows[7].second.endsWith(" cm³"));

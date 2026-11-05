@@ -268,6 +268,7 @@ TEST(BarDescription, RefreshAfterEditingTheProfile) {
 
     Section edited = *f.project.profileLibrary.find("IPE")->findProfile("IPE 80");
     edited.dims[2] *= 2.0;  // tw
+    edited.tabulated = {};  // the tabulated values belong to the nominal dimensions (the edit dialog drops them as well)
     ASSERT_EQ(editProfile(f.project, f.stack, "IPE", "IPE 80", edited), "");
     EXPECT_EQ(refreshDescriptions(f.project, f.stack, &unresolved), "");
     EXPECT_TRUE(unresolved.empty());

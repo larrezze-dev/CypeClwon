@@ -1,6 +1,7 @@
 #include "ProfileLibraryDialogs.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -368,6 +369,13 @@ Section ProfileEditDialog::value() const {
     for (int i = 0; i < m_dims.size(); ++i) {
         const std::string& key = keys[static_cast<std::size_t>(i)];
         s.dims.push_back(m_dims[i]->value() / scaleOf(s.kind, key, m_unit).perMetre);
+    }
+    // The tabulated values of a rolled profile (taken from the original's tables) belong to its nominal dimensions: once the user
+    // changes a dimension (or the shape) the profile is the user's own and its properties are calculated again.
+    if (s.tabulated.any() && s.kind != ShapeKind::Generic && !isCatalogueShape(s.kind)) {
+        bool changed = s.kind != m_initial.kind || s.dims.size() != m_initial.dims.size();
+        for (std::size_t i = 0; !changed && i < s.dims.size(); ++i) changed = std::abs(s.dims[i] - m_initial.dims[i]) > 1e-7;
+        if (changed) s.tabulated = {};
     }
     return s;
 }

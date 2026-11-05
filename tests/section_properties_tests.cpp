@@ -41,6 +41,12 @@ Section find(const std::string& series, const std::string& reference) {
     return {};
 }
 
+/// Properties from the geometry only, with the same elastic moduli as effectiveProperties() (the predefined rolled profiles carry tabulated values).
+std::optional<SectionProperties> geometric(Section s) {
+    s.tabulated = {};
+    return effectiveProperties(s);
+}
+
 Section mm(ShapeKind kind, std::vector<double> dimsMm) {
     Section s;
     s.reference = "x";
@@ -77,7 +83,7 @@ TEST(SectionProperties, ShapeTablesAreConsistent) {
 }
 
 TEST(SectionProperties, Ipe200AgainstPublishedValues) {
-    const auto p = effectiveProperties(find("IPE", "IPE 200"));
+    const auto p = geometric(find("IPE", "IPE 200"));
     ASSERT_TRUE(p.has_value());
     EXPECT_NEAR(p->area, 28.5 * kCm2, 0.01 * 28.5 * kCm2);
     EXPECT_NEAR(p->iy, 1943 * kCm4, 0.005 * 1943 * kCm4);
@@ -98,7 +104,7 @@ TEST(SectionProperties, ParallelFlangeSeriesMatchPublishedTables) {
     for (const RefRow& r : reference()) {
         const std::string s = r.series;
         if (s != "IPE" && s != "HEA" && s != "HEB" && s != "HEM") continue;
-        const auto p = effectiveProperties(find(s, r.reference));
+        const auto p = geometric(find(s, r.reference));
         ASSERT_TRUE(p.has_value()) << r.reference;
         ++rows;
         area[s].note(rel(p->area, r.v[0] * kCm2), r.reference);
@@ -134,7 +140,7 @@ TEST(SectionProperties, SlopedFlangeSeriesMatchPublishedTables) {
         const bool wide = r.reference == std::string("UPN 320") || r.reference == std::string("UPN 350") || r.reference == std::string("UPN 380") ||
                           r.reference == std::string("UPN 400");
         const std::string s = wide ? "UPN>=320" : r.series;
-        const auto p = effectiveProperties(find(r.series, r.reference));
+        const auto p = geometric(find(r.series, r.reference));
         ASSERT_TRUE(p.has_value()) << r.reference;
         area[s].note(rel(p->area, r.v[0] * kCm2), r.reference);
         iy[s].note(rel(p->iy, r.v[1] * kCm4), r.reference);
@@ -225,7 +231,8 @@ TEST(SectionProperties, SolidShapesUseClosedForms) {
 
 TEST(SectionProperties, TabulatedValuesReplaceTheCalculatedOnes) {
     Section s = find("IPE", "IPE 200");
-    const auto calculated = effectiveProperties(s);
+    s.tabulated = {};
+    const auto calculated = geometric(s);
     ASSERT_TRUE(calculated.has_value());
     s.tabulated.area = 30e-4;
     s.tabulated.iy = 2000e-8;
@@ -239,6 +246,41 @@ TEST(SectionProperties, TabulatedValuesReplaceTheCalculatedOnes) {
     EXPECT_NEAR(p->welY, 2000e-8 / 0.1, 1e-15);       // Wel follows the tabulated inertia
     EXPECT_NEAR(calculatedProperties(s)->iy, calculated->iy, 1e-15);  // pure geometry ignores the table
     EXPECT_TRUE(s.tabulated.any());
+}
+
+TEST(SectionProperties, RolledSeriesCarryTheTabulatedValuesOfTheOriginal) {
+    // IPE 80 as shown by the (i) of the original: A 7.60, Iyy 80.10, Zyy 23.20, Izz 8.49, Zzz 5.80, It 0.67, Iw 120.00.
+    const auto ipe80 = effectiveProperties(find("IPE", "IPE 80"));
+    ASSERT_TRUE(ipe80.has_value());
+    EXPECT_NEAR(ipe80->area, 7.60 * kCm2, 1e-12);
+    EXPECT_NEAR(ipe80->iy, 80.10 * kCm4, 1e-14);
+    EXPECT_NEAR(ipe80->wplY, 23.20 * kCm3, 1e-12);
+    EXPECT_NEAR(ipe80->iz, 8.49 * kCm4, 1e-14);
+    EXPECT_NEAR(ipe80->wplZ, 5.80 * kCm3, 1e-12);
+    EXPECT_NEAR(ipe80->it, 0.67 * kCm4, 1e-14);
+    EXPECT_NEAR(ipe80->iw, 120.00e-12, 1e-17);
+    // Every profile of IPE, HEA, HEB, HEM, IPN and UPN has its table row (129 profiles) and the geometry agrees with it: a sanity check
+    // of the column mapping of the dump (areas and inertias within a few percent; the radii of the corners are not tabulated).
+    int rows = 0;
+    for (const ProfileSeries& s : predefinedSeries()) {
+        if (s.reference == "L") {
+            for (const Section& p : s.profiles) EXPECT_FALSE(p.tabulated.any()) << p.reference;
+            continue;
+        }
+        for (const Section& p : s.profiles) {
+            ASSERT_TRUE(p.tabulated.area && p.tabulated.iy && p.tabulated.iz && p.tabulated.it && p.tabulated.iw && p.tabulated.wplY && p.tabulated.wplZ)
+                << p.reference;
+            ++rows;
+            const auto c = geometric(p);
+            ASSERT_TRUE(c.has_value()) << p.reference;
+            EXPECT_LT(rel(*p.tabulated.area, c->area), 0.03) << p.reference;
+            EXPECT_LT(rel(*p.tabulated.iy, c->iy), 0.03) << p.reference;
+            EXPECT_LT(rel(*p.tabulated.iz, c->iz), 0.08) << p.reference;
+            EXPECT_LT(rel(*p.tabulated.wplY, c->wplY), 0.05) << p.reference;
+            EXPECT_LT(rel(*p.tabulated.wplZ, c->wplZ), 0.08) << p.reference;
+        }
+    }
+    EXPECT_EQ(rows, 129);
 }
 
 TEST(SectionProperties, GenericSectionNeedsTabulatedValues) {
@@ -293,7 +335,7 @@ TEST(SectionProperties, PredefinedSeriesHaveTheDocumentedContent) {
     const auto& all = predefinedSeries();
     ASSERT_EQ(all.size(), 7u);
     const std::vector<std::pair<std::string, std::size_t>> expected = {{"IPE", 18}, {"HEA", 24}, {"HEB", 24}, {"HEM", 24},
-                                                                       {"IPN", 19}, {"UPN", 18}};
+                                                                       {"IPN", 21}, {"UPN", 18}};
     for (std::size_t i = 0; i < expected.size(); ++i) {
         EXPECT_EQ(all[i].reference, expected[i].first);
         EXPECT_EQ(all[i].profiles.size(), expected[i].second) << all[i].reference;

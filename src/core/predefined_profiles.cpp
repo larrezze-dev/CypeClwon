@@ -20,6 +20,21 @@ const std::vector<Row>& rows() {
     return all;
 }
 
+/// Properties tabulated by the original (pfarcelor.dll / perfil3.dll; docs/research/ui/describir_barras.md section 17) for the
+/// predefined profiles it also has. Units of the tables: cm2, cm4, 10^3 cm6 (warping), cm3.
+struct TabulatedRow {
+    const char* series;
+    const char* reference;
+    double v[7];  ///< A, Iyy, Izz, It, Iw, Wply, Wplz
+};
+
+const std::vector<TabulatedRow>& tabulatedRows() {
+    static const std::vector<TabulatedRow> all = {
+#include "core/describir_rolled_data.inc"
+    };
+    return all;
+}
+
 struct SeriesDef {
     const char* reference;
     const char* description;
@@ -46,7 +61,7 @@ const std::vector<ProfileSeries>& predefinedSeries() {
             s.description = def.description;
             s.family = SectionFamily::HotRolledSteel;
             s.kind = def.kind;
-            s.source = "ArcelorMittal, Sections and Merchant Bars (dimensiones nominales)";
+            s.source = "ArcelorMittal, Sections and Merchant Bars (dimensiones nominales); propiedades tabuladas del original (pfarcelor.dll, perfil3.dll) donde existen";
             for (const Row& row : rows()) {
                 if (s.reference != row.series) continue;
                 Section p;
@@ -59,6 +74,17 @@ const std::vector<ProfileSeries>& predefinedSeries() {
                 // The sloped series store the slope as the last dimension, in percent (not a length).
                 if (def.kind == ShapeKind::ISloped) p.dims.push_back(kIpnSlopePercent);
                 if (def.kind == ShapeKind::Channel) p.dims.push_back(kUpnSlopePercent);
+                for (const TabulatedRow& t : tabulatedRows()) {  // tabulated if the original has the profile, otherwise calculated
+                    if (s.reference != t.series || p.reference != t.reference) continue;
+                    p.tabulated.area = t.v[0] * 1e-4;
+                    p.tabulated.iy = t.v[1] * 1e-8;
+                    p.tabulated.iz = t.v[2] * 1e-8;
+                    p.tabulated.it = t.v[3] * 1e-8;
+                    p.tabulated.iw = t.v[4] * 1e-9;
+                    p.tabulated.wplY = t.v[5] * 1e-6;
+                    p.tabulated.wplZ = t.v[6] * 1e-6;
+                    break;
+                }
                 s.profiles.push_back(std::move(p));
             }
             out.push_back(std::move(s));
