@@ -1,6 +1,6 @@
 # Directrices del Proyecto
 
-Clonar el proyecto Cype 3D manteniendo absoluta fidelidad en la reproducción de sus funcionalidades e interfaz. La fase de investigación y descubrimiento es tan importante como la fase de desarrollo.
+Clonar el proyecto Cype 3D manteniendo fidelidad en la reproducción de sus funcionalidades e interfaz - a falta de datos, crear la GUI o parte de ella con base a las funcionalidades documentadas, siempre manteniendo la coherencia del GUI y forma de trabajo del proyecto.. La fase de investigación y descubrimiento es tan importante como la fase de desarrollo.
 
 El proyecto está ubicado en:
 D:\CYPE Ingenieros\Versión 2027\CYPE 3D
@@ -17,12 +17,15 @@ Adicionalmente iniciar el ejecutable y realizar capturas de pantalla y pruebas d
 https://info.cype.com/es/software/cype-3d/?_gl=1%2A1sl1l1t%2A_ga%2ANjI4MjI2NTcxLjE3OTM0Mzc0NzY.%2A_ga_P0GJKB1YE4%2AczE3OTM0Mzc0NzYkbzEkZzAkdDE3OTM0Mzc0ODQkajUyJGwwJGgw
 
 
+
 ### Orden de investigación para saber cómo funciona CYPE 3D (obligatorio)
 
 Para averiguar cómo funciona cualquier característica del original, seguir SIEMPRE este orden:
 
 1. **Primero, el código del original con REA**: buscar en los binarios (DLL/EXE de la carpeta de CYPE 3D) con el MCP rea: cadenas de recursos (UTF-16, con ids y varios idiomas), nombres de funciones y símbolos (`list_procedures`, `list_names`), pseudocódigo (`procedure_pseudo_code`), referencias y estructuras de configuración. Muchas respuestas (textos exactos, tooltips, leyes de cálculo, formato de configuración, qué hace un botón) están aquí y evitan pruebas a ciegas.
 2. **Solo si REA no responde lo que se busca**: lanzar CYPE 3D en el escritorio (con el OK previo del usuario, ver «Comunicación con el usuario») y observarlo con capturas y pruebas de funcionalidad (`tools/drive_original.ps1`).
+
+IMPORTANTE: siempre intentar por todos los medios obtener las informaciones del programa clonado con REA e ingenieria inversa, incluida la GUI. Como secunda opción lanzar el programa clonado y capturar informaciones de allí.
 
 Combinar ambos al final es válido (p. ej. medir en el original una constante que el código no revela), pero no se empieza por la interfaz si el código puede responder. Documentar en `docs/research/` qué se averiguó por cada vía.
 
