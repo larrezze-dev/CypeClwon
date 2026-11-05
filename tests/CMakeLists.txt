@@ -119,3 +119,10 @@ add_executable(profile_library_dialogs_tests profile_library_dialogs_tests.cpp $
 target_include_directories(profile_library_dialogs_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(profile_library_dialogs_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(profile_library_dialogs_tests)
+
+add_executable(bar_describe_tests bar_describe_dialog_tests.cpp bar_describe_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/BarDescribeDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/BarDescribeTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ProfileLibraryDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(bar_describe_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(bar_describe_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
+gtest_discover_tests(bar_describe_tests)

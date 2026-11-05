@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace cc::core {
 
@@ -321,6 +322,28 @@ std::string descriptionText(const BarDescription& d, const std::string& hotRolle
     if (d.materialIcon == BarMaterialIcon::RolledSteel && !hotRolledSteelGrade.empty() && !name.empty())
         return name + " (" + hotRolledSteelGrade + ")";
     return name;
+}
+
+namespace {
+std::string compactNumber(double value) {
+    char buffer[32];
+    std::snprintf(buffer, sizeof buffer, "%.10g", value);
+    return buffer;
+}
+}  // namespace
+
+std::string barLabelText(const BarDescription& d) {
+    if (d.materialIcon == BarMaterialIcon::Generic) {
+        constexpr double g = 9.80665;
+        char buffer[48];
+        std::snprintf(buffer, sizeof buffer, "Gen.(%.1f kg/m)", d.generic.areaM2 * d.material.densityKnM3 * 1000.0 / g);
+        return buffer;
+    }
+    if (d.materialIcon == BarMaterialIcon::Concrete && d.inlineSection && d.inlineSection->kind == ShapeKind::ConcreteRectangular &&
+        d.inlineSection->dims.size() == 2)
+        return compactNumber(d.inlineSection->dims[0] * 100.0) + " cm x " + compactNumber(d.inlineSection->dims[1] * 100.0) + " cm";
+    if (!d.profileRef.empty()) return d.profileRef;
+    return d.inlineSection ? d.inlineSection->reference : std::string();
 }
 
 }  // namespace cc::core

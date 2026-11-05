@@ -161,6 +161,12 @@ bool sameDescription(const BarDescription& a, const BarDescription& b);
 /// combination verified in the original, nudos.md). Generic: "Genérico". Concrete / timber inline: the reference of the section.
 std::string descriptionText(const BarDescription& description, const std::string& hotRolledSteelGrade);
 
+/// Label the original shows on the bar in the 3D window and in "Perfiles utilizados" (measured, describir_barras.md section 1): the
+/// reference of the profile ("IPE 80"); generic "Gen.(19.6 kg/m)" (A x specific weight / g, one decimal, NO space after the dot);
+/// concrete "30 cm x 30 cm" (dimensions in centimetres); timber from the section reference ("Ø100"). The shapes not measured
+/// (circular or variable-depth concrete) fall back to the reference of the section.
+std::string barLabelText(const BarDescription& description);
+
 inline constexpr const char* kNotDescribedText = "Sin describir";
 
 }  // namespace cc::core

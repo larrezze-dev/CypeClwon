@@ -336,3 +336,17 @@ TEST(BarDescription, ConcreteAndTimberInlineSections) {
     wrong.inlineSection->dims = {0.0, 0.3};
     EXPECT_FALSE(validateDescription(wrong, f.project.profileLibrary).empty());
 }
+
+// Labels of the bar in the 3D window and in "Perfiles utilizados" (measured in the original: IPE 80, Gen.(19.6 kg/m), 30 cm x 30 cm).
+TEST(BarDescription, BarLabelText) {
+    EXPECT_EQ(barLabelText(defaultDescription(BarMaterialIcon::RolledSteel)), "IPE 80");
+    EXPECT_EQ(barLabelText(defaultDescription(BarMaterialIcon::Generic)), "Gen.(19.6 kg/m)");  // 25 cm2 x 77.01 kN/m3 / g
+    EXPECT_EQ(barLabelText(defaultDescription(BarMaterialIcon::Concrete)), "30 cm x 30 cm");
+    BarDescription round = defaultDescription(BarMaterialIcon::Timber);
+    Section s;
+    s.reference = "Ø100";
+    s.kind = ShapeKind::TimberRound;
+    s.dims = {0.10};
+    round.inlineSection = s;
+    EXPECT_EQ(barLabelText(round), "Ø100");
+}
