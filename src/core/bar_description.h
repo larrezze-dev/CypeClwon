@@ -130,23 +130,38 @@ struct BarDescription {
 };
 
 /// Default material values of an icon: steel 210000 MPa / 0.3 / 78.5 kN/m3 / 1.2e-5; aluminium (EN 1999-1-1) 70000 / 0.3 / 27 /
-/// 2.3e-5; concrete and timber provisional (TK-063: concrete 30000 MPa, 25 kN/m3, 1e-5; timber 11000 MPa, 4.2 kN/m3, 5e-6);
+/// 2.3e-5; concrete C25/30 of the original (31476 MPa, 0.2, 1e-5, 25 kN/m3); timber provisional (11000 MPa, 4.2 kN/m3, 5e-6, TK-063);
 /// generic: the dialog defaults (206010 / 0.3 / 77.01 / 1.2e-5).
 MaterialData defaultMaterialData(BarMaterialIcon icon);
 MaterialKind materialKindOf(BarMaterialIcon icon);
-/// Material values of a concrete grade / a timber class of the project (TK-063). NOT MEASURED IN THE ORIGINAL: the dialog does not show
-/// them and no capture gives them, so the clone uses the standardised formulas / tables:
-///  - concrete (EC2, EN 1992-1-1 table 3.1, Ecm of the grades C12/15..C50/60), nu = 0.2, alpha = 1e-5, 25 kN/m3 (reinforced concrete);
-///    the "Bc" grades have no equivalent there, so they fall back to defaultMaterialData(Concrete);
-///  - timber (EN 1995-1-1 with EN 338: E0,mean and mean density of the softwood classes C14..C50, G = E0,mean / 16, weight = rho * g),
-///    nu = 0.3 and alpha = 5e-6 as defaultMaterialData(Timber); the other three timber types have no class list yet (TODO(captura))
-///    and fall back to defaultMaterialData(Timber).
+/// Property set of the timber strength classes. The original's ec5.dll holds two tables per class (REA): `En` = the first one (EC5 /
+/// norm values 1, 4, 5 of the original), `CteSeM` = the second, identical to CTE DB SE-M Annex E (norm value 3). The mapping from
+/// the project's standard to the value is NOT verified: the Spanish standard is ASSUMED to use CteSeM (reasonable, unconfirmed).
+enum class TimberPropertySet { En, CteSeM };
+struct TimberClassProperties {
+    std::string name, type;       ///< "C24", REA type key ("coniferas", "frondosas", "laminada_homogenea", "laminada_combinada")
+    double e0MeanMPa = 0;         ///< E0,mean
+    double gMeanMPa = 0;          ///< G,mean
+    double densityKgM3 = 0;       ///< mean density
+    bool rare = false;            ///< "poco frecuente" flag of ec5.dll
+};
+std::optional<TimberClassProperties> timberClassProperties(const std::string& strengthClass, TimberPropertySet set = TimberPropertySet::CteSeM);
+
+/// Material values of a concrete grade / a timber class of the project.
+///  - concrete: E (MPa) of the grade from the block "Norma Eurocodigo 2" of datmater.dll (REA exact, C25/30 = 31476, the "Bc" grades
+///    included), nu = 0.2, alpha = 1e-5 1/C, weight 25 kN/m3 (the original loads 2.5 T/m3; the factor T -> kN is taken as 10, not
+///    verified). G = E / (2 (1 + nu)) as `cypemat_modulo_cortadura`.
+///  - timber: E0,mean and mean density of the class from ec5.dll (REA; default set CteSeM, see TimberPropertySet), weight = rho * 9.80665.
+///    nu stays 0.3 and alpha 5e-6 as defaultMaterialData(Timber): the original derives nu = E0 / (2 G) - 1 (about 7), a value this
+///    model rejects (nu must be below 0.5), and the thermal expansion of timber was not found. The timber type must match the class
+///    (a class of another type returns the default).
 MaterialData concreteMaterialData(const std::string& grade);
-MaterialData timberMaterialData(const std::string& timberMaterial, const std::string& strengthClass);
+MaterialData timberMaterialData(const std::string& timberMaterial, const std::string& strengthClass,
+                                TimberPropertySet set = TimberPropertySet::CteSeM);
 /// Shear modulus of a material, G = E / (2 (1 + nu)).
 double shearModulusMPa(const MaterialData& material);
-/// G,mean of a softwood class of EN 338 (E0,mean / 16); 0 when the class is unknown.
-double timberShearModulusMPa(const std::string& strengthClass);
+/// G,mean of a timber class (ec5.dll table); 0 when the class is unknown.
+double timberShearModulusMPa(const std::string& strengthClass, TimberPropertySet set = TimberPropertySet::CteSeM);
 
 /// Description with the defaults of the dialog for an icon (rolled steel: IPE / IPE 80; concrete: rectangular 30 x 30 cm; timber:
 /// rectangular 30 x 30 cm clone default, TK-061; generic: GenericSectionData defaults; other icons: no profile chosen yet).

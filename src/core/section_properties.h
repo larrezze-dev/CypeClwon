@@ -19,10 +19,7 @@ namespace cc::core {
 ///    tabulated values (SectionOverrides) that replace the computed ones; the elastic moduli are always I / extreme fibre
 ///    distance (the original has no field of its own for them).
 ///
-/// Extending to cold-formed and aluminium shapes: add a ShapeKind value, its dimension keys / names / count to the tables
-/// at the top of section_properties.cpp, its contour (or closed forms) to calculated(), and its validation to
-/// validateSection(). Nothing else changes: series, library, undo and JSON are shape agnostic. Those shapes are NOT
-/// implemented (the original computes them with `creaconf_*` routines that are not analysed yet, TK-052).
+/// Catalogue shapes (built-up, cold-formed, aluminium) are calculated from the dimensions of the tables of the original; see ShapeKind.
 
 /// Shapes with formulas. The eight hot-rolled steel shapes of the original plus the generic profile.
 enum class ShapeKind {
@@ -45,18 +42,17 @@ enum class ShapeKind {
     TimberSquare,                 ///< "Cuadrado": a
     TimberRectangular,            ///< "Rectangular": b, h
     TimberRectangularVariable,    ///< "Rectangular de canto variable": b, h0, h1
-    // --- catalogue shapes of the "Describir" dialog (built-up, cold-formed and aluminium families). Their dimensions are only what
-    //     the designation of the profile gives (docs/research/ui/describir_barras_capturas_manuales.md); the mechanical properties
-    //     are NOT calculable yet (the original uses `creaconf_*` routines of seccion.dll that are not analysed, TK-052):
-    //     calculatedProperties() / effectiveProperties() return nullopt for them.
-    BuiltUpDoubleT,    ///< "Doble T simétrica armada", series IPC: h, b (m) and mass per metre (kg/m, NOT a length): "IPC 533x203x62.6"
-    ColdFormedU,       ///< "U conformado simple", series U: h, t: "UF-60x3" (flange width not given by the designation)
-    ColdFormedC,       ///< "U conformado rigidizado", series C: h, t: "CF-60x2.0" (the only profile seen)
-    AluminiumI         ///< "Doble T" of aluminium, series "(EP) I": three nominal numbers d1, d2, d3 of "I-50x80x6" (meaning not verified)
+    // --- catalogue shapes of the "Describir" dialog (built-up, cold-formed and aluminium families). Their dimensions come from the
+    //     tables the original embeds in perfil3.dll (REA dumps, docs/research/ui/describir_barras_capturas_manuales.md 7.6); the
+    //     properties are calculated with the formulas of 7.2 (double T: exact; cold-formed: contour model with the tabulated A / Iyy
+    //     [/ Izz] of the original as overrides; the rest APPROXIMATE, see calculatedProperties()).
+    BuiltUpDoubleT,    ///< "Doble T simétrica armada", series IPC: h, b, tw, tf (m)
+    ColdFormedU,       ///< "U conformado simple", series U (UF): h, b (flange measured from the outer face of the web), t, r (inner radius)
+    ColdFormedC,       ///< "U conformado rigidizado", series C (CF): h, b, c (lip), t, r (inner radius)
+    AluminiumI         ///< "Doble T" of aluminium, series "(EP) I": h, b, tw, tf (m)
 };
 
-/// Material family that a series belongs to ("Perfil de acero laminado", "conformado", ...). Only HotRolledSteel and Generic
-/// have shapes with formulas today.
+/// Material family that a series belongs to ("Perfil de acero laminado", "conformado", ...). 
 enum class SectionFamily { HotRolledSteel, BuiltUpSteel, ColdFormedSteel, Aluminium, Timber, Generic, Concrete };
 
 /// Stable machine name of a shape / family (JSON) and its Spanish name (GUI).
@@ -77,8 +73,9 @@ std::optional<SectionFamily> shapeFamily(ShapeKind kind);
 std::vector<ShapeKind> shapesOfFamily(SectionFamily family);
 /// True for the solid concrete and timber shapes (computed from their dimensions only, no tabulated values).
 bool isConcreteOrTimber(ShapeKind kind);
-/// True for the catalogue shapes whose properties cannot be calculated yet (BuiltUpDoubleT, ColdFormedU, ColdFormedC, AluminiumI).
-bool isCatalogueOnly(ShapeKind kind);
+/// True for the catalogue shapes of the Describir dialog (BuiltUpDoubleT, ColdFormedU, ColdFormedC, AluminiumI).
+bool isCatalogueShape(ShapeKind kind);
+
 /// True for the two shapes whose depth varies linearly between the ends of the piece (b, h0, h1).
 bool isVariableDepth(ShapeKind kind);
 
@@ -143,5 +140,9 @@ std::optional<SectionProperties> calculatedProperties(const Section& section);
 /// Properties with the rule "tabulated if it exists, otherwise calculated". nullopt when the section is invalid or a Generic
 /// section lacks the tabulated area / inertias it needs.
 std::optional<SectionProperties> effectiveProperties(const Section& section);
+
+/// Mass per metre (kg/m) the original shows in "Propiedades del perfil seleccionado" for the catalogue shapes: A x 0.785 for steel (rho =
+/// 7850 kg/m3), A x 0.27 for aluminium (2700 kg/m3), A being the effective area. nullopt for the other shapes or an invalid section.
+std::optional<double> catalogueMassPerMetre(const Section& section);
 
 }  // namespace cc::core

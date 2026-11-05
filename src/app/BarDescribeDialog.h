@@ -51,8 +51,9 @@ struct DescribeSink {
 DescribeSink& describeSink();
 
 /// Rows (label with its colon, value with unit) of the "Propiedades del perfil seleccionado" box. Dimensions with one decimal,
-/// properties with two (measured with the IPE 80). PROVISIONAL for the shapes other than the parallel-flange I: the rows of the
-/// other shapes were not measured (TODO(captura)); they list the dimensions of the shape followed by the same property rows.
+/// properties with two (measured with the IPE 80). Measured (describir_info_perfiles.tsv): timber round (5 rows), aluminium I (12),
+/// cold-formed U (13), built-up IPC (14). PROVISIONAL for the other shapes (and the lipped C): the dimension rows of the other shapes
+/// were not measured (TODO(captura)); they list the dimensions of the shape followed by the same property rows.
 std::vector<std::pair<QString, QString>> profilePropertyRows(const cc::core::Section& section);
 
 /// Numeric field of the original's "Describir": right aligned, validated when it loses the focus (modal "Aviso" box; the field keeps

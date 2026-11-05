@@ -55,15 +55,25 @@ const std::vector<std::string>& timberMaterials() {
 }
 
 const std::vector<std::string>& timberStrengthClasses() {
-    // Verified (Material de madera 1/2.png): C14 ... C50 (service classes 2 and 3 texts still pending capture).
+    // Verified (Material de madera 1/2.png): C14 ... C50 (softwood type).
     static const std::vector<std::string> v = {"C14", "C16", "C18", "C20", "C22", "C24",
                                                "C27", "C30", "C35", "C40", "C45", "C50"};
     return v;
 }
 
 const std::vector<std::string>& timberStrengthClassesFor(const std::string& timberMaterial) {
+    // Softwood: verified on screen. The other three types: exact lists and order from the REA enumeration of ec5.dll (the combo of
+    // each type is assumed to show them all, as the softwood one does 12 of 12; not seen on screen).
+    static const std::vector<std::string> hardwood = {"D18", "D24", "D30", "D35", "D40", "D50", "D60", "D70"};
+    static const std::vector<std::string> glulamHomogeneous = {"GL20h", "GL22h", "GL24h", "GL26h", "GL28h", "GL30h", "GL32h", "GL36h"};
+    static const std::vector<std::string> glulamCombined = {"GL20c", "GL22c", "GL24c", "GL26c", "GL28c", "GL30c", "GL32c", "GL36c"};
     static const std::vector<std::string> none;
-    return timberMaterial == timberMaterials().front() ? timberStrengthClasses() : none;
+    const auto& types = timberMaterials();
+    if (timberMaterial == types[0]) return timberStrengthClasses();
+    if (timberMaterial == types[1]) return hardwood;
+    if (timberMaterial == types[2]) return glulamHomogeneous;
+    if (timberMaterial == types[3]) return glulamCombined;
+    return none;
 }
 
 const std::vector<std::string>& aluminiumAlloys() {

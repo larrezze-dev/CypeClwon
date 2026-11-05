@@ -13,6 +13,7 @@
 #include <QToolButton>
 
 #include "BarDescribeDialog.h"
+#include "core/describir_catalogue.h"
 #include "core/predefined_profiles.h"
 
 using namespace cc::app;
@@ -476,6 +477,75 @@ TEST(BarDescribeDialog, ProfilePropertiesRowsOfTheIpe80) {
     EXPECT_NEAR(rows[12].second.section(' ', 0, 0).toDouble(), 5.97, 0.1);
 }
 
+namespace {
+const cc::core::Section* catalogueProfile(const std::string& series, const std::string& profile) {
+    for (const auto& s : cc::core::describirSeries())
+        if (s.reference == series)
+            if (const auto* p = s.findProfile(profile)) return p;
+    return nullptr;
+}
+QStringList valuesOf(const std::vector<std::pair<QString, QString>>& rows, QStringList* labels = nullptr) {
+    QStringList values;
+    for (const auto& r : rows) {
+        values << r.second;
+        if (labels) *labels << r.first;
+    }
+    return values;
+}
+}  // namespace
+
+// The rows of the four (i) dialogs captured in the original (describir_info_perfiles.tsv): the values are the ones of the captures.
+TEST(BarDescribeDialog, ProfilePropertiesOfTheCatalogueShapesMatchTheCaptures) {
+    {   // armado IPC 533x203x62.6: 14 rows
+        const auto* p = catalogueProfile("IPC", "IPC 533x203x62.6");
+        ASSERT_NE(p, nullptr);
+        QStringList labels;
+        const QStringList v = valuesOf(profilePropertyRows(*p), &labels);
+        EXPECT_EQ(labels.size(), 14);
+        EXPECT_EQ(labels.front(), "Canto exterior del alma:");
+        EXPECT_EQ(labels[11], "Módulo plástico Zyy:");
+        EXPECT_EQ(v, (QStringList{"533.4 mm", "203.2 mm", "7.9 mm", "9.5 mm", "79.25 cm²", "35455.70 cm4", "1330.56 cm4", "20.07 cm4",
+                                  "28.96 cm²", "36.57 cm²", "912999.76 cm6", "1533.94 cm³", "204.15 cm³", "62.21 kg/m"}));
+    }
+    {   // aluminio I-50x80x6: 12 rows
+        const auto* p = catalogueProfile("(EP) I", "I-50x80x6");
+        ASSERT_NE(p, nullptr);
+        const QStringList v = valuesOf(profilePropertyRows(*p));
+        EXPECT_EQ(v, (QStringList{"50.0 mm", "80.0 mm", "6.0 mm", "6.0 mm", "11.88 cm²", "49.50 cm4", "23.29 cm³", "51.27 cm4", "19.54 cm³",
+                                  "1.43 cm4", "248.14 cm6", "3.21 kg/m"}));
+    }
+    {   // conformado UF-60x3: 13 rows, A / Iyy tabulated, the rest approximate (tolerances documented in describir_barras_capturas_manuales.md)
+        const auto* p = catalogueProfile("U", "UF-60x3");
+        ASSERT_NE(p, nullptr);
+        QStringList labels;
+        const QStringList v = valuesOf(profilePropertyRows(*p), &labels);
+        ASSERT_EQ(v.size(), 13);
+        EXPECT_EQ(labels[5], "Coordenada 'y' del centro de gravedad:");
+        EXPECT_EQ(v[0], "60.0 mm");
+        EXPECT_EQ(v[1], "30.0 mm");
+        EXPECT_EQ(v[2], "3.0 mm");
+        EXPECT_EQ(v[3], "3.0 mm");
+        EXPECT_EQ(v[4], "3.30 cm²");   // tabulated
+        EXPECT_EQ(v[6], "17.50 cm4");  // tabulated
+        EXPECT_EQ(v[12], "2.59 kg/m");
+        const auto num = [&](int i) { return v[i].section(' ', 0, 0).toDouble(); };
+        EXPECT_NEAR(num(5), -6.1, 0.1);        // y of the centre of gravity
+        EXPECT_NEAR(num(7), 2.82, 2.82 * 0.02);  // Izz, approximate (original 2.82)
+        EXPECT_NEAR(num(8), 0.10, 0.01);       // It (original 0.10)
+        EXPECT_NEAR(num(9), 1.42, 1.42 * 0.02);   // Avy
+        EXPECT_NEAR(num(10), 1.42, 1.42 * 0.02);  // Avz
+        EXPECT_NEAR(num(11), 14.78, 14.78 * 0.06);  // warping, approximate
+    }
+    {   // madera redondo Ø100: 5 rows
+        const auto* p = catalogueProfile("Redondo", "\xC3\x98" "100");
+        ASSERT_NE(p, nullptr);
+        QStringList labels;
+        const QStringList v = valuesOf(profilePropertyRows(*p), &labels);
+        EXPECT_EQ(labels, (QStringList{"Diámetro:", "Área:", "Inercia a flexión:", "Módulo plástico:", "Inercia a torsión:"}));
+        EXPECT_EQ(v, (QStringList{"100.0 mm", "78.54 cm²", "490.87 cm4", "166.67 cm³", "981.75 cm4"}));
+    }
+}
+
 TEST(BarDescribeDialog, ProfileInfoButtonPassesTheSelectedProfile) {
     Sinks sinks;
     const auto d = make();
@@ -572,13 +642,7 @@ TEST(BarDescribeDialog, PillarAndBeamPagesCarryTheMeasuredControls) {
 TEST(BarDescribeDialog, AcceptValidatesTheDescription) {
     Sinks sinks;
     auto d = make();
-    clickIcon(*d, BarMaterialIcon::RolledSteelFamily2);  // IPC profiles exist but their properties cannot be calculated yet
-    d->accept();
-    ASSERT_EQ(sinks.warnings.size(), 1);
-    EXPECT_EQ(sinks.warnings[0], "Las propiedades mecánicas de los perfiles de esta serie aún no se pueden calcular.");
-    EXPECT_NE(d->result(), QDialog::Accepted);
     clickIcon(*d, BarMaterialIcon::SpecialAluminium);
-    sinks.warnings.clear();
     d->accept();
     EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
     clickIcon(*d, BarMaterialIcon::Generic);
@@ -655,10 +719,20 @@ TEST(DescribeMaterialDialog, TimberTypeAndStrengthClass) {
     EXPECT_EQ(classes->itemText(0), "C14");
     EXPECT_EQ(classes->itemText(11), "C50");
     EXPECT_EQ(classes->currentText(), "C24");  // the class of the work is preselected
-    type->setCurrentIndex(1);  // the classes of the other types were not captured
-    EXPECT_EQ(classes->count(), 0);
-    EXPECT_FALSE(classes->isEnabled());
+    type->setCurrentIndex(1);  // the classes of the other types come from the REA enumeration of ec5.dll
+    ASSERT_EQ(classes->count(), 8);
+    EXPECT_TRUE(classes->isEnabled());
+    EXPECT_EQ(classes->itemText(0), "D18");
+    EXPECT_EQ(classes->itemText(7), "D70");
     EXPECT_EQ(dialog.choice(DescribeMaterialDialog::Group::Timber).timberType, "Aserrada, procedente de especies frondosas");
+    type->setCurrentIndex(2);
+    ASSERT_EQ(classes->count(), 8);
+    EXPECT_EQ(classes->itemText(0), "GL20h");
+    EXPECT_EQ(classes->itemText(7), "GL36h");
+    type->setCurrentIndex(3);
+    ASSERT_EQ(classes->count(), 8);
+    EXPECT_EQ(classes->itemText(0), "GL20c");
+    EXPECT_EQ(classes->itemText(7), "GL36c");
 }
 
 // Visual comparison aid: CC_SNAPSHOT_DIR=<dir> writes PNGs of the dialog (offscreen) to compare with orig_describir_*.png.

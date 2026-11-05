@@ -37,10 +37,10 @@ const std::vector<ShapeInfo>& shapeTable() {
         {ShapeKind::TimberSquare, "timberSquare", "Cuadrado", {"a"}},
         {ShapeKind::TimberRectangular, "timberRectangular", "Rectangular", {"b", "h"}},
         {ShapeKind::TimberRectangularVariable, "timberRectangularVariable", "Rectangular de canto variable", {"b", "h0", "h1"}},
-        {ShapeKind::BuiltUpDoubleT, "builtUpDoubleT", "Doble T simétrica armada", {"h", "b", "mass"}},
-        {ShapeKind::ColdFormedU, "coldFormedU", "U conformado simple", {"h", "t"}},
-        {ShapeKind::ColdFormedC, "coldFormedC", "U conformado rigidizado", {"h", "t"}},
-        {ShapeKind::AluminiumI, "aluminiumI", "Doble T de aluminio", {"d1", "d2", "d3"}},
+        {ShapeKind::BuiltUpDoubleT, "builtUpDoubleT", "Doble T simétrica armada", {"h", "b", "tw", "tf"}},
+        {ShapeKind::ColdFormedU, "coldFormedU", "U conformado simple", {"h", "b", "t", "r"}},
+        {ShapeKind::ColdFormedC, "coldFormedC", "U conformado rigidizado", {"h", "b", "c", "t", "r"}},
+        {ShapeKind::AluminiumI, "aluminiumI", "Doble T de aluminio", {"h", "b", "tw", "tf"}},
     };
     return table;
 }
@@ -220,6 +220,17 @@ Poly contour(const Section& s) {
         const Poly pts = {{y0, 0}, {y1, 0}, {y1, h - tf}, {b, h - tf}, {b, h}, {0, h}, {0, h - tf}, {y0, h - tf}};
         return roundCorners(pts, {0, 0, r, 0, 0, 0, 0, r});
     }
+    case ShapeKind::ColdFormedU: {
+        // Web outer face at y = 0, flanges towards +y, z measured from the bottom. Outer corners radius r + t, inner corners r, tips sharp.
+        const double h = d[0], b = d[1], t = d[2], r = d[3];
+        const Poly pts = {{0, 0}, {b, 0}, {b, t}, {t, t}, {t, h - t}, {b, h - t}, {b, h}, {0, h}};
+        return roundCorners(pts, {r + t, 0, 0, r, r, 0, 0, r + t});
+    }
+    case ShapeKind::ColdFormedC: {
+        const double h = d[0], b = d[1], c = d[2], t = d[3], r = d[4];
+        const Poly pts = {{0, 0}, {b, 0}, {b, c}, {b - t, c}, {b - t, t}, {t, t}, {t, h - t}, {b - t, h - t}, {b - t, h - c}, {b, h - c}, {b, h}, {0, h}};
+        return roundCorners(pts, {r + t, r + t, 0, 0, r, r, r, r, 0, 0, r + t, r + t});
+    }
     case ShapeKind::AngleEqual:
     case ShapeKind::AngleUnequal: {
         const bool eq = s.kind == ShapeKind::AngleEqual;
@@ -339,7 +350,7 @@ bool isConcreteOrTimber(ShapeKind kind) {
     return f && (*f == SectionFamily::Concrete || *f == SectionFamily::Timber);
 }
 
-bool isCatalogueOnly(ShapeKind kind) {
+bool isCatalogueShape(ShapeKind kind) {
     return kind == ShapeKind::BuiltUpDoubleT || kind == ShapeKind::ColdFormedU || kind == ShapeKind::ColdFormedC ||
            kind == ShapeKind::AluminiumI;
 }
@@ -364,11 +375,24 @@ std::string validateSection(const Section& s) {
                                            &s.tabulated.avz})
         if (*v && !nonNegative(**v)) return "Los valores tabulados del perfil no pueden ser negativos.";
     const char* kPositive = "Las dimensiones del perfil deben ser mayores que cero.";
-    if (isCatalogueOnly(s.kind)) {
-        // Only the numbers of the designation are known: they must be positive (the mass of the built-up profile included).
-        for (double v : d)
-            if (!(v > kMinDimension)) return kPositive;
-        if (s.tabulated.any()) return "Los valores tabulados de este tipo de perfil aún no se admiten.";
+    if (isCatalogueShape(s.kind)) {
+        const bool cold = s.kind == ShapeKind::ColdFormedU || s.kind == ShapeKind::ColdFormedC;
+        for (std::size_t i = 0; i < d.size(); ++i) {
+            const bool radius = cold && i + 1 == d.size();  // the inner radius of the cold-formed shapes may be zero
+            if (radius ? !(d[i] >= 0) : !(d[i] > kMinDimension)) return kPositive;
+        }
+        if (!cold) {  // double T: h, b, tw, tf
+            if (d[0] <= 2 * d[3]) return "El canto del perfil no es compatible con el espesor de las alas.";
+            if (d[1] <= d[2]) return "La anchura del perfil no es compatible con el espesor del alma.";
+            return {};
+        }
+        // cold-formed: U = h, b, t, r; C = h, b, c, t, r. The contour of the section needs the corner arcs to fit in the straight parts.
+        const bool lipped = s.kind == ShapeKind::ColdFormedC;
+        const double h = d[0], b = d[1], c = lipped ? d[2] : 0.0, t = d[lipped ? 3 : 2], r = d[lipped ? 4 : 3];
+        const double ro = r + t;
+        if (h < 2 * ro) return "El canto del perfil no es compatible con el espesor y el radio de acuerdo.";
+        if (b < (lipped ? 2 * ro : ro)) return "La anchura del perfil no es compatible con el espesor y el radio de acuerdo.";
+        if (lipped && c < ro) return "La longitud del rigidizador no es compatible con el espesor y el radio de acuerdo.";
         return {};
     }
     if (isConcreteOrTimber(s.kind)) {
@@ -498,9 +522,19 @@ SectionProperties solid(const Section& s) {
 
 std::optional<SectionProperties> calculatedProperties(const Section& s) {
     if (!validateSection(s).empty() || s.kind == ShapeKind::Generic) return std::nullopt;
-    // TODO(TK-052): built-up / cold-formed / aluminium catalogue shapes have no geometry here (the original's `creaconf_*` routines
-    // are not analysed and the designation does not give the thicknesses): no calculated properties.
-    if (isCatalogueOnly(s.kind)) return std::nullopt;
+    if (s.kind == ShapeKind::BuiltUpDoubleT || s.kind == ShapeKind::AluminiumI) {
+        // Doble T with sharp corners: the formulas of docs/research/ui/describir_barras_capturas_manuales.md 7.2 (exact to 2 decimals
+        // against the original's dialogs: IPC 533x203x62.6 and I-50x80x6). The shear areas follow the coefficients DEDUCED from that
+        // one IPC profile: Avy = 0.75 (2 b tf), Avz = 0.9 (h - 2 tf) tw.
+        Section equivalent;
+        equivalent.kind = ShapeKind::IParallel;
+        equivalent.dims = {s.dims[0], s.dims[1], s.dims[2], s.dims[3], 0.0};
+        auto p = calculatedProperties(equivalent);
+        if (!p) return std::nullopt;
+        p->avy = 1.5 * s.dims[1] * s.dims[3];
+        p->avz = 0.9 * (s.dims[0] - 2 * s.dims[3]) * s.dims[2];
+        return p;
+    }
     if (isVariableDepth(s.kind)) return calculatedProperties(*sectionAt(s, 0.0));
     switch (s.kind) {
     case ShapeKind::RoundBar:
@@ -559,6 +593,27 @@ std::optional<SectionProperties> calculatedProperties(const Section& s) {
         p.iw = tf * std::pow(bf, 3) * hc * hc / 12 * (3 * bf * tf + 2 * hc * tw) / (6 * bf * tf + hc * tw);
         p.avz = std::max(p.area - 2 * b * tf + (tw + r1) * tf, hw * tw);  // EN 1993-1-1 6.2.6(3)(b)
         p.avy = p.area - hw * tw;
+        break;
+    }
+    case ShapeKind::ColdFormedU:
+    case ShapeKind::ColdFormedC: {
+        // APPROXIMATE (not exact against the original, see the 7.2 note): thin-walled estimates.
+        //  - It = sum(L t^3) / 3 over the developed centre line (straight parts + corner arcs): UF-60x3 0.099 cm4 (original 0.10).
+        //  - Avy / Avz = t x straight length of the flanges / the web, outside the corner arcs: UF-60x3 1.44 cm2 (original 1.42, +1.4 %).
+        //  - Iw (U only) = classical thin-walled channel formula with the flange length b - t: UF-60x3 14.2 cm6 (original 14.78, -4 %).
+        //    The lipped C has no warping value (left at 0 = not shown).
+        const bool lipped = s.kind == ShapeKind::ColdFormedC;
+        const double h = d[0], b = d[1], t = d[lipped ? 3 : 2], r = d[lipped ? 4 : 3];
+        const double ro = r + t, rm = r + t / 2;
+        const double web = h - 2 * ro;
+        double length = web + (lipped ? 2 * (b - 2 * ro) + 2 * (d[2] - ro) + 2 * kPi * rm : 2 * (b - ro) + kPi * rm);
+        p.it = length * t * t * t / 3;
+        p.avz = t * web;
+        p.avy = 2 * t * (lipped ? b - 2 * ro : b - ro);
+        if (!lipped) {
+            const double bf = b - t, hc = h - t;
+            p.iw = t * std::pow(bf, 3) * hc * hc / 12 * (3 * bf * t + 2 * hc * t) / (6 * bf * t + hc * t);
+        }
         break;
     }
     case ShapeKind::Tee: {
@@ -643,6 +698,14 @@ std::optional<SectionProperties> effectiveProperties(const Section& s) {
     p.welY = zMax > 0 ? p.iy / zMax : 0.0;
     p.welZ = yMax > 0 ? p.iz / yMax : 0.0;
     return p;
+}
+
+std::optional<double> catalogueMassPerMetre(const Section& s) {
+    if (!isCatalogueShape(s.kind)) return std::nullopt;
+    const auto p = effectiveProperties(s);
+    if (!p) return std::nullopt;
+    const double density = s.kind == ShapeKind::AluminiumI ? 2700.0 : 7850.0;
+    return p->area * density;
 }
 
 }  // namespace cc::core

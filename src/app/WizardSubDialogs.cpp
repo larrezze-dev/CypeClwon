@@ -108,10 +108,18 @@ TimberDialog::TimberDialog(const TimberSettings& initial, QWidget* parent) : Cyp
     materialLayout->addWidget(m_material);
     auto* strengthRow = new QHBoxLayout;
     strengthRow->addWidget(new QLabel(tr("Clase resistente"), material));
-    m_strength = makeCombo(timberStrengthClasses(), initial.strengthClass, material);
+    m_strength = makeCombo(timberStrengthClassesFor(initial.material), initial.strengthClass, material);
     strengthRow->addWidget(m_strength);
     strengthRow->addStretch(1);
     materialLayout->addLayout(strengthRow);
+    // The strength classes depend on the timber type (coníferas C.., frondosas D.., laminada GL..h / GL..c).
+    connect(m_material, &QComboBox::currentTextChanged, this, [this](const QString& type) {
+        const QString previous = m_strength->currentText();
+        m_strength->clear();
+        for (const std::string& c : timberStrengthClassesFor(type.toStdString())) m_strength->addItem(QString::fromStdString(c));
+        const int at = m_strength->findText(previous);
+        if (at >= 0) m_strength->setCurrentIndex(at);
+    });
     contentLayout()->addWidget(material);
 
     auto* service = new QGroupBox(tr("Clase de servicio"), this);

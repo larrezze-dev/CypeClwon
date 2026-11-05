@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 #include "core/bar_description_edit.h"
 #include "core/bar_edit.h"
 #include "core/describir_catalogue.h"
@@ -9,7 +11,7 @@
 #include "core/project_settings.h"
 
 // Catalogue of the "Describir" dialog transcribed from the user's manual captures (describir_barras_capturas_manuales.md): counts,
-// shapes without calculable properties, timber from the designations, tie series kept out of the library, TK-063 material values.
+// catalogue shapes calculated from the REA tables, timber from the designations, tie series kept out of the library, TK-063 material values.
 
 using namespace cc::core;
 
@@ -45,7 +47,7 @@ struct CatalogueFixture {
 
 TEST(DescribirCatalogue, CountsOfTheTranscription) {
     EXPECT_EQ(count(SectionFamily::BuiltUpSteel), 85u);
-    EXPECT_EQ(count(SectionFamily::ColdFormedSteel), 14u + 1u);  // U (14) + the single profile seen of C
+    EXPECT_EQ(count(SectionFamily::ColdFormedSteel), 14u + 36u);  // U (14) + C (36, REA table)
     EXPECT_EQ(count(SectionFamily::Aluminium), 11u);
     EXPECT_EQ(count(SectionFamily::Timber), 836u);
     // Series: IPC, U, C, (EP) I, Redondo, 3 of square, 32 of rectangle, RV
@@ -79,11 +81,28 @@ TEST(DescribirCatalogue, EverySeriesIsValidAndInTheCaptureOrder) {
 TEST(DescribirCatalogue, DesignationsGiveTheDimensions) {
     const Section& ipc = find("IPC")->profiles.front();
     EXPECT_EQ(ipc.kind, ShapeKind::BuiltUpDoubleT);
-    EXPECT_NEAR(ipc.dims[0], 0.533, 1e-12);
-    EXPECT_NEAR(ipc.dims[1], 0.203, 1e-12);
-    EXPECT_NEAR(ipc.dims[2], 62.6, 1e-12);  // mass per metre, kg/m: the only value that is not a length
-    EXPECT_NEAR(find("U")->profiles.front().dims[1], 0.003, 1e-12);
+    EXPECT_NEAR(ipc.dims[0], 0.5334, 1e-12);  // REA table: 21 in (the designation rounds it to 533)
+    EXPECT_NEAR(ipc.dims[1], 0.2032, 1e-12);
+    EXPECT_NEAR(ipc.dims[2], 0.0079, 1e-12);  // tw
+    EXPECT_NEAR(ipc.dims[3], 0.0095, 1e-12);  // tf
+    const Section& uf = find("U")->profiles.front();
+    EXPECT_EQ(uf.dims.size(), 4u);
+    EXPECT_NEAR(uf.dims[1], 0.030, 1e-12);  // b = h / 2
+    EXPECT_NEAR(uf.dims[2], 0.003, 1e-12);  // t
+    EXPECT_NEAR(uf.dims[3], 0.003, 1e-12);  // inner radius
+    ASSERT_TRUE(uf.tabulated.area.has_value());
+    EXPECT_NEAR(*uf.tabulated.area, 3.30e-4, 1e-12);
+    EXPECT_NEAR(*uf.tabulated.iy, 17.5e-8, 1e-15);
+    EXPECT_FALSE(uf.tabulated.iz.has_value());
+    const Section& cf = find("C")->profiles.front();
+    EXPECT_EQ(cf.reference, "CF-60x2.0");
+    EXPECT_EQ(cf.dims.size(), 5u);
+    EXPECT_NEAR(cf.dims[2], 0.015, 1e-12);  // lip
+    EXPECT_NEAR(*cf.tabulated.iz, 7.16e-8, 1e-15);
+    EXPECT_EQ(find("C")->profiles.size(), 36u);
+    EXPECT_EQ(find("C")->profiles.back().reference, "CF-300x4.0");
     EXPECT_NEAR(find("(EP) I")->profiles[7].dims[1], 0.0465, 1e-12);  // I-82x46.5x3
+    EXPECT_NEAR(find("(EP) I")->profiles[7].dims[2], 0.003, 1e-12);
     // timber: "S-NxB" is depth x width (series "Maciza hN"), the section stores b then h
     const Section& s = find("Maciza h120")->profiles.front();  // S-120x40
     EXPECT_EQ(s.reference, "S-120x40");
@@ -109,20 +128,37 @@ TEST(DescribirCatalogue, DesignationsGiveTheDimensions) {
     EXPECT_TRUE(found);
 }
 
-TEST(DescribirCatalogue, ShapesWithoutGeometryHaveNoCalculatedProperties) {
-    for (const char* series : {"IPC", "U", "C", "(EP) I"}) {
-        const Section& p = find(series)->profiles.front();
-        EXPECT_TRUE(isCatalogueOnly(p.kind));
-        EXPECT_EQ(validateSection(p), "");
-        EXPECT_FALSE(calculatedProperties(p).has_value());
-        EXPECT_FALSE(effectiveProperties(p).has_value());
-    }
+TEST(DescribirCatalogue, EveryCatalogueProfileIsCalculable) {
+    for (const char* series : {"IPC", "U", "C", "(EP) I"})
+        for (const Section& p : find(series)->profiles) {
+            EXPECT_TRUE(isCatalogueShape(p.kind));
+            EXPECT_EQ(validateSection(p), "") << p.reference;
+            const auto e = effectiveProperties(p);
+            ASSERT_TRUE(e.has_value()) << p.reference;
+            EXPECT_GT(e->area, 0.0);
+            EXPECT_GT(e->iy, 0.0);
+            EXPECT_GT(e->iz, 0.0);
+            EXPECT_GT(e->it, 0.0);
+            EXPECT_GT(e->wplY, 0.0);
+            EXPECT_GT(e->avz, 0.0);
+            EXPECT_GT(e->avy, 0.0);
+            EXPECT_TRUE(catalogueMassPerMetre(p).has_value());
+        }
     Section bad = find("IPC")->profiles.front();
     bad.dims[0] = 0;
     EXPECT_NE(validateSection(bad), "");
-    Section tabulated = find("U")->profiles.front();
-    tabulated.tabulated.area = 1e-3;
-    EXPECT_NE(validateSection(tabulated), "");
+    bad = find("IPC")->profiles.front();
+    bad.dims[3] = 0.3;  // flanges thicker than half the depth
+    EXPECT_NE(validateSection(bad), "");
+    bad = find("U")->profiles.front();
+    bad.dims.pop_back();
+    EXPECT_NE(validateSection(bad), "");
+    bad = find("U")->profiles.front();
+    bad.dims[3] = 0.05;  // radius that does not fit
+    EXPECT_NE(validateSection(bad), "");
+    bad = find("(EP) I")->profiles.front();
+    bad.dims[2] = 0.08;  // web as thick as the flange is wide
+    EXPECT_NE(validateSection(bad), "");
     EXPECT_EQ(shapesOfFamily(SectionFamily::BuiltUpSteel), (std::vector<ShapeKind>{ShapeKind::BuiltUpDoubleT}));
     EXPECT_EQ(shapesOfFamily(SectionFamily::ColdFormedSteel), (std::vector<ShapeKind>{ShapeKind::ColdFormedU, ShapeKind::ColdFormedC}));
     EXPECT_EQ(shapesOfFamily(SectionFamily::Aluminium), (std::vector<ShapeKind>{ShapeKind::AluminiumI}));
@@ -148,14 +184,30 @@ TEST(DescribirCatalogue, LibraryJsonRoundTrip) {
     EXPECT_EQ(*back, library);
 }
 
-TEST(DescribirCatalogue, DescribingWithAnIpcProfileIsRefusedUntilItsPropertiesAreCalculable) {
-    CatalogueFixture f;
-    BarDescription d = defaultDescription(BarMaterialIcon::RolledSteelFamily2);
-    d.shape = ShapeKind::BuiltUpDoubleT;
-    d.seriesRef = "IPC";
-    d.profileRef = "IPC 533x203x62.6";
-    EXPECT_EQ(describeBars(f.project, f.stack, f.bars, d),
-              "Las propiedades mecánicas de los perfiles de esta serie aún no se pueden calcular.");
+TEST(DescribirCatalogue, DescribingWithTheCatalogueSeriesCreatesSections) {
+    struct Case {
+        BarMaterialIcon icon;
+        ShapeKind shape;
+        const char* series;
+        const char* profile;
+        double areaCm2;
+    };
+    const Case cases[] = {{BarMaterialIcon::RolledSteelFamily2, ShapeKind::BuiltUpDoubleT, "IPC", "IPC 533x203x62.6", 79.25},
+                          {BarMaterialIcon::ColdFormedSteel, ShapeKind::ColdFormedU, "U", "UF-60x3", 3.30},
+                          {BarMaterialIcon::ColdFormedSteel, ShapeKind::ColdFormedC, "C", "CF-60x2.0", 3.12},
+                          {BarMaterialIcon::ExtrudedAluminium, ShapeKind::AluminiumI, "(EP) I", "I-50x80x6", 11.88}};
+    for (const Case& k : cases) {
+        CatalogueFixture f;
+        BarDescription d = defaultDescription(k.icon);
+        d.shape = k.shape;
+        d.seriesRef = k.series;
+        d.profileRef = k.profile;
+        EXPECT_EQ(describeBars(f.project, f.stack, f.bars, d), "") << k.profile;
+        ASSERT_EQ(f.project.barDescriptions.items.size(), 1u) << k.profile;
+        const CrossSection* cs = f.project.structure.findSection(f.project.barDescriptions.items.front().sectionId);
+        ASSERT_NE(cs, nullptr) << k.profile;
+        EXPECT_NEAR(cs->areaM2 * 1e4, k.areaCm2, 0.006) << k.profile;
+    }
 }
 
 TEST(DescribirCatalogue, DescribingTimberFromTheLibraryAndTheVariableDepth) {
@@ -189,23 +241,80 @@ TEST(DescribirCatalogue, DescribingTimberFromTheLibraryAndTheVariableDepth) {
     EXPECT_NEAR(m->elasticModulusMPa, 11000.0, 1e-9);
 }
 
-TEST(DescribirCatalogue, MaterialValuesOfTk063) {
-    EXPECT_NEAR(concreteMaterialData("C25/30").elasticModulusMPa, 31000.0, 1e-9);  // EC2 table 3.1 (Ecm)
-    EXPECT_NEAR(concreteMaterialData("C50/60").elasticModulusMPa, 37000.0, 1e-9);
-    EXPECT_NEAR(concreteMaterialData("C25/30").poissonRatio, 0.2, 1e-12);
-    EXPECT_NEAR(concreteMaterialData("Bc 25").elasticModulusMPa, defaultMaterialData(BarMaterialIcon::Concrete).elasticModulusMPa, 1e-9);
-    const std::string conifers = timberMaterials().front();
-    EXPECT_NEAR(timberMaterialData(conifers, "C24").elasticModulusMPa, 11000.0, 1e-9);  // EN 338
-    EXPECT_NEAR(timberMaterialData(conifers, "C24").densityKnM3, 420.0 * 9.80665 / 1000.0, 1e-9);
-    EXPECT_NEAR(timberMaterialData(conifers, "C14").elasticModulusMPa, 7000.0, 1e-9);
-    EXPECT_NEAR(timberShearModulusMPa("C24"), 11000.0 / 16.0, 1e-9);
+TEST(DescribirCatalogue, ConcreteValuesAreTheExactOnesOfTheOriginal) {
+    // E (MPa) of the EC2 block of datmater.dll (REA), nu 0.2, alpha 1e-5, weight 25 kN/m3
+    EXPECT_NEAR(concreteMaterialData("C25/30").elasticModulusMPa, 31476.0, 1e-9);
+    EXPECT_NEAR(concreteMaterialData("C12/15").elasticModulusMPa, 27085.0, 1e-9);
+    EXPECT_NEAR(concreteMaterialData("C50/60").elasticModulusMPa, 37278.0, 1e-9);
+    EXPECT_NEAR(concreteMaterialData("Bc 15").elasticModulusMPa, 27287.0, 1e-9);
+    EXPECT_NEAR(concreteMaterialData("Bc 25").elasticModulusMPa, 30121.0, 1e-9);
+    EXPECT_NEAR(concreteMaterialData("Bc 60").elasticModulusMPa, 36283.0, 1e-9);
+    for (const std::string& g : concreteGrades()) {
+        const MaterialData m = concreteMaterialData(g);
+        EXPECT_NEAR(m.poissonRatio, 0.2, 1e-12) << g;
+        EXPECT_NEAR(m.thermalExpansion, 1e-5, 1e-15) << g;
+        EXPECT_NEAR(m.densityKnM3, 25.0, 1e-12) << g;
+        EXPECT_GT(m.elasticModulusMPa, 27000.0) << g;
+    }
+    EXPECT_NEAR(shearModulusMPa(concreteMaterialData("C25/30")), 13115.0, 0.5);  // G = E / (2 (1 + nu)); 13115 in the REA table
+    EXPECT_NEAR(shearModulusMPa(concreteMaterialData("C12/15")), 11285.0, 0.5);
+    EXPECT_NEAR(concreteMaterialData("unknown").elasticModulusMPa, 31476.0, 1e-9);  // default = C25/30
+}
+
+TEST(DescribirCatalogue, TimberClassesOfTheFourTypes) {
+    const auto& types = timberMaterials();
+    EXPECT_EQ(timberStrengthClassesFor(types[0]).size(), 12u);
+    EXPECT_EQ(timberStrengthClassesFor(types[1]), (std::vector<std::string>{"D18", "D24", "D30", "D35", "D40", "D50", "D60", "D70"}));
+    EXPECT_EQ(timberStrengthClassesFor(types[2]).front(), "GL20h");
+    EXPECT_EQ(timberStrengthClassesFor(types[2]).back(), "GL36h");
+    EXPECT_EQ(timberStrengthClassesFor(types[3]).front(), "GL20c");
+    EXPECT_EQ(timberStrengthClassesFor(types[3]).back(), "GL36c");
+    EXPECT_TRUE(timberStrengthClassesFor("nope").empty());
+    // every class of every type has properties of its own type in both sets
+    const char* keys[] = {"coniferas", "frondosas", "laminada_homogenea", "laminada_combinada"};
+    std::size_t total = 0;
+    for (std::size_t i = 0; i < 4; ++i)
+        for (const std::string& c : timberStrengthClassesFor(types[i])) {
+            for (TimberPropertySet set : {TimberPropertySet::En, TimberPropertySet::CteSeM}) {
+                const auto p = timberClassProperties(c, set);
+                ASSERT_TRUE(p.has_value()) << c;
+                EXPECT_EQ(p->type, keys[i]) << c;
+                EXPECT_GT(p->e0MeanMPa, 0.0);
+                EXPECT_GT(p->gMeanMPa, 0.0);
+                EXPECT_GT(p->densityKgM3, 0.0);
+            }
+            ++total;
+        }
+    EXPECT_EQ(total, 36u);
+    // the two sets of ec5.dll: C27 and D35 differ, C24 is the same
+    EXPECT_NEAR(timberClassProperties("C27", TimberPropertySet::En)->e0MeanMPa, 12000.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("C27", TimberPropertySet::CteSeM)->e0MeanMPa, 11500.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("C27", TimberPropertySet::CteSeM)->gMeanMPa, 720.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("D35", TimberPropertySet::En)->gMeanMPa, 650.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("D35", TimberPropertySet::CteSeM)->gMeanMPa, 750.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("GL24h", TimberPropertySet::CteSeM)->e0MeanMPa, 11600.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("GL24c", TimberPropertySet::CteSeM)->gMeanMPa, 590.0, 1e-9);
+    EXPECT_NEAR(timberClassProperties("GL36c", TimberPropertySet::En)->densityKgM3, 520.0, 1e-9);
+    EXPECT_FALSE(timberClassProperties("C24")->rare);
+    EXPECT_TRUE(timberClassProperties("C14")->rare);
+    EXPECT_FALSE(timberClassProperties("nope").has_value());
+}
+
+TEST(DescribirCatalogue, TimberMaterialValues) {
+    const auto& types = timberMaterials();
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").elasticModulusMPa, 11000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").densityKnM3, 420.0 * 9.80665 / 1000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[0], "C14").elasticModulusMPa, 7000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[0], "C27").elasticModulusMPa, 11500.0, 1e-9);  // default set = CTE DB SE-M
+    EXPECT_NEAR(timberMaterialData(types[0], "C27", TimberPropertySet::En).elasticModulusMPa, 12000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[1], "D30").elasticModulusMPa, 12000.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[2], "GL28h").elasticModulusMPa, 12600.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[3], "GL32c").elasticModulusMPa, 13700.0, 1e-9);
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").poissonRatio, 0.3, 1e-12);  // the original's nu (about 7) is not usable
+    EXPECT_NEAR(timberShearModulusMPa("C24"), 690.0, 1e-9);
     EXPECT_EQ(timberShearModulusMPa("nope"), 0.0);
-    EXPECT_NEAR(shearModulusMPa(concreteMaterialData("C25/30")), 31000.0 / 2.4, 1e-9);
-    // other timber types: no class list yet
-    EXPECT_TRUE(timberStrengthClassesFor(timberMaterials()[1]).empty());
-    EXPECT_EQ(timberStrengthClassesFor(conifers).size(), 12u);
-    EXPECT_NEAR(timberMaterialData(timberMaterials()[1], "D30").elasticModulusMPa,
-                defaultMaterialData(BarMaterialIcon::Timber).elasticModulusMPa, 1e-9);
+    // a class of another type falls back to the default
+    EXPECT_NEAR(timberMaterialData(types[1], "C24").elasticModulusMPa, defaultMaterialData(BarMaterialIcon::Timber).elasticModulusMPa, 1e-9);
 }
 
 TEST(DescribirCatalogue, TimberSettingsKeepTheFireCheck) {
@@ -218,4 +327,80 @@ TEST(DescribirCatalogue, TimberSettingsKeepTheFireCheck) {
     Project other;
     project_json::loadSection(other, "profiles", text);
     EXPECT_TRUE(other.profiles.timber.fireResistance);
+}
+
+// Validation against the dialogs of the original (describir_info_perfiles.tsv) and the REA tables (7.2 / 7.6 of the capture notes).
+TEST(DescribirCatalogue, DoubleTProfilesMatchTheOriginalExactly) {
+    const auto ipc = effectiveProperties(*find("IPC")->findProfile("IPC 533x203x62.6"));
+    ASSERT_TRUE(ipc.has_value());
+    EXPECT_NEAR(ipc->area * 1e4, 79.2456, 1e-3);
+    EXPECT_NEAR(ipc->iy * 1e8, 35455.70, 0.01);
+    EXPECT_NEAR(ipc->iz * 1e8, 1330.56, 0.01);
+    EXPECT_NEAR(ipc->it * 1e8, 20.07, 0.01);
+    EXPECT_NEAR(ipc->iw * 1e12, 912999.76, 0.5);
+    EXPECT_NEAR(ipc->wplY * 1e6, 1533.94, 0.01);
+    EXPECT_NEAR(ipc->wplZ * 1e6, 204.15, 0.01);
+    EXPECT_NEAR(ipc->avy * 1e4, 28.96, 0.01);
+    EXPECT_NEAR(ipc->avz * 1e4, 36.57, 0.01);
+    EXPECT_NEAR(*catalogueMassPerMetre(*find("IPC")->findProfile("IPC 533x203x62.6")), 62.21, 0.005);  // A x 0.785, not the nominal 62.6
+    // control rows of the REA table (A and Iyy tabulated equal the formulas)
+    const auto big = effectiveProperties(*find("IPC")->findProfile("IPC 2032x508x601.4"));
+    ASSERT_TRUE(big.has_value());
+    EXPECT_NEAR(big->area * 1e4, 761.29, 0.01);
+    EXPECT_NEAR(big->iy * 1e8, 5827128.96, 1.0);
+    // aluminium: the 11 profiles of the REA table (A, Iyy, Izz, It, Iw, Zyy, Zzz and weight)
+    struct Alu { const char* name; double a, iy, iz, it, iw, zy, zz, kg; };
+    const Alu alu[] = {{"I-50x80x6", 11.88, 49.50, 51.27, 1.43, 248.14, 23.29, 19.54, 3.21},
+                       {"I-50x80x8", 15.52, 59.75, 68.41, 3.31, 301.70, 29.19, 26.14, 4.19},
+                       {"I-82x46.5x3", 5.07, 54.53, 5.04, 0.15, 78.70, 15.35, 3.41, 1.37},
+                       {"I-100x100x10", 28.00, 449.33, 167.33, 9.33, 3388.50, 106.00, 52.00, 7.56},
+                       {"I-150x200x13", 68.12, 2653.84, 1735.60, 38.37, 81438.86, 406.17, 265.24, 18.39}};
+    for (const Alu& r : alu) {
+        const Section& s = *find("(EP) I")->findProfile(r.name);
+        const auto p = effectiveProperties(s);
+        ASSERT_TRUE(p.has_value()) << r.name;
+        EXPECT_NEAR(p->area * 1e4, r.a, 0.006) << r.name;
+        EXPECT_NEAR(p->iy * 1e8, r.iy, 0.006) << r.name;
+        EXPECT_NEAR(p->iz * 1e8, r.iz, 0.006) << r.name;
+        EXPECT_NEAR(p->it * 1e8, r.it, 0.006) << r.name;
+        EXPECT_NEAR(p->iw * 1e12, r.iw, 0.006) << r.name;
+        EXPECT_NEAR(p->wplY * 1e6, r.zy, 0.006) << r.name;
+        EXPECT_NEAR(p->wplZ * 1e6, r.zz, 0.006) << r.name;
+        EXPECT_NEAR(*catalogueMassPerMetre(s), r.kg, 0.006) << r.name;
+    }
+}
+
+TEST(DescribirCatalogue, ColdFormedProfilesUseTheTabulatedValuesAndApproximateTheRest) {
+    // UF-60x3: tabulated A / Iyy are the ones the original shows; the rest is approximate (tolerances documented in 7.2)
+    const Section& uf = *find("U")->findProfile("UF-60x3");
+    const auto p = effectiveProperties(uf);
+    ASSERT_TRUE(p.has_value());
+    EXPECT_NEAR(p->area * 1e4, 3.30, 1e-9);
+    EXPECT_NEAR(p->iy * 1e8, 17.50, 1e-9);
+    EXPECT_NEAR(p->iz * 1e8, 2.82, 2.82 * 0.01);     // 2.84 (+0.7 %)
+    EXPECT_NEAR(p->it * 1e8, 0.10, 0.005);           // 0.099
+    EXPECT_NEAR((p->yCg - 0.030 / 2) * 1000.0, -6.10, 0.05);
+    EXPECT_NEAR(p->avy * 1e4, 1.42, 1.42 * 0.02);    // 1.44 (+1.4 %)
+    EXPECT_NEAR(p->avz * 1e4, 1.42, 1.42 * 0.02);
+    EXPECT_NEAR(p->iw * 1e12, 14.78, 14.78 * 0.06);  // 14.2 (-4 %)
+    EXPECT_NEAR(*catalogueMassPerMetre(uf), 2.59, 0.006);
+    // the contour model reproduces the tabulated A / Iyy / Izz of every UF within 1 % (A, Iyy) and 1.5 % (Izz is not tabulated)
+    for (const Section& s : find("U")->profiles) {
+        const auto calc = calculatedProperties(s);
+        ASSERT_TRUE(calc.has_value()) << s.reference;
+        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.01) << s.reference;
+        EXPECT_NEAR(calc->iy, *s.tabulated.iy, *s.tabulated.iy * 0.01) << s.reference;
+    }
+    // CF: DEDUCED columns (A, Iyy, Izz): the contour model agrees with most rows within 2 %; the rows whose REA depth differs from the
+    // designation (CF-140, 180, 225, 250, 275 and 300) differ by up to 10 % (see the notes): only the effective value is the tabulated one
+    std::size_t close = 0;
+    for (const Section& s : find("C")->profiles) {
+        const auto calc = calculatedProperties(s);
+        ASSERT_TRUE(calc.has_value()) << s.reference;
+        EXPECT_NEAR(calc->area, *s.tabulated.area, *s.tabulated.area * 0.06) << s.reference;
+        if (std::fabs(calc->iy / *s.tabulated.iy - 1.0) < 0.02 && std::fabs(calc->iz / *s.tabulated.iz - 1.0) < 0.02) ++close;
+        const auto eff = effectiveProperties(s);
+        EXPECT_NEAR(eff->iz, *s.tabulated.iz, 1e-15) << s.reference;
+    }
+    EXPECT_GE(close, 20u);
 }

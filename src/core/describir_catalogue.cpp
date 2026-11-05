@@ -14,7 +14,8 @@ struct Row {
     ShapeKind kind;
     const char* series;
     const char* profile;
-    std::vector<double> mm;  ///< numbers of the designation (mm; the mass of the IPC in kg/m)
+    std::vector<double> mm;   ///< dimensions in mm (order of dimensionKeys())
+    std::vector<double> tab;  ///< tabulated A (cm2), Iyy (cm4) and, for the lipped C, Izz (cm4) of the original; empty = none
 };
 
 const std::vector<Row>& rows() {
@@ -38,15 +39,16 @@ const std::vector<TieRow>& tieRows() {
     return all;
 }
 
-Section makeSection(ShapeKind kind, const char* reference, const std::vector<double>& mm) {
+Section makeSection(ShapeKind kind, const char* reference, const std::vector<double>& mm, const std::vector<double>& tab = {}) {
     Section s;
     s.reference = reference;
     s.kind = kind;
-    for (std::size_t i = 0; i < mm.size(); ++i) {
-        // The mass per metre of the built-up profile is the only value that is not a length.
-        const bool mass = kind == ShapeKind::BuiltUpDoubleT && i == 2;
-        s.dims.push_back(mass ? mm[i] : mm[i] / 1000.0);
+    for (double v : mm) s.dims.push_back(v / 1000.0);
+    if (tab.size() >= 2) {
+        s.tabulated.area = tab[0] * 1e-4;  // cm2 -> m2
+        s.tabulated.iy = tab[1] * 1e-8;    // cm4 -> m4
     }
+    if (tab.size() >= 3) s.tabulated.iz = tab[2] * 1e-8;
     return s;
 }
 
@@ -77,11 +79,11 @@ const std::vector<ProfileSeries>& describirSeries() {
                 s.description = descriptionOf(row.series, row.kind);
                 s.family = row.family;
                 s.kind = row.kind;
-                s.source = "Capturas manuales del original (designaciones de los perfiles)";
+                s.source = "Original: capturas manuales (designaciones) y tablas de perfil3.dll (dimensiones, análisis REA)";
                 out.push_back(std::move(s));
                 it = out.end() - 1;
             }
-            it->profiles.push_back(makeSection(row.kind, row.profile, row.mm));
+            it->profiles.push_back(makeSection(row.kind, row.profile, row.mm, row.tab));
         }
         return out;
     }();

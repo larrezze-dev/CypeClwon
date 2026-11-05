@@ -352,7 +352,8 @@ protected:
         p.setRenderHint(QPainter::Antialiasing);
         p.fillRect(rect(), Qt::white);
         const auto& d = m_section.dims;
-        if (m_section.kind != ShapeKind::IParallel || d.size() < 5) {
+        const bool doubleT = m_section.kind == ShapeKind::IParallel || m_section.kind == ShapeKind::BuiltUpDoubleT || m_section.kind == ShapeKind::AluminiumI;
+        if (!doubleT || d.size() < 4) {
             // PROVISIONAL (TODO(captura)): the drawings of the other shapes were not captured.
             paintGlyph(p, Glyph::Generic, QRectF(40, 80, 140, 140), QColor(0x80, 0x80, 0x80));
             return;
@@ -443,6 +444,65 @@ std::vector<std::pair<QString, QString>> profilePropertyRows(const Section& sect
     const auto L = [](const char* text) { return QCoreApplication::translate("BarDescribeDialog", text) + QLatin1Char(':'); };
     std::vector<std::pair<QString, QString>> rows;
     const auto& d = section.dims;
+    const auto pp = effectiveProperties(section);
+    // Rows measured in the original for the timber round bar and the catalogue shapes (docs/research/ui/data/describir_info_perfiles.tsv):
+    // timber round 5 rows, aluminium 12, cold-formed U 13, built-up 14. Order and labels verbatim.
+    if (section.kind == ShapeKind::TimberRound && pp && d.size() == 1) {
+        rows.emplace_back(L(N_("Diámetro")), mm(d[0]));
+        rows.emplace_back(L(N_("Área")), number(pp->area, 1e4, "cm²"));
+        rows.emplace_back(L(N_("Inercia a flexión")), number(pp->iy, 1e8, "cm4"));
+        rows.emplace_back(L(N_("Módulo plástico")), number(pp->wplY, 1e6, "cm³"));
+        rows.emplace_back(L(N_("Inercia a torsión")), number(pp->it, 1e8, "cm4"));
+        return rows;
+    }
+    if (isCatalogueShape(section.kind) && pp) {
+        const auto mass = catalogueMassPerMetre(section);
+        const auto area = [&] { rows.emplace_back(L(N_("Área")), number(pp->area, 1e4, "cm²")); };
+        const auto iyy = [&] { rows.emplace_back(L(N_("Inercia a flexión Iyy")), number(pp->iy, 1e8, "cm4")); };
+        const auto izz = [&] { rows.emplace_back(L(N_("Inercia a flexión Izz")), number(pp->iz, 1e8, "cm4")); };
+        const auto it = [&] { rows.emplace_back(L(N_("Inercia a torsión")), number(pp->it, 1e8, "cm4")); };
+        const auto avy = [&] { rows.emplace_back(L(N_("Área de cortante y")), number(pp->avy, 1e4, "cm²")); };
+        const auto avz = [&] { rows.emplace_back(L(N_("Área de cortante z")), number(pp->avz, 1e4, "cm²")); };
+        const auto warping = [&] { if (pp->iw > 0.0) rows.emplace_back(L(N_("Módulo de alabeo")), number(pp->iw, 1e12, "cm6")); };
+        const auto zyy = [&] { rows.emplace_back(L(N_("Módulo plástico Zyy")), number(pp->wplY, 1e6, "cm³")); };
+        const auto zzz = [&] { rows.emplace_back(L(N_("Módulo plástico Zzz")), number(pp->wplZ, 1e6, "cm³")); };
+        const auto weight = [&] { if (mass) rows.emplace_back(L(N_("Peso")), number(*mass, 1.0, "kg/m")); };
+        const auto cgY = [&] {  // 'y' of the centre of gravity measured from the middle of the flange width (-6.1 mm for UF-60x3)
+            rows.emplace_back(L(N_("Coordenada 'y' del centro de gravedad")), QString::number((pp->yCg - d[1] / 2) * 1000.0, 'f', 1) + QStringLiteral(" mm"));
+        };
+        switch (section.kind) {
+        case ShapeKind::AluminiumI:
+            rows.emplace_back(L(N_("Canto total")), mm(d[0]));
+            rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
+            rows.emplace_back(L(N_("Espesor del alma")), mm(d[2]));
+            rows.emplace_back(L(N_("Espesor del ala")), mm(d[3]));
+            area(); iyy(); zyy(); izz(); zzz(); it(); warping(); weight();
+            break;
+        case ShapeKind::BuiltUpDoubleT:
+            rows.emplace_back(L(N_("Canto exterior del alma")), mm(d[0]));
+            rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
+            rows.emplace_back(L(N_("Espesor del alma")), mm(d[2]));
+            rows.emplace_back(L(N_("Espesor del ala")), mm(d[3]));
+            area(); iyy(); izz(); it(); avy(); avz(); warping(); zyy(); zzz(); weight();
+            break;
+        case ShapeKind::ColdFormedU:
+            rows.emplace_back(L(N_("Canto total")), mm(d[0]));
+            rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
+            rows.emplace_back(L(N_("Espesor")), mm(d[2]));
+            rows.emplace_back(L(N_("Radio de acuerdo interior")), mm(d[3]));
+            area(); cgY(); iyy(); izz(); it(); avy(); avz(); warping(); weight();
+            break;
+        default:  // ColdFormedC: PROVISIONAL, no capture of its dialog; the rows follow those of the U plus the lip
+            rows.emplace_back(L(N_("Canto total")), mm(d[0]));
+            rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
+            rows.emplace_back(L(N_("Longitud del labio")), mm(d[2]));  // TODO(captura): label not seen
+            rows.emplace_back(L(N_("Espesor")), mm(d[3]));
+            rows.emplace_back(L(N_("Radio de acuerdo interior")), mm(d[4]));
+            area(); cgY(); iyy(); izz(); it(); avy(); avz(); weight();
+            break;
+        }
+        return rows;
+    }
     if (section.kind == ShapeKind::IParallel && d.size() >= 5) {
         rows.emplace_back(L(N_("Canto total")), mm(d[0]));
         rows.emplace_back(L(N_("Anchura del ala")), mm(d[1]));
@@ -457,7 +517,7 @@ std::vector<std::pair<QString, QString>> profilePropertyRows(const Section& sect
             rows.emplace_back(q(keys[i]) + QLatin1Char(':'), slope ? QString::number(d[i], 'f', 1) + QStringLiteral(" %") : mm(d[i]));
         }
     }
-    const auto p = effectiveProperties(section);
+    const auto& p = pp;
     if (!p) return rows;
     rows.emplace_back(L(N_("Área")), number(p->area, 1e4, "cm²"));
     rows.emplace_back(L(N_("Inercia a flexión Iyy")), number(p->iy, 1e8, "cm4"));

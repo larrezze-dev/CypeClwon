@@ -14,8 +14,9 @@ const std::vector<std::string>& coldFormedSteelGrades();
 const std::vector<std::string>& concreteGrades();
 const std::vector<std::string>& timberMaterials();
 const std::vector<std::string>& timberStrengthClasses();
-/// Strength classes of a timber type ("Clase resistente" of "Describir material"). Only the first type (Aserrada, procedente de
-/// coníferas o chopos) was captured (C14..C50); the other three return an empty list (TODO(captura): their classes were not captured).
+/// Strength classes of a timber type ("Clase resistente" of "Describir material"): coníferas C14..C50 (captured); frondosas D18..D70,
+/// laminada homogénea GL20h..GL36h and combinada GL20c..GL36c from the REA enumeration of ec5.dll (exact list and order; the combos
+/// were not seen on screen). Empty for an unknown type.
 const std::vector<std::string>& timberStrengthClassesFor(const std::string& timberMaterial);
 const std::vector<std::string>& aluminiumAlloys();
 const std::vector<std::string>& aluminiumTempers();

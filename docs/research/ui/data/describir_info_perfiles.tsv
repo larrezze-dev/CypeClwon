@@ -1,0 +1,45 @@
+material	forma	serie	perfil	captura	etiqueta	valor	unidad
+madera	Redondo	Redondo	Ø100	orig_describir_info_madera.png (1).png	Diámetro	100.0	mm
+madera	Redondo	Redondo	Ø100	orig_describir_info_madera.png (1).png	Área	78.54	cm2
+madera	Redondo	Redondo	Ø100	orig_describir_info_madera.png (1).png	Inercia a flexión	490.87	cm4
+madera	Redondo	Redondo	Ø100	orig_describir_info_madera.png (1).png	Módulo plástico	166.67	cm3
+madera	Redondo	Redondo	Ø100	orig_describir_info_madera.png (1).png	Inercia a torsión	981.75	cm4
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Canto total	50.0	mm
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Anchura del ala	80.0	mm
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Espesor del alma	6.0	mm
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Espesor del ala	6.0	mm
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Área	11.88	cm2
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Inercia a flexión Iyy	49.50	cm4
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Módulo plástico Zyy	23.29	cm3
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Inercia a flexión Izz	51.27	cm4
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Módulo plástico Zzz	19.54	cm3
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Inercia a torsión	1.43	cm4
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Módulo de alabeo	248.14	cm6
+aluminio	Doble T	(EP) I	I-50x80x6	orig_describir_info_aluminio.png	Peso	3.21	kg/m
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Canto total	60.0	mm
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Anchura del ala	30.0	mm
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Espesor	3.0	mm
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Radio de acuerdo interior	3.0	mm
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Área	3.30	cm2
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Coordenada 'y' del centro de gravedad	-6.1	mm
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Inercia a flexión Iyy	17.50	cm4
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Inercia a flexión Izz	2.82	cm4
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Inercia a torsión	0.10	cm4
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Área de cortante y	1.42	cm2
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Área de cortante z	1.42	cm2
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Módulo de alabeo	14.78	cm6
+conformado	U conformado simple	U	UF-60x3	orig_describir_info_conformado.png	Peso	2.59	kg/m
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Canto exterior del alma	533.4	mm
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Anchura del ala	203.2	mm
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Espesor del alma	7.9	mm
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Espesor del ala	9.5	mm
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Área	79.25	cm2
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Inercia a flexión Iyy	35455.70	cm4
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Inercia a flexión Izz	1330.56	cm4
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Inercia a torsión	20.07	cm4
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Área de cortante y	28.96	cm2
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Área de cortante z	36.57	cm2
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Módulo de alabeo	912999.76	cm6
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Módulo plástico Zyy	1533.94	cm3
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Módulo plástico Zzz	204.15	cm3
+armado	Doble T simétrica armada	IPC	IPC 533x203x62.6	orig_describir_info_armado.png	Peso	62.21	kg/m

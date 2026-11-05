@@ -8,7 +8,7 @@
   section_properties.cpp section_properties.h profile_series.cpp profile_series.h profile_library.cpp profile_library.h
   bar_description.cpp bar_description.h bar_description_edit.cpp bar_description_edit.h
   predefined_profiles.cpp predefined_profiles.h profile_catalogue_data.inc
-  describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc)
+  describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc describir_concrete_data.inc describir_timber_data.inc)
 target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json)
 target_include_directories(cc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(cc_core PUBLIC cxx_std_20)

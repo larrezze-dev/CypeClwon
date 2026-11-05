@@ -1,0 +1,26 @@
+combo	contexto	posicion	valor
+serie	aluminio, forma Doble T	1	(EP) I
+perfil	aluminio, serie (EP) I	1	I-50x80x6
+perfil	aluminio, serie (EP) I	2	I-50x80x8
+perfil	aluminio, serie (EP) I	3	I-50x108x5
+perfil	aluminio, serie (EP) I	4	I-50x108x8
+perfil	aluminio, serie (EP) I	5	I-60x80x4
+perfil	aluminio, serie (EP) I	6	I-60x80x6
+perfil	aluminio, serie (EP) I	7	I-60x80x8
+perfil	aluminio, serie (EP) I	8	I-82x46.5x3
+perfil	aluminio, serie (EP) I	9	I-100x100x10
+perfil	aluminio, serie (EP) I	10	I-150x200x7
+perfil	aluminio, serie (EP) I	11	I-150x200x13
+serie	madera, forma Rectangular canto variable	1	Rectangular, canto variable
+perfil	madera, serie Rectangular canto variable	1	RV-60
+perfil	madera, serie Rectangular canto variable	2	RV-80
+perfil	madera, serie Rectangular canto variable	3	RV-100
+perfil	madera, serie Rectangular canto variable	4	RV-120
+perfil	madera, serie Rectangular canto variable	5	RV-140
+perfil	madera, serie Rectangular canto variable	6	RV-160
+perfil	madera, serie Rectangular canto variable	7	RV-180
+perfil	madera, serie Rectangular canto variable	8	RV-200
+perfil	madera, serie Rectangular canto variable	9	RV-220
+perfil	madera, serie Rectangular canto variable	10	RV-240
+perfil	madera, serie Rectangular canto variable	11	RV-260
+perfil	madera, Redondo, serie Redondo	(ya conocido; confirmado)	Ø100 Ø120 Ø130 Ø140 Ø150 Ø180 Ø200
