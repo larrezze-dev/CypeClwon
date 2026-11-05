@@ -9,6 +9,24 @@ $done = ($rows | Where-Object State -eq '[x]').Count
 $wip = ($rows | Where-Object State -eq '[o]').Count
 $todo = $total - $done - $wip
 $pct = if ($total) { [math]::Round(100 * $done / $total, 1) } else { 0 }
+# Dependency tickets (.tickets.md): state is free text, classified by its first word.
+$tickets = Get-Content "$root\.tickets.md" -Encoding UTF8 | Where-Object { $_ -match '^\| TK-' } | ForEach-Object {
+    $c = $_.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() }
+    $st = $c[4]
+    $kind = if ($st -match '^(CERRADO|Cerrado|Resuelto)') { 'closed' } elseif ($st -match '^Parcial') { 'partial' } else { 'open' }
+    [pscustomobject]@{ Id = $c[0]; Task = $c[1]; Dep = $c[2]; Kind = $kind; State = $st }
+}
+$tkTotal = $tickets.Count
+$tkOpen = ($tickets | Where-Object Kind -eq 'open').Count
+$tkPart = ($tickets | Where-Object Kind -eq 'partial').Count
+$tkClosed = ($tickets | Where-Object Kind -eq 'closed').Count
+# Tasks still pending because of an open or partial ticket (task ids taken from the "Tarea pendiente" column).
+$blockedIds = @($tickets | Where-Object { $_.Kind -ne 'closed' } | ForEach-Object { [regex]::Matches($_.Task, 'T-[A-Z0-9]+-[0-9]+(?:-[0-9]+)?') } | ForEach-Object { $_.Value } | Sort-Object -Unique)
+$blocked = @($rows | Where-Object { $blockedIds -contains $_.Id -and $_.State -ne '[x]' }).Count
+$tkRows = ($tickets | ForEach-Object {
+    $cls = switch ($_.Kind) { 'closed' {'ok'} 'partial' {'wip'} default {'todo'} }
+    "<tr class='$cls'><td>$($_.Id)</td><td>$([System.Net.WebUtility]::HtmlEncode($_.Task))</td><td>$([System.Net.WebUtility]::HtmlEncode($_.Dep))</td><td>$([System.Net.WebUtility]::HtmlEncode($_.State))</td></tr>"
+}) -join "`n"
 $phaseNames = @{0='Investigación y plan';1='Esqueleto GUI';2='Inicio y asistentes';3='Modelo y ficheros';4='Viewport 3D';5='Geometría';6='Propiedades';7='Cargas';8='Cálculo lineal';9='Normas';10='Pandeo/modal/sismo';11='No lineal/pushover';12='Fuego';13='Armaduras';14='Uniones';15='Cimentación';16='Listados/planos';17='BIM/Ventana';18='QA y deploy';19='Idiomas';20='Marketing'}
 $bars = ($rows | Group-Object Phase | Sort-Object { [int]$_.Name } | ForEach-Object {
     $n = $_.Count; $d = ($_.Group | Where-Object State -eq '[x]').Count; $w = ($_.Group | Where-Object State -eq '[o]').Count
@@ -39,6 +57,10 @@ details{margin-top:16px}summary{cursor:pointer;font-weight:600}
 <h1>CypeClwon – Clon de CYPE 3D</h1><div class="mut">Actualizado $stamp · generado desde .tasks.md</div>
 <div class="kpi"><div><b>$pct%</b>completado</div><div><b>$done</b>finalizadas</div><div><b>$wip</b>en marcha</div><div><b>$todo</b>pendientes</div><div><b>$total</b>tareas</div></div>
 <h2>Avance por fase</h2><table>$bars</table>
+<h2>Dependencias (.tickets.md)</h2>
+<div class="kpi"><div><b>$tkOpen</b>tickets abiertos</div><div><b>$tkPart</b>parciales</div><div><b>$tkClosed</b>cerrados</div><div><b>$tkTotal</b>tickets</div><div><b>$blocked</b>tareas bloqueadas</div></div>
+<details><summary>Tickets</summary><div class="tw"><table><tr><th>Ticket</th><th>Tarea pendiente</th><th>Depende de</th><th>Estado</th></tr>
+$tkRows</table></div></details>
 <details open><summary>Todas las tareas</summary><div class="tw"><table><tr><th>ID</th><th>Fase</th><th>Tarea</th><th>Estado</th><th>Comentarios</th></tr>
 $list</table></div></details></body></html>
 "@
