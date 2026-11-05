@@ -1,0 +1,13 @@
+: Portico a dos aguas de 10 m de luz (T-P5-11, fichero de muestra)
+NUDOS
+1 X=0 Y=0 Z=0
+2 X=0 Y=0 Z=3
+3 X=5 Y=0 Z=5
+4 X=10 Y=0 Z=3
+5 X=10 Y=0 Z=0
+
+BARRAS
+1 1 2
+2 2 3
+3 3 4
+4 4 5

@@ -48,6 +48,7 @@
 #include "ContinuousTool.h"
 #include "ShellTool.h"
 #include "TransformTool.h"
+#include "ImportTool.h"
 #include "NodeTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -305,6 +306,25 @@ void MainWindow::createWorkArea() {
     });
     connect(m_transformTool, &TransformTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Herramientas"), text); });
     connect(m_transformTool, &TransformTool::notAvailable, this, [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); });
+    m_importTool->setDialogParent(this);
+    connect(m_importTool, &ImportTool::aboutToImport, this, [this] {
+        m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+        m_nodeTool->deactivate();
+        m_barTool->deactivate();
+        m_pieceTool->deactivate();
+        m_describeTool->deactivate();
+        m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
+    });
+    connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
+    connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
+        if (error) QMessageBox::warning(this, title, text);
+        else QMessageBox::information(this, title, text);
+    });
+    m_importTool->setConfirmer([this](const QString& question) {
+        return QMessageBox::question(this, tr("Importar"), question, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
+    });
     m_transformTool->setConfirmer([this](const QString& question) {
         return QMessageBox::question(this, tr("Reparar"), question, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
     });
@@ -333,6 +353,7 @@ void MainWindow::createWorkArea() {
             m_continuousTool->structureChanged();
             m_shellTool->structureChanged();
             m_transformTool->structureChanged();
+            // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
     loadRecentFiles();
@@ -556,6 +577,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_continuousTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_shellTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_transformTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
@@ -950,6 +972,14 @@ void MainWindow::buildGeometryTab() {
         if (SARibbonToolButton* button = tools->actionToRibbonToolButton(action)) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     tools->addLargeAction(m_transformTool->repairAction());
+
+    // "Importar": DXF o DWG and Fichero de texto, two small buttons with text stacked (orig_geometria_ribbon.png).
+    m_importTool = new ImportTool(this);
+    icon(m_importTool->dxfAction(), "import_dxf");
+    icon(m_importTool->textAction(), "import_text");
+    SARibbonPanel* import = tab->addPanel(tr("Importar"));
+    import->addSmallAction(m_importTool->dxfAction());
+    import->addSmallAction(m_importTool->textAction());
 }
 
 void MainWindow::buildObraTab() {

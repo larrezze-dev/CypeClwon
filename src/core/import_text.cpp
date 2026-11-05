@@ -27,6 +27,15 @@ std::string keyword(const std::string& s) {
     std::string out;
     for (std::size_t i = 0; i < s.size(); ++i) {
         const unsigned char c = static_cast<unsigned char>(s[i]);
+        // Single-byte Latin-1 / Windows-1252 (the original reads the file as ANSI): A-acute and N-tilde in both cases.
+        if (c == 0xC1 || c == 0xE1) {
+            out += 'A';
+            continue;
+        }
+        if (c == 0xD1 || c == 0xF1) {
+            out += 'N';
+            continue;
+        }
         if (c == 0xC3 && i + 1 < s.size()) {
             const unsigned char d = static_cast<unsigned char>(s[i + 1]);
             ++i;
@@ -150,14 +159,23 @@ TextImportResult parseGeometryText(const std::string& text) {
         std::istringstream in(text);
         std::string raw;
         long long no = 0;
+        bool firstKeyword = true;
         while (std::getline(in, raw)) {
             ++no;
             if (no == 1 && raw.size() >= 3 && static_cast<unsigned char>(raw[0]) == 0xEF) raw.erase(0, 3);  // UTF-8 BOM
+            // [REA] FUN_180004d40: everything from the first ':' is a comment (a line that starts with ':' is empty).
+            if (const std::size_t colon = raw.find(':'); colon != std::string::npos) raw.erase(colon);
             const std::string t = trim(raw);
             if (t.empty()) continue;
-            ++result.linesRead;
             const TextSection s = sectionOf(t);
             if (s != TextSection::None) {
+                // [REA] FUN_180014ca0: the first sector must be NUDOS and there is no way back to it.
+                if ((firstKeyword && s != TextSection::Nodes) || (s == TextSection::Nodes && present.count(s))) {
+                    fail(106859, no);
+                    firstKeyword = false;
+                    continue;
+                }
+                firstKeyword = false;
                 current = s;
                 present.insert(s);
                 continue;
@@ -168,12 +186,17 @@ TextImportResult parseGeometryText(const std::string& text) {
             }
             lines[current].push_back({no, t});
         }
+        result.linesRead = no;
     }
-    if (result.linesRead == 0) {
+    // [REA] fewer than 3 lines (all of them, comments and blank ones included): "Fichero vacío".
+    if (result.linesRead < 3) {
+        result.errors.clear();
         fail(106870, 0);
         return result;
     }
-    if (!present.count(TextSection::Nodes) || (!present.count(TextSection::Bars) && !present.count(TextSection::Shells))) fail(106873, 0);
+    if (!present.count(TextSection::Nodes) ||
+        (!present.count(TextSection::Bars) && !present.count(TextSection::Shells) && !present.count(TextSection::Panels)))
+        fail(106873, 0);
 
     // --- nodes ---
     std::map<long long, Point3> nodePos;

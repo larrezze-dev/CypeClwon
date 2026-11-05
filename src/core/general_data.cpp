@@ -56,6 +56,7 @@ std::string EditWorkPlanesCommand::text() const {
         case WorkPlanesEdit::Levels: return "Niveles";
         case WorkPlanesEdit::Visibility: return "Visibilidad";
         case WorkPlanesEdit::References: return "Referencias";
+        case WorkPlanesEdit::Ungroup: return "Desagrupar planos";
     }
     return "Planos";
 }

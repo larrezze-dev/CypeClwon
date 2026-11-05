@@ -71,7 +71,7 @@ private:
 };
 
 /// Which part of "Planos" an EditWorkPlanesCommand changes; it only names the entry of the undo menu.
-enum class WorkPlanesEdit { Grid, Levels, Visibility, References };
+enum class WorkPlanesEdit { Grid, Levels, Visibility, References, Ungroup };
 
 /// Undoable change of the work planes (Geometria > Planos): text "Rejilla", "Niveles", "Visibilidad" or "Referencias".
 class EditWorkPlanesCommand : public UndoCommand {

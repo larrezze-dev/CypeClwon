@@ -31,7 +31,7 @@ TEST(ImportText, ParsesTheExampleOfTheHelp) {
     EXPECT_DOUBLE_EQ(r.geometry.nodes[2].position.z, 5.0);
     EXPECT_EQ(r.geometry.bars[3].startNumber, 4);
     EXPECT_EQ(r.geometry.bars[3].endNumber, 5);
-    EXPECT_EQ(r.linesRead, 11);
+    EXPECT_EQ(r.linesRead, 12);  // blank line included
     EXPECT_EQ(importTotalsMessage(5, 4), "Total: 5 nudos, 4 barras");
 }
 
@@ -110,9 +110,14 @@ TEST(ImportText, ShellAndPanelErrors) {
 TEST(ImportText, GlobalErrors) {
     EXPECT_TRUE(hasError(parseGeometryText(""), 106870));
     EXPECT_TRUE(hasError(parseGeometryText("\n   \n"), 106870));
-    EXPECT_TRUE(hasError(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0\n"), 106873));
-    EXPECT_TRUE(hasError(parseGeometryText("BARRAS\n1 1 2\n"), 106873));
-    EXPECT_TRUE(hasError(parseGeometryText("1 X=0 Y=0 Z=0\n"), 106859));
+    // Fewer than 3 lines, whatever they hold: "Fichero vacío".
+    EXPECT_TRUE(hasError(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0\n"), 106870));
+    EXPECT_TRUE(hasError(parseGeometryText("1 X=0 Y=0 Z=0\n"), 106870));
+    EXPECT_TRUE(hasError(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0\n2 X=1 Y=0 Z=0\n"), 106873));  // no BARRAS / LAMINAS / PAÑOS
+    EXPECT_TRUE(hasError(parseGeometryText("BARRAS\n1 1 2\nNUDOS\n1 X=0 Y=0 Z=0\n2 X=1 Y=0 Z=0\n"), 106859));  // NUDOS must come first
+    EXPECT_TRUE(hasError(parseGeometryText("1 X=0 Y=0 Z=0\nNUDOS\n1 X=0 Y=0 Z=0\n2 X=1 Y=0 Z=0\nBARRAS\n1 1 2\n"), 106859));
+    // There is no way back to NUDOS.
+    EXPECT_TRUE(hasError(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0\n2 X=1 Y=0 Z=0\nBARRAS\n1 1 2\nNUDOS\n3 X=2 Y=0 Z=0\n"), 106859));
     EXPECT_TRUE(hasError(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0\nBARRAS\n"), 106877));
     EXPECT_EQ(importTextMessage(106870), "Error: Fichero vacío");
     EXPECT_EQ(importTextMessage(1), "");
@@ -206,22 +211,26 @@ TEST(ImportDxf, PolylinesFacesAndPanels) {
         "0\nPOLYLINE\n8\nQ\n70\n8\n0\nVERTEX\n8\nQ\n10\n0\n20\n0\n30\n0\n0\nVERTEX\n8\nQ\n10\n1\n20\n0\n30\n1\n0\nVERTEX\n8\nQ\n10\n2\n20\n0\n30\n2\n0\nSEQEND\n8\nQ\n";
     const std::string face = "0\n3DFACE\n8\nF\n10\n0\n20\n0\n30\n0\n11\n1\n21\n0\n31\n0\n12\n1\n22\n1\n32\n0\n13\n1\n23\n1\n33\n0\n";
     DxfOptions panels;
-    panels.polygonsAsPanels = true;
+    panels.panelLayers = {"F"};
     const DxfReadResult r = readDxf(dxf(lw + poly + face), panels);
     ASSERT_TRUE(r.ok());
     EXPECT_EQ(r.geometry.bars.size(), 4u + 2u);        // closed square + two segments
-    EXPECT_EQ(r.geometry.panels.size(), 1u);
-    ASSERT_EQ(r.geometry.shells.size(), 1u);
-    EXPECT_EQ(r.geometry.shells[0].nodeNumbers.size(), 3u);  // 4th corner equal to the 3rd: triangle
+    // The 3DFACE sits on layer F, which is marked "paños de carga": a triangle panel (4th corner equal to the 3rd); no shells.
+    ASSERT_EQ(r.geometry.panels.size(), 1u);
+    EXPECT_EQ(r.geometry.panels[0].nodeNumbers.size(), 3u);
+    EXPECT_TRUE(r.geometry.shells.empty());
+    const DxfReadResult asShell = readDxf(dxf(face));
+    ASSERT_EQ(asShell.geometry.shells.size(), 1u);
+    EXPECT_TRUE(asShell.geometry.panels.empty());
     EXPECT_DOUBLE_EQ(r.geometry.nodes[0].position.z, 2.0);   // elevation of the LWPOLYLINE
     const DxfReadResult noPanels = readDxf(dxf(lw));
     EXPECT_TRUE(noPanels.geometry.panels.empty());
-    EXPECT_EQ(noPanels.geometry.bars.size(), 4u);
+    EXPECT_EQ(noPanels.geometry.bars.size(), 4u);  // closed polylines give bars only, even with the panels option
 
     Project p;
     UndoStack stack;
     ImportSummary summary;
-    ASSERT_TRUE(importGeometry(p, stack, r.geometry, &summary));
+    ASSERT_TRUE(importGeometry(p, stack, asShell.geometry, &summary));
     EXPECT_EQ(summary.shellsCreated, 1);
     EXPECT_TRUE(p.structure.validate().empty());
 }
@@ -248,4 +257,72 @@ TEST(ImportDxf, UnsupportedAndBrokenInput) {
     { std::ofstream(ok, std::ios::binary) << dxf(line("A", 0, 0, 0, 1, 0, 0)); }
     EXPECT_TRUE(readDxfFile(ok).ok());
     std::filesystem::remove(ok);
+}
+
+TEST(ImportText, CommentsLatin1AndOnlyPanels) {
+    // Everything from the first ':' is a comment, a line that starts with ':' is ignored.
+    const TextImportResult r = parseGeometryText(
+        ": header\nNUDOS : nodes\n1 X=0 Y=0 Z=0 : origin\n2 X=1 Y=0 Z=0\n3 X=1 Y=1 Z=0\nPA\xD1OS\n1 1 2 3\n");
+    // Only panels: the sectors are complete but there is no bar nor shell (#106877).
+    EXPECT_TRUE(hasError(r, 106877));
+    EXPECT_FALSE(hasError(r, 106873));
+    EXPECT_EQ(r.geometry.panels.size(), 1u);  // the Latin-1 enye was read as a keyword
+    EXPECT_EQ(r.linesRead, 7);
+    // A comment may hide a syntax error.
+    EXPECT_TRUE(parseGeometryText("NUDOS\n1 X=0 Y=0 Z=0 : fine\n2 X=1 Y=0 Z=0\nBARRAS\n1 1 2 :9 9\n").ok());
+}
+
+TEST(ImportDxf, LayerInfoColoursAndPalette) {
+    const std::string content =
+        "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n0\nLAYER\n2\nA\n62\n1\n0\nLAYER\n2\nB\n62\n-5\n0\nLAYER\n2\nUNUSED\n62\n3\n0\nENDTAB\n0\nENDSEC\n" +
+        dxf(line("A", 0, 0, 0, 1, 0, 0) + line("B", 0, 0, 0, 0, 1, 0) +
+            "0\n3DFACE\n8\nB\n10\n0\n20\n0\n30\n0\n11\n1\n21\n0\n31\n0\n12\n1\n22\n1\n32\n0\n13\n0\n23\n1\n33\n0\n");
+    const auto layers = dxfLayerInfo(content);
+    ASSERT_EQ(layers.size(), 2u);
+    EXPECT_EQ(layers[0].name, "A");
+    EXPECT_EQ(layers[0].colorIndex, 1);
+    EXPECT_EQ(layers[0].segments, 1);
+    EXPECT_EQ(layers[1].colorIndex, 5);  // a negative colour means "layer off": its magnitude is the colour
+    EXPECT_EQ(layers[1].polygons, 1);
+    EXPECT_EQ(layers[1].segments, 1);
+    EXPECT_EQ(aciToRgb(1), 0xFF0000u);
+    EXPECT_EQ(aciToRgb(5), 0x0000FFu);
+    EXPECT_EQ(aciToRgb(10), 0xFF0000u);
+    EXPECT_EQ(aciToRgb(250), 0x333333u);
+    EXPECT_EQ(aciToRgb(999), 0xFFFFFFu);  // out of range -> 7
+}
+
+TEST(ImportDxf, PolyfaceAndPolygonMeshes) {
+    const auto vertex = [](double x, double y, double z, int flags) {
+        return "0\nVERTEX\n8\nM\n10\n" + std::to_string(x) + "\n20\n" + std::to_string(y) + "\n30\n" + std::to_string(z) + "\n70\n" +
+               std::to_string(flags) + "\n";
+    };
+    const auto face = [](int a, int b, int c, int d) {
+        return "0\nVERTEX\n8\nM\n10\n0\n20\n0\n30\n0\n70\n128\n71\n" + std::to_string(a) + "\n72\n" + std::to_string(b) + "\n73\n" +
+               std::to_string(c) + "\n74\n" + std::to_string(d) + "\n";
+    };
+    // Polyface mesh: 4 corners, one quad and one triangle (an invisible edge is a negative index).
+    const std::string polyface = "0\nPOLYLINE\n8\nM\n70\n64\n71\n4\n72\n2\n" + vertex(0, 0, 0, 192) + vertex(1, 0, 0, 192) +
+                                 vertex(1, 1, 0, 192) + vertex(0, 1, 0, 192) + face(1, 2, 3, 4) + face(1, -2, 3, 0) + "0\nSEQEND\n8\nM\n";
+    DxfReadResult r = readDxf(dxf(polyface));
+    ASSERT_TRUE(r.ok());
+    ASSERT_EQ(r.geometry.shells.size(), 2u);
+    EXPECT_EQ(r.geometry.shells[0].nodeNumbers.size(), 4u);
+    EXPECT_EQ(r.geometry.shells[1].nodeNumbers.size(), 3u);
+    EXPECT_TRUE(r.geometry.bars.empty());
+    DxfOptions panels;
+    panels.panelLayers = {"M"};
+    r = readDxf(dxf(polyface), panels);
+    EXPECT_EQ(r.geometry.panels.size(), 2u);
+    EXPECT_TRUE(r.geometry.shells.empty());
+
+    // Polygon mesh 3 x 2 -> two cells.
+    const std::string grid = "0\nPOLYLINE\n8\nM\n70\n16\n71\n3\n72\n2\n" + vertex(0, 0, 0, 64) + vertex(0, 1, 0, 64) + vertex(1, 0, 0, 64) +
+                             vertex(1, 1, 0, 64) + vertex(2, 0, 0, 64) + vertex(2, 1, 0, 64) + "0\nSEQEND\n8\nM\n";
+    r = readDxf(dxf(grid));
+    ASSERT_TRUE(r.ok());
+    EXPECT_EQ(r.geometry.shells.size(), 2u);
+    const auto info = dxfLayerInfo(dxf(grid));
+    ASSERT_EQ(info.size(), 1u);
+    EXPECT_EQ(info[0].polygons, 2);
 }

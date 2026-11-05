@@ -64,6 +64,8 @@
     <file>icons/shell_invert_z.svg</file>
     <file>icons/shell_define_x.svg</file>
     <file>icons/shell_axes.svg</file>
+    <file>icons/import_dxf.svg</file>
+    <file>icons/import_text.svg</file>
     <file>icons/shell_layout.svg</file>
     <file>icons/shell_section.svg</file>
     <file>icons/shell_material.svg</file>

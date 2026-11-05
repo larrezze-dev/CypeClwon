@@ -24,6 +24,7 @@ class BarDescribeTool;
 class ContinuousTool;
 class ShellTool;
 class TransformTool;
+class ImportTool;
 class Viewport3D;
 class SessionBar;
 class StartPage;
@@ -127,6 +128,7 @@ private:
     ContinuousTool* m_continuousTool = nullptr;  ///< Geometria > Barras (Edición de pilares / vigas, T-P5-08)
     ShellTool* m_shellTool = nullptr;  ///< Geometria > Láminas (T-P5-09)
     TransformTool* m_transformTool = nullptr;  ///< Geometria > Herramientas (T-P5-10)
+    ImportTool* m_importTool = nullptr;        ///< Geometria > Importar (T-P5-11)
     BarTool* m_barTool = nullptr;    ///< Geometria > Barras (Barra / Pilar / Viga)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;

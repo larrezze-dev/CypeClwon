@@ -142,3 +142,10 @@ add_executable(transform_tool_tests transform_tool_tests.cpp ${CMAKE_SOURCE_DIR}
 target_include_directories(transform_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(transform_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(transform_tool_tests)
+
+add_executable(import_tool_tests import_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ImportTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ImportDialogs.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(import_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_compile_definitions(import_tool_tests PRIVATE CC_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+target_link_libraries(import_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
+gtest_discover_tests(import_tool_tests)

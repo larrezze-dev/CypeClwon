@@ -39,5 +39,10 @@ Cada opción abre un diálogo con estos campos (títulos/ayudas):
 - Qué se copia (nudos, barras, láminas, cargas, vinculaciones, pilares/vigas): [NV]. Invertir orientación local de barras en la simetría: [NV].
 - Diálogos con campos numéricos: solo se pide **el ángulo de giro** (#64807) y no hay cadena de «factor de escala» asociada a este grupo: **«Escalar» no existe en las cadenas del grupo**; si el icono ABC/lupa son otras herramientas, [NV].
 
-## Pendiente (no verificado)
-Identidad de los dos iconos restantes (ABC, lupa); tolerancias numéricas; valores por defecto/rangos de los generadores; función que implementa Reparar y su orden; cuál de #400345-400347 se repara automáticamente frente a solo informar.
+## 5. Ampliación REA 2026-11-05 (solo estático)
+- **Diálogos construidos en código**: `ed3dlib.dll` no tiene recursos de diálogo PE (0 recursos); los campos se leen en las funciones que montan paneles (`pnpanel_*`, `cypeud_panel_*`, `radiogru_*`), ver el caso resuelto en `laminas.md` §5. **Los generadores (§2) no se localizaron en esta pasada**: método que funciona: `search_strings "<id>texto-inglés"` -> `xrefs` -> `procedure_pseudo_code` de una dirección interior del descriptor -> `xrefs` del descriptor -> llamador (usa `pnpanel_*` con ids internos de campo y magnitud). Sin conocer el texto inglés exacto el id no se encuentra.
+- **Mover/Copiar/Girar/Simetría** [CAD, ayudas #64803-64822 leídas del TSV]: la interacción es **por ratón**: selección (clic/rectángulo) + botón derecho, y después **puntos** que definen vector (Mover/Copiar), eje de 2 puntos (Girar eje), ángulo por 2 puntos (Girar xy, #64810) o origen + 3 puntos (#64813), plano de 3 puntos (Simetría) o vector + z (Simetría xy). Solo #64807 menciona un valor de ángulo; **no existe ninguna cadena «Número de copias»/«Factor de escala»** para este grupo. Defecto/validación del ángulo: [NV].
+- **Iconos ABC (atenuado) y lupa**: ninguna cadena de #64800-64843 los describe y no se halló tabla de comandos ni tooltip; entre los ids de herramienta contiguos no hay «Buscar»/«Comprobar»/«Texto». Siguen **[NV]**. Para cerrarlo: pasar el ratón por los iconos en el original (requiere OK del usuario) o seguir la referencia al id #64843 «Herramientas».
+
+## Pendiente (actualizado)
+Identidad de ABC y lupa; campos/defectos/rangos de los generadores; cuadros de Mover/Copiar/Girar/Simetría; tolerancias de Reparar.
