@@ -315,7 +315,96 @@ const BarDescription* BarDescriptions::findBySection(int sectionId) const {
     return nullptr;
 }
 
-std::optional<Section> resolveSection(const BarDescription& d, const ProfileLibrary& library) {
+namespace {
+std::string inlineReference(const std::vector<double>& dims) {
+    std::string out;
+    for (std::size_t i = 0; i < dims.size(); ++i) {
+        char buffer[32];
+        std::snprintf(buffer, sizeof buffer, "%.10g", std::round(dims[i] * 1000.0) / 10.0);  // centimetres
+        if (i) out += 'x';
+        out += buffer;
+    }
+    return out;
+}
+
+Section concreteSection(ShapeKind kind, std::vector<double> dims) {
+    Section s;
+    s.kind = kind;
+    s.reference = inlineReference(dims);
+    s.dims = std::move(dims);
+    return s;
+}
+}  // namespace
+
+std::optional<BarDescription> projectedDescription(const BarDescription& d) {
+    if (d.tieSelected) return std::nullopt;  // no tie module yet
+    if (d.elementType == ElementType::Generic) return d;
+    BarDescription e = d;
+    e.behaviour = BehaviourKind::Linear;
+    e.arrangement = Arrangement::Simple;
+    e.stiffeners = {};
+    e.seriesRef.clear();
+    e.profileRef.clear();
+    e.inlineSection.reset();
+    if (d.elementType == ElementType::Pillar) {
+        const PillarData& p = d.pillar;
+        switch (p.material) {
+        case PillarMaterial::Concrete:
+            e.materialIcon = BarMaterialIcon::Concrete;
+            e.inlineSection = p.concreteKind == PillarConcreteKind::Circular
+                                  ? concreteSection(ShapeKind::ConcreteCircular, {p.diameterM})
+                                  : concreteSection(ShapeKind::ConcreteRectangular, {p.widthXM, p.widthYM});
+            e.shape = e.inlineSection->kind;
+            break;
+        case PillarMaterial::Steel:
+            e.materialIcon = BarMaterialIcon::RolledSteel;
+            e.seriesRef = p.seriesRef;
+            e.profileRef = p.profileRef;
+            e.shape = p.shape;
+            break;
+        case PillarMaterial::Mixed: return std::nullopt;  // composite sections: no shape in the clone yet
+        }
+    } else {
+        const BeamData& b = d.beam;
+        switch (b.family) {
+        case BeamFamily::Steel:
+            e.materialIcon = BarMaterialIcon::RolledSteel;
+            e.seriesRef = b.seriesRef;
+            e.profileRef = b.profileRef;
+            e.shape = b.shape;
+            break;
+        case BeamFamily::Timber:
+            e.materialIcon = BarMaterialIcon::Timber;
+            e.seriesRef = b.timberSeriesRef;
+            e.profileRef = b.timberProfileRef;
+            e.shape = b.timberShape;
+            break;
+        default:
+            switch (beamSectionOf(b.family, b.type)) {
+            case BeamSection::Rectangular:
+                e.materialIcon = BarMaterialIcon::Concrete;
+                e.inlineSection = concreteSection(ShapeKind::ConcreteRectangular, {b.widthM, b.depthM});
+                e.shape = e.inlineSection->kind;
+                break;
+            case BeamSection::Variable:
+                e.materialIcon = BarMaterialIcon::Concrete;
+                e.inlineSection = concreteSection(ShapeKind::ConcreteRectangularVariable, {b.widthM, b.depthStartM, b.depthEndM});
+                e.shape = e.inlineSection->kind;
+                break;
+            case BeamSection::Other: return std::nullopt;
+            }
+        }
+    }
+    e.material = defaultMaterialData(e.materialIcon);
+    return e;
+}
+
+bool isElementResolvable(const BarDescription& d) { return projectedDescription(d).has_value(); }
+
+std::optional<Section> resolveSection(const BarDescription& description, const ProfileLibrary& library) {
+    const auto projected = projectedDescription(description);
+    if (!projected) return std::nullopt;
+    const BarDescription& d = *projected;
     if (d.materialIcon == BarMaterialIcon::Generic) {
         const GenericSectionData& g = d.generic;
         Section s;
@@ -345,7 +434,39 @@ std::optional<Section> resolveSection(const BarDescription& d, const ProfileLibr
     return out;
 }
 
-std::string validateDescription(const BarDescription& d, const ProfileLibrary& library) {
+namespace {
+std::string validateResolved(const BarDescription& d, const ProfileLibrary& library);
+
+/// Height and width (m) of a library steel profile (doubles T only), 0 when unknown: used by the #75573 check of the mixed pillar.
+void profileBox(const ProfileLibrary& library, const std::string& seriesRef, const std::string& profileRef, double& h, double& b) {
+    h = b = 0.0;
+    const ProfileSeries* series = library.find(seriesRef);
+    const Section* profile = series ? series->findProfile(profileRef) : nullptr;
+    if (profile && profile->dims.size() >= 2) {
+        h = profile->dims[0];
+        b = profile->dims[1];
+    }
+}
+}  // namespace
+
+std::string validateDescription(const BarDescription& description, const ProfileLibrary& library) {
+    if (description.tieSelected) return kNotAvailableText;
+    if (description.elementType == ElementType::Pillar) {
+        double h = 0.0, b = 0.0;
+        if (description.pillar.material == PillarMaterial::Mixed) profileBox(library, description.pillar.seriesRef, description.pillar.profileRef, h, b);
+        const std::string problem = validatePillarData(description.pillar, h, b);
+        if (!problem.empty()) return problem;
+    } else if (description.elementType == ElementType::Beam) {
+        const std::string problem = validateBeamData(description.beam);
+        if (!problem.empty()) return problem;
+    }
+    const auto projected = projectedDescription(description);
+    if (!projected) return kNotAvailableText;
+    return validateResolved(*projected, library);
+}
+
+namespace {
+std::string validateResolved(const BarDescription& d, const ProfileLibrary& library) {
     const auto offered = arrangementsFor(d.materialIcon, d.shape);
     if (std::find(offered.begin(), offered.end(), d.arrangement) == offered.end())
         return "La disposición «" + std::string(arrangementNameEs(d.arrangement)) + "» no está disponible para esta sección.";
@@ -390,6 +511,7 @@ std::string validateDescription(const BarDescription& d, const ProfileLibrary& l
     if (!problem.empty()) return problem;
     return {};
 }
+}  // namespace
 
 bool sameDescription(const BarDescription& a, const BarDescription& b) {
     BarDescription x = a, y = b;
@@ -416,7 +538,11 @@ std::string compactNumber(double value) {
 }
 }  // namespace
 
-std::string barLabelText(const BarDescription& d) {
+std::string barLabelText(const BarDescription& description) {
+    if (description.tieSelected) return description.tie.profileRef;
+    const auto projected = projectedDescription(description);
+    if (!projected) return {};  // not resolvable by the clone yet (mixed pillar, T beams): no label measured
+    const BarDescription& d = *projected;
     if (d.materialIcon == BarMaterialIcon::Generic) {
         constexpr double g = kOriginalGravity;
         char buffer[48];

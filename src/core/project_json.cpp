@@ -147,9 +147,83 @@ CC_STRUCT(GenericSectionData, widthLeftM, widthRightM, depthBottomM, depthTopM, 
           inertiaZM4, torsionM4)
 CC_STRUCT(MaterialData, elasticModulusMPa, poissonRatio, thermalExpansion, densityKnM3)
 
+CC_ENUM(PillarMaterial, {{PillarMaterial::Concrete, "concrete"}, {PillarMaterial::Steel, "steel"}, {PillarMaterial::Mixed, "mixed"}})
+CC_ENUM(PillarConcreteKind, {{PillarConcreteKind::Rectangular, "rectangular"}, {PillarConcreteKind::Circular, "circular"}})
+CC_ENUM(MixedPillarKind, {{MixedPillarKind::RectangularEmbeddedProfile, "rectangularEmbeddedProfile"},
+                          {MixedPillarKind::RectangularBox, "rectangularBox"},
+                          {MixedPillarKind::RectangularTube, "rectangularTube"},
+                          {MixedPillarKind::SquareTube, "squareTube"},
+                          {MixedPillarKind::CircularEmbeddedProfile, "circularEmbeddedProfile"},
+                          {MixedPillarKind::CircularTube, "circularTube"}})
+CC_ENUM(BeamFamily, {{BeamFamily::Flat, "flat"}, {BeamFamily::Hung, "hung"}, {BeamFamily::Lattice, "lattice"},
+                     {BeamFamily::Prestressed, "prestressed"}, {BeamFamily::Steel, "steel"}, {BeamFamily::Timber, "timber"}})
+
+inline ShapeKind readShape(const json& j, const char* key, ShapeKind fallback) {
+    if (!j.contains(key)) return fallback;
+    const auto shape = shapeFromKey(j.at(key).get<std::string>());
+    if (!shape) throw std::invalid_argument("forma de perfil desconocida");
+    return *shape;
+}
+inline void to_json(json& j, const TieData& t) { j = json{{"shape", t.shape}, {"seriesRef", t.seriesRef}, {"profileRef", t.profileRef}}; }
+inline void from_json(const json& j, TieData& t) {
+    const TieData defaults;
+    t.shape = j.value("shape", defaults.shape);
+    t.seriesRef = j.value("seriesRef", defaults.seriesRef);
+    t.profileRef = j.value("profileRef", defaults.profileRef);
+}
+inline void to_json(json& j, const PillarData& p) {
+    j = json{{"material", p.material},   {"concreteKind", p.concreteKind}, {"mixedKind", p.mixedKind}, {"widthXM", p.widthXM},
+             {"widthYM", p.widthYM},     {"diameterM", p.diameterM},       {"seriesRef", p.seriesRef}, {"profileRef", p.profileRef},
+             {"shape", shapeKey(p.shape)}};
+}
+inline void from_json(const json& j, PillarData& p) {
+    const PillarData d;
+    p.material = j.value("material", d.material);
+    p.concreteKind = j.value("concreteKind", d.concreteKind);
+    p.mixedKind = j.value("mixedKind", d.mixedKind);
+    p.widthXM = j.value("widthXM", d.widthXM);
+    p.widthYM = j.value("widthYM", d.widthYM);
+    p.diameterM = j.value("diameterM", d.diameterM);
+    p.seriesRef = j.value("seriesRef", d.seriesRef);
+    p.profileRef = j.value("profileRef", d.profileRef);
+    p.shape = readShape(j, "shape", d.shape);
+}
+inline void to_json(json& j, const BeamData& b) {
+    j = json{{"family", b.family},           {"type", b.type},           {"widthM", b.widthM},
+             {"depthM", b.depthM},           {"flangeLeftM", b.flangeLeftM}, {"flangeRightM", b.flangeRightM},
+             {"flangeDepthM", b.flangeDepthM}, {"depthStartM", b.depthStartM}, {"depthEndM", b.depthEndM},
+             {"belowSlab", b.belowSlab},     {"seriesRef", b.seriesRef}, {"profileRef", b.profileRef},
+             {"shape", shapeKey(b.shape)},   {"timberSeriesRef", b.timberSeriesRef}, {"timberProfileRef", b.timberProfileRef},
+             {"timberShape", shapeKey(b.timberShape)}};
+}
+inline void from_json(const json& j, BeamData& b) {
+    const BeamData d;
+    b.family = j.value("family", d.family);
+    b.type = j.value("type", d.type);
+    b.widthM = j.value("widthM", d.widthM);
+    b.depthM = j.value("depthM", d.depthM);
+    b.flangeLeftM = j.value("flangeLeftM", d.flangeLeftM);
+    b.flangeRightM = j.value("flangeRightM", d.flangeRightM);
+    b.flangeDepthM = j.value("flangeDepthM", d.flangeDepthM);
+    b.depthStartM = j.value("depthStartM", d.depthStartM);
+    b.depthEndM = j.value("depthEndM", d.depthEndM);
+    b.belowSlab = j.value("belowSlab", d.belowSlab);
+    b.seriesRef = j.value("seriesRef", d.seriesRef);
+    b.profileRef = j.value("profileRef", d.profileRef);
+    b.shape = readShape(j, "shape", d.shape);
+    b.timberSeriesRef = j.value("timberSeriesRef", d.timberSeriesRef);
+    b.timberProfileRef = j.value("timberProfileRef", d.timberProfileRef);
+    b.timberShape = readShape(j, "timberShape", d.timberShape);
+    if (b.type < 0 || b.type >= std::max(1, beamTypeCount(b.family))) throw std::invalid_argument("tipo de viga no válido");
+}
+
 inline void to_json(json& j, const BarDescription& d) {
     j = json{{"id", d.id},
              {"elementType", d.elementType},
+             {"tieSelected", d.tieSelected},
+             {"tie", d.tie},
+             {"pillar", d.pillar},
+             {"beam", d.beam},
              {"behaviour", d.behaviour},
              {"materialIcon", d.materialIcon},
              {"shape", shapeKey(d.shape)},
@@ -172,6 +246,10 @@ inline void from_json(const json& j, BarDescription& d) {
     const BarDescription defaults;
     d.id = j.value("id", defaults.id);
     d.elementType = j.value("elementType", defaults.elementType);
+    d.tieSelected = j.value("tieSelected", defaults.tieSelected);
+    d.tie = j.value("tie", defaults.tie);
+    d.pillar = j.value("pillar", defaults.pillar);
+    d.beam = j.value("beam", defaults.beam);
     d.behaviour = j.value("behaviour", defaults.behaviour);
     d.materialIcon = j.value("materialIcon", defaults.materialIcon);
     const auto shape = shapeFromKey(j.value("shape", std::string(shapeKey(defaults.shape))));

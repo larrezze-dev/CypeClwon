@@ -382,6 +382,12 @@ void Viewport3D::setNodeLabelsVisible(bool on) {
     update();
 }
 
+void Viewport3D::setBarLabels(std::vector<std::pair<int, QString>> labels) {
+    if (m_barLabels == labels) return;
+    m_barLabels = std::move(labels);
+    update();
+}
+
 void Viewport3D::setMovingNode(std::optional<int> nodeId) {
     m_movingNode = nodeId;
     m_snap = {};
@@ -984,6 +990,33 @@ void Viewport3D::drawNodeTags(QPainter& painter) const {
     }
 }
 
+void Viewport3D::drawBarTags(QPainter& painter) const {
+    // Label of a described bar (describir_barras.md section 1): vertical text in olive green. PROVISIONAL: colour, size and offset were
+    // not measured on a screenshot; the placement is the middle of the bar, the text running upwards along the screen's vertical.
+    if (m_barLabels.empty() || !m_structure) return;
+    QFont font = painter.font();
+    font.setPixelSize(12);
+    painter.setFont(font);
+    painter.setPen(QColor(QStringLiteral("#6B7F1C")));
+    const core::ScreenMapper map = mapper();
+    for (const auto& [id, text] : m_barLabels) {
+        const core::Bar* bar = m_structure->findBar(id);
+        if (!bar || text.isEmpty()) continue;
+        const core::Node* a = m_structure->findNode(bar->startNode);
+        const core::Node* b = m_structure->findNode(bar->endNode);
+        if (!a || !b) continue;
+        const core::Vec3 mid{(a->position.x + b->position.x) / 2.0, (a->position.y + b->position.y) / 2.0,
+                             (a->position.z + b->position.z) / 2.0};
+        double x, y;
+        if (!visibleAfterClipping({mid.x, mid.y, mid.z}) || !map.toScreen(mid, x, y)) continue;
+        painter.save();
+        painter.translate(x - 5, y);
+        painter.rotate(-90.0);
+        painter.drawText(QRectF(-100, -8, 200, 16), Qt::AlignCenter, text);
+        painter.restore();
+    }
+}
+
 void Viewport3D::drawHighlight(QPainter& painter, const core::ElementRef& e, bool selected) const {
     if (!m_structure) return;
     const core::ScreenMapper map = mapper();
@@ -1319,6 +1352,7 @@ void Viewport3D::paintGL() {
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawNodeTags(painter);
+    drawBarTags(painter);
     drawZoomMark(painter);
     if (m_selectionMode) {
         for (const core::ElementRef& e : m_selection.items()) drawHighlight(painter, e, true);

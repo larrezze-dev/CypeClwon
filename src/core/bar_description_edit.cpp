@@ -164,8 +164,10 @@ DescribeBarsCommand::DescribeBarsCommand(Project& project, const std::vector<int
     } else {
         chosen = description;
         chosen.id = descriptions.next++;
-        chosen.sectionId = work.addSection(makeCrossSection(description, *section, *props));
-        const Material wanted = makeMaterial(project, description);
+        // Pilar / Viga registers are applied through their projection onto the icon model (projectedDescription).
+        const BarDescription projected = *projectedDescription(description);
+        chosen.sectionId = work.addSection(makeCrossSection(projected, *section, *props));
+        const Material wanted = makeMaterial(project, projected);
         chosen.materialId = findEqualMaterial(work, wanted);
         if (chosen.materialId == 0) chosen.materialId = work.addMaterial(wanted);
         descriptions.items.push_back(chosen);  // ids grow, so the list stays sorted
@@ -197,7 +199,7 @@ RefreshDescriptionsCommand::RefreshDescriptionsCommand(Project& project) : Descr
         }
         for (CrossSection& cs : work.sections)
             if (cs.id == d.sectionId) {
-                CrossSection fresh = makeCrossSection(d, *section, *props);
+                CrossSection fresh = makeCrossSection(*projectedDescription(d), *section, *props);
                 fresh.id = cs.id;
                 if (!(fresh == cs)) {
                     cs = fresh;
@@ -270,10 +272,30 @@ std::vector<int> undescribedBars(const Project& project) {
 std::string barDescriptionText(const Project& project, int barId) {
     const Bar* bar = project.structure.findBar(barId);
     if (!bar || bar->sectionId == 0) return kNotDescribedText;
-    if (const BarDescription* d = project.barDescriptions.findBySection(bar->sectionId))
-        return descriptionText(*d, project.profiles.hotRolledSteel);
+    if (const BarDescription* d = project.barDescriptions.findBySection(bar->sectionId)) {
+        if (const auto projected = projectedDescription(*d)) return descriptionText(*projected, project.profiles.hotRolledSteel);
+    }
     const CrossSection* cs = project.structure.findSection(bar->sectionId);
     return cs ? cs->name : std::string(kNotDescribedText);
+}
+
+std::string barSectionLabel(const Project& project, int barId) {
+    const BarDescription* d = descriptionOfBar(project, barId);
+    return d ? barLabelText(*d) : std::string();
+}
+
+std::string barMaterialLabel(const Project& project, int barId) {
+    const BarDescription* stored = descriptionOfBar(project, barId);
+    const auto d = stored ? projectedDescription(*stored) : std::nullopt;
+    if (!d) return {};
+    switch (d->materialIcon) {
+    case BarMaterialIcon::RolledSteel:
+    case BarMaterialIcon::RolledSteelFamily2: return project.profiles.hotRolledSteel;
+    case BarMaterialIcon::ColdFormedSteel: return project.profiles.coldFormedSteel;
+    case BarMaterialIcon::Concrete: return project.profiles.concrete;
+    case BarMaterialIcon::Timber: return project.profiles.timber.strengthClass;
+    default: return {};
+    }
 }
 
 namespace {
@@ -286,7 +308,8 @@ std::vector<int> barsMatching(const Project& project, const std::function<bool(c
     std::vector<int> out;
     for (const Bar& b : project.structure.bars) {
         const BarDescription* d = project.barDescriptions.findBySection(b.sectionId);
-        if (d && readsLibrary(*d) && test(*d)) out.push_back(b.id);
+        const auto projected = d ? projectedDescription(*d) : std::nullopt;
+        if (projected && readsLibrary(*projected) && test(*projected)) out.push_back(b.id);
     }
     return out;
 }

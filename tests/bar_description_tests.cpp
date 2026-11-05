@@ -6,6 +6,9 @@
 #include "core/predefined_profiles.h"
 #include "core/profile_library.h"
 #include "core/project_json.h"
+#include "core/tie_document.h"
+
+#include <nlohmann/json.hpp>
 
 // T-P5-07 (core): description of bars ("Describir"): arrangements per shape, description + undo/redo, JSON round trip, use of a
 // profile by bars and the generic section. Behaviour source: docs/research/ui/dialogs_biblioteca_perfiles.md section 2.
@@ -350,4 +353,242 @@ TEST(BarDescription, BarLabelText) {
     s.dims = {0.10};
     round.inlineSection = s;
     EXPECT_EQ(barLabelText(round), "Ø100");
+}
+
+// --- Pilar / Viga / Tirante registers (TK-070 / TK-076; describir_barras.md section 19) ---------------------------------------------
+
+namespace {
+BarDescription pillarDescription() {
+    BarDescription d = defaultDescription(BarMaterialIcon::RolledSteel);
+    d.elementType = ElementType::Pillar;
+    return d;
+}
+BarDescription beamDescription() {
+    BarDescription d = defaultDescription(BarMaterialIcon::RolledSteel);
+    d.elementType = ElementType::Beam;
+    return d;
+}
+}  // namespace
+
+TEST(BarElements, DefaultsAndRangesOfTheOriginal) {
+    const PillarData p;
+    EXPECT_EQ(p.material, PillarMaterial::Concrete);
+    EXPECT_EQ(p.concreteKind, PillarConcreteKind::Rectangular);
+    EXPECT_NEAR(p.widthXM, 0.30, 1e-12);
+    EXPECT_NEAR(p.diameterM, 0.30, 1e-12);
+    const BeamData b;
+    EXPECT_EQ(b.family, BeamFamily::Hung);  // "Vigas descolgadas" by default
+    EXPECT_EQ(b.type, 0);
+    EXPECT_NEAR(b.widthM, 0.30, 1e-12);
+    EXPECT_NEAR(b.flangeLeftM, 0.15, 1e-12);
+    EXPECT_EQ(validatePillarData(p), "");
+    EXPECT_EQ(validateBeamData(b), "");
+    PillarData small = p;
+    small.widthXM = 0.05;
+    EXPECT_EQ(validatePillarData(small), "El valor de 'Dimensión X' debe estar entre 10 y 1000.");
+    small = p;
+    small.concreteKind = PillarConcreteKind::Circular;
+    small.diameterM = 10.5;
+    EXPECT_EQ(validatePillarData(small), "El valor de 'Diámetro' debe estar entre 10 y 1000.");
+    BeamData thin;
+    thin.widthM = 0.04;
+    EXPECT_EQ(validateBeamData(thin), "El valor de 'Anchura' debe estar entre 5 y 500.");
+}
+
+TEST(BarElements, BeamFamilyTypesFieldsAndBelowSlabCheck) {
+    EXPECT_EQ(beamTypeCount(BeamFamily::Flat), 4);
+    EXPECT_EQ(beamTypeCount(BeamFamily::Hung), 8);
+    EXPECT_EQ(beamTypeCount(BeamFamily::Lattice), 5);
+    EXPECT_EQ(beamTypeCount(BeamFamily::Prestressed), 4);
+    EXPECT_EQ(beamTypeCount(BeamFamily::Steel), 0);
+    EXPECT_EQ(beamTypeCount(BeamFamily::Timber), 0);
+    // «Viga bajo forjado» (#56456): only hung type 0, lattice type 4, steel and timber (REA, FUN_18005a5d0 / FUN_180059d40)
+    for (int type = 0; type < 8; ++type) EXPECT_EQ(beamBelowSlabOffered(BeamFamily::Hung, type), type == 0);
+    for (int type = 0; type < 5; ++type) EXPECT_EQ(beamBelowSlabOffered(BeamFamily::Lattice, type), type == 4);
+    EXPECT_FALSE(beamBelowSlabOffered(BeamFamily::Flat, 0));
+    EXPECT_FALSE(beamBelowSlabOffered(BeamFamily::Prestressed, 0));
+    EXPECT_TRUE(beamBelowSlabOffered(BeamFamily::Steel, 0));
+    EXPECT_TRUE(beamBelowSlabOffered(BeamFamily::Timber, 0));
+    BeamData b;
+    b.belowSlab = true;
+    EXPECT_TRUE(beamIsBelowSlab(b));
+    b.type = 1;  // a type without the box reads false whatever is stored (svseccion_es_viga_bajo_forjado)
+    EXPECT_FALSE(beamIsBelowSlab(b));
+    // fields: the rectangular hung beam shows Anchura and Canto only (measured)
+    EXPECT_EQ(beamFields(BeamFamily::Hung, 0), (std::vector<BeamField>{BeamField::Width, BeamField::Depth}));
+    EXPECT_EQ(beamFields(BeamFamily::Hung, 7), (std::vector<BeamField>{BeamField::Width, BeamField::DepthStart, BeamField::DepthEnd}));
+    EXPECT_TRUE(beamFields(BeamFamily::Steel, 0).empty());
+}
+
+TEST(BarElements, BeamValidationsOnAccepting) {
+    BeamData b;
+    b.type = 3;  // hung 'T'
+    b.depthM = 0.30;
+    b.flangeDepthM = 0.30;  // equal fails too (#157403: depth - flange depth < 0.0001)
+    EXPECT_EQ(validateBeamData(b), "El canto del ala (30.0 cm) no puede ser mayor que el canto del alma (30.0 cm).");
+    b.flangeDepthM = 0.15;
+    EXPECT_EQ(validateBeamData(b), "");
+    b.type = 6;  // inverted 'T'
+    b.flangeDepthM = 0.40;
+    EXPECT_NE(validateBeamData(b), "");
+    b.type = 4;  // no check for the other types
+    EXPECT_EQ(validateBeamData(b), "");
+    b.type = 7;  // variable depth: initial and final must differ (#404312)
+    b.depthStartM = b.depthEndM = 0.30;
+    EXPECT_EQ(validateBeamData(b), "Los valores 'Canto inicial' y 'Canto final' deben ser diferentes.");
+    b.depthEndM = 0.40;
+    EXPECT_EQ(validateBeamData(b), "");
+}
+
+TEST(BarElements, MixedPillarProfileMustFitInTheConcrete) {
+    PillarData p;
+    p.material = PillarMaterial::Mixed;
+    p.widthXM = p.widthYM = 0.30;
+    EXPECT_EQ(validatePillarData(p, 0.20, 0.10), "");
+    EXPECT_EQ(validatePillarData(p, 0.40, 0.10), "El perfil metálico no está contenido dentro de la sección de hormigón.");
+    p.mixedKind = MixedPillarKind::CircularEmbeddedProfile;
+    p.diameterM = 0.30;
+    EXPECT_EQ(validatePillarData(p, 0.25, 0.25), "El perfil metálico no está contenido dentro de la sección de hormigón.");  // diagonal 0.354
+}
+
+TEST(BarElements, ProjectionOntoTheIconModel) {
+    // Pilar, concrete: a rectangular concrete section, labelled as the original labels it
+    BarDescription pillar = pillarDescription();
+    pillar.pillar.widthXM = 0.40;
+    pillar.pillar.widthYM = 0.25;
+    const auto projected = projectedDescription(pillar);
+    ASSERT_TRUE(projected.has_value());
+    EXPECT_EQ(projected->materialIcon, BarMaterialIcon::Concrete);
+    EXPECT_EQ(barLabelText(pillar), "40 cm x 25 cm");
+    pillar.pillar.concreteKind = PillarConcreteKind::Circular;
+    EXPECT_EQ(projectedDescription(pillar)->inlineSection->kind, ShapeKind::ConcreteCircular);
+    // steel pillar: the profile of the register
+    pillar.pillar.material = PillarMaterial::Steel;
+    EXPECT_EQ(projectedDescription(pillar)->materialIcon, BarMaterialIcon::RolledSteel);
+    EXPECT_EQ(barLabelText(pillar), "IPE 80");
+    // mixed: not resolvable yet
+    pillar.pillar.material = PillarMaterial::Mixed;
+    EXPECT_FALSE(isElementResolvable(pillar));
+    EXPECT_EQ(validateDescription(pillar, ProfileLibrary{}), kNotAvailableText);
+
+    BarDescription beam = beamDescription();
+    beam.beam.type = 0;  // hung rectangular
+    beam.beam.widthM = 0.25;
+    beam.beam.depthM = 0.50;
+    ASSERT_TRUE(isElementResolvable(beam));
+    EXPECT_EQ(barLabelText(beam), "25 cm x 50 cm");
+    beam.beam.type = 7;
+    beam.beam.depthStartM = 0.5;
+    beam.beam.depthEndM = 0.3;
+    EXPECT_EQ(projectedDescription(beam)->inlineSection->kind, ShapeKind::ConcreteRectangularVariable);
+    beam.beam.type = 3;  // 'T' beams need a shape the clone does not have
+    EXPECT_FALSE(isElementResolvable(beam));
+    beam.beam.family = BeamFamily::Lattice;
+    beam.beam.type = 0;
+    EXPECT_FALSE(isElementResolvable(beam));
+    // tie: no module
+    BarDescription tie = defaultDescription();
+    tie.tieSelected = true;
+    EXPECT_FALSE(isElementResolvable(tie));
+    EXPECT_EQ(validateDescription(tie, ProfileLibrary{}), kNotAvailableText);
+}
+
+TEST(BarElements, EveryRegisterIsKeptWhenTheTypeChanges) {
+    BarDescription d = defaultDescription(BarMaterialIcon::Generic);
+    d.pillar.widthXM = 0.5;
+    d.beam.widthM = 0.4;
+    d.tie.shape = 0;
+    d.elementType = ElementType::Pillar;
+    d.elementType = ElementType::Beam;
+    d.elementType = ElementType::Generic;
+    EXPECT_NEAR(d.pillar.widthXM, 0.5, 1e-12);
+    EXPECT_NEAR(d.beam.widthM, 0.4, 1e-12);
+    EXPECT_EQ(d.materialIcon, BarMaterialIcon::Generic);
+    // the solver sees only the active register: generic
+    EXPECT_EQ(projectedDescription(d)->materialIcon, BarMaterialIcon::Generic);
+}
+
+TEST(BarElements, DescribingPillarsAndBeamsGeneratesTheirSections) {
+    Fixture f;
+    BarDescription pillar = pillarDescription();
+    pillar.pillar.widthXM = 0.40;
+    pillar.pillar.widthYM = 0.30;
+    ASSERT_EQ(describeBars(f.project, f.stack, {f.bars[0]}, pillar, false), "");
+    const Bar* bar = f.project.structure.findBar(f.bars[0]);
+    const CrossSection* cs = f.project.structure.findSection(bar->sectionId);
+    ASSERT_NE(cs, nullptr);
+    EXPECT_NEAR(cs->areaM2, 0.12, 1e-12);
+    EXPECT_EQ(cs->kind, MaterialKind::Concrete);
+    EXPECT_EQ(f.project.structure.findMaterial(bar->materialId)->kind, MaterialKind::Concrete);
+    EXPECT_EQ(descriptionOfBar(f.project, f.bars[0])->elementType, ElementType::Pillar);
+    // not resolvable registers are refused and nothing is pushed
+    BarDescription tie = defaultDescription();
+    tie.tieSelected = true;
+    const std::size_t before = f.stack.count();
+    EXPECT_EQ(describeBars(f.project, f.stack, {f.bars[1]}, tie, false), kNotAvailableText);
+    EXPECT_EQ(f.stack.count(), before);
+    // steel beam: the library profile
+    BarDescription beam = beamDescription();
+    beam.beam.family = BeamFamily::Steel;
+    beam.beam.seriesRef = "HEA";
+    ASSERT_NE(f.project.profileLibrary.find("HEA"), nullptr);
+    beam.beam.profileRef = f.project.profileLibrary.find("HEA")->profiles.front().reference;
+    beam.beam.shape = ShapeKind::IParallel;
+    ASSERT_EQ(describeBars(f.project, f.stack, {f.bars[1]}, beam, false), "");
+    EXPECT_EQ(barDescriptionText(f.project, f.bars[1]), beam.beam.profileRef + " (" + f.project.profiles.hotRolledSteel + ")");
+    beam.beam.profileRef = "HEA 999";
+    EXPECT_NE(describeBars(f.project, f.stack, {f.bars[1]}, beam, false), "");  // the profile must exist in the library
+}
+
+TEST(BarElements, JsonRoundTripKeepsAllRegisters) {
+    Fixture f;
+    BarDescription stored = pillarDescription();
+    stored.pillar.mixedKind = MixedPillarKind::CircularTube;  // kept although the concrete register is the active one
+    stored.pillar.widthXM = 0.45;
+    stored.beam.family = BeamFamily::Lattice;
+    stored.beam.type = 4;
+    stored.beam.belowSlab = true;
+    stored.beam.depthStartM = 0.55;
+    stored.tie.shape = 3;
+    stored.tie.seriesRef = "R";
+    stored.tie.profileRef = "R 10";
+    ASSERT_EQ(describeBars(f.project, f.stack, {f.bars[0]}, stored, false), "");
+    const std::string text = project_json::dumpSection(f.project, "bar_descriptions");
+    Project loaded;
+    project_json::loadSection(loaded, "bar_descriptions", text);
+    ASSERT_EQ(loaded.barDescriptions.items.size(), 1u);
+    const BarDescription& back = loaded.barDescriptions.items.front();
+    EXPECT_EQ(back.pillar, stored.pillar);
+    EXPECT_EQ(back.beam, stored.beam);
+    EXPECT_EQ(back.tie, stored.tie);
+    EXPECT_EQ(back.elementType, ElementType::Pillar);
+    EXPECT_FALSE(back.tieSelected);
+    // files saved before the registers existed load with the defaults
+    Fixture g;
+    ASSERT_EQ(describeBars(g.project, g.stack, {g.bars[0]}, defaultDescription(BarMaterialIcon::Generic), false), "");
+    nlohmann::json stripped = nlohmann::json::parse(project_json::dumpSection(g.project, "bar_descriptions"));
+    for (auto& item : stripped["items"])
+        for (const char* key : {"pillar", "beam", "tie", "tieSelected"}) item.erase(key);
+    Project q;
+    project_json::loadSection(q, "bar_descriptions", stripped.dump());
+    EXPECT_EQ(q.barDescriptions.items.front().pillar, PillarData{});
+    EXPECT_EQ(q.barDescriptions.items.front().beam, BeamData{});
+    EXPECT_EQ(q.barDescriptions.items.front().tie, TieData{});
+}
+
+TEST(BarElements, TieDocumentFollowsTheOriginalOrder) {
+    const auto& blocks = tieDocument();
+    ASSERT_FALSE(blocks.empty());
+    EXPECT_EQ(blocks.front().kind, TieBlockKind::Title);
+    EXPECT_EQ(blocks.front().text, "CÁLCULO DE TIRANTES EN CYPE 3D");
+    int figures = 0, items = 0;
+    for (const TieBlock& b : blocks) {
+        if (b.kind == TieBlockKind::FigurePlaceholder) ++figures;
+        if (b.kind == TieBlockKind::ListItem) ++items;
+        EXPECT_EQ(b.text.find("%s"), std::string::npos) << b.id;  // every placeholder is filled
+    }
+    EXPECT_EQ(items, 7);  // 3 limitations + 4 steps
+    EXPECT_GE(figures, 1);
+    for (const TieBlock& b : blocks)
+        if (b.id == 64096) EXPECT_NE(b.text.find("20 %"), std::string::npos);  // #64096 carries the 20 % limit
 }

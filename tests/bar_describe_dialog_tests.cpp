@@ -10,9 +10,12 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSvgRenderer>
+#include <QTextBrowser>
 #include <QToolButton>
 
 #include "BarDescribeDialog.h"
+#include "DescribePictograms.h"
 #include "core/describir_catalogue.h"
 #include "core/predefined_profiles.h"
 
@@ -619,37 +622,263 @@ TEST(BarDescribeDialog, ToolButtonsAreNotTabStopsAndOrderFollowsTheRule) {
     EXPECT_EQ(next, d->materialButton(BarMaterialIcon::RolledSteel));
 }
 
-TEST(BarDescribeDialog, TieColumnAndBeamTypesAreNotYetApplicable) {
+TEST(BarDescribeDialog, TieTypeIsRefusedOnAcceptingButKeepsItsPage) {
     Sinks sinks;
     auto d = make();
     d->typeRadio(1)->click();  // Tirante
     EXPECT_EQ(d->typeIndex(), 1);
+    EXPECT_TRUE(d->entries()[0].description.tieSelected);
     d->accept();
-    EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
+    EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");  // no tie module yet (TK-081)
     EXPECT_NE(d->result(), QDialog::Accepted);
+    // the page keeps its register: the shape icons, series and profile, and the static document
+    d->tieShapeButtons()[3]->click();  // Redondo macizo
+    EXPECT_EQ(d->entries()[0].description.tie.seriesRef, "R");
+    EXPECT_EQ(d->entries()[0].description.tie.profileRef, d->tieProfileCombo()->currentText());
+    d->tieProfileCombo()->setCurrentIndex(2);
+    EXPECT_EQ(d->entries()[0].description.tie.profileRef, d->tieProfileCombo()->currentText());
     sinks.warnings.clear();
-    d->typeRadio(2)->click();  // Pilar
-    d->accept();
-    EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
-    sinks.warnings.clear();
-    d->typeRadio(0)->click();  // back to Generico: accepted
+    d->typeRadio(0)->click();  // back to Generico: accepted, the tie register is kept
     d->accept();
     EXPECT_TRUE(sinks.warnings.isEmpty());
     EXPECT_EQ(d->result(), QDialog::Accepted);
+    EXPECT_FALSE(d->entries()[0].description.tieSelected);
+    EXPECT_EQ(d->entries()[0].description.tie.shape, 3);
 }
 
-TEST(BarDescribeDialog, PillarAndBeamPagesCarryTheMeasuredControls) {
+TEST(BarDescribeDialog, TieDocumentViewerShowsTheTextOfTheOriginal) {
     Sinks sinks;
-    const auto d = make();
+    auto d = make();
+    d->typeRadio(1)->click();
+    ASSERT_NE(d->tieDocumentView(), nullptr);
+    const QString text = d->tieDocumentView()->toPlainText();
+    EXPECT_TRUE(text.contains("CÁLCULO DE TIRANTES EN CYPE 3D"));
+    EXPECT_TRUE(text.contains("Aplicación del método"));                     // #64099
+    EXPECT_TRUE(text.contains("menor que el 20 % del área del resto"));      // #64096 with its 20 %
+    EXPECT_TRUE(text.contains("Se anula el axil del tirante comprimido."));  // #64102
+}
+
+TEST(BarDescribeDialog, PillarPageMaterialsTypesAndFields) {
+    Sinks sinks;
+    auto d = make();
     d->typeRadio(2)->click();
+    EXPECT_TRUE(d->entries()[0].description.elementType == ElementType::Pillar);
+    ASSERT_EQ(d->pillarMaterialButtons().size(), 3);
+    EXPECT_EQ(d->pillarMaterialButtons()[0]->toolTip(), "Hormigón armado");
+    EXPECT_EQ(d->pillarMaterialButtons()[1]->toolTip(), "Metálico");
+    EXPECT_EQ(d->pillarMaterialButtons()[2]->toolTip(), "Sección mixta");
+    EXPECT_TRUE(d->pillarMaterialButtons()[0]->isChecked());
+    ASSERT_EQ(d->pillarConcreteButtons().size(), 2);
+    EXPECT_EQ(d->pillarConcreteButtons()[0]->toolTip(), "Rectangular");
+    EXPECT_EQ(d->pillarConcreteButtons()[1]->toolTip(), "Circular");
     EXPECT_EQ(d->field("pillarX")->text(), "30");
     EXPECT_EQ(d->field("pillarY")->text(), "30");
+    EXPECT_TRUE(d->field("pillarX")->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->field("pillarDiameter")->isVisibleTo(d.get()));
     d->field("pillarX")->setText("5");
     EXPECT_FALSE(d->field("pillarX")->commit());
     EXPECT_EQ(sinks.warnings.value(0), "El valor de 'Dimensión X' debe estar entre 10 y 1000.");
+    d->field("pillarX")->setText("45");
+    EXPECT_TRUE(d->field("pillarX")->commit());
+    EXPECT_NEAR(d->entries()[0].description.pillar.widthXM, 0.45, 1e-12);
+    // circular: one field "Diámetro" with the same range and default
+    d->pillarConcreteButtons()[1]->click();
+    EXPECT_EQ(d->entries()[0].description.pillar.concreteKind, PillarConcreteKind::Circular);
+    EXPECT_TRUE(d->field("pillarDiameter")->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->field("pillarX")->isVisibleTo(d.get()));
+    EXPECT_EQ(d->field("pillarDiameter")->text(), "30");
+    EXPECT_EQ(d->field("pillarDiameter")->spec().name, "Diámetro");
+    sinks.warnings.clear();
+    d->accept();  // a concrete pillar resolves: accepted
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(d->result(), QDialog::Accepted);
+    // the register of the generic page is untouched
+    EXPECT_EQ(d->entries()[0].description.profileRef, "IPE 80");
+    EXPECT_NEAR(d->entries()[0].description.pillar.widthXM, 0.45, 1e-12);  // and so is the rectangular one
+}
+
+TEST(BarDescribeDialog, PillarSteelAndMixedPages) {
+    Sinks sinks;
+    auto d = make();
+    d->typeRadio(2)->click();
+    d->pillarMaterialButtons()[1]->click();  // Metalico: selector of series and profile
+    EXPECT_EQ(d->entries()[0].description.pillar.material, PillarMaterial::Steel);
+    EXPECT_FALSE(d->field("pillarX")->isVisibleTo(d.get()));
+    EXPECT_GT(d->pillarPicker().series->count(), 0);
+    EXPECT_EQ(d->pillarPicker().profile->currentText(), "IPE 80");
+    d->pillarPicker().series->setCurrentIndex(d->pillarPicker().series->findData("HEA"));
+    EXPECT_EQ(d->entries()[0].description.pillar.seriesRef, "HEA");
+    EXPECT_EQ(d->entries()[0].description.pillar.profileRef, d->pillarPicker().profile->currentText());
+    d->accept();
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(d->result(), QDialog::Accepted);
+
+    auto m = make();
+    m->typeRadio(2)->click();
+    m->pillarMaterialButtons()[2]->click();  // Seccion mixta: six icons
+    ASSERT_EQ(m->pillarMixedButtons().size(), 6);
+    const QStringList tips = {"Pilar rectangular con perfil embebido",
+                              "Cajón rectangular de chapas de acero laminado, relleno de hormigón",
+                              "Tubo rectangular de acero conformado, relleno de hormigón",
+                              "Tubo cuadrado de acero conformado, relleno de hormigón",
+                              "Pilar circular con perfil embebido",
+                              "Tubo circular de acero conformado, relleno de hormigón"};
+    for (int i = 0; i < 6; ++i) EXPECT_EQ(m->pillarMixedButtons()[i]->toolTip(), tips[i]);
+    EXPECT_TRUE(m->pillarMixedButtons()[0]->isChecked());
+    // a profile larger than the concrete section is refused (#75573, PROVISIONAL trigger)
+    m->mixedPicker().series->setCurrentIndex(m->mixedPicker().series->findData("HEA"));
+    m->mixedPicker().profile->setCurrentIndex(m->mixedPicker().profile->count() - 1);  // the largest HEA
+    sinks.warnings.clear();
+    m->accept();
+    EXPECT_EQ(sinks.warnings.value(0), "El perfil metálico no está contenido dentro de la sección de hormigón.");
+    // a small one fits, but the composite section itself cannot be resolved yet
+    m->mixedPicker().profile->setCurrentIndex(0);
+    sinks.warnings.clear();
+    m->accept();
+    EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
+    m->pillarMixedButtons()[4]->click();  // circular with embedded profile: diameter
+    EXPECT_TRUE(m->field("pillarDiameter")->isVisibleTo(m.get()));
+}
+
+TEST(BarDescribeDialog, BeamPageFamiliesTypesAndFields) {
+    Sinks sinks;
+    auto d = make();
     d->typeRadio(3)->click();
+    EXPECT_TRUE(d->entries()[0].description.elementType == ElementType::Beam);
+    ASSERT_EQ(d->beamFamilyButtons().size(), 6);
+    const QStringList families = {"Vigas planas", "Vigas descolgadas", "Vigas de celosía", "Vigas pretensadas", "Vigas metálicas", "Vigas de madera"};
+    for (int i = 0; i < 6; ++i) EXPECT_EQ(d->beamFamilyButtons()[i]->toolTip(), families[i]);
+    EXPECT_TRUE(d->beamFamilyButtons()[1]->isChecked());  // descolgadas
+    ASSERT_EQ(d->beamTypeButtons().size(), 8);
+    EXPECT_EQ(d->beamTypeButtons()[0]->toolTip(), "Viga descolgada rectangular");
+    EXPECT_EQ(d->beamTypeButtons()[7]->toolTip(), "Viga descolgada rectangular con sección variable");
+    for (int i = 0; i < 8; ++i) EXPECT_TRUE(d->beamTypeButtons()[i]->isVisibleTo(d.get()));
+    // rectangular hung beam (measured): Anchura (b) and Canto (a) in cm with one decimal, and the check box
     EXPECT_EQ(d->field("beamB")->text(), "30.0");
+    EXPECT_EQ(d->field("beamA")->text(), "30.0");
+    EXPECT_TRUE(d->field("beamB")->isVisibleTo(d.get()));
+    EXPECT_TRUE(d->field("beamA")->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->field("beamI")->isVisibleTo(d.get()));
     EXPECT_EQ(d->field("beamI")->text(), "15.0");
+    EXPECT_TRUE(d->beamBelowSlabCheck()->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->beamBelowSlabCheck()->isChecked());
+    // ranges 5 - 500 cm
+    d->field("beamB")->setText("4");
+    EXPECT_FALSE(d->field("beamB")->commit());
+    EXPECT_EQ(sinks.warnings.value(0), "El valor de 'Anchura (b)' debe estar entre 5.0 y 500.0.");
+    d->field("beamB")->setText("500");
+    EXPECT_TRUE(d->field("beamB")->commit());
+    EXPECT_NEAR(d->entries()[0].description.beam.widthM, 5.0, 1e-12);
+    d->beamBelowSlabCheck()->setChecked(true);
+    EXPECT_TRUE(d->entries()[0].description.beam.belowSlab);
+    // 'T' types show the flanges (and the check box is gone)
+    d->beamTypeButtons()[3]->click();
+    EXPECT_TRUE(d->field("beamI")->isVisibleTo(d.get()));
+    EXPECT_TRUE(d->field("beamD")->isVisibleTo(d.get()));
+    EXPECT_TRUE(d->field("beamFlangeDepth")->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->beamBelowSlabCheck()->isVisibleTo(d.get()));
+    // variable depth shows the initial and final depths
+    d->beamTypeButtons()[7]->click();
+    EXPECT_TRUE(d->field("beamDepthStart")->isVisibleTo(d.get()));
+    EXPECT_TRUE(d->field("beamDepthEnd")->isVisibleTo(d.get()));
+    EXPECT_FALSE(d->field("beamA")->isVisibleTo(d.get()));
+    // the other families have their own number of types
+    d->beamFamilyButtons()[0]->click();
+    int visible = 0;
+    for (QToolButton* b : d->beamTypeButtons()) visible += b->isVisibleTo(d.get()) ? 1 : 0;
+    EXPECT_EQ(visible, 4);
+    EXPECT_EQ(d->beamTypeButtons()[1]->toolTip(), "Viga plana en 'T'");
+    d->beamFamilyButtons()[2]->click();
+    visible = 0;
+    for (QToolButton* b : d->beamTypeButtons()) visible += b->isVisibleTo(d.get()) ? 1 : 0;
+    EXPECT_EQ(visible, 5);
+    d->beamTypeButtons()[4]->click();  // lattice type 4 = hung rectangular: the check box is back
+    EXPECT_TRUE(d->beamBelowSlabCheck()->isVisibleTo(d.get()));
+}
+
+TEST(BarDescribeDialog, BeamValidationsOnAcceptingAndSteelTimberFamilies) {
+    Sinks sinks;
+    auto d = make();
+    d->typeRadio(3)->click();
+    d->beamTypeButtons()[3]->click();  // hung 'T'
+    d->field("beamFlangeDepth")->setText("30");
+    d->field("beamFlangeDepth")->commit();
+    d->accept();
+    EXPECT_EQ(sinks.warnings.value(0), "El canto del ala (30.0 cm) no puede ser mayor que el canto del alma (30.0 cm).");  // #157403
+    EXPECT_NE(d->result(), QDialog::Accepted);
+    d->beamTypeButtons()[7]->click();  // variable depth with equal depths (defaults)
+    sinks.warnings.clear();
+    d->accept();
+    EXPECT_EQ(sinks.warnings.value(0), "Los valores 'Canto inicial' y 'Canto final' deben ser diferentes.");  // #404312
+    d->field("beamDepthEnd")->setText("50");
+    d->field("beamDepthEnd")->commit();
+    sinks.warnings.clear();
+    d->accept();
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(d->result(), QDialog::Accepted);
+
+    // steel and timber beams: profile selector and the check box «Viga bajo forjado»
+    auto s = make();
+    s->typeRadio(3)->click();
+    s->beamFamilyButtons()[4]->click();
+    EXPECT_TRUE(s->beamPicker().host->isVisibleTo(s.get()));
+    EXPECT_TRUE(s->beamBelowSlabCheck()->isVisibleTo(s.get()));
+    EXPECT_FALSE(s->beamTypeButtons()[0]->isVisibleTo(s.get()));
+    EXPECT_EQ(s->beamPicker().profile->currentText(), "IPE 80");
+    s->beamFamilyButtons()[5]->click();  // madera: timber series of the library
+    EXPECT_TRUE(s->beamBelowSlabCheck()->isVisibleTo(s.get()));
+    EXPECT_GT(s->beamPicker().series->count(), 0);
+    sinks.warnings.clear();
+    s->accept();
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(s->entries()[0].description.beam.family, BeamFamily::Timber);
+    EXPECT_FALSE(s->entries()[0].description.beam.timberSeriesRef.empty());
+    // the T / lattice families cannot be applied yet
+    auto t = make();
+    t->typeRadio(3)->click();
+    t->beamFamilyButtons()[2]->click();
+    sinks.warnings.clear();
+    t->accept();
+    EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
+}
+
+TEST(BarDescribeDialog, ElementTypesTheNormDoesNotContemplateAreConvertedToGeneric) {
+    Sinks sinks;
+    BarDescription pillar = defaultDescription();
+    pillar.elementType = ElementType::Pillar;
+    BarDescription beam = defaultDescription();
+    beam.elementType = ElementType::Beam;
+    BarDescribeDialog d({{pillar, {1}}, {beam, {2}}}, ProfileLibrary{}, LengthUnit::Centimetres);
+    d.setElementTypesAvailable(false, false);
+    EXPECT_TRUE(d.typeRadio(2)->isHidden());
+    EXPECT_TRUE(d.typeRadio(3)->isHidden());
+    EXPECT_FALSE(d.typeRadio(0)->isHidden());
+    ASSERT_EQ(sinks.warnings.size(), 2);
+    EXPECT_TRUE(sinks.warnings[0].startsWith("La edición de pilares no está disponible para la configuración de normas seleccionada."));  // #61376
+    EXPECT_TRUE(sinks.warnings[1].startsWith("La edición de vigas no está disponible para la configuración de normas seleccionada."));   // #61375
+    EXPECT_EQ(d.entries()[0].description.elementType, ElementType::Generic);
+    EXPECT_EQ(d.entries()[1].description.elementType, ElementType::Generic);
+    EXPECT_EQ(d.originalEntries()[0].description.elementType, ElementType::Generic);
+}
+
+TEST(BarDescribeDialog, PictogramsAreValidSvgDocuments) {
+    const auto valid = [](const QString& svg) {
+        QSvgRenderer renderer(svg.toUtf8());
+        return renderer.isValid();
+    };
+    for (PillarMaterial m : {PillarMaterial::Concrete, PillarMaterial::Steel, PillarMaterial::Mixed}) EXPECT_TRUE(valid(pillarMaterialSvg(m)));
+    for (PillarConcreteKind k : {PillarConcreteKind::Rectangular, PillarConcreteKind::Circular}) EXPECT_TRUE(valid(pillarConcreteSvg(k)));
+    for (int k = 0; k < 6; ++k) EXPECT_TRUE(valid(mixedPillarSvg(static_cast<MixedPillarKind>(k))));
+    for (BeamFamily f : {BeamFamily::Flat, BeamFamily::Hung, BeamFamily::Lattice, BeamFamily::Prestressed, BeamFamily::Steel, BeamFamily::Timber}) {
+        EXPECT_TRUE(valid(beamFamilySvg(f)));
+        for (int t = 0; t < beamTypeCount(f); ++t) {
+            EXPECT_TRUE(valid(beamTypeSvg(f, t))) << static_cast<int>(f) << "/" << t;
+            EXPECT_FALSE(beamTypePictogram(f, t, 40).isNull());
+        }
+    }
+    // distinct types draw distinct pictures
+    EXPECT_NE(beamTypeSvg(BeamFamily::Hung, 0), beamTypeSvg(BeamFamily::Hung, 3));
+    EXPECT_NE(mixedPillarSvg(MixedPillarKind::RectangularEmbeddedProfile), mixedPillarSvg(MixedPillarKind::CircularTube));
 }
 
 TEST(BarDescribeDialog, AcceptValidatesTheDescription) {

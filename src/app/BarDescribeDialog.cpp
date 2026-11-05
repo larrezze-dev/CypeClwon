@@ -23,12 +23,15 @@
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QStyle>
+#include <QTextBrowser>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <cmath>
 
+#include "DescribePictograms.h"
 #include "core/describir_catalogue.h"
+#include "core/tie_document.h"
 #include "core/predefined_profiles.h"
 #include "core/project_settings.h"
 #include "core/section_properties.h"
@@ -258,6 +261,12 @@ int firstShapedSlot(BarMaterialIcon icon) {
     return 0;
 }
 
+/// Material icon the solver sees (Pilar / Viga registers project onto it; Generic: the icon itself; Tirante: the generic one).
+BarMaterialIcon projectedIcon(const BarDescription& d) {
+    const auto projected = projectedDescription(d);
+    return projected ? projected->materialIcon : d.materialIcon;
+}
+
 bool isTimberInline(const BarDescription& d) { return d.materialIcon == BarMaterialIcon::Timber && d.seriesRef.empty(); }
 
 QString arrangementText(Arrangement a) {
@@ -388,12 +397,20 @@ void warn(QWidget* parent, const QString& text) { profileMessageSink().warn(pare
 
 // Yellow drawing area of the Pilar / Viga pages (the original shows a picture of the section with its dimensions on a pale yellow
 // background; the pictures are bitmaps, here a schematic of the rectangle with the same dimension marks).
+enum class SketchShape { Rect, Circle, Tee, TeeInverted, FlangeRight, FlangeLeft, Variable };
+
 class SectionSketch : public QWidget {
 public:
     SectionSketch(const QString& horizontalLabel, const QString& verticalLabel, QSize size, QWidget* parent)
         : QWidget(parent), m_h(horizontalLabel), m_v(verticalLabel) {
         setFixedSize(size);
     }
+    void setShape(SketchShape shape) {
+        if (m_shape == shape) return;
+        m_shape = shape;
+        update();
+    }
+    SketchShape shape() const { return m_shape; }
 
 protected:
     void paintEvent(QPaintEvent*) override {
@@ -403,7 +420,21 @@ protected:
         const QRectF box(width() * 0.17, height() * 0.1, width() * 0.6, height() * 0.5);
         p.setPen(QPen(Qt::black, 1.2));
         p.setBrush(QColor(0xC4, 0xC4, 0xC4));
-        p.drawRect(box);
+        const auto at = [&](double x, double y) { return QPointF(box.left() + x * box.width(), box.top() + y * box.height()); };
+        const auto polygon = [&](std::initializer_list<QPointF> points) { p.drawPolygon(QPolygonF(QList<QPointF>(points))); };
+        switch (m_shape) {
+        case SketchShape::Rect: p.drawRect(box); break;
+        case SketchShape::Circle: p.drawEllipse(box.adjusted(box.width() * 0.15, 0, -box.width() * 0.15, 0)); break;
+        case SketchShape::Tee:
+            polygon({at(0, 0), at(1, 0), at(1, 0.3), at(0.7, 0.3), at(0.7, 1), at(0.3, 1), at(0.3, 0.3), at(0, 0.3)});
+            break;
+        case SketchShape::TeeInverted:
+            polygon({at(0.3, 0), at(0.7, 0), at(0.7, 0.7), at(1, 0.7), at(1, 1), at(0, 1), at(0, 0.7), at(0.3, 0.7)});
+            break;
+        case SketchShape::FlangeRight: polygon({at(0, 0), at(1, 0), at(1, 0.3), at(0.45, 0.3), at(0.45, 1), at(0, 1)}); break;
+        case SketchShape::FlangeLeft: polygon({at(0, 0), at(1, 0), at(1, 1), at(0.55, 1), at(0.55, 0.3), at(0, 0.3)}); break;
+        case SketchShape::Variable: polygon({at(0, 0), at(1, 0), at(1, 0.55), at(0, 1)}); break;
+        }
         p.setPen(QPen(QColor(0x30, 0x30, 0xC8), 1));
         QFont f = p.font();
         f.setBold(true);
@@ -422,10 +453,20 @@ protected:
 
 private:
     QString m_h, m_v;
+    SketchShape m_shape = SketchShape::Rect;
 };
+
+QToolButton* pixmapButton(const QPixmap& pm, QSize box, const QString& tip, QWidget* parent);  // defined below
 
 QToolButton* wideIconButton(Glyph glyph, QSize box, const QString& tip, QWidget* parent) {
     auto* b = iconButton(makePixmap(glyph, std::min(box.width(), box.height()) - 12, QColor(0xF7, 0xF7, 0xF7), QColor(0x9A, 0x9A, 0x9A)), 70, tip, parent);
+    b->setFixedSize(box);
+    return b;
+}
+
+/// Tile of a rendered pictogram (Pilar and Viga pages).
+QToolButton* pixmapButton(const QPixmap& pm, QSize box, const QString& tip, QWidget* parent) {
+    auto* b = iconButton(pm, 70, tip, parent);
     b->setFixedSize(box);
     return b;
 }
@@ -756,7 +797,7 @@ BarDescribeDialog::BarDescribeDialog(std::vector<DescribeEntry> entries, const P
     if (m_entries.empty()) m_entries.push_back(DescribeEntry{defaultDescription(), {}});
     m_original = m_entries;
     for (const DescribeEntry& e : m_entries) {
-        const int type = e.description.elementType == ElementType::Pillar ? 2 : e.description.elementType == ElementType::Beam ? 3 : 0;
+        const int type = e.description.tieSelected ? 1 : e.description.elementType == ElementType::Pillar ? 2 : e.description.elementType == ElementType::Beam ? 3 : 0;
         m_typeUi.push_back(type);
         m_typeOriginal.push_back(type);
         int slot = 0;
@@ -1211,6 +1252,98 @@ QWidget* BarDescribeDialog::buildExtraPages() {
     return m_extra;
 }
 
+namespace {
+
+/// Viewer of the document «CÁLCULO DE TIRANTES EN CYPE 3D» (the original embeds the help-document viewer: toolbar with fit / width /
+/// zoom + / zoom - / zoom window, page navigation, "Imprimir..." and a gear). The clone shows the text of the original in a text
+/// browser with working zoom buttons; the four figures are placeholders (not extracted) and printing is not available (TK-081).
+class TieDocumentView : public QFrame {
+public:
+    explicit TieDocumentView(QWidget* parent) : QFrame(parent) {
+        setObjectName(QStringLiteral("tieDocument"));
+        auto* v = new QVBoxLayout(this);
+        v->setContentsMargins(0, 0, 0, 0);
+        v->setSpacing(2);
+        auto* bar = new QHBoxLayout;
+        bar->setContentsMargins(0, 0, 0, 0);
+        const struct { const char* text; const char* tip; int zoom; } buttons[] = {
+            {"⤢", N_("Ajustar a la página"), 0}, {"↔", N_("Ajustar al ancho"), 0}, {"+", N_("Aumentar zoom"), 1}, {"−", N_("Reducir zoom"), -1},
+            {"▭", N_("Zoom de la ventana"), 0}};
+        for (const auto& b : buttons) {
+            auto* button = new QToolButton(this);
+            button->setText(QString::fromUtf8(b.text));
+            button->setToolTip(trc(b.tip));
+            const int step = b.zoom;
+            QObject::connect(button, &QToolButton::clicked, this, [this, step] { zoomBy(step); });
+            bar->addWidget(button);
+        }
+        bar->addSpacing(12);
+        // Only one page: the original's "1 de 3" depends on its four bitmap figures.
+        bar->addWidget(new QLabel(QObject::tr("1 de 1"), this));
+        bar->addStretch(1);
+        auto* print = new QPushButton(QObject::tr("Imprimir..."), this);
+        print->setEnabled(false);  // TK-081
+        print->setToolTip(QObject::tr("Esta función aún no está disponible."));
+        bar->addWidget(print);
+        v->addLayout(bar);
+        m_browser = new QTextBrowser(this);
+        m_browser->setObjectName(QStringLiteral("tieDocumentText"));
+        m_browser->setOpenLinks(false);
+        m_browser->setHtml(html());
+        v->addWidget(m_browser, 1);
+    }
+    QTextBrowser* browser() const { return m_browser; }
+
+private:
+    void zoomBy(int step) {
+        if (step == 0) {  // fit: back to the base size
+            if (m_zoom > 0) m_browser->zoomOut(m_zoom);
+            else if (m_zoom < 0) m_browser->zoomIn(-m_zoom);
+            m_zoom = 0;
+        } else if (m_zoom + step >= -4 && m_zoom + step <= 12) {
+            if (step > 0) m_browser->zoomIn(step);
+            else m_browser->zoomOut(-step);
+            m_zoom += step;
+        }
+    }
+    static QString html() {
+        const auto text = [](const std::string& s) {
+            return QCoreApplication::translate("TieDocument", s.c_str()).toHtmlEscaped();
+        };
+        QString out = QStringLiteral("<html><body style='background:#FFFFFF;'>");
+        bool inList = false;
+        for (const TieBlock& block : tieDocument()) {
+            if (inList && block.kind != TieBlockKind::ListItem) {
+                out += QStringLiteral("</ol>");
+                inList = false;
+            }
+            switch (block.kind) {
+            case TieBlockKind::Title: out += QStringLiteral("<h2 align='center'>%1</h2>").arg(text(block.text)); break;
+            case TieBlockKind::Heading: out += QStringLiteral("<h3>%1</h3>").arg(text(block.text)); break;
+            case TieBlockKind::Paragraph: out += QStringLiteral("<p align='justify'>%1</p>").arg(text(block.text)); break;
+            case TieBlockKind::ListItem:
+                if (!inList) {
+                    out += QStringLiteral("<ol>");
+                    inList = true;
+                }
+                out += QStringLiteral("<li>%1</li>").arg(text(block.text));
+                break;
+            case TieBlockKind::Caption: out += QStringLiteral("<p style='margin-left:24px;'><i>%1</i></p>").arg(text(block.text)); break;
+            case TieBlockKind::FigurePlaceholder:
+                out += QStringLiteral("<p align='center' style='color:#8A8A8A;'>[%1]</p>").arg(QObject::tr("Figura no disponible"));
+                break;
+            }
+        }
+        if (inList) out += QStringLiteral("</ol>");
+        return out + QStringLiteral("</body></html>");
+    }
+
+    QTextBrowser* m_browser = nullptr;
+    int m_zoom = 0;
+};
+
+}  // namespace
+
 QWidget* BarDescribeDialog::buildTiePage() {
     auto* page = new QWidget(this);
     auto* v = new QVBoxLayout(page);
@@ -1231,7 +1364,10 @@ QWidget* BarDescribeDialog::buildTiePage() {
         b->setObjectName(QStringLiteral("tieShape%1").arg(i));
         const int index = i;
         group->addButton(b, i++);
-        connect(b, &QToolButton::clicked, this, [this, index] { selectTieShape(index); });
+        connect(b, &QToolButton::clicked, this, [this, index] {
+            if (m_syncing) return;
+            selectTieShape(index);
+        });
         m_tieButtons.append(b);
         row->addWidget(b);
     }
@@ -1250,6 +1386,11 @@ QWidget* BarDescribeDialog::buildTiePage() {
     m_tieProfile = new QComboBox(page);
     m_tieProfile->setMinimumWidth(104);
     form->addWidget(m_tieProfile, 1, 1);
+    connect(m_tieProfile, &QComboBox::currentIndexChanged, this, [this](int) {
+        if (m_syncing || m_tieProfile->currentIndex() < 0) return;
+        current().tie.profileRef = s8(m_tieProfile->currentText());
+        refreshUsedList();
+    });
     const struct { const char* name; const char* tip; int row; } tieTools[] = {{"new", N_("Nuevo"), 0}, {"edit", N_("Edición del tipo seleccionado."), 0},
                                                                                {"table", N_("Editar la lista de elementos"), 0}, {"info", N_("Propiedades del perfil seleccionado"), 1}};
     int column = 2;
@@ -1261,28 +1402,130 @@ QWidget* BarDescribeDialog::buildTiePage() {
     }
     form->setColumnStretch(5, 1);
     v->addLayout(form);
-    selectTieShape(m_tieShape);
     // The series and profiles of the five tie shapes were transcribed from the captures (single series per shape: L, L, Pletinas, R,
-    // Barras cuadradas). The document "CÁLCULO DE TIRANTES EN CYPE 3D" shown below the combos in the original needs the module of ties,
-    // which is not developed (ticket candidate), so Aceptar stays blocked for this type.
-    auto* note = new QLabel(tr("Los tirantes aún no están disponibles."), page);
-    note->setAlignment(Qt::AlignCenter);
-    v->addWidget(note, 1);
+    // Barras cuadradas). Below them the original shows the static document «CÁLCULO DE TIRANTES EN CYPE 3D» (describir_barras.md
+    // section 19.4). Aceptar stays blocked for this type: the module of ties does not exist (TK-081).
+    auto* viewer = new TieDocumentView(page);
+    m_tieDocument = viewer->browser();
+    v->addWidget(viewer, 1);
     return page;
 }
 
 void BarDescribeDialog::selectTieShape(int index) {
     const auto& shapes = tieShapes();
     if (index < 0 || index >= static_cast<int>(shapes.size())) return;
-    m_tieShape = index;
-    for (int i = 0; i < m_tieButtons.size(); ++i) m_tieButtons[i]->setChecked(i == index);
+    TieData& tie = current().tie;
+    tie.shape = index;
+    if (const ProfileSeries* series = tieSeries(shapes[static_cast<std::size_t>(index)])) {
+        tie.seriesRef = series->reference;
+        tie.profileRef = series->profiles.empty() ? std::string() : series->profiles.front().reference;
+    }
+    updateTiePage();
+    refreshUsedList();
+}
+
+void BarDescribeDialog::updateTiePage() {
+    const auto& shapes = tieShapes();
+    const TieData& tie = current().tie;
+    const bool wasSyncing = m_syncing;
+    m_syncing = true;
+    for (int i = 0; i < m_tieButtons.size(); ++i) m_tieButtons[i]->setChecked(i == tie.shape);
     m_tieSeries->clear();
     m_tieProfile->clear();
-    if (const ProfileSeries* series = tieSeries(shapes[static_cast<std::size_t>(index)])) {
-        m_tieSeries->addItem(q(series->reference));
-        for (const Section& p : series->profiles) m_tieProfile->addItem(q(p.reference));
-    }
+    if (tie.shape >= 0 && tie.shape < static_cast<int>(shapes.size()))
+        if (const ProfileSeries* series = tieSeries(shapes[static_cast<std::size_t>(tie.shape)])) {
+            m_tieSeries->addItem(q(series->reference));
+            for (const Section& p : series->profiles) m_tieProfile->addItem(q(p.reference));
+            const int at = m_tieProfile->findText(q(tie.profileRef));
+            m_tieProfile->setCurrentIndex(at >= 0 ? at : 0);
+        }
+    m_syncing = wasSyncing;
 }
+
+// --- profile selector of the Pilar / Viga pages ------------------------------------------------------------------------------------
+
+ProfilePicker BarDescribeDialog::makePicker(QWidget* parent, const QString& prefix, SectionFamily family) {
+    Q_UNUSED(family)
+    ProfilePicker picker;
+    picker.host = new QWidget(parent);
+    auto* form = new QGridLayout(picker.host);
+    form->setContentsMargins(0, 4, 0, 0);
+    form->setHorizontalSpacing(4);
+    form->addWidget(new QLabel(tr("Serie de perfiles"), picker.host), 0, 0);
+    picker.series = new QComboBox(picker.host);
+    picker.series->setObjectName(prefix + QStringLiteral("Series"));
+    picker.series->setMinimumWidth(120);
+    form->addWidget(picker.series, 0, 1);
+    form->addWidget(new QLabel(tr("Perfil"), picker.host), 1, 0);
+    picker.profile = new QComboBox(picker.host);
+    picker.profile->setObjectName(prefix + QStringLiteral("Profile"));
+    picker.profile->setMinimumWidth(120);
+    form->addWidget(picker.profile, 1, 1);
+    form->setColumnStretch(2, 1);
+    const bool pillar = prefix.startsWith(QLatin1String("pillar")) || prefix.startsWith(QLatin1String("mixed"));
+    connect(picker.series, &QComboBox::currentIndexChanged, this, [this, pillar](int) { onPickerChanged(pillar, true); });
+    connect(picker.profile, &QComboBox::currentIndexChanged, this, [this, pillar](int) { onPickerChanged(pillar, false); });
+    return picker;
+}
+
+void BarDescribeDialog::fillPicker(ProfilePicker& picker, SectionFamily family, const std::string& seriesRef, const std::string& profileRef) {
+    const bool wasSyncing = m_syncing;
+    m_syncing = true;
+    picker.series->clear();
+    picker.profile->clear();
+    const ProfileSeries* chosen = nullptr;
+    for (const ProfileSeries& s : m_scratch.library().series) {
+        if (s.family != family) continue;
+        picker.series->addItem(q(s.reference), q(s.reference));
+        if (s.reference == seriesRef) chosen = &s;
+    }
+    if (chosen) {
+        picker.series->setCurrentIndex(picker.series->findData(q(seriesRef)));
+        for (const Section& p : chosen->profiles) picker.profile->addItem(q(p.reference), q(p.reference));
+        picker.profile->setCurrentIndex(std::max(0, picker.profile->findData(q(profileRef))));
+    } else if (picker.series->count() > 0) {
+        // The register names a series the library does not have (or none): the combos show the first one, the register is left alone.
+        picker.series->setCurrentIndex(0);
+        if (const ProfileSeries* first = m_scratch.library().find(s8(picker.series->currentData().toString())))
+            for (const Section& p : first->profiles) picker.profile->addItem(q(p.reference), q(p.reference));
+        picker.profile->setCurrentIndex(0);
+    }
+    m_syncing = wasSyncing;
+}
+
+void BarDescribeDialog::onPickerChanged(bool pillar, bool seriesChanged) {
+    if (m_syncing) return;
+    // The mixed page and the steel page of the pillar share the register; the picker that fired is the visible one.
+    ProfilePicker& picker = pillar ? (current().pillar.material == PillarMaterial::Mixed ? m_mixedPicker : m_pillarPicker) : m_beamPicker;
+    if (!picker.series || picker.series->currentIndex() < 0) return;
+    const std::string seriesRef = s8(picker.series->currentData().toString());
+    const ProfileSeries* series = m_scratch.library().find(seriesRef);
+    if (!series || series->profiles.empty()) return;
+    std::string profileRef = seriesChanged || picker.profile->currentIndex() < 0 ? series->profiles.front().reference
+                                                                                  : s8(picker.profile->currentData().toString());
+    if (!series->findProfile(profileRef)) profileRef = series->profiles.front().reference;
+    BarDescription& d = current();
+    if (pillar) {
+        d.pillar.seriesRef = seriesRef;
+        d.pillar.profileRef = profileRef;
+        d.pillar.shape = series->kind;
+    } else if (d.beam.family == BeamFamily::Timber) {
+        d.beam.timberSeriesRef = seriesRef;
+        d.beam.timberProfileRef = profileRef;
+        d.beam.timberShape = series->kind;
+    } else {
+        d.beam.seriesRef = seriesRef;
+        d.beam.profileRef = profileRef;
+        d.beam.shape = series->kind;
+    }
+    if (seriesChanged) {
+        if (pillar) updatePillarPage();
+        else updateBeamPage();
+    }
+    refreshUsedList();
+}
+
+// --- Pilar -------------------------------------------------------------------------------------------------------------------------
 
 QWidget* BarDescribeDialog::buildPillarPage() {
     auto* page = new QWidget(this);
@@ -1290,48 +1533,171 @@ QWidget* BarDescribeDialog::buildPillarPage() {
     v->setContentsMargins(0, 0, 0, 0);
     v->setSpacing(4);
     // Measured: "Material" = three 135x70 tiles in thirds of the full width, "Tipo" = two 56x56 tiles in halves, a thin line, then the
-    // drawing (yellow) with the two fields at its right.
-    const auto group = [&](const QString& title, const QStringList& tips, const std::vector<Glyph>& glyphs, QSize box) {
-        v->addWidget(headerBand(title, page));
-        auto* bg = new QButtonGroup(page);
-        QList<QToolButton*> tiles;
-        for (int i = 0; i < tips.size(); ++i) {
-            auto* b = wideIconButton(glyphs[static_cast<std::size_t>(i)], box, tips[i], page);
-            b->setChecked(i == 0);
-            bg->addButton(b, i);
-            tiles.append(b);
+    // drawing (yellow) with the fields at its right (the dimension fields are in cm without decimals).
+    v->addWidget(headerBand(tr("Material"), page));
+    auto* materials = new QButtonGroup(page);
+    const QStringList materialTips = {tr("Hormigón armado"), tr("Metálico"), tr("Sección mixta")};
+    static const PillarMaterial materialValues[] = {PillarMaterial::Concrete, PillarMaterial::Steel, PillarMaterial::Mixed};
+    for (int i = 0; i < 3; ++i) {
+        auto* b = pixmapButton(pillarMaterialPictogram(materialValues[i], 58), QSize(135, 70), materialTips[i], page);
+        b->setObjectName(QStringLiteral("pillarMaterial%1").arg(i));
+        materials->addButton(b, i);
+        m_pillarMaterialButtons.append(b);
+        connect(b, &QToolButton::clicked, this, [this, i] {
+            if (m_syncing) return;
+            current().pillar.material = materialValues[i];
+            updatePillarPage();
+            refreshUsedList();
+            updateTabChain();
+        });
+    }
+    v->addLayout(spreadRow(m_pillarMaterialButtons));
+
+    m_pillarStack = new QStackedWidget(page);
+    // 0: concrete, "Tipo" with the two icons
+    {
+        auto* box = new QWidget(m_pillarStack);
+        auto* bv = new QVBoxLayout(box);
+        bv->setContentsMargins(0, 0, 0, 0);
+        bv->setSpacing(4);
+        bv->addWidget(headerBand(tr("Tipo"), box));
+        auto* kinds = new QButtonGroup(box);
+        const QStringList tips = {tr("Rectangular"), tr("Circular")};
+        static const PillarConcreteKind values[] = {PillarConcreteKind::Rectangular, PillarConcreteKind::Circular};
+        for (int i = 0; i < 2; ++i) {
+            auto* b = pixmapButton(pillarConcretePictogram(values[i], 46), QSize(58, 58), tips[i], box);
+            b->setObjectName(QStringLiteral("pillarConcrete%1").arg(i));
+            kinds->addButton(b, i);
+            m_pillarConcreteButtons.append(b);
+            connect(b, &QToolButton::clicked, this, [this, i] {
+                if (m_syncing) return;
+                current().pillar.concreteKind = values[i];
+                updatePillarPage();
+                refreshUsedList();
+            });
         }
-        v->addLayout(spreadRow(tiles));
-    };
-    group(tr("Material"), {tr("Hormigón armado"), tr("Metálico"), tr("Sección mixta")}, {Glyph::Concrete, Glyph::IBeam, Glyph::BuiltUp}, QSize(135, 70));
-    group(tr("Tipo"), {tr("Rectangular"), tr("Circular")}, {Glyph::Square, Glyph::Round}, QSize(58, 58));
-    auto* line = new QFrame(page);
+        bv->addLayout(spreadRow(m_pillarConcreteButtons));
+        m_pillarStack->addWidget(box);
+    }
+    // 1: steel, selector of series and profile (PROVISIONAL, see ProfilePicker)
+    {
+        auto* box = new QWidget(m_pillarStack);
+        auto* bv = new QVBoxLayout(box);
+        bv->setContentsMargins(0, 0, 0, 0);
+        bv->setSpacing(4);
+        bv->addWidget(headerBand(tr("Selección del perfil"), box));
+        m_pillarPicker = makePicker(box, QStringLiteral("pillar"), SectionFamily::HotRolledSteel);
+        bv->addWidget(m_pillarPicker.host);
+        bv->addStretch(1);
+        m_pillarStack->addWidget(box);
+    }
+    // 2: mixed, six icons (#75576, #75584, #75577, #75583, #75581, #75582) and the embedded-profile selector
+    {
+        auto* box = new QWidget(m_pillarStack);
+        auto* bv = new QVBoxLayout(box);
+        bv->setContentsMargins(0, 0, 0, 0);
+        bv->setSpacing(4);
+        bv->addWidget(headerBand(tr("Tipo"), box));
+        auto* kinds = new QButtonGroup(box);
+        const QStringList tips = {tr("Pilar rectangular con perfil embebido"), tr("Cajón rectangular de chapas de acero laminado, relleno de hormigón"),
+                                  tr("Tubo rectangular de acero conformado, relleno de hormigón"), tr("Tubo cuadrado de acero conformado, relleno de hormigón"),
+                                  tr("Pilar circular con perfil embebido"), tr("Tubo circular de acero conformado, relleno de hormigón")};
+        static const MixedPillarKind values[] = {MixedPillarKind::RectangularEmbeddedProfile, MixedPillarKind::RectangularBox,
+                                                 MixedPillarKind::RectangularTube, MixedPillarKind::SquareTube,
+                                                 MixedPillarKind::CircularEmbeddedProfile, MixedPillarKind::CircularTube};
+        for (int i = 0; i < 6; ++i) {
+            auto* b = pixmapButton(mixedPillarPictogram(values[i], 46), QSize(58, 58), tips[i], box);
+            b->setObjectName(QStringLiteral("pillarMixed%1").arg(i));
+            kinds->addButton(b, i);
+            m_pillarMixedButtons.append(b);
+            connect(b, &QToolButton::clicked, this, [this, i] {
+                if (m_syncing) return;
+                current().pillar.mixedKind = values[i];
+                updatePillarPage();
+                refreshUsedList();
+            });
+        }
+        bv->addLayout(spreadRow(m_pillarMixedButtons));
+        m_mixedPicker = makePicker(box, QStringLiteral("mixed"), SectionFamily::HotRolledSteel);
+        m_pillarMixedPicker = m_mixedPicker.host;
+        bv->addWidget(m_mixedPicker.host);
+        m_pillarStack->addWidget(box);
+    }
+    v->addWidget(m_pillarStack);
+
+    m_pillarFields = new QWidget(page);
+    auto* fieldsPage = new QVBoxLayout(m_pillarFields);
+    fieldsPage->setContentsMargins(0, 0, 0, 0);
+    fieldsPage->setSpacing(4);
+    auto* line = new QFrame(m_pillarFields);
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Plain);
-    v->addWidget(line);
+    fieldsPage->addWidget(line);
     auto* row = new QHBoxLayout;
     row->setContentsMargins(0, 0, 0, 0);
-    row->addWidget(new SectionSketch(QStringLiteral("X"), QStringLiteral("Y"), QSize(250, 176), page), 0, Qt::AlignTop);
+    auto* sketch = new SectionSketch(QStringLiteral("X"), QStringLiteral("Y"), QSize(250, 176), m_pillarFields);
+    sketch->setObjectName(QStringLiteral("pillarSketch"));
+    m_pillarSketch = sketch;
+    row->addWidget(sketch, 0, Qt::AlignTop);
     auto* fields = new QGridLayout;
     fields->setContentsMargins(6, 8, 0, 0);
     fields->setVerticalSpacing(4);
     fields->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    const FieldSpec spec[] = {{tr("Dimensión X"), 10.0, 1000.0, 0}, {tr("Dimensión Y"), 10.0, 1000.0, 0}};
-    const char* names[] = {"pillarX", "pillarY"};
-    for (int i = 0; i < 2; ++i) {
-        auto* edit = makeField(QString::fromLatin1(names[i]), spec[i], page, 60);
-        edit->setValue(30.0);
-        fields->addWidget(new QLabel(spec[i].name, page), i, 0);
-        fields->addWidget(edit, i, 1);
-        fields->addWidget(new QLabel(QStringLiteral("cm"), page), i, 2);
+    const struct { const char* object; QString label; QList<QWidget*>* rows; double PillarData::*member; } defs[] = {
+        {"pillarX", tr("Dimensión X"), &m_pillarRowX, &PillarData::widthXM},
+        {"pillarY", tr("Dimensión Y"), &m_pillarRowY, &PillarData::widthYM},
+        {"pillarDiameter", tr("Diámetro"), &m_pillarRowDiameter, &PillarData::diameterM}};
+    int rowIndex = 0;
+    for (const auto& def : defs) {
+        const FieldSpec spec{def.label, kPillarMinM * 100.0, kPillarMaxM * 100.0, 0};
+        auto* edit = makeField(QString::fromLatin1(def.object), spec, m_pillarFields, 60);
+        edit->setValue(kPillarDefaultM * 100.0);
+        auto* label = new QLabel(def.label, m_pillarFields);
+        auto* unit = new QLabel(QStringLiteral("cm"), m_pillarFields);
+        fields->addWidget(label, rowIndex, 0);
+        fields->addWidget(edit, rowIndex, 1);
+        fields->addWidget(unit, rowIndex, 2);
+        *def.rows = {label, edit, unit};
+        const auto member = def.member;
+        bind(edit, [member](const BarDescription& d) { return (d.pillar.*member) * 100.0; },
+             [member](BarDescription& d, double value) { d.pillar.*member = value / 100.0; });
+        ++rowIndex;
     }
     row->addLayout(fields);
     row->addStretch(1);
-    v->addLayout(row);
-    // TODO(captura): the metallic / mixed variants of the page (only the reinforced concrete one was captured).
+    fieldsPage->addLayout(row);
+    v->addWidget(m_pillarFields);
     v->addStretch(1);
     return page;
 }
+
+void BarDescribeDialog::updatePillarPage() {
+    const PillarData& p = current().pillar;
+    const bool wasSyncing = m_syncing;
+    m_syncing = true;
+    const int material = static_cast<int>(p.material);
+    for (int i = 0; i < m_pillarMaterialButtons.size(); ++i) m_pillarMaterialButtons[i]->setChecked(i == material);
+    for (int i = 0; i < m_pillarConcreteButtons.size(); ++i) m_pillarConcreteButtons[i]->setChecked(i == static_cast<int>(p.concreteKind));
+    for (int i = 0; i < m_pillarMixedButtons.size(); ++i) m_pillarMixedButtons[i]->setChecked(i == static_cast<int>(p.mixedKind));
+    m_pillarStack->setCurrentIndex(material);
+    const bool mixed = p.material == PillarMaterial::Mixed;
+    const bool circular = (p.material == PillarMaterial::Concrete && p.concreteKind == PillarConcreteKind::Circular) ||
+                          (mixed && (p.mixedKind == MixedPillarKind::CircularEmbeddedProfile || p.mixedKind == MixedPillarKind::CircularTube));
+    m_pillarFields->setVisible(p.material != PillarMaterial::Steel);
+    for (QWidget* w : m_pillarRowX) w->setVisible(!circular);
+    for (QWidget* w : m_pillarRowY) w->setVisible(!circular);
+    for (QWidget* w : m_pillarRowDiameter) w->setVisible(circular);
+    static_cast<SectionSketch*>(m_pillarSketch)->setShape(circular ? SketchShape::Circle : SketchShape::Rect);
+    // The embedded-profile selector exists only for the two "perfil embebido" kinds; the other kinds take their steel from a
+    // profile family the clone has no selector for yet (TK-081).
+    const bool embedded = mixed && (p.mixedKind == MixedPillarKind::RectangularEmbeddedProfile || p.mixedKind == MixedPillarKind::CircularEmbeddedProfile);
+    m_pillarMixedPicker->setVisible(embedded);
+    fillPicker(m_pillarPicker, SectionFamily::HotRolledSteel, p.seriesRef, p.profileRef);
+    fillPicker(m_mixedPicker, SectionFamily::HotRolledSteel, p.seriesRef, p.profileRef);
+    m_syncing = wasSyncing;
+}
+
+// --- Viga --------------------------------------------------------------------------------------------------------------------------
 
 QWidget* BarDescribeDialog::buildBeamPage() {
     auto* page = new QWidget(this);
@@ -1341,60 +1707,117 @@ QWidget* BarDescribeDialog::buildBeamPage() {
     v->addWidget(headerBand(tr("Familia"), page));
     const QStringList familyTips = {tr("Vigas planas"), tr("Vigas descolgadas"), tr("Vigas de celosía"), tr("Vigas pretensadas"),
                                     tr("Vigas metálicas"), tr("Vigas de madera")};
-    auto* families = new QHBoxLayout;
-    families->setContentsMargins(0, 4, 0, 4);
-    families->setSpacing(8);
+    static const BeamFamily families[] = {BeamFamily::Flat, BeamFamily::Hung, BeamFamily::Lattice, BeamFamily::Prestressed, BeamFamily::Steel, BeamFamily::Timber};
+    auto* familyRow = new QHBoxLayout;
+    familyRow->setContentsMargins(0, 4, 0, 4);
+    familyRow->setSpacing(8);
     auto* fg = new QButtonGroup(page);
     for (int i = 0; i < familyTips.size(); ++i) {
-        auto* b = wideIconButton(i == 4 ? Glyph::IBeam : i == 5 ? Glyph::Wood : Glyph::Rect, QSize(71, 71), familyTips[i], page);
-        b->setChecked(i == 1);  // descolgadas
+        auto* b = pixmapButton(beamFamilyPictogram(families[i], 59), QSize(71, 71), familyTips[i], page);
+        b->setObjectName(QStringLiteral("beamFamily%1").arg(i));
         fg->addButton(b, i);
-        families->addWidget(b);
+        m_beamFamilyButtons.append(b);
+        familyRow->addWidget(b);
+        connect(b, &QToolButton::clicked, this, [this, i] {
+            if (m_syncing) return;
+            BeamData& beam = current().beam;
+            if (beam.family == families[i]) return;
+            beam.family = families[i];
+            beam.type = 0;  // each family opens on its first type
+            if (beam.family == BeamFamily::Timber && beam.timberSeriesRef.empty()) {
+                for (const ProfileSeries& s : m_scratch.library().series)
+                    if (s.family == SectionFamily::Timber && !s.profiles.empty()) {
+                        beam.timberSeriesRef = s.reference;
+                        beam.timberProfileRef = s.profiles.front().reference;
+                        beam.timberShape = s.kind;
+                        break;
+                    }
+            }
+            updateBeamPage();
+            refreshUsedList();
+            updateTabChain();
+        });
     }
-    families->addStretch(1);
-    v->addLayout(families);
-    v->addWidget(headerBand(tr("Tipo"), page));
-    const QStringList typeTips = {tr("Viga descolgada rectangular"), tr("Viga descolgada rectangular con cabeza colaborante"),
-                                  tr("Viga invertida rectangular"), tr("Viga descolgada en 'T'"),
-                                  tr("Viga descolgada en 'T' con cabeza embebida en el forjado"),
-                                  tr("Viga en 'T' invertida con cabeza embebida en el forjado"), tr("Viga invertida en 'T'"),
-                                  tr("Viga descolgada rectangular con sección variable")};
-    auto* types = new QHBoxLayout;
+    familyRow->addStretch(1);
+    v->addLayout(familyRow);
+
+    m_beamTypeHeader = headerBand(tr("Tipo"), page);
+    v->addWidget(m_beamTypeHeader);
+    m_beamTypeHost = new QWidget(page);
+    auto* types = new QHBoxLayout(m_beamTypeHost);
     types->setContentsMargins(0, 4, 0, 4);
     types->setSpacing(8);
     auto* tg = new QButtonGroup(page);
-    for (int i = 0; i < typeTips.size(); ++i) {
-        auto* b = wideIconButton(i == 7 ? Glyph::Trapezoid : (i == 3 || i == 4 || i == 5 || i == 6) ? Glyph::Tee : Glyph::Rect, QSize(71, 71), typeTips[i], page);
-        b->setChecked(i == 0);
+    for (int i = 0; i < 8; ++i) {  // the hung family has the most types
+        auto* b = pixmapButton(beamTypePictogram(BeamFamily::Hung, i, 59), QSize(71, 71), QString(), m_beamTypeHost);
+        b->setObjectName(QStringLiteral("beamType%1").arg(i));
         tg->addButton(b, i);
+        m_beamTypeButtons.append(b);
         types->addWidget(b);
+        connect(b, &QToolButton::clicked, this, [this, i] {
+            if (m_syncing) return;
+            current().beam.type = i;
+            updateBeamPage();
+            refreshUsedList();
+        });
     }
     types->addStretch(1);
-    v->addLayout(types);
+    v->addWidget(m_beamTypeHost);
+
+    m_beamPicker = makePicker(page, QStringLiteral("beam"), SectionFamily::HotRolledSteel);
+    v->addWidget(m_beamPicker.host);
+
     auto* row = new QHBoxLayout;
     row->setContentsMargins(0, 0, 0, 0);
-    row->addWidget(new SectionSketch(QStringLiteral("b"), QStringLiteral("a"), QSize(257, 190), page), 0, Qt::AlignTop);
+    auto* sketch = new SectionSketch(QStringLiteral("b"), QStringLiteral("a"), QSize(257, 190), page);
+    sketch->setObjectName(QStringLiteral("beamSketch"));
+    m_beamSketch = sketch;
+    row->addWidget(sketch, 0, Qt::AlignTop);
     row->addSpacing(206);  // original: the fields box starts 206 px to the right of the drawing
     auto* box = new QFrame(page);
+    m_beamFieldsBox = box;
     box->setObjectName(QStringLiteral("beamFields"));
     box->setStyleSheet(QStringLiteral("QFrame#beamFields { border: 1px solid #D8D8D8; }"));
     auto* fields = new QGridLayout(box);
     fields->setContentsMargins(4, 4, 4, 4);
     fields->setVerticalSpacing(4);
-    // TODO(captura): ranges of the beam fields (only the default values 30 / 30 / 15 / 15 cm were measured) and the checkbox
-    // "Viga bajo forjado" seen under the fields of the rectangular type in orig_describir_viga_tipo.png (meaning not investigated; the
-    // beam module does not exist yet).
-    const struct { const char* object; const char* label; double value; } rows[] = {{"beamB", N_("Anchura (b)"), 30.0}, {"beamA", N_("Canto (a)"), 30.0},
-                                                                                       {"beamI", N_("Ala izquierda (i)"), 15.0}, {"beamD", N_("Ala derecha (d)"), 15.0}};
+    // Measured (orig_describir_viga_tipo.png): rectangular hung beam = Anchura (b) 30.0 cm, Canto (a) 30.0 cm and the check box
+    // "Viga bajo forjado". Range 5 - 500 cm (REA, vigas_ancho_viga_crea / vigas_ancho_vuelos_viga_crea).
+    struct Row {
+        const char* object;
+        const char* label;
+        double BeamData::*member;
+    };
+    static const Row rows[] = {{"beamB", N_("Anchura (b)"), &BeamData::widthM},
+                               {"beamA", N_("Canto (a)"), &BeamData::depthM},
+                               {"beamI", N_("Ala izquierda (i)"), &BeamData::flangeLeftM},
+                               {"beamD", N_("Ala derecha (d)"), &BeamData::flangeRightM},
+                               {"beamFlangeDepth", N_("Canto del ala"), &BeamData::flangeDepthM},
+                               {"beamDepthStart", N_("Canto inicial"), &BeamData::depthStartM},
+                               {"beamDepthEnd", N_("Canto final"), &BeamData::depthEndM}};
     int i = 0;
-    for (const auto& r : rows) {
-        auto* edit = makeField(QString::fromLatin1(r.object), {trc(r.label), 1.0, 1000.0, 1}, box, 44);
-        edit->setValue(r.value);
-        fields->addWidget(new QLabel(trc(r.label), box), i, 0);
+    for (const Row& r : rows) {
+        const FieldSpec spec{trc(r.label), kBeamMinM * 100.0, kBeamMaxM * 100.0, 1};
+        auto* edit = makeField(QString::fromLatin1(r.object), spec, box, 44);
+        edit->setValue((current().beam.*r.member) * 100.0);
+        auto* label = new QLabel(trc(r.label), box);
+        auto* unit = new QLabel(QStringLiteral("cm"), box);
+        fields->addWidget(label, i, 0);
         fields->addWidget(edit, i, 1);
-        fields->addWidget(new QLabel(QStringLiteral("cm"), box), i, 2);
+        fields->addWidget(unit, i, 2);
+        m_beamRows.insert(QString::fromLatin1(r.object), {label, edit, unit});
+        const auto member = r.member;
+        bind(edit, [member](const BarDescription& d) { return (d.beam.*member) * 100.0; },
+             [member](BarDescription& d, double value) { d.beam.*member = value / 100.0; });
         ++i;
     }
+    m_beamBelowSlab = new QCheckBox(tr("Viga bajo forjado"), box);  // #56456
+    m_beamBelowSlab->setObjectName(QStringLiteral("beamBelowSlab"));
+    fields->addWidget(m_beamBelowSlab, i, 0, 1, 3);
+    connect(m_beamBelowSlab, &QCheckBox::toggled, this, [this](bool on) {
+        if (m_syncing) return;
+        current().beam.belowSlab = on;
+    });
     auto* fieldsHost = new QVBoxLayout;
     fieldsHost->setContentsMargins(0, 50, 0, 0);
     fieldsHost->addWidget(box);
@@ -1403,6 +1826,93 @@ QWidget* BarDescribeDialog::buildBeamPage() {
     v->addLayout(row);
     v->addStretch(1);
     return page;
+}
+
+void BarDescribeDialog::updateBeamPage() {
+    const BeamData& b = current().beam;
+    const bool wasSyncing = m_syncing;
+    m_syncing = true;
+    const int family = static_cast<int>(b.family);
+    for (int i = 0; i < m_beamFamilyButtons.size(); ++i) m_beamFamilyButtons[i]->setChecked(i == family);
+    const int typeCount = beamTypeCount(b.family);
+    const QStringList flat = {tr("Viga plana rectangular"), tr("Viga plana en 'T'"), tr("Viga plana con ala a la derecha"), tr("Viga plana con ala a la izquierda")};
+    const QStringList hung = {tr("Viga descolgada rectangular"), tr("Viga descolgada rectangular con cabeza colaborante"),
+                              tr("Viga invertida rectangular"), tr("Viga descolgada en 'T'"),
+                              tr("Viga descolgada en 'T' con cabeza embebida en el forjado"),
+                              tr("Viga en 'T' invertida con cabeza embebida en el forjado"), tr("Viga invertida en 'T'"),
+                              tr("Viga descolgada rectangular con sección variable")};
+    const QStringList lattice = {tr("Viga de celosía plana rectangular"), tr("Viga de celosía plana en 'T'"), tr("Viga de celosía plana con ala a la derecha"),
+                                 tr("Viga de celosía plana con ala a la izquierda"), tr("Viga de celosía descolgada rectangular")};
+    const QStringList prestressed = {tr("Viga pretensada rectangular"), tr("Viga pretensada en 'T'"), tr("Viga pretensada con ala a la derecha"),
+                                     tr("Viga pretensada con ala a la izquierda")};
+    const QStringList* tips = b.family == BeamFamily::Flat ? &flat : b.family == BeamFamily::Hung ? &hung
+                              : b.family == BeamFamily::Lattice ? &lattice : &prestressed;
+    for (int i = 0; i < m_beamTypeButtons.size(); ++i) {
+        QToolButton* button = m_beamTypeButtons[i];
+        button->setVisible(i < typeCount);
+        if (i >= typeCount) continue;
+        button->setIcon(QIcon(beamTypePictogram(b.family, i, 59)));
+        button->setToolTip(tips->value(i));
+        button->setChecked(i == b.type);
+    }
+    const bool library = b.family == BeamFamily::Steel || b.family == BeamFamily::Timber;
+    m_beamTypeHost->setVisible(typeCount > 0);
+    m_beamPicker.host->setVisible(library);
+    if (library) {
+        const SectionFamily lib = b.family == BeamFamily::Timber ? SectionFamily::Timber : SectionFamily::HotRolledSteel;
+        fillPicker(m_beamPicker, lib, b.family == BeamFamily::Timber ? b.timberSeriesRef : b.seriesRef,
+                   b.family == BeamFamily::Timber ? b.timberProfileRef : b.profileRef);
+    }
+    const std::vector<BeamField> shown = beamFields(b.family, b.type);
+    const struct { const char* object; BeamField field; } map[] = {{"beamB", BeamField::Width}, {"beamA", BeamField::Depth}, {"beamI", BeamField::FlangeLeft},
+                                                                   {"beamD", BeamField::FlangeRight}, {"beamFlangeDepth", BeamField::FlangeDepth},
+                                                                   {"beamDepthStart", BeamField::DepthStart}, {"beamDepthEnd", BeamField::DepthEnd}};
+    for (const auto& m : map) {
+        const bool visible = std::find(shown.begin(), shown.end(), m.field) != shown.end();
+        for (QWidget* w : m_beamRows.value(QString::fromLatin1(m.object))) w->setVisible(visible);
+    }
+    m_beamBelowSlab->setVisible(beamBelowSlabOffered(b.family, b.type));
+    m_beamBelowSlab->setChecked(b.belowSlab);
+    m_beamFieldsBox->setVisible(!shown.empty() || beamBelowSlabOffered(b.family, b.type));
+    SketchShape shape = SketchShape::Rect;
+    if (b.family == BeamFamily::Hung && (b.type == 3 || b.type == 4)) shape = SketchShape::Tee;
+    else if (b.family == BeamFamily::Hung && (b.type == 5 || b.type == 6)) shape = SketchShape::TeeInverted;
+    else if (b.family == BeamFamily::Hung && b.type == 7) shape = SketchShape::Variable;
+    else if (b.family != BeamFamily::Hung && b.type == 1) shape = SketchShape::Tee;
+    else if (b.family != BeamFamily::Hung && b.type == 2) shape = SketchShape::FlangeRight;
+    else if (b.family != BeamFamily::Hung && b.type == 3) shape = SketchShape::FlangeLeft;
+    m_beamSketch->setVisible(!library);
+    static_cast<SectionSketch*>(m_beamSketch)->setShape(shape);
+    m_syncing = wasSyncing;
+}
+
+void BarDescribeDialog::setElementTypesAvailable(bool pillars, bool beams) {
+    m_pillarsAllowed = pillars;
+    m_beamsAllowed = beams;
+    typeRadio(2)->setVisible(pillars);
+    typeRadio(3)->setVisible(beams);
+    // The work converts the elements of an unavailable type to generic and says so (#61376 pillars, #61375 beams).
+    bool convertedPillar = false, convertedBeam = false;
+    for (std::size_t i = 0; i < m_entries.size(); ++i) {
+        BarDescription& d = m_entries[i].description;
+        if (!pillars && d.elementType == ElementType::Pillar) {
+            d.elementType = ElementType::Generic;
+            m_original[i].description.elementType = ElementType::Generic;
+            m_typeUi[i] = m_typeOriginal[i] = 0;
+            convertedPillar = true;
+        }
+        if (!beams && d.elementType == ElementType::Beam) {
+            d.elementType = ElementType::Generic;
+            m_original[i].description.elementType = ElementType::Generic;
+            m_typeUi[i] = m_typeOriginal[i] = 0;
+            convertedBeam = true;
+        }
+    }
+    if (convertedPillar)
+        warn(this, tr("La edición de pilares no está disponible para la configuración de normas seleccionada. Los elementos de este tipo han sido convertidos a elementos estructurales de tipo genérico."));
+    if (convertedBeam)
+        warn(this, tr("La edición de vigas no está disponible para la configuración de normas seleccionada. Los elementos de este tipo han sido convertidos a elementos estructurales de tipo genérico."));
+    selectEntry(m_row);
 }
 
 // --- state ------------------------------------------------------------------------------------------------------------------------
@@ -1471,6 +1981,9 @@ void BarDescribeDialog::syncUi() {
     for (const Binding& b : m_bindings) b.edit->setValue(b.get(d));
     updateExtra();
     m_syncing = false;
+    updatePillarPage();
+    updateBeamPage();
+    updateTiePage();
     refreshUsedList();
     updateTabChain();
 }
@@ -1768,7 +2281,12 @@ void BarDescribeDialog::onProfileChanged() {
 void BarDescribeDialog::onTypeChanged(int index) {
     if (m_syncing) return;
     m_typeUi[static_cast<std::size_t>(m_row)] = index;
+    // The type radio only selects which register is active; the registers of the other types are kept (REA, ed3seccion).
+    BarDescription& d = current();
+    d.tieSelected = index == 1;
+    d.elementType = index == 2 ? ElementType::Pillar : index == 3 ? ElementType::Beam : ElementType::Generic;
     m_typePages->setCurrentIndex(index);
+    refreshUsedList();
     updateTabChain();
 }
 
@@ -1832,24 +2350,16 @@ void BarDescribeDialog::accept() {
     if (auto* focused = qobject_cast<ValueEdit*>(focusWidget()))
         if (!focused->commit()) return;
     for (std::size_t i = 0; i < m_entries.size(); ++i) {
-        // Tirante, Pilar and Viga need modules that do not exist yet (tirantes, pilares y vigas de hormigon, T-P5-08).
-        if (m_typeUi[i] != m_typeOriginal[i] && m_typeUi[i] != 0) {
-            selectEntry(static_cast<int>(i));
-            warn(this, tr("Esta función aún no está disponible."));
-            return;
-        }
-        if (m_typeUi[i] == 1) {
-            selectEntry(static_cast<int>(i));
-            warn(this, tr("Esta función aún no está disponible."));
-            return;
-        }
+        // Tirante, mixed pillars and the T / lattice / prestressed beams cannot be applied yet (no tie module, no composite or T shapes,
+        // TK-081): validateDescription answers with "Esta función aún no está disponible." for them. Pilar / Viga validations
+        // (#157403, #404312, ranges, #75573) come from the same function.
         const BarDescription& d = m_entries[i].description;
-        if (d.materialIcon == BarMaterialIcon::SpecialAluminium) {
+        if (m_typeUi[i] == 0 && d.materialIcon == BarMaterialIcon::SpecialAluminium) {
             selectEntry(static_cast<int>(i));
             warn(this, tr("Esta función aún no está disponible."));
             return;
         }
-        if (d.materialIcon == BarMaterialIcon::Generic &&
+        if (m_typeUi[i] == 0 && d.materialIcon == BarMaterialIcon::Generic &&
             (d.generic.shearAreaYM2 > d.generic.areaM2 + 1e-12 || d.generic.shearAreaZM2 > d.generic.areaM2 + 1e-12)) {
             // #65239 / #65240 (checked on accepting is NOT verified in the original, describir_barras.md section 6)
             selectEntry(static_cast<int>(i));
@@ -1860,13 +2370,13 @@ void BarDescribeDialog::accept() {
         const std::string problem = validateDescription(d, m_scratch.library());
         if (!problem.empty()) {
             selectEntry(static_cast<int>(i));
-            warn(this, q(problem));
+            warn(this, problem == kNotAvailableText ? tr("Esta función aún no está disponible.") : q(problem));
             return;
         }
     }
     // "Perfiles de madera" (service class + fire resistance): shown when an entry becomes timber (PROVISIONAL trigger).
     for (std::size_t i = 0; i < m_entries.size(); ++i)
-        if (m_entries[i].description.materialIcon == BarMaterialIcon::Timber && m_original[i].description.materialIcon != BarMaterialIcon::Timber) {
+        if (projectedIcon(m_entries[i].description) == BarMaterialIcon::Timber && projectedIcon(m_original[i].description) != BarMaterialIcon::Timber) {
             describeSink().timberService(this, m_timberSettings);
             break;
         }

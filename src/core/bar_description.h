@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "core/bar_element_data.h"
 #include "core/profile_series.h"
 #include "core/section_properties.h"
 #include "core/structure_model.h"
@@ -112,7 +113,14 @@ struct MaterialData {
 
 struct BarDescription {
     int id = 0;
-    ElementType elementType = ElementType::Generic;  ///< "Tipo de elemento estructural" (default Genérico)
+    ElementType elementType = ElementType::Generic;  ///< "Tipo de elemento estructural" (default Genérico); Tirante: see tieSelected
+    /// "Tirante" radio (the model has no tie element type: pieces stay generic). When set, elementType is ignored.
+    bool tieSelected = false;
+    /// One register per element type (see bar_element_data.h): switching the radio keeps all of them; the generic register is the
+    /// fields below (materialIcon ... generic, material).
+    TieData tie;
+    PillarData pillar;
+    BeamData beam;
     BehaviourKind behaviour = BehaviourKind::Linear;
     BarMaterialIcon materialIcon = BarMaterialIcon::RolledSteel;
     ShapeKind shape = ShapeKind::IParallel;
@@ -180,6 +188,15 @@ struct BarDescriptions {
     const BarDescription* findBySection(int sectionId) const;
     bool operator==(const BarDescriptions&) const = default;
 };
+
+/// What the solver sees of a description: for Generico the description itself; for Pilar / Viga the generic fields (material icon,
+/// shape, series / profile, inline section, material) derived from the active register, so the rest of the core keeps working on the
+/// icon-based model. nullopt when the type cannot be resolved by the clone yet (tie, mixed pillar, T / prestressed / lattice beams:
+/// they need shapes or modules that do not exist; ticket TK-081). The library-free projection: the shape of a steel / timber profile
+/// is the one stored in the register.
+std::optional<BarDescription> projectedDescription(const BarDescription& description);
+/// True when the active register of the description can be applied (projectedDescription has a value).
+bool isElementResolvable(const BarDescription& description);
 
 /// Section (shape + dimensions) a description resolves to: generic -> Section of kind Generic with the typed values; concrete /
 /// inline timber -> inlineSection; others -> the library profile. nullopt when it cannot be found.

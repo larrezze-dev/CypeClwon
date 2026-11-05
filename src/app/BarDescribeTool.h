@@ -66,6 +66,8 @@ signals:
 private:
     void setMode(Mode mode);
     void configureViewports();
+    /// Bar labels of the viewports: section text with Seccion, material grade with Material, none otherwise.
+    void refreshBarLabels();
     void updateEnabled();
     void pruneViewports();
     void onActOnSelection(Viewport3D* viewport);

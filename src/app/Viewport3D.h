@@ -71,6 +71,10 @@ public:
     /// "N<id>" labels (bold green, right of and above every node) shown while a command of Geometria > Nudos is active; in the
     /// normal view the original draws none (nudos.md section 8).
     void setNodeLabelsVisible(bool on);
+    /// Bar labels of Geometria > Barras > Seccion / Material (describir_barras.md section 1): bar id -> text ("IPE 80", "30 cm x 30 cm",
+    /// "Gen.(19.6 kg/m)", "C25/30"), drawn vertically in olive green at the middle of the bar. An empty map hides them.
+    void setBarLabels(std::vector<std::pair<int, QString>> labels);
+    const std::vector<std::pair<int, QString>>& barLabels() const { return m_barLabels; }
     bool nodeLabelsVisible() const { return m_nodeLabels; }
     /// Node being moved (Nudos > Mover, second step): drawn at the cursor position with the bars that reach it following it,
     /// and left out of the snap together with those bars so that it cannot snap to itself.
@@ -330,6 +334,7 @@ private:
     void drawZoomMark(class QPainter& painter) const;
     void drawNodeLabel(class QPainter& painter) const;
     void drawNodeTags(class QPainter& painter) const;
+    void drawBarTags(class QPainter& painter) const;
     void rebuildSnapModel();
     void updateFocusPolicy();
     bool elementExists(const core::ElementRef& e) const;
@@ -365,6 +370,7 @@ private:
     bool m_coordTooltipEnabled = true;
     bool m_coordTooltipDismissed = false;
     bool m_nodeLabels = false;
+    std::vector<std::pair<int, QString>> m_barLabels;
     std::optional<int> m_movingNode;
     std::vector<int> m_rubberChain;
     std::vector<core::Vec3> m_rubberPoints;

@@ -92,6 +92,12 @@ std::vector<int> undescribedBars(const Project& project);
 /// sections set by hand); kNotDescribedText when it has none.
 std::string barDescriptionText(const Project& project, int barId);
 
+/// Label the original shows on a described bar in the 3D window (describir_barras.md section 1): with "Seccion" the section text
+/// (barLabelText); with "Material" the grade of the material of the work ("S275 (UNE-EN 10025-2)", "C25/30", "C24"). Empty for a bar
+/// without description or whose material the clone cannot name (generic section: the original shows nothing measured).
+std::string barSectionLabel(const Project& project, int barId);
+std::string barMaterialLabel(const Project& project, int barId);
+
 /// Bars whose description uses the series / the profile of the library (TK-057: to warn before deleting or editing them).
 /// Only descriptions that read the library count (rolled / family 2 / cold-formed / aluminium / timber with series).
 std::vector<int> barsUsingSeries(const Project& project, const std::string& seriesReference);

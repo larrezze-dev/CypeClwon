@@ -174,3 +174,22 @@ TEST_F(DescribeToolTest, DescribeMaterialGroups) {
     accept = false;
     EXPECT_FALSE(tool.describeMaterial(bars));
 }
+
+TEST_F(DescribeToolTest, BarLabelsFollowTheActiveCommand) {
+    Viewport3D view;
+    view.resize(400, 300);
+    view.setStructure(&project.structure);
+    tool.addViewport(&view);
+    EXPECT_TRUE(tool.describeBars({bars[0]}));
+    tool.structureChanged();
+    EXPECT_TRUE(view.barLabels().empty());  // no command active: no labels
+    tool.sectionAction()->trigger();
+    ASSERT_EQ(view.barLabels().size(), 1u);  // only the described bar
+    EXPECT_EQ(view.barLabels()[0].first, bars[0]);
+    EXPECT_EQ(view.barLabels()[0].second, "IPE 80");
+    tool.materialAction()->trigger();
+    ASSERT_EQ(view.barLabels().size(), 1u);
+    EXPECT_EQ(view.barLabels()[0].second, QString::fromStdString(project.profiles.hotRolledSteel));  // the grade of the work
+    tool.deactivate();
+    EXPECT_TRUE(view.barLabels().empty());
+}

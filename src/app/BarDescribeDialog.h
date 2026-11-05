@@ -1,6 +1,7 @@
 #pragma once
 #include <QLineEdit>
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <functional>
 #include <memory>
@@ -24,6 +25,7 @@ class QListWidget;
 class QRadioButton;
 class QStackedWidget;
 class QToolButton;
+class QTextBrowser;
 
 namespace cc::app {
 
@@ -49,6 +51,14 @@ struct DescribeSink {
     std::function<bool(QWidget*, cc::core::TimberSettings&)> timberService;
 };
 DescribeSink& describeSink();
+
+/// Series / profile combos of the steel and timber profile selectors of the Pilar and Viga pages (PROVISIONAL: the original uses
+/// piezamet.dll panels, not read; here the series of the library of the family, no shape icons).
+struct ProfilePicker {
+    QWidget* host = nullptr;
+    QComboBox* series = nullptr;
+    QComboBox* profile = nullptr;
+};
 
 /// Rows (label with its colon, value with unit) of the "Propiedades del perfil seleccionado" box. Dimensions with one decimal,
 /// properties with two (measured with the IPE 80). Measured (describir_info_perfiles.tsv): timber round (5 rows), aluminium I (12),
@@ -150,6 +160,26 @@ public:
     void setTimberSettings(const cc::core::TimberSettings& settings) { m_timberSettings = settings; m_timberOriginal = settings; }
     const cc::core::TimberSettings& timberSettings() const { return m_timberSettings; }
     bool timberSettingsChanged() const { return !(m_timberSettings == m_timberOriginal); }
+    /// Pilar page (type 2): "Material" tiles (concrete, steel, mixed), concrete "Tipo" tiles (rectangular, circular), the six mixed
+    /// tiles, the steel selector (series / profile) and the fields pillarX / pillarY / pillarDiameter (cm).
+    const QList<QToolButton*>& pillarMaterialButtons() const { return m_pillarMaterialButtons; }
+    const QList<QToolButton*>& pillarConcreteButtons() const { return m_pillarConcreteButtons; }
+    const QList<QToolButton*>& pillarMixedButtons() const { return m_pillarMixedButtons; }
+    const ProfilePicker& pillarPicker() const { return m_pillarPicker; }
+    const ProfilePicker& mixedPicker() const { return m_mixedPicker; }  ///< embedded profile of the mixed pillar
+    /// Viga page (type 3): "Familia" tiles (6), "Tipo" tiles (up to 8, the visible ones are those of the family), the check box
+    /// "Viga bajo forjado" and the profile selector of the steel / timber families. Fields beamB, beamA, beamI, beamD, beamFlangeDepth,
+    /// beamDepthStart, beamDepthEnd (cm); a field is visible only when the type has it (cc::core::beamFields).
+    const QList<QToolButton*>& beamFamilyButtons() const { return m_beamFamilyButtons; }
+    const QList<QToolButton*>& beamTypeButtons() const { return m_beamTypeButtons; }
+    QCheckBox* beamBelowSlabCheck() const { return m_beamBelowSlab; }
+    const ProfilePicker& beamPicker() const { return m_beamPicker; }
+    /// Static document «CÁLCULO DE TIRANTES EN CYPE 3D» of the Tirante page.
+    QTextBrowser* tieDocumentView() const { return m_tieDocument; }
+    /// Whether the norm of the work contemplates pillar / beam editing (ed3norma_es_norma_pilares_contemplada / _vigas_...). When not,
+    /// the radio is hidden and the entries of that type become generic with the warning #61376 / #61375. Default: both available (the
+    /// norm rule was not investigated, TK-081).
+    void setElementTypesAvailable(bool pillars, bool beams);
     /// Tooltip texts, by position, exactly as measured.
     static QStringList materialTooltips();
     static QStringList shapeTooltips(cc::core::BarMaterialIcon icon);
@@ -172,6 +202,12 @@ private:
     QWidget* buildPillarPage();
     QWidget* buildBeamPage();
     QWidget* buildExtraPages();
+    ProfilePicker makePicker(QWidget* parent, const QString& prefix, cc::core::SectionFamily family);
+    void fillPicker(ProfilePicker& picker, cc::core::SectionFamily family, const std::string& seriesRef, const std::string& profileRef);
+    void onPickerChanged(bool pillar, bool seriesChanged);
+    void updatePillarPage();
+    void updateBeamPage();
+    void updateTiePage();
     ValueEdit* makeField(const QString& objectName, const FieldSpec& spec, QWidget* parent, int width = 80);
     void bind(ValueEdit* edit, std::function<double(const cc::core::BarDescription&)> get,
               std::function<void(cc::core::BarDescription&, double)> set);
@@ -234,7 +270,25 @@ private:
     QList<QToolButton*> m_tieButtons;
     QComboBox* m_tieSeries = nullptr;
     QComboBox* m_tieProfile = nullptr;
-    int m_tieShape = 2;  ///< Platabanda (the original opens on it)
+    QTextBrowser* m_tieDocument = nullptr;
+    // Pilar page
+    QList<QToolButton*> m_pillarMaterialButtons, m_pillarConcreteButtons, m_pillarMixedButtons;
+    QStackedWidget* m_pillarStack = nullptr;
+    QWidget* m_pillarFields = nullptr;
+    QWidget* m_pillarMixedPicker = nullptr;
+    ProfilePicker m_pillarPicker, m_mixedPicker;
+    QList<QWidget*> m_pillarRowX, m_pillarRowY, m_pillarRowDiameter;
+    QWidget* m_pillarSketch = nullptr;
+    // Viga page
+    QList<QToolButton*> m_beamFamilyButtons, m_beamTypeButtons;
+    QWidget* m_beamTypeHost = nullptr;
+    QWidget* m_beamTypeHeader = nullptr;
+    QWidget* m_beamFieldsBox = nullptr;
+    QWidget* m_beamSketch = nullptr;
+    QCheckBox* m_beamBelowSlab = nullptr;
+    ProfilePicker m_beamPicker;
+    QMap<QString, QList<QWidget*>> m_beamRows;  ///< field object name -> (label, edit, unit)
+    bool m_pillarsAllowed = true, m_beamsAllowed = true;
     QWidget* m_depthBox = nullptr;
     cc::core::TimberSettings m_timberSettings, m_timberOriginal;
     QList<Binding> m_bindings;

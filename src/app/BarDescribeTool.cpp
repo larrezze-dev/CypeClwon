@@ -89,6 +89,18 @@ void BarDescribeTool::structureChanged() {
     updateEnabled();
     pruneViewports();
     for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->refreshStructure();
+    refreshBarLabels();
+}
+
+void BarDescribeTool::refreshBarLabels() {
+    pruneViewports();
+    std::vector<std::pair<int, QString>> labels;
+    if (m_mode != Mode::None && m_project)
+        for (const Bar& bar : m_project->structure.bars) {
+            const std::string text = m_mode == Mode::Section ? barSectionLabel(*m_project, bar.id) : barMaterialLabel(*m_project, bar.id);
+            if (!text.empty()) labels.emplace_back(bar.id, QString::fromStdString(text));
+        }
+    for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->setBarLabels(labels);
 }
 
 void BarDescribeTool::setMode(Mode mode) {
@@ -115,6 +127,7 @@ void BarDescribeTool::configureViewports() {
             viewport->setFocus();
         }
     }
+    refreshBarLabels();
 }
 
 int BarDescribeTool::run(QDialog& dialog) { return m_runner ? m_runner(dialog) : dialog.exec(); }
@@ -189,7 +202,8 @@ bool BarDescribeTool::describeMaterial(const std::vector<int>& barIds) {
     // measured cases: concrete alone, timber alone, mixed selection; describir_barras.md section 9, PROVISIONAL rule).
     bool allConcrete = true, allTimber = true;
     for (int id : barIds) {
-        const BarDescription* d = descriptionOfBar(project, id);
+        const BarDescription* stored = descriptionOfBar(project, id);
+        const auto d = stored ? projectedDescription(*stored) : std::nullopt;
         allConcrete = allConcrete && d && d->materialIcon == BarMaterialIcon::Concrete;
         allTimber = allTimber && d && d->materialIcon == BarMaterialIcon::Timber;
     }
