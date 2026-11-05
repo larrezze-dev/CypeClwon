@@ -90,7 +90,7 @@ QString formatOneProperties(const SectionProperties& p, bool solid) {
 }
 
 QString formatProperties(const Section& section) {
-    const bool solid = shapeFamily(section.kind).has_value();
+    const bool solid = isConcreteOrTimber(section.kind);
     if (isVariableDepth(section.kind)) {
         // Variable depth: the properties of both ends of the piece (linear law assumed, TK-062).
         const auto first = propertiesAt(section, 0.0);
@@ -110,7 +110,7 @@ QString formatProperties(const Section& section) {
 /// Label of a dimension. Concrete / timber: texts of the original (#65243 Ancho, #65244 Canto, #131436 Canto inicial,
 /// #131437 Canto final); diameter and side have no verified text (TK-061). Steel keeps the key (h, b, tw...).
 QString dimensionLabel(ShapeKind kind, const std::string& key) {
-    if (!shapeFamily(kind)) return q(key);
+    if (!isConcreteOrTimber(kind)) return q(key);
     if (key == "b") return QObject::tr("Ancho");
     if (key == "h") return QObject::tr("Canto");
     if (key == "h0") return QObject::tr("Canto inicial");
@@ -126,7 +126,7 @@ struct DimensionScale {
 };
 DimensionScale scaleOf(ShapeKind kind, const std::string& key, LengthUnit unit) {
     if (isSlopeKey(key)) return {1.0, 2, QStringLiteral(" %")};
-    if (!shapeFamily(kind)) return {1000.0, 2, QStringLiteral(" mm")};  // hot-rolled steel stays in millimetres
+    if (!isConcreteOrTimber(kind)) return {1000.0, 2, QStringLiteral(" mm")};  // hot-rolled steel stays in millimetres
     const QString suffix = QLatin1Char(' ') + QString::fromUtf8(unitSymbol(unit));
     switch (unit) {
     case LengthUnit::Metres: return {1.0, 4, suffix};
@@ -140,7 +140,7 @@ DimensionScale scaleOf(ShapeKind kind, const std::string& key, LengthUnit unit) 
 /// the other shapes were not measured, TK-061); steel starts from zero, the slopes from their standard value.
 std::vector<double> defaultDims(ShapeKind kind) {
     const auto& keys = dimensionKeys(kind);
-    std::vector<double> dims(keys.size(), shapeFamily(kind) ? 0.30 : 0.0);
+    std::vector<double> dims(keys.size(), isConcreteOrTimber(kind) ? 0.30 : 0.0);
     for (std::size_t i = 0; i < keys.size(); ++i)
         if (isSlopeKey(keys[i])) dims[i] = kind == ShapeKind::ISloped ? kIpnSlopePercent : kUpnSlopePercent;
     return dims;
@@ -527,7 +527,7 @@ void SeriesEditDialog::setShapeOfSeries(ShapeKind kind) {
     m_series.kind = kind;
     // Concrete / timber shapes belong to their family; going back to steel from them restores the default steel family.
     if (const auto fixed = shapeFamily(kind)) m_series.family = *fixed;
-    else if (m_series.family == SectionFamily::Concrete || m_series.family == SectionFamily::Timber)
+    else if (m_series.family != SectionFamily::HotRolledSteel && m_series.family != SectionFamily::Generic)
         m_series.family = SectionFamily::HotRolledSteel;
 }
 

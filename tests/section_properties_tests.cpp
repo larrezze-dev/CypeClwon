@@ -64,7 +64,7 @@ struct Worst {
 }  // namespace
 
 TEST(SectionProperties, ShapeTablesAreConsistent) {
-    EXPECT_EQ(allShapes().size(), 17u);
+    EXPECT_EQ(allShapes().size(), 21u);
     for (ShapeKind k : allShapes()) {
         EXPECT_EQ(shapeFromKey(shapeKey(k)), k);
         EXPECT_FALSE(dimensionKeys(k).empty());

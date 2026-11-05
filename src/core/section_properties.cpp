@@ -37,6 +37,10 @@ const std::vector<ShapeInfo>& shapeTable() {
         {ShapeKind::TimberSquare, "timberSquare", "Cuadrado", {"a"}},
         {ShapeKind::TimberRectangular, "timberRectangular", "Rectangular", {"b", "h"}},
         {ShapeKind::TimberRectangularVariable, "timberRectangularVariable", "Rectangular de canto variable", {"b", "h0", "h1"}},
+        {ShapeKind::BuiltUpDoubleT, "builtUpDoubleT", "Doble T simétrica armada", {"h", "b", "mass"}},
+        {ShapeKind::ColdFormedU, "coldFormedU", "U conformado simple", {"h", "t"}},
+        {ShapeKind::ColdFormedC, "coldFormedC", "U conformado rigidizado", {"h", "t"}},
+        {ShapeKind::AluminiumI, "aluminiumI", "Doble T de aluminio", {"d1", "d2", "d3"}},
     };
     return table;
 }
@@ -311,6 +315,10 @@ std::optional<SectionFamily> shapeFamily(ShapeKind kind) {
     case ShapeKind::TimberRectangular:
     case ShapeKind::TimberRectangularVariable:
         return SectionFamily::Timber;
+    case ShapeKind::BuiltUpDoubleT: return SectionFamily::BuiltUpSteel;
+    case ShapeKind::ColdFormedU:
+    case ShapeKind::ColdFormedC: return SectionFamily::ColdFormedSteel;
+    case ShapeKind::AluminiumI: return SectionFamily::Aluminium;
     default:
         return std::nullopt;
     }
@@ -324,6 +332,16 @@ std::vector<ShapeKind> shapesOfFamily(SectionFamily family) {
         if (f ? *f == family : family == SectionFamily::HotRolledSteel) out.push_back(k);
     }
     return out;
+}
+
+bool isConcreteOrTimber(ShapeKind kind) {
+    const auto f = shapeFamily(kind);
+    return f && (*f == SectionFamily::Concrete || *f == SectionFamily::Timber);
+}
+
+bool isCatalogueOnly(ShapeKind kind) {
+    return kind == ShapeKind::BuiltUpDoubleT || kind == ShapeKind::ColdFormedU || kind == ShapeKind::ColdFormedC ||
+           kind == ShapeKind::AluminiumI;
 }
 
 bool isVariableDepth(ShapeKind kind) {
@@ -346,7 +364,14 @@ std::string validateSection(const Section& s) {
                                            &s.tabulated.avz})
         if (*v && !nonNegative(**v)) return "Los valores tabulados del perfil no pueden ser negativos.";
     const char* kPositive = "Las dimensiones del perfil deben ser mayores que cero.";
-    if (shapeFamily(s.kind)) {
+    if (isCatalogueOnly(s.kind)) {
+        // Only the numbers of the designation are known: they must be positive (the mass of the built-up profile included).
+        for (double v : d)
+            if (!(v > kMinDimension)) return kPositive;
+        if (s.tabulated.any()) return "Los valores tabulados de este tipo de perfil aún no se admiten.";
+        return {};
+    }
+    if (isConcreteOrTimber(s.kind)) {
         // Concrete and timber sections are solid, computed from their dimensions only. The minimum 1e-5 m is the limit the
         // original asserts on the rectangle / circle routines ("ancho > .00001", "canto > .00001"; seccion.dll paramsec_*).
         if (s.tabulated.any()) return "Las secciones de hormigón y madera no admiten valores tabulados.";
@@ -443,7 +468,7 @@ SectionProperties solid(const Section& s) {
     case ShapeKind::TimberSquare:
     case ShapeKind::SquareBar:
     case ShapeKind::FlatBar: {
-        const bool concreteOrTimber = shapeFamily(s.kind).has_value();
+        const bool concreteOrTimber = isConcreteOrTimber(s.kind);
         // dimension order: FlatBar {h, b}; concrete / timber rectangle {b, h}; squares {a}
         const bool square = s.kind == ShapeKind::SquareBar || s.kind == ShapeKind::TimberSquare;
         const double h = concreteOrTimber && !square ? d[1] : d[0];
@@ -473,6 +498,9 @@ SectionProperties solid(const Section& s) {
 
 std::optional<SectionProperties> calculatedProperties(const Section& s) {
     if (!validateSection(s).empty() || s.kind == ShapeKind::Generic) return std::nullopt;
+    // TODO(TK-052): built-up / cold-formed / aluminium catalogue shapes have no geometry here (the original's `creaconf_*` routines
+    // are not analysed and the designation does not give the thicknesses): no calculated properties.
+    if (isCatalogueOnly(s.kind)) return std::nullopt;
     if (isVariableDepth(s.kind)) return calculatedProperties(*sectionAt(s, 0.0));
     switch (s.kind) {
     case ShapeKind::RoundBar:

@@ -196,6 +196,51 @@ MaterialData defaultMaterialData(BarMaterialIcon icon) {
     return m;
 }
 
+namespace {
+struct TimberClass {
+    const char* name;
+    double e0MeanMPa;
+    double meanDensityKgM3;
+};
+// EN 338 softwood classes (E0,mean and mean density): NOT MEASURED in the original (TK-063).
+constexpr TimberClass kSoftwood[] = {{"C14", 7000, 350},  {"C16", 8000, 370},  {"C18", 9000, 380},  {"C20", 9500, 390},
+                                     {"C22", 10000, 410}, {"C24", 11000, 420}, {"C27", 11500, 450}, {"C30", 12000, 460},
+                                     {"C35", 13000, 480}, {"C40", 14000, 500}, {"C45", 15000, 520}, {"C50", 16000, 550}};
+struct ConcreteGrade {
+    const char* name;
+    double ecmMPa;
+};
+// EC2 table 3.1: Ecm of the strength classes. NOT MEASURED in the original (TK-063).
+constexpr ConcreteGrade kConcrete[] = {{"C12/15", 27000}, {"C16/20", 29000}, {"C20/25", 30000}, {"C25/30", 31000}, {"C30/37", 33000},
+                                       {"C35/45", 34000}, {"C40/50", 35000}, {"C45/55", 36000}, {"C50/60", 37000}};
+}  // namespace
+
+MaterialData concreteMaterialData(const std::string& grade) {
+    MaterialData m = defaultMaterialData(BarMaterialIcon::Concrete);
+    for (const ConcreteGrade& g : kConcrete)
+        if (grade == g.name) m.elasticModulusMPa = g.ecmMPa;
+    return m;
+}
+
+MaterialData timberMaterialData(const std::string& timberMaterial, const std::string& strengthClass) {
+    MaterialData m = defaultMaterialData(BarMaterialIcon::Timber);
+    if (timberMaterial != "Aserrada, procedente de coníferas o chopos") return m;
+    for (const TimberClass& c : kSoftwood)
+        if (strengthClass == c.name) {
+            m.elasticModulusMPa = c.e0MeanMPa;
+            m.densityKnM3 = c.meanDensityKgM3 * 9.80665 / 1000.0;
+        }
+    return m;
+}
+
+double timberShearModulusMPa(const std::string& strengthClass) {
+    for (const TimberClass& c : kSoftwood)
+        if (strengthClass == c.name) return c.e0MeanMPa / 16.0;
+    return 0.0;
+}
+
+double shearModulusMPa(const MaterialData& m) { return m.elasticModulusMPa / (2.0 * (1.0 + m.poissonRatio)); }
+
 BarDescription defaultDescription(BarMaterialIcon icon) {
     BarDescription d;
     d.materialIcon = icon;
@@ -260,7 +305,13 @@ std::optional<Section> resolveSection(const BarDescription& d, const ProfileLibr
     const ProfileSeries* series = library.find(d.seriesRef);
     if (!series) return std::nullopt;
     const Section* profile = series->findProfile(d.profileRef);
-    return profile ? std::optional<Section>(*profile) : std::nullopt;
+    if (!profile) return std::nullopt;
+    Section out = *profile;
+    if (out.kind == ShapeKind::TimberRectangularVariable && out.dims.size() == 3) {
+        out.dims[1] = d.depthStartM;  // "Canto inicial" / "Canto final" of the bar
+        out.dims[2] = d.depthEndM;
+    }
+    return out;
 }
 
 std::string validateDescription(const BarDescription& d, const ProfileLibrary& library) {
@@ -304,7 +355,11 @@ std::string validateDescription(const BarDescription& d, const ProfileLibrary& l
     if (family && series->family != *family) return "La serie «" + d.seriesRef + "» no corresponde al material seleccionado.";
     if (!series->findProfile(d.profileRef)) return "El perfil «" + d.profileRef + "» no existe en la serie «" + d.seriesRef + "».";
     if (shapeGroup(series->kind) != shapeGroup(d.shape)) return "La forma del perfil no corresponde a la forma seleccionada.";
-    return validateSection(*section);
+    const std::string problem = validateSection(*section);
+    if (!problem.empty()) return problem;
+    // Built-up, cold-formed and aluminium profiles are in the library but their properties cannot be calculated yet (TK-052).
+    if (isCatalogueOnly(section->kind)) return "Las propiedades mecánicas de los perfiles de esta serie aún no se pueden calcular.";
+    return {};
 }
 
 bool sameDescription(const BarDescription& a, const BarDescription& b) {

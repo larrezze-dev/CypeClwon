@@ -66,7 +66,7 @@ CC_ENUM(ReinforcementTableSource, {{ReinforcementTableSource::Predefined, "prede
 
 // --- project_settings.h ---
 CC_STRUCT(StandardsSelection, concrete, coldFormedSteel, hotRolledSteel, timber, aluminium)
-CC_STRUCT(TimberSettings, material, strengthClass, serviceClass)
+CC_STRUCT(TimberSettings, material, strengthClass, serviceClass, fireResistance)
 CC_STRUCT(AluminiumSettings, alloy, temper)
 CC_STRUCT(ProfileSettings, hotRolledSteel, coldFormedSteel, timber, aluminium, concrete)
 CC_STRUCT(RebarSteelSettings, columnLongitudinal, columnTransverse, beamTopAssembly, beamTopReinforcement, beamBottom,
@@ -150,6 +150,8 @@ inline void to_json(json& j, const BarDescription& d) {
              {"stiffeners", d.stiffeners},
              {"generic", d.generic},
              {"material", d.material},
+             {"depthStartM", d.depthStartM},
+             {"depthEndM", d.depthEndM},
              {"sectionId", d.sectionId},
              {"materialId", d.materialId}};
     if (d.inlineSection)
@@ -172,6 +174,8 @@ inline void from_json(const json& j, BarDescription& d) {
     d.stiffeners = j.value("stiffeners", defaults.stiffeners);
     d.generic = j.value("generic", defaults.generic);
     d.material = j.value("material", defaults.material);
+    d.depthStartM = j.value("depthStartM", defaults.depthStartM);
+    d.depthEndM = j.value("depthEndM", defaults.depthEndM);
     d.sectionId = j.value("sectionId", 0);
     d.materialId = j.value("materialId", 0);
     d.inlineSection.reset();

@@ -25,6 +25,7 @@ class DescribeToolTest : public ::testing::Test {
 protected:
     void SetUp() override {
         profileMessageSink().warn = [this](QWidget*, const QString&, const QString& text) { warnings << text; };
+        describeSink().timberService = [](QWidget*, TimberSettings&) { return false; };  // never open the nested box
         n1 = project.structure.addNode({0, 0, 0});
         n2 = project.structure.addNode({4, 0, 0});
         n3 = project.structure.addNode({8, 0, 3});
@@ -163,7 +164,7 @@ TEST_F(DescribeToolTest, DescribeMaterialGroups) {
     edit = [](BarDescribeDialog& d) { d.materialButton(BarMaterialIcon::Concrete)->click(); };
     ASSERT_TRUE(tool.describeBars(bars));
     EXPECT_TRUE(tool.describeMaterial(bars));  // concrete alone: steel + concrete (measured)
-    EXPECT_EQ(titles, (QStringList{"Acero laminado", "Hormigón"}));
+    EXPECT_EQ(titles, (QStringList{"Acero laminado", "Hormigón para vigas de forjado"}));
     edit = [](BarDescribeDialog& d) { d.materialButton(BarMaterialIcon::Timber)->click(); };
     ASSERT_TRUE(tool.describeBars({bars[0]}));
     EXPECT_TRUE(tool.describeMaterial({bars[0]}));

@@ -26,7 +26,15 @@ struct Sinks {
     std::vector<Section> properties;
     std::optional<ProfileSeries> nextSeries;
     int managed = 0;
+    int timberBoxes = 0;
+    bool timberBoxAccepts = false;
+    TimberSettings timberToSet;
     Sinks() {
+        describeSink().timberService = [this](QWidget*, TimberSettings& settings) {
+            ++timberBoxes;
+            if (timberBoxAccepts) settings = timberToSet;
+            return timberBoxAccepts;
+        };
         profileMessageSink().warn = [this](QWidget*, const QString&, const QString& text) { warnings << text; };
         describeSink().info = [this](QWidget*, const QString& title, const QString& text) { infos << title << text; };
         describeSink().properties = [this](QWidget*, const Section& s) { properties.push_back(s); };
@@ -281,13 +289,158 @@ TEST(BarDescribeDialog, TimberStartsAsRound100) {
     const auto d = make();
     clickIcon(*d, BarMaterialIcon::Timber);
     const BarDescription& desc = d->entries()[0].description;
-    ASSERT_TRUE(desc.inlineSection.has_value());
-    EXPECT_EQ(desc.inlineSection->kind, ShapeKind::TimberRound);
+    // The captured series of timber are in the library: "Redondo" / "Ø100" is the default of the original.
+    EXPECT_EQ(desc.shape, ShapeKind::TimberRound);
+    EXPECT_EQ(desc.seriesRef, "Redondo");
+    EXPECT_EQ(desc.profileRef, "Ø100");
     EXPECT_EQ(barLabelText(desc), "Ø100");
     EXPECT_EQ(d->usedList()->item(0)->text(), "[Barra] Ø100");
-    d->shapeButtons()[2]->click();
-    EXPECT_EQ(d->entries()[0].description.inlineSection->kind, ShapeKind::TimberRectangular);
-    EXPECT_TRUE(d->field("dimension1")->isVisibleTo(d.get()));
+    d->shapeButtons()[2]->click();  // Rectángulo macizo
+    EXPECT_EQ(d->entries()[0].description.shape, ShapeKind::TimberRectangular);
+    EXPECT_EQ(d->entries()[0].description.seriesRef, "Cabios/Viguetas");
+    EXPECT_EQ(d->entries()[0].description.profileRef, "100x70");
+}
+
+TEST(BarDescribeDialog, TimberSeriesAndProfilesOfTheCaptures) {
+    Sinks sinks;
+    const auto d = make();
+    clickIcon(*d, BarMaterialIcon::Timber);
+    const auto items = [](QComboBox* c) {
+        QStringList out;
+        for (int i = 0; i < c->count(); ++i) out << c->itemText(i);
+        return out;
+    };
+    EXPECT_EQ(items(d->seriesCombo()), (QStringList{"Redondo"}));
+    EXPECT_EQ(items(d->profileCombo()), (QStringList{"Ø100", "Ø120", "Ø130", "Ø140", "Ø150", "Ø180", "Ø200"}));
+    d->shapeButtons()[1]->click();  // Cuadrado macizo: Maciza, DUO/TRIO, Laminada
+    EXPECT_EQ(items(d->seriesCombo()), (QStringList{"Maciza", "DUO/TRIO", "Laminada"}));
+    EXPECT_EQ(d->profileCombo()->currentText(), "S-100x100");
+    d->shapeButtons()[2]->click();  // Rectángulo macizo: 32 series, Cabios/Viguetas first
+    EXPECT_EQ(d->seriesCombo()->count(), 32);
+    EXPECT_EQ(d->seriesCombo()->itemText(0), "Cabios/Viguetas");
+    EXPECT_EQ(d->seriesCombo()->itemText(1), "Maciza h100");
+    EXPECT_EQ(d->seriesCombo()->itemText(31), "Laminada b260");
+    EXPECT_EQ(d->profileCombo()->count(), 11);
+    d->seriesCombo()->setCurrentIndex(d->seriesCombo()->findText("Laminada b60"));
+    emit d->seriesCombo()->activated(d->seriesCombo()->currentIndex());
+    EXPECT_EQ(d->profileCombo()->count(), 57);
+    EXPECT_EQ(d->profileCombo()->itemText(56), "GL-1280x60");
+    // The properties are computed from the designation: S-100x40 is a 40 wide, 100 deep rectangle.
+    d->seriesCombo()->setCurrentIndex(d->seriesCombo()->findText("Maciza h100"));
+    emit d->seriesCombo()->activated(d->seriesCombo()->currentIndex());
+    EXPECT_EQ(d->profileCombo()->itemText(0), "S-100x40");
+    const BarDescription& desc = d->entries()[0].description;
+    const auto section = resolveSection(desc, d->library());
+    ASSERT_TRUE(section.has_value());
+    const auto props = effectiveProperties(*section);
+    ASSERT_TRUE(props.has_value());
+    EXPECT_NEAR(props->area, 0.1 * 0.04, 1e-12);
+}
+
+TEST(BarDescribeDialog, VariableDepthTimberHasTheCantoGroup) {
+    Sinks sinks;
+    const auto d = make();
+    clickIcon(*d, BarMaterialIcon::Timber);
+    d->shapeButtons()[3]->click();  // Rectangular, canto variable
+    const BarDescription& desc = d->entries()[0].description;
+    EXPECT_EQ(desc.shape, ShapeKind::TimberRectangularVariable);
+    EXPECT_EQ(desc.profileRef, "RV-60");
+    EXPECT_EQ(d->profileCombo()->count(), 11);
+    EXPECT_EQ(d->profileCombo()->itemText(10), "RV-260");
+    EXPECT_TRUE(d->depthBox()->isVisibleTo(d.get()));
+    EXPECT_EQ(d->field("depthStart")->text(), "100.0");
+    EXPECT_EQ(d->field("depthEnd")->text(), "100.0");
+    EXPECT_TRUE(d->arrangementRadio(Arrangement::Simple)->isChecked());
+    d->field("depthEnd")->setText("150");
+    d->field("depthEnd")->commit();
+    EXPECT_NEAR(d->entries()[0].description.depthEndM, 0.15, 1e-12);
+    const auto section = resolveSection(d->entries()[0].description, d->library());
+    ASSERT_TRUE(section.has_value());
+    EXPECT_NEAR(section->dims[2], 0.15, 1e-12);
+    d->shapeButtons()[0]->click();
+    EXPECT_FALSE(d->depthBox()->isVisibleTo(d.get()));
+}
+
+TEST(BarDescribeDialog, ShapesWithCatalogueDataOfTheOtherFamilies) {
+    Sinks sinks;
+    const auto d = make();
+    clickIcon(*d, BarMaterialIcon::RolledSteelFamily2);
+    EXPECT_EQ(d->seriesCombo()->currentText(), "IPC");
+    EXPECT_EQ(d->seriesCombo()->count(), 1);
+    EXPECT_EQ(d->profileCombo()->count(), 85);
+    EXPECT_EQ(d->profileCombo()->currentText(), "IPC 533x203x62.6");
+    d->shapeButtons()[1]->click();  // a shape without data: no series
+    EXPECT_EQ(d->seriesCombo()->count(), 0);
+    clickIcon(*d, BarMaterialIcon::ColdFormedSteel);
+    EXPECT_EQ(d->seriesCombo()->currentText(), "C");  // first shape with data (U conformado rigidizado)
+    EXPECT_EQ(d->profileCombo()->currentText(), "CF-60x2.0");
+    d->shapeButtons()[9]->click();  // U conformado simple
+    EXPECT_EQ(d->seriesCombo()->currentText(), "U");
+    EXPECT_EQ(d->profileCombo()->count(), 14);
+    EXPECT_EQ(d->profileCombo()->currentText(), "UF-60x3");
+    clickIcon(*d, BarMaterialIcon::ExtrudedAluminium);
+    EXPECT_EQ(d->seriesCombo()->currentText(), "(EP) I");
+    EXPECT_EQ(d->profileCombo()->count(), 11);
+    EXPECT_EQ(d->profileCombo()->currentText(), "I-50x80x6");
+}
+
+TEST(BarDescribeDialog, TiePageOffersTheFiveShapesWithTheirSeries) {
+    Sinks sinks;
+    const auto d = make();
+    d->typeRadio(1)->click();
+    ASSERT_EQ(d->tieShapeButtons().size(), 5);
+    EXPECT_EQ(d->tieSeriesCombo()->currentText(), "Pletinas");  // the original opens on Platabanda
+    EXPECT_EQ(d->tieProfileCombo()->currentText(), "FL 20 x 4");
+    EXPECT_EQ(d->tieProfileCombo()->count(), 331);
+    d->tieShapeButtons()[0]->click();
+    EXPECT_EQ(d->tieSeriesCombo()->currentText(), "L");
+    EXPECT_EQ(d->tieProfileCombo()->currentText(), "L 35 x 35 x 4");
+    EXPECT_EQ(d->tieProfileCombo()->count(), 179);
+    d->tieShapeButtons()[1]->click();
+    EXPECT_EQ(d->tieSeriesCombo()->currentText(), "L");
+    EXPECT_EQ(d->tieProfileCombo()->currentText(), "L 100 x 65 x 7");
+    EXPECT_EQ(d->tieProfileCombo()->count(), 31);
+    d->tieShapeButtons()[3]->click();
+    EXPECT_EQ(d->tieSeriesCombo()->currentText(), "R");
+    EXPECT_EQ(d->tieProfileCombo()->count(), 70);
+    d->tieShapeButtons()[4]->click();
+    EXPECT_EQ(d->tieSeriesCombo()->currentText(), "Barras cuadradas");
+    EXPECT_EQ(d->tieProfileCombo()->currentText(), "SQ 90 x 90");
+    EXPECT_EQ(d->tieProfileCombo()->count(), 8);
+    // The tie series are not in the library: the rolled steel "L" of the library keeps its own profiles.
+    EXPECT_EQ(d->library().find("L")->kind, ShapeKind::AngleEqual);
+}
+
+TEST(TimberServiceDialog, ShowsTheClassTextAndTheFireCheck) {
+    TimberSettings settings;
+    TimberServiceDialog dialog(settings);
+    EXPECT_EQ(dialog.windowTitle(), "Perfiles de madera");
+    EXPECT_TRUE(dialog.serviceRadio(1)->isChecked());
+    EXPECT_EQ(dialog.serviceText(), QString::fromStdString(timberServiceClassText(1)));
+    EXPECT_TRUE(dialog.serviceText().startsWith("Clase de servicio 1: se caracteriza"));
+    EXPECT_EQ(dialog.fireCheck()->text(), "Comprobar la resistencia al fuego (CTE DB SI. Anejo E)");
+    EXPECT_FALSE(dialog.fireCheck()->isChecked());
+    dialog.serviceRadio(2)->setChecked(true);
+    dialog.fireCheck()->setChecked(true);
+    EXPECT_EQ(dialog.serviceText(), QString::fromStdString(timberServiceClassText(2)));
+    EXPECT_EQ(dialog.value().serviceClass, 2);
+    EXPECT_TRUE(dialog.value().fireResistance);
+}
+
+TEST(BarDescribeDialog, TimberBoxShownWhenAnEntryBecomesTimber) {
+    Sinks sinks;
+    sinks.timberBoxAccepts = true;
+    sinks.timberToSet.serviceClass = 3;
+    auto d = make();
+    d->accept();  // steel stays steel: no box
+    EXPECT_EQ(sinks.timberBoxes, 0);
+    auto t = make();
+    clickIcon(*t, BarMaterialIcon::Timber);
+    t->setTimberSettings(TimberSettings{});
+    t->accept();
+    EXPECT_EQ(sinks.timberBoxes, 1);
+    EXPECT_TRUE(t->timberSettingsChanged());
+    EXPECT_EQ(t->timberSettings().serviceClass, 3);
 }
 
 TEST(BarDescribeDialog, ProfilePropertiesRowsOfTheIpe80) {
@@ -419,10 +572,10 @@ TEST(BarDescribeDialog, PillarAndBeamPagesCarryTheMeasuredControls) {
 TEST(BarDescribeDialog, AcceptValidatesTheDescription) {
     Sinks sinks;
     auto d = make();
-    clickIcon(*d, BarMaterialIcon::RolledSteelFamily2);  // the clone has no such series yet
+    clickIcon(*d, BarMaterialIcon::RolledSteelFamily2);  // IPC profiles exist but their properties cannot be calculated yet
     d->accept();
     ASSERT_EQ(sinks.warnings.size(), 1);
-    EXPECT_EQ(sinks.warnings[0], "Debe seleccionar una serie y un perfil.");
+    EXPECT_EQ(sinks.warnings[0], "Las propiedades mecánicas de los perfiles de esta serie aún no se pueden calcular.");
     EXPECT_NE(d->result(), QDialog::Accepted);
     clickIcon(*d, BarMaterialIcon::SpecialAluminium);
     sinks.warnings.clear();
@@ -456,7 +609,7 @@ TEST(DescribeMaterialDialog, GroupsAndChoices) {
     DescribeMaterialDialog dialog({{DescribeMaterialDialog::Group::RolledSteel, "S275 (UNE-EN 10025-2)", {"S235", "S275", "S355"}},
                                    {DescribeMaterialDialog::Group::Concrete, "C25/30", {"C12/15", "C16/20"}}});
     EXPECT_EQ(dialog.windowTitle(), "Describir material");
-    EXPECT_EQ(dialog.groupTitles(), (QStringList{"Acero laminado", "Hormigón"}));
+    EXPECT_EQ(dialog.groupTitles(), (QStringList{"Acero laminado", "Hormigón para vigas de forjado"}));
     EXPECT_EQ(dialog.projectRadio(DescribeMaterialDialog::Group::RolledSteel)->text(),
               "Material seleccionado en datos generales (S275 (UNE-EN 10025-2))");
     EXPECT_EQ(dialog.ownRadio(DescribeMaterialDialog::Group::RolledSteel)->text(), "Seleccionar material para la barra");
@@ -469,6 +622,43 @@ TEST(DescribeMaterialDialog, GroupsAndChoices) {
     EXPECT_FALSE(choice.useProjectMaterial);
     EXPECT_EQ(choice.grade, "S235");  // the first of the list, not the material of the work
     EXPECT_EQ(dialog.choice(DescribeMaterialDialog::Group::Concrete).grade, "");
+}
+
+TEST(DescribeMaterialDialog, CombosOfTheCaptures) {
+    QStringList steel, concrete;
+    for (const auto& g : hotRolledSteelGrades()) steel << QString::fromStdString(g);
+    for (const auto& g : concreteGrades()) concrete << QString::fromStdString(g);
+    DescribeMaterialDialog dialog({{DescribeMaterialDialog::Group::RolledSteel, "S275 (UNE-EN 10025-2)", steel},
+                                   {DescribeMaterialDialog::Group::Concrete, "C25/30", concrete}});
+    EXPECT_EQ(dialog.gradeCombo(DescribeMaterialDialog::Group::RolledSteel)->count(), 18);
+    EXPECT_EQ(dialog.gradeCombo(DescribeMaterialDialog::Group::RolledSteel)->itemText(17), "S460 HISTAR®");
+    EXPECT_EQ(dialog.gradeCombo(DescribeMaterialDialog::Group::Concrete)->count(), 17);
+    EXPECT_EQ(dialog.gradeCombo(DescribeMaterialDialog::Group::Concrete)->itemText(0), "C12/15");
+    EXPECT_EQ(dialog.gradeCombo(DescribeMaterialDialog::Group::Concrete)->itemText(16), "Bc 60");
+}
+
+TEST(DescribeMaterialDialog, TimberTypeAndStrengthClass) {
+    DescribeMaterialDialog dialog({{DescribeMaterialDialog::Group::Timber, "C24", {}, "Aserrada, procedente de coníferas o chopos"}});
+    EXPECT_EQ(dialog.groupTitles(), (QStringList{"Madera"}));
+    EXPECT_EQ(dialog.projectRadio(DescribeMaterialDialog::Group::Timber)->text(), "Material seleccionado en datos generales (C24)");
+    QComboBox* type = dialog.timberTypeCombo();
+    QComboBox* classes = dialog.gradeCombo(DescribeMaterialDialog::Group::Timber);
+    ASSERT_NE(type, nullptr);
+    EXPECT_FALSE(type->isVisibleTo(&dialog));
+    dialog.ownRadio(DescribeMaterialDialog::Group::Timber)->setChecked(true);
+    EXPECT_TRUE(type->isVisibleTo(&dialog));
+    EXPECT_TRUE(classes->isVisibleTo(&dialog));
+    EXPECT_EQ(type->count(), 4);
+    EXPECT_EQ(type->itemText(0), "Aserrada, procedente de coníferas o chopos");
+    EXPECT_EQ(type->itemText(3), "Laminada encolada, combinada");
+    ASSERT_EQ(classes->count(), 12);
+    EXPECT_EQ(classes->itemText(0), "C14");
+    EXPECT_EQ(classes->itemText(11), "C50");
+    EXPECT_EQ(classes->currentText(), "C24");  // the class of the work is preselected
+    type->setCurrentIndex(1);  // the classes of the other types were not captured
+    EXPECT_EQ(classes->count(), 0);
+    EXPECT_FALSE(classes->isEnabled());
+    EXPECT_EQ(dialog.choice(DescribeMaterialDialog::Group::Timber).timberType, "Aserrada, procedente de especies frondosas");
 }
 
 // Visual comparison aid: CC_SNAPSHOT_DIR=<dir> writes PNGs of the dialog (offscreen) to compare with orig_describir_*.png.

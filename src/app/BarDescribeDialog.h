@@ -11,6 +11,7 @@
 #include "ProfileLibraryDialogs.h"
 #include "core/bar_description.h"
 #include "core/profile_library.h"
+#include "core/project_settings.h"
 #include "core/units.h"
 
 class QAbstractButton;
@@ -44,6 +45,8 @@ struct DescribeSink {
         editSeries;
     /// "Series de Perfiles" manager (the table button).
     std::function<void(QWidget*, LibraryScratch&)> manageSeries;
+    /// "Perfiles de madera" box (service class + fire resistance check); false = cancelled (the settings are left untouched).
+    std::function<bool(QWidget*, cc::core::TimberSettings&)> timberService;
 };
 DescribeSink& describeSink();
 
@@ -135,6 +138,17 @@ public:
     /// genericWeight, stiffenerSpacing, stiffenerThickness, dimension0..2, pillarX, pillarY.
     ValueEdit* field(const QString& name) const;
     QRadioButton* sectionTypeRadio(int index) const;  ///< concrete: 0 Circular, 1 Rectangular, 2 canto variable
+    /// Tirante page (type 1): the five shape icons, series and profile combos (from cc::core::tieSeries(); no library involved).
+    const QList<QToolButton*>& tieShapeButtons() const { return m_tieButtons; }
+    QComboBox* tieSeriesCombo() const { return m_tieSeries; }
+    QComboBox* tieProfileCombo() const { return m_tieProfile; }
+    /// "Canto del perfil" group of the timber series of variable depth (fields depthStart / depthEnd).
+    QWidget* depthBox() const { return m_depthBox; }
+    /// Timber settings of the work ("Perfiles de madera": service class, fire resistance). The dialog shows that box on accepting when
+    /// an entry becomes timber (PROVISIONAL trigger: the original shows it after the first Aceptar of a timber description).
+    void setTimberSettings(const cc::core::TimberSettings& settings) { m_timberSettings = settings; m_timberOriginal = settings; }
+    const cc::core::TimberSettings& timberSettings() const { return m_timberSettings; }
+    bool timberSettingsChanged() const { return !(m_timberSettings == m_timberOriginal); }
     /// Tooltip texts, by position, exactly as measured.
     static QStringList materialTooltips();
     static QStringList shapeTooltips(cc::core::BarMaterialIcon icon);
@@ -175,6 +189,7 @@ private:
     void onEditSeries();
     void onManageSeries();
     void ensureLibrarySeries();
+    void selectTieShape(int index);
     void refreshUsedList();
     bool usesLibrary(cc::core::BarMaterialIcon icon) const;
     void applyProfile(const QString& seriesReference, const QString& profileReference);
@@ -215,9 +230,34 @@ private:
     QList<QLabel*> m_dimensionUnits;
     QWidget* m_sectionTypeColumn = nullptr;
     QList<ValueEdit*> m_dimensionEdits;
+    QList<QToolButton*> m_tieButtons;
+    QComboBox* m_tieSeries = nullptr;
+    QComboBox* m_tieProfile = nullptr;
+    int m_tieShape = 2;  ///< Platabanda (the original opens on it)
+    QWidget* m_depthBox = nullptr;
+    cc::core::TimberSettings m_timberSettings, m_timberOriginal;
     QList<Binding> m_bindings;
     QList<ValueEdit*> m_fields;
     QList<QWidget*> m_tabChain;
+};
+
+/// "Perfiles de madera" box that follows the first Aceptar of a timber description (capture 167 of the user's manual captures): the
+/// "Clase de servicio" radios 1 / 2 / 3 with the text of the class and the check box "Comprobar la resistencia al fuego (CTE DB SI.
+/// Anejo E)". One Aceptar button.
+class TimberServiceDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit TimberServiceDialog(const cc::core::TimberSettings& initial, QWidget* parent = nullptr);
+    cc::core::TimberSettings value() const;
+    QRadioButton* serviceRadio(int serviceClass) const;
+    QCheckBox* fireCheck() const { return m_fire; }
+    QString serviceText() const;
+
+private:
+    cc::core::TimberSettings m_initial;
+    QButtonGroup* m_service = nullptr;
+    QLabel* m_text = nullptr;
+    QCheckBox* m_fire = nullptr;
 };
 
 /// "Describir material" (Geometria > Barras > Material, ~570x375): one group per material present in the selection with the radios
@@ -225,7 +265,8 @@ private:
 /// per-bar grade yet, so the dialog only collects the choice (TK candidate: store it in the description).
 struct MaterialChoice {
     bool useProjectMaterial = true;
-    QString grade;  ///< when !useProjectMaterial
+    QString grade;       ///< when !useProjectMaterial
+    QString timberType;  ///< timber, when !useProjectMaterial
 };
 
 class DescribeMaterialDialog : public CypeDialog {
@@ -234,8 +275,9 @@ public:
     enum class Group { RolledSteel, Concrete, Timber };
     struct GroupSpec {
         Group group;
-        QString projectMaterial;  ///< "S275 (UNE-EN 10025-2)"
-        QStringList grades;       ///< items of the combo
+        QString projectMaterial;  ///< "S275 (UNE-EN 10025-2)"; timber: the strength class of the work
+        QStringList grades;       ///< items of the combo (timber: ignored, the classes depend on the type chosen)
+        QString projectTimberType;  ///< timber only: the type of the work ("Aserrada, procedente de coníferas o chopos")
     };
     DescribeMaterialDialog(const std::vector<GroupSpec>& groups, QWidget* parent = nullptr);
     /// Choice of a group (default when the group is not shown).
@@ -243,6 +285,7 @@ public:
     QRadioButton* projectRadio(Group group) const;
     QRadioButton* ownRadio(Group group) const;
     QComboBox* gradeCombo(Group group) const;
+    QComboBox* timberTypeCombo() const;  ///< timber group only: the four types (nullptr when the group is not shown)
     QStringList groupTitles() const;
 
 private:
@@ -252,6 +295,7 @@ private:
         QRadioButton* own;
         QComboBox* combo;
         QString title;
+        QComboBox* type = nullptr;  ///< timber
     };
     QList<Row> m_rows;
 };

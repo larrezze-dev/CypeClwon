@@ -9,6 +9,7 @@
 #include "BarDescribeDialog.h"
 #include "Viewport3D.h"
 #include "core/bar_description_edit.h"
+#include "core/general_data.h"
 #include "core/profile_library.h"
 #include "core/project_settings.h"
 
@@ -154,10 +155,16 @@ bool BarDescribeTool::describeBars(const std::vector<int>& barIds) {
     }
     if (entries.empty()) return false;
     BarDescribeDialog dialog(entries, project.profileLibrary, project.units.dimensions, true, m_dialogParent);
+    dialog.setTimberSettings(project.profiles.timber);
     if (run(dialog) != QDialog::Accepted) return false;
 
     // One undo step: library edits, refresh of the descriptions that read an edited profile, then the descriptions.
     m_undo->beginMacro("Describir barras");
+    if (dialog.timberSettingsChanged()) {
+        GeneralData general = generalDataOf(project);
+        general.profiles.timber = dialog.timberSettings();
+        m_undo->push(std::make_unique<EditGeneralDataCommand>(project, general));
+    }
     if (dialog.libraryChanged()) {
         m_undo->push(std::make_unique<ReplaceLibraryCommand>(project, dialog.library(), "Biblioteca de perfiles"));
         refreshDescriptions(project, *m_undo);
@@ -195,9 +202,9 @@ bool BarDescribeTool::describeMaterial(const std::vector<int>& barIds) {
         for (const std::string& g : concreteGrades()) grades << QString::fromStdString(g);
         groups.push_back({DescribeMaterialDialog::Group::Concrete, QString::fromStdString(project.profiles.concrete), grades});
     } else if (allTimber) {
-        QStringList grades;  // TODO(captura): the combo of timber was not opened in the original
-        for (const std::string& g : timberStrengthClasses()) grades << QString::fromStdString(g);
-        groups.push_back({DescribeMaterialDialog::Group::Timber, QString::fromStdString(project.profiles.timber.strengthClass), grades});
+        // Type combo (4 types) and "Clase resistente" (C14..C50 for the softwood type): the dialog fills the classes by type.
+        groups.push_back({DescribeMaterialDialog::Group::Timber, QString::fromStdString(project.profiles.timber.strengthClass), {},
+                          QString::fromStdString(project.profiles.timber.material)});
     }
     DescribeMaterialDialog dialog(groups, m_dialogParent);
     return run(dialog) == QDialog::Accepted;

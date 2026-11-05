@@ -44,7 +44,15 @@ enum class ShapeKind {
     TimberRound,                  ///< "Redondo": d
     TimberSquare,                 ///< "Cuadrado": a
     TimberRectangular,            ///< "Rectangular": b, h
-    TimberRectangularVariable     ///< "Rectangular de canto variable": b, h0, h1
+    TimberRectangularVariable,    ///< "Rectangular de canto variable": b, h0, h1
+    // --- catalogue shapes of the "Describir" dialog (built-up, cold-formed and aluminium families). Their dimensions are only what
+    //     the designation of the profile gives (docs/research/ui/describir_barras_capturas_manuales.md); the mechanical properties
+    //     are NOT calculable yet (the original uses `creaconf_*` routines of seccion.dll that are not analysed, TK-052):
+    //     calculatedProperties() / effectiveProperties() return nullopt for them.
+    BuiltUpDoubleT,    ///< "Doble T simétrica armada", series IPC: h, b (m) and mass per metre (kg/m, NOT a length): "IPC 533x203x62.6"
+    ColdFormedU,       ///< "U conformado simple", series U: h, t: "UF-60x3" (flange width not given by the designation)
+    ColdFormedC,       ///< "U conformado rigidizado", series C: h, t: "CF-60x2.0" (the only profile seen)
+    AluminiumI         ///< "Doble T" of aluminium, series "(EP) I": three nominal numbers d1, d2, d3 of "I-50x80x6" (meaning not verified)
 };
 
 /// Material family that a series belongs to ("Perfil de acero laminado", "conformado", ...). Only HotRolledSteel and Generic
@@ -60,13 +68,17 @@ std::optional<ShapeKind> shapeFromKey(const std::string& key);
 std::optional<SectionFamily> familyFromKey(const std::string& key);
 /// Every shape, in declaration order.
 const std::vector<ShapeKind>& allShapes();
-/// Family a concrete / timber shape belongs to (Concrete, Timber); nullopt for the steel shapes and Generic, which have no
-/// fixed family (a series declares it).
+/// Family a concrete / timber / catalogue shape belongs to (Concrete, Timber, BuiltUpSteel, ColdFormedSteel, Aluminium); nullopt for
+/// the hot-rolled steel shapes and Generic, which have no fixed family (a series declares it).
 std::optional<SectionFamily> shapeFamily(ShapeKind kind);
 /// Shapes offered for a family, in the order of the original's icons: Concrete = Circular, Rectangular, Rectangular de canto
 /// variable; Timber = Redondo, Cuadrado, Rectangular, Rectangular de canto variable; the steel families = the legacy shapes
 /// without fixed family (Generic excluded).
 std::vector<ShapeKind> shapesOfFamily(SectionFamily family);
+/// True for the solid concrete and timber shapes (computed from their dimensions only, no tabulated values).
+bool isConcreteOrTimber(ShapeKind kind);
+/// True for the catalogue shapes whose properties cannot be calculated yet (BuiltUpDoubleT, ColdFormedU, ColdFormedC, AluminiumI).
+bool isCatalogueOnly(ShapeKind kind);
 /// True for the two shapes whose depth varies linearly between the ends of the piece (b, h0, h1).
 bool isVariableDepth(ShapeKind kind);
 

@@ -26,7 +26,9 @@
 #include <algorithm>
 #include <cmath>
 
+#include "core/describir_catalogue.h"
 #include "core/predefined_profiles.h"
+#include "core/project_settings.h"
 #include "core/section_properties.h"
 
 namespace cc::app {
@@ -163,7 +165,7 @@ QColor fillOfIcon(BarMaterialIcon icon) {
 
 struct ShapeSlot {
     const char* name;
-    std::optional<ShapeKind> kind;  ///< nullopt: shape without formulas in the core (TK-052)
+    std::optional<ShapeKind> kind;  ///< nullopt: shape without data in the core (no series are offered for it)
     Glyph glyph;
 };
 
@@ -178,7 +180,7 @@ const std::vector<ShapeSlot>& shapeSlots(BarMaterialIcon icon) {
         {N_("Redondo macizo"), ShapeKind::RoundBar, Glyph::Round},
         {N_("Cuadrado macizo"), ShapeKind::SquareBar, Glyph::Square}};
     static const std::vector<ShapeSlot> builtUp = {
-        {N_("Doble T simétrica armada"), std::nullopt, Glyph::IBeam},
+        {N_("Doble T simétrica armada"), ShapeKind::BuiltUpDoubleT, Glyph::IBeam},
         {N_("Doble T alas distintas armada"), std::nullopt, Glyph::IBeamWide},
         {N_("Doble T canto variable"), std::nullopt, Glyph::Trapezoid},
         {N_("Doble T, alas distintas, con canto variable"), std::nullopt, Glyph::Trapezoid},
@@ -192,14 +194,14 @@ const std::vector<ShapeSlot>& shapeSlots(BarMaterialIcon icon) {
     static const std::vector<ShapeSlot> cold = {
         {N_("Tubo circular"), std::nullopt, Glyph::TubeRound},
         {N_("Cajón cuadrado conformado"), std::nullopt, Glyph::ColdBox},
-        {N_("U conformado rigidizado"), std::nullopt, Glyph::ColdC},
+        {N_("U conformado rigidizado"), ShapeKind::ColdFormedC, Glyph::ColdC},
         {N_("Z conformada simple"), std::nullopt, Glyph::ColdZ},
         {N_("Omega conformada simple"), std::nullopt, Glyph::ColdOmega},
         {N_("Omega rigidizada almas inclinadas"), std::nullopt, Glyph::ColdOmega},
         {N_("Angular simétrico conformado"), std::nullopt, Glyph::ColdAngle},
         {N_("Angular simétrico rigidizado conformado"), std::nullopt, Glyph::ColdAngle},
         {N_("Cajón conformado rectangular"), std::nullopt, Glyph::TubeRect},
-        {N_("U conformado simple"), std::nullopt, Glyph::ColdC},
+        {N_("U conformado simple"), ShapeKind::ColdFormedU, Glyph::ColdC},
         {N_("Canal con alma rigidizada"), std::nullopt, Glyph::ColdC},
         {N_("Z conformada con rigidizadores"), std::nullopt, Glyph::ColdZ},
         {N_("Omega simple almas inclinadas"), std::nullopt, Glyph::ColdOmega},
@@ -212,7 +214,7 @@ const std::vector<ShapeSlot>& shapeSlots(BarMaterialIcon icon) {
         {N_("Rectángulo macizo"), ShapeKind::TimberRectangular, Glyph::Rect},
         {N_("Rectangular, canto variable"), ShapeKind::TimberRectangularVariable, Glyph::Trapezoid}};
     static const std::vector<ShapeSlot> aluminium = {
-        {N_("Doble T"), std::nullopt, Glyph::IBeam},
+        {N_("Doble T"), ShapeKind::AluminiumI, Glyph::IBeam},
         {N_("C simple"), std::nullopt, Glyph::Channel},
         {N_("T simple"), std::nullopt, Glyph::Tee},
         {N_("Angular simétrico"), std::nullopt, Glyph::AngleEqual},
@@ -235,6 +237,20 @@ const std::vector<ShapeSlot>& shapeSlots(BarMaterialIcon icon) {
 
 /// The I icon of the original covers both families of I (parallel and inclined flanges); the series decides.
 ShapeKind shapeGroup(ShapeKind kind) { return kind == ShapeKind::ISloped ? ShapeKind::IParallel : kind; }
+
+/// A series is offered under a shape slot when it is of the family of the icon and has the shape of the slot; a slot without shape
+/// (nullopt) offers none.
+bool offeredUnder(const ProfileSeries& s, SectionFamily family, const std::optional<ShapeKind>& wanted) {
+    return wanted && s.family == family && shapeGroup(s.kind) == shapeGroup(*wanted);
+}
+
+/// First slot of the icon that has a shape (the default one: the first slots of the conformado icon have none).
+int firstShapedSlot(BarMaterialIcon icon) {
+    const auto& slotList = shapeSlots(icon);
+    for (std::size_t i = 0; i < slotList.size(); ++i)
+        if (slotList[i].kind) return static_cast<int>(i);
+    return 0;
+}
 
 bool isTimberInline(const BarDescription& d) { return d.materialIcon == BarMaterialIcon::Timber && d.seriesRef.empty(); }
 
@@ -409,7 +425,13 @@ DescribeSink& describeSink() {
             if (dialog.exec() != QDialog::Accepted) return std::nullopt;
             return dialog.value();
         },
-        [](QWidget* parent, LibraryScratch& scratch) { SeriesManagerDialog(scratch, parent).exec(); }};
+        [](QWidget* parent, LibraryScratch& scratch) { SeriesManagerDialog(scratch, parent).exec(); },
+        [](QWidget* parent, TimberSettings& settings) {
+            TimberServiceDialog dialog(settings, parent);
+            if (dialog.exec() != QDialog::Accepted) return false;
+            settings = dialog.value();
+            return true;
+        }};
     return sink;
 }
 
@@ -555,9 +577,15 @@ BarDescribeDialog::BarDescribeDialog(std::vector<DescribeEntry> entries, const P
 }
 
 void BarDescribeDialog::ensureLibrarySeries() {
-    if (!m_scratch.library().series.empty()) return;
-    // PROVISIONAL: a work of the clone starts with an empty library; the original's has the standard series.
-    importSeries(m_scratch.project, m_scratch.undo, predefinedSeries(), ImportPolicy::KeepExisting);
+    // PROVISIONAL: a work of the clone starts with an empty library; the original's has the standard series. The predefined series of
+    // every family the working copy does not have yet are added (steel from the catalogue, the rest from the captures of the original).
+    std::vector<ProfileSeries> missing;
+    for (const ProfileSeries& s : importablePredefinedSeries()) {
+        const bool haveFamily = std::any_of(m_scratch.library().series.begin(), m_scratch.library().series.end(),
+                                            [&](const ProfileSeries& o) { return o.family == s.family; });
+        if (!haveFamily) missing.push_back(s);
+    }
+    if (!missing.empty()) importSeries(m_scratch.project, m_scratch.undo, missing, ImportPolicy::KeepExisting);
 }
 
 ValueEdit* BarDescribeDialog::makeField(const QString& objectName, const FieldSpec& spec, QWidget* parent, int width) {
@@ -781,6 +809,24 @@ QWidget* BarDescribeDialog::buildExtraPages() {
     sg->addWidget(thickness, 2, 1);
     sg->addWidget(new QLabel(QStringLiteral("mm"), m_stiffenerBox), 2, 2);
     ah->addWidget(m_stiffenerBox, 1);
+    // "Canto del perfil" (timber of variable depth): 100.0 mm / 100.0 mm by default (capture 101); the ranges were not measured.
+    m_depthBox = new QWidget(arrangementPage);
+    auto* dg = new QGridLayout(m_depthBox);
+    dg->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    dg->addWidget(boldLabel(tr("Canto del perfil"), m_depthBox), 0, 0, 1, 3);
+    auto* depthStart = makeField(QStringLiteral("depthStart"), {tr("Canto inicial"), 1.0, 10000.0, 1}, m_depthBox);
+    auto* depthEnd = makeField(QStringLiteral("depthEnd"), {tr("Canto final"), 1.0, 10000.0, 1}, m_depthBox);
+    dg->addWidget(new QLabel(tr("Canto inicial"), m_depthBox), 1, 0);
+    dg->addWidget(depthStart, 1, 1);
+    dg->addWidget(new QLabel(QStringLiteral("mm"), m_depthBox), 1, 2);
+    dg->addWidget(new QLabel(tr("Canto final"), m_depthBox), 2, 0);
+    dg->addWidget(depthEnd, 2, 1);
+    dg->addWidget(new QLabel(QStringLiteral("mm"), m_depthBox), 2, 2);
+    ah->addWidget(m_depthBox, 1);
+    bind(depthStart, [](const BarDescription& d) { return d.depthStartM * 1000.0; },
+         [](BarDescription& d, double v) { d.depthStartM = v / 1000.0; });
+    bind(depthEnd, [](const BarDescription& d) { return d.depthEndM * 1000.0; },
+         [](BarDescription& d, double v) { d.depthEndM = v / 1000.0; });
     ah->addStretch(1);  // keeps the column on the left when the stiffeners box is hidden
     bind(spacing, [](const BarDescription& d) { return d.stiffeners.spacingM * 1000.0; },
          [](BarDescription& d, double v) { d.stiffeners.spacingM = v / 1000.0; });
@@ -957,29 +1003,45 @@ QWidget* BarDescribeDialog::buildTiePage() {
     int i = 0;
     for (const auto& icon : icons) {
         auto* b = iconButton(makePixmap(icon.glyph, 44, QColor(0xF7, 0xF7, 0xF7), QColor(0x8C, 0x8C, 0x94)), 56, trc(icon.name), page);
-        b->setChecked(i == 2);  // Platabanda
+        b->setObjectName(QStringLiteral("tieShape%1").arg(i));
+        const int index = i;
         group->addButton(b, i++);
+        connect(b, &QToolButton::clicked, this, [this, index] { selectTieShape(index); });
+        m_tieButtons.append(b);
         row->addWidget(b);
     }
     row->addSpacing(16);
     auto* form = new QGridLayout;
     form->addWidget(new QLabel(tr("Serie de perfiles"), page), 0, 0);
-    auto* series = new QComboBox(page);
-    series->addItem(tr("Pletinas"));
-    form->addWidget(series, 0, 1);
+    m_tieSeries = new QComboBox(page);
+    form->addWidget(m_tieSeries, 0, 1);
     form->addWidget(new QLabel(tr("Perfil"), page), 1, 0);
-    auto* profile = new QComboBox(page);
-    profile->addItem(QStringLiteral("FL 20 x 4"));
-    form->addWidget(profile, 1, 1);
+    m_tieProfile = new QComboBox(page);
+    form->addWidget(m_tieProfile, 1, 1);
     row->addLayout(form);
     row->addStretch(1);
     v->addLayout(row);
-    // TODO(captura): the tie series come from the library (Pletinas / FL 20 x 4 in the original) and the document
-    // "CÁLCULO DE TIRANTES EN CYPE 3D" is shown below; the module of ties is not developed (see the ticket candidates).
+    selectTieShape(m_tieShape);
+    // The series and profiles of the five tie shapes were transcribed from the captures (single series per shape: L, L, Pletinas, R,
+    // Barras cuadradas). The document "CÁLCULO DE TIRANTES EN CYPE 3D" shown below the combos in the original needs the module of ties,
+    // which is not developed (ticket candidate), so Aceptar stays blocked for this type.
     auto* note = new QLabel(tr("Los tirantes aún no están disponibles."), page);
     note->setAlignment(Qt::AlignCenter);
     v->addWidget(note, 1);
     return page;
+}
+
+void BarDescribeDialog::selectTieShape(int index) {
+    const auto& shapes = tieShapes();
+    if (index < 0 || index >= static_cast<int>(shapes.size())) return;
+    m_tieShape = index;
+    for (int i = 0; i < m_tieButtons.size(); ++i) m_tieButtons[i]->setChecked(i == index);
+    m_tieSeries->clear();
+    m_tieProfile->clear();
+    if (const ProfileSeries* series = tieSeries(shapes[static_cast<std::size_t>(index)])) {
+        m_tieSeries->addItem(q(series->reference));
+        for (const Section& p : series->profiles) m_tieProfile->addItem(q(p.reference));
+    }
 }
 
 QWidget* BarDescribeDialog::buildPillarPage() {
@@ -1198,8 +1260,7 @@ void BarDescribeDialog::rebuildSeries() {
         std::optional<ShapeKind> wanted;
         if (slot >= 0 && slot < static_cast<int>(slotList.size())) wanted = slotList[static_cast<std::size_t>(slot)].kind;
         for (const ProfileSeries& s : m_scratch.library().series)
-            if (s.family == *family && (!wanted || shapeGroup(s.kind) == shapeGroup(*wanted)))
-                m_series->addItem(q(s.reference), q(s.reference));
+            if (offeredUnder(s, *family, wanted)) m_series->addItem(q(s.reference), q(s.reference));
         const int at = m_series->findData(q(d.seriesRef));
         m_series->setCurrentIndex(at);
     }
@@ -1238,6 +1299,7 @@ void BarDescribeDialog::updateExtra() {
         }
         const bool allowed = stiffenersAllowed(d.materialIcon, d.arrangement);
         m_stiffenerBox->setVisible(allowed);
+        m_depthBox->setVisible(d.materialIcon == BarMaterialIcon::Timber && d.shape == ShapeKind::TimberRectangularVariable);
         m_stiffeners->setChecked(d.stiffeners.present);
         field(QStringLiteral("stiffenerSpacing"))->setEnabled(d.stiffeners.present);
         field(QStringLiteral("stiffenerThickness"))->setEnabled(d.stiffeners.present);
@@ -1362,7 +1424,7 @@ void BarDescribeDialog::onIconChosen(BarMaterialIcon icon) {
     d.elementType = cur.elementType;
     d.behaviour = cur.behaviour;
     cur = d;
-    m_slotUi[static_cast<std::size_t>(m_row)] = 0;
+    m_slotUi[static_cast<std::size_t>(m_row)] = firstShapedSlot(icon);
     if (icon == BarMaterialIcon::Timber) {
         if (usesLibrary(icon)) {
             // series of the library
@@ -1374,12 +1436,12 @@ void BarDescribeDialog::onIconChosen(BarMaterialIcon icon) {
         // First series of the family for the first slot; the original's defaults when they exist in the library (IPE / IPE 80, ...).
         const auto family = familyOfIcon(icon);
         const auto& slotList = shapeSlots(icon);
-        const std::optional<ShapeKind> wanted = slotList.empty() ? std::nullopt : slotList[0].kind;
+        const std::optional<ShapeKind> wanted = slotList.empty() ? std::nullopt : slotList[static_cast<std::size_t>(firstShapedSlot(icon))].kind;
         const ProfileSeries* pick = nullptr;
         if (!cur.seriesRef.empty()) pick = m_scratch.library().find(cur.seriesRef);
         if (!pick)
             for (const ProfileSeries& s : m_scratch.library().series)
-                if (s.family == *family && (!wanted || shapeGroup(s.kind) == shapeGroup(*wanted))) {
+                if (offeredUnder(s, *family, wanted)) {
                     pick = &s;
                     break;
                 }
@@ -1411,7 +1473,7 @@ void BarDescribeDialog::onShapeChosen(int slot) {
         const ProfileSeries* pick = nullptr;
         if (family)
             for (const ProfileSeries& s : m_scratch.library().series)
-                if (s.family == *family && (!kind || shapeGroup(s.kind) == shapeGroup(*kind))) {
+                if (offeredUnder(s, *family, kind)) {
                     pick = &s;
                     break;
                 }
@@ -1538,21 +1600,84 @@ void BarDescribeDialog::accept() {
             return;
         }
     }
+    // "Perfiles de madera" (service class + fire resistance): shown when an entry becomes timber (PROVISIONAL trigger).
+    for (std::size_t i = 0; i < m_entries.size(); ++i)
+        if (m_entries[i].description.materialIcon == BarMaterialIcon::Timber && m_original[i].description.materialIcon != BarMaterialIcon::Timber) {
+            describeSink().timberService(this, m_timberSettings);
+            break;
+        }
     CypeDialog::accept();
+}
+
+// --- TimberServiceDialog ------------------------------------------------------------------------------------------------------------
+
+TimberServiceDialog::TimberServiceDialog(const TimberSettings& initial, QWidget* parent)
+    : CypeDialog(tr("Perfiles de madera"), parent), m_initial(initial) {
+    setFixedSize(560, 250);
+    auto* box = new QFrame(this);
+    auto* v = new QVBoxLayout(box);
+    v->addWidget(headerBand(tr("Clase de servicio"), box));
+    auto* radios = new QHBoxLayout;
+    m_service = new QButtonGroup(this);
+    for (int i = 1; i <= 3; ++i) {
+        auto* radio = new QRadioButton(QString::number(i), box);
+        radio->setChecked(i == initial.serviceClass);
+        m_service->addButton(radio, i);
+        radios->addWidget(radio);
+    }
+    radios->addStretch(1);
+    v->addLayout(radios);
+    m_text = new QLabel(box);
+    m_text->setWordWrap(true);
+    m_text->setStyleSheet(QStringLiteral("background: #D6F1FA; border: 1px solid #9ED3E6; padding: 6px;"));
+    m_text->setMinimumHeight(64);
+    m_text->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    v->addWidget(m_text);
+    m_fire = new QCheckBox(tr("Comprobar la resistencia al fuego (CTE DB SI. Anejo E)"), box);
+    m_fire->setChecked(initial.fireResistance);
+    v->addWidget(m_fire);
+    contentLayout()->addWidget(box);
+    contentLayout()->addStretch(1);
+    connect(m_service, &QButtonGroup::idToggled, this, [this](int, bool on) {
+        if (on) m_text->setText(serviceText());
+    });
+    m_text->setText(serviceText());
+    QHBoxLayout* footer = setupCustomFooter();
+    auto* ok = new QPushButton(tr("Aceptar"), this);
+    ok->setDefault(true);
+    footer->addStretch(1);
+    footer->addWidget(ok);
+    footer->addStretch(1);
+    connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+}
+
+QString TimberServiceDialog::serviceText() const { return q(timberServiceClassText(m_service->checkedId())); }
+
+QRadioButton* TimberServiceDialog::serviceRadio(int serviceClass) const {
+    return qobject_cast<QRadioButton*>(m_service->button(serviceClass));
+}
+
+TimberSettings TimberServiceDialog::value() const {
+    TimberSettings result = m_initial;
+    result.serviceClass = m_service->checkedId();
+    result.fireResistance = m_fire->isChecked();
+    return result;
 }
 
 // --- DescribeMaterialDialog -------------------------------------------------------------------------------------------------------
 
 DescribeMaterialDialog::DescribeMaterialDialog(const std::vector<GroupSpec>& groups, QWidget* parent)
     : CypeDialog(tr("Describir material"), parent) {
-    setFixedSize(426, 120 + 78 * static_cast<int>(groups.size()));
+    int height = 120;
+    for (const GroupSpec& spec : groups) height += spec.group == Group::Timber ? 124 : 78;
+    setFixedSize(426, height);
     auto* v = new QVBoxLayout;
     v->setContentsMargins(4, 0, 4, 0);
     for (const GroupSpec& spec : groups) {
         QString title;
         switch (spec.group) {
         case Group::RolledSteel: title = tr("Acero laminado"); break;
-        case Group::Concrete: title = tr("Hormigón"); break;
+        case Group::Concrete: title = tr("Hormigón para vigas de forjado"); break;  // title of the group (captures 164-166)
         case Group::Timber: title = tr("Madera"); break;
         }
         v->addWidget(headerBand(title, this));
@@ -1566,18 +1691,47 @@ DescribeMaterialDialog::DescribeMaterialDialog(const std::vector<GroupSpec>& gro
         group->addButton(project);
         group->addButton(own);
         auto* combo = new QComboBox(this);
-        combo->addItems(spec.grades);
-        combo->setVisible(false);  // appears when the second radio is ticked
+        QComboBox* typeCombo = nullptr;
+        QLabel* classLabel = nullptr;
         auto* comboRow = new QHBoxLayout;
         comboRow->setContentsMargins(20, 0, 0, 0);
-        if (spec.group == Group::Concrete) comboRow->addWidget(new QLabel(tr("Tipo:"), this));
-        comboRow->addWidget(combo);
-        comboRow->addStretch(1);
         v->addWidget(project);
         v->addWidget(own);
+        if (spec.group == Group::Timber) {
+            // Type of timber (no label) and, below, "Clase resistente": the classes depend on the type. Only the classes of the softwood
+            // type were captured; the other three types show an empty, disabled combo (TODO(captura)).
+            typeCombo = new QComboBox(this);
+            for (const std::string& t : timberMaterials()) typeCombo->addItem(q(t));
+            typeCombo->setCurrentText(spec.projectTimberType.isEmpty() ? typeCombo->itemText(0) : spec.projectTimberType);
+            auto* typeRow = new QHBoxLayout;
+            typeRow->setContentsMargins(20, 0, 0, 0);
+            typeRow->addWidget(typeCombo, 1);
+            v->addLayout(typeRow);
+            classLabel = new QLabel(tr("Clase resistente"), this);
+            comboRow->addWidget(classLabel);
+            const auto fillClasses = [combo, typeCombo, spec] {
+                combo->clear();
+                for (const std::string& c : timberStrengthClassesFor(typeCombo->currentText().toStdString())) combo->addItem(q(c));
+                const int at = combo->findText(spec.projectMaterial);
+                if (at >= 0) combo->setCurrentIndex(at);
+                combo->setEnabled(combo->count() > 0);
+            };
+            fillClasses();
+            connect(typeCombo, &QComboBox::currentIndexChanged, this, [fillClasses](int) { fillClasses(); });
+            typeCombo->setVisible(false);
+            classLabel->setVisible(false);
+        } else {
+            combo->addItems(spec.grades);
+            if (spec.group == Group::Concrete) comboRow->addWidget(new QLabel(tr("Tipo:"), this));
+        }
+        combo->setVisible(false);  // appears when the second radio is ticked
+        comboRow->addWidget(combo);
+        comboRow->addStretch(1);
         v->addLayout(comboRow);
-        connect(own, &QRadioButton::toggled, this, [combo, project, own](bool on) {
+        connect(own, &QRadioButton::toggled, this, [combo, typeCombo, classLabel, project, own](bool on) {
             combo->setVisible(on);
+            if (typeCombo) typeCombo->setVisible(on);
+            if (classLabel) classLabel->setVisible(on);
             QFont bold = project->font();
             bold.setBold(!on);
             project->setFont(bold);
@@ -1585,7 +1739,7 @@ DescribeMaterialDialog::DescribeMaterialDialog(const std::vector<GroupSpec>& gro
             other.setBold(on);
             own->setFont(other);
         });
-        m_rows.append({spec.group, project, own, combo, title});
+        m_rows.append({spec.group, project, own, combo, title, typeCombo});
     }
     v->addStretch(1);
     contentLayout()->addLayout(v, 1);
@@ -1594,7 +1748,9 @@ DescribeMaterialDialog::DescribeMaterialDialog(const std::vector<GroupSpec>& gro
 
 MaterialChoice DescribeMaterialDialog::choice(Group group) const {
     for (const Row& r : m_rows)
-        if (r.group == group) return {!r.own->isChecked(), r.own->isChecked() ? r.combo->currentText() : QString()};
+        if (r.group == group)
+            return {!r.own->isChecked(), r.own->isChecked() ? r.combo->currentText() : QString(),
+                    r.own->isChecked() && r.type ? r.type->currentText() : QString()};
     return {};
 }
 QRadioButton* DescribeMaterialDialog::projectRadio(Group group) const {
@@ -1610,6 +1766,11 @@ QRadioButton* DescribeMaterialDialog::ownRadio(Group group) const {
 QComboBox* DescribeMaterialDialog::gradeCombo(Group group) const {
     for (const Row& r : m_rows)
         if (r.group == group) return r.combo;
+    return nullptr;
+}
+QComboBox* DescribeMaterialDialog::timberTypeCombo() const {
+    for (const Row& r : m_rows)
+        if (r.group == Group::Timber) return r.type;
     return nullptr;
 }
 QStringList DescribeMaterialDialog::groupTitles() const {

@@ -61,6 +61,11 @@ const std::vector<std::string>& timberStrengthClasses() {
     return v;
 }
 
+const std::vector<std::string>& timberStrengthClassesFor(const std::string& timberMaterial) {
+    static const std::vector<std::string> none;
+    return timberMaterial == timberMaterials().front() ? timberStrengthClasses() : none;
+}
+
 const std::vector<std::string>& aluminiumAlloys() {
     static const std::vector<std::string> v = {"EN AW-5083", "EN AW-6060", "EN AW-6061", "EN AW-6063",
                                                "EN AW-6005A", "EN AW-6106", "EN AW-6082", "EN AW-7020"};

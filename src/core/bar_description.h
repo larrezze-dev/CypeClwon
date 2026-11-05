@@ -120,6 +120,9 @@ struct BarDescription {
     /// Section typed in the dialog for the icons without library series: concrete (type + dimensions) and timber when seriesRef is
     /// empty. Unused otherwise.
     std::optional<Section> inlineSection;
+    /// "Canto del perfil" of the timber series of variable depth (RV-60...): initial / final depth of the piece, default 100.0 mm each
+    /// (describir_barras_capturas_manuales.md, capture 101). Only read when the library profile has variable depth.
+    double depthStartM = 0.1, depthEndM = 0.1;
     MaterialData material;               ///< generic: typed by the user; other icons: defaultMaterialData(icon)
     int sectionId = 0;                   ///< CrossSection generated from this description (0 = none yet)
     int materialId = 0;                  ///< Material generated from it
@@ -131,6 +134,20 @@ struct BarDescription {
 /// generic: the dialog defaults (206010 / 0.3 / 77.01 / 1.2e-5).
 MaterialData defaultMaterialData(BarMaterialIcon icon);
 MaterialKind materialKindOf(BarMaterialIcon icon);
+/// Material values of a concrete grade / a timber class of the project (TK-063). NOT MEASURED IN THE ORIGINAL: the dialog does not show
+/// them and no capture gives them, so the clone uses the standardised formulas / tables:
+///  - concrete (EC2, EN 1992-1-1 table 3.1, Ecm of the grades C12/15..C50/60), nu = 0.2, alpha = 1e-5, 25 kN/m3 (reinforced concrete);
+///    the "Bc" grades have no equivalent there, so they fall back to defaultMaterialData(Concrete);
+///  - timber (EN 1995-1-1 with EN 338: E0,mean and mean density of the softwood classes C14..C50, G = E0,mean / 16, weight = rho * g),
+///    nu = 0.3 and alpha = 5e-6 as defaultMaterialData(Timber); the other three timber types have no class list yet (TODO(captura))
+///    and fall back to defaultMaterialData(Timber).
+MaterialData concreteMaterialData(const std::string& grade);
+MaterialData timberMaterialData(const std::string& timberMaterial, const std::string& strengthClass);
+/// Shear modulus of a material, G = E / (2 (1 + nu)).
+double shearModulusMPa(const MaterialData& material);
+/// G,mean of a softwood class of EN 338 (E0,mean / 16); 0 when the class is unknown.
+double timberShearModulusMPa(const std::string& strengthClass);
+
 /// Description with the defaults of the dialog for an icon (rolled steel: IPE / IPE 80; concrete: rectangular 30 x 30 cm; timber:
 /// rectangular 30 x 30 cm clone default, TK-061; generic: GenericSectionData defaults; other icons: no profile chosen yet).
 BarDescription defaultDescription(BarMaterialIcon icon = BarMaterialIcon::RolledSteel);

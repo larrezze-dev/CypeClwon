@@ -14,6 +14,9 @@ const std::vector<std::string>& coldFormedSteelGrades();
 const std::vector<std::string>& concreteGrades();
 const std::vector<std::string>& timberMaterials();
 const std::vector<std::string>& timberStrengthClasses();
+/// Strength classes of a timber type ("Clase resistente" of "Describir material"). Only the first type (Aserrada, procedente de
+/// coníferas o chopos) was captured (C14..C50); the other three return an empty list (TODO(captura): their classes were not captured).
+const std::vector<std::string>& timberStrengthClassesFor(const std::string& timberMaterial);
 const std::vector<std::string>& aluminiumAlloys();
 const std::vector<std::string>& aluminiumTempers();
 const std::vector<std::string>& rebarSteels();
@@ -31,6 +34,9 @@ struct TimberSettings {
     std::string material = "Aserrada, procedente de coníferas o chopos";
     std::string strengthClass = "C24";
     int serviceClass = 1;  ///< 1, 2 or 3
+    /// "Comprobar la resistencia al fuego (CTE DB SI. Anejo E)" of the "Perfiles de madera" box of Describir (capture 167); default off.
+    bool fireResistance = false;
+    bool operator==(const TimberSettings&) const = default;
     bool isValid() const;
     /// Text of the button on the wizard, e.g. "Aserrada, procedente de coníferas o chopos".
     std::string summary() const { return material; }

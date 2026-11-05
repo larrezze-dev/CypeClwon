@@ -38,10 +38,15 @@ Material makeMaterial(const Project& project, const BarDescription& d) {
     Material m;
     m.name = materialName(project, d.materialIcon);
     m.kind = materialKindOf(d.materialIcon);
-    m.elasticModulusMPa = d.material.elasticModulusMPa;
-    m.poissonRatio = d.material.poissonRatio;
-    m.densityKnM3 = d.material.densityKnM3;
-    m.thermalExpansion = d.material.thermalExpansion;
+    // Concrete and timber take their values from the grade / class of the project (TK-063: standardised values, not measured in the original).
+    MaterialData data = d.material;
+    if (d.materialIcon == BarMaterialIcon::Concrete) data = concreteMaterialData(project.profiles.concrete);
+    else if (d.materialIcon == BarMaterialIcon::Timber)
+        data = timberMaterialData(project.profiles.timber.material, project.profiles.timber.strengthClass);
+    m.elasticModulusMPa = data.elasticModulusMPa;
+    m.poissonRatio = data.poissonRatio;
+    m.densityKnM3 = data.densityKnM3;
+    m.thermalExpansion = data.thermalExpansion;
     return m;
 }
 

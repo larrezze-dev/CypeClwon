@@ -36,7 +36,7 @@ double near(double v) { return std::max(1e-12, std::fabs(v) * 1e-9); }
 }  // namespace
 
 TEST(ConcreteTimber, TablesAndFamilies) {
-    EXPECT_EQ(allShapes().size(), 17u);
+    EXPECT_EQ(allShapes().size(), 21u);
     for (ShapeKind k : allShapes()) {
         EXPECT_EQ(shapeFromKey(shapeKey(k)), k);
         EXPECT_FALSE(dimensionKeys(k).empty());
