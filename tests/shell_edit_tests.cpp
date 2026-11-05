@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include <nlohmann/json.hpp>
+
 #include "core/geom3.h"
 #include "core/project_json.h"
 #include "core/shell_edit.h"
@@ -294,4 +296,50 @@ TEST(ShellEdit, XEdgeSurvivesJsonRoundTripAndDivision) {
     int with = 0;
     for (const Shell& sh : s.p.structure.shells) with += sh.xEdgeStart != 0;
     EXPECT_LE(with, 1);
+}
+
+TEST(ShellEdit, SectionSetsThicknessAndBallastInOneStepAndIsRefusedWhenInvalid) {
+    Square s;
+    int id = 0;
+    ASSERT_EQ(addShell(s.p, s.stack, s.ring(), 0.2, 0, &id), ShellError::None);
+    const std::size_t before = s.stack.count();
+    ShellSection sec{0.3, true, 8000.0, BallastBehaviour::CompressionOnly};
+    EXPECT_EQ(setShellSection(s.p, s.stack, {id}, ShellSection{0.0, false, 0.0, BallastBehaviour::Linear}), ShellError::InvalidThickness);
+    EXPECT_EQ(setShellSection(s.p, s.stack, {id}, ShellSection{0.3, true, 0.0, BallastBehaviour::Linear}), ShellError::InvalidBallast);
+    EXPECT_EQ(setShellSection(s.p, s.stack, {}, sec), ShellError::NothingToChange);
+    EXPECT_EQ(setShellSection(s.p, s.stack, {999}, sec), ShellError::UnknownElement);
+    EXPECT_EQ(s.stack.count(), before);
+    ASSERT_EQ(setShellSection(s.p, s.stack, {id}, sec), ShellError::None);
+    EXPECT_EQ(s.stack.count(), before + 1);
+    const Shell* sh = s.p.structure.findShell(id);
+    EXPECT_NEAR(sh->thicknessM, 0.3, 1e-12);
+    EXPECT_TRUE(sh->ballastEnabled);
+    // Disabling keeps the stored value and behaviour.
+    ASSERT_EQ(setShellSection(s.p, s.stack, {id}, ShellSection{0.3, false, 0.0, BallastBehaviour::Linear}), ShellError::None);
+    sh = s.p.structure.findShell(id);
+    EXPECT_FALSE(sh->ballastEnabled);
+    EXPECT_DOUBLE_EQ(sh->ballastKnM3, 8000.0);
+    // JSON round trip, and a file without the ballast keys loads as disabled.
+    ASSERT_EQ(setShellSection(s.p, s.stack, {id}, sec), ShellError::None);
+    Project back;
+    project_json::loadSection(back, "nodes", project_json::dumpSection(s.p, "nodes"));
+    project_json::loadSection(back, "shells", project_json::dumpSection(s.p, "shells"));
+    EXPECT_TRUE(back.structure.findShell(id)->ballastEnabled);
+    EXPECT_EQ(back.structure.findShell(id)->ballastBehaviour, BallastBehaviour::CompressionOnly);
+    const std::string text = project_json::dumpSection(s.p, "shells");
+    ASSERT_NE(text.find("ballastEnabled"), std::string::npos);
+    nlohmann::json old = nlohmann::json::parse(text);
+    for (auto& shell : old["items"]) {
+        shell.erase("ballastEnabled");
+        shell.erase("ballastKnM3");
+        shell.erase("ballastBehaviour");
+    }
+    Project legacy;
+    project_json::loadSection(legacy, "nodes", project_json::dumpSection(s.p, "nodes"));
+    project_json::loadSection(legacy, "shells", old.dump());
+    EXPECT_FALSE(legacy.structure.findShell(id)->ballastEnabled);
+    EXPECT_NEAR(legacy.structure.findShell(id)->thicknessM, 0.3, 1e-12);
+    // Division and union keep the ballast of the original shell.
+    ASSERT_EQ(divideShells(s.p, s.stack, {id}, {2, -1, 0}, {2, 5, 0}), ShellError::None);
+    for (const Shell& part : s.p.structure.shells) EXPECT_TRUE(part.ballastEnabled);
 }

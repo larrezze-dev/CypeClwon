@@ -10,6 +10,7 @@
 #include <QSignalSpy>
 #include <memory>
 
+#include "ShellDialogs.h"
 #include "ShellTool.h"
 #include "Viewport3D.h"
 #include "core/shell_edit.h"
@@ -310,13 +311,61 @@ TEST_F(ShellToolTest, LocalAxesToggleDrivesTheViewports) {
 
 TEST_F(ShellToolTest, PendingDialogsOnlyReportThatTheyAreNotAvailable) {
     QSignalSpy pending(tool.get(), &ShellTool::notAvailable);
-    for (QAction* action : {tool->layoutAction(), tool->sectionAction(), tool->materialAction()}) {
+    for (QAction* action : {tool->layoutAction(), tool->materialAction()}) {
         EXPECT_TRUE(action->isEnabled());
         action->trigger();
     }
-    EXPECT_EQ(pending.count(), 3);
+    EXPECT_EQ(pending.count(), 2);
     EXPECT_EQ(dialogs, 0) << "the runner is never reached (nothing blocks)";
     EXPECT_EQ(tool->mode(), Mode::None);
+}
+
+TEST_F(ShellToolTest, SeccionAppliesTheDialogToTheSelectedShellsAsOneUndoStep) {
+    ShellSection seen;
+    tool->setDialogRunner([&](QDialog& d) {
+        auto& dialog = static_cast<cc::app::ShellSectionDialog&>(d);
+        seen = dialog.section();
+        EXPECT_EQ(d.windowTitle(), QStringLiteral("Sección de la lámina"));
+        EXPECT_FALSE(dialog.ballastEditable()) << "the editor follows the checkbox";
+        EXPECT_FALSE(dialog.behaviourEditable());
+        dialog.setThickness(25.0);  // cm (project unit)
+        dialog.setBallastEnabled(true);
+        EXPECT_TRUE(dialog.ballastEditable());
+        EXPECT_TRUE(dialog.behaviourEditable());
+        dialog.setBallastValue(5000.0);
+        dialog.setBehaviour(BallastBehaviour::CompressionOnly);
+        return static_cast<int>(QDialog::Accepted);
+    });
+    const std::size_t before = undo.count();
+    tool->sectionAction()->trigger();
+    EXPECT_EQ(tool->mode(), Mode::Section);
+    click(*view, screenOf(1, 0, 1.2));
+    click(*view, screenOf(7, 0, 1.2), Qt::LeftButton);  // plain click replaces the selection: use the direct entry for several shells below
+    click(*view, screenOf(7, 0, 1.2), Qt::RightButton);
+    EXPECT_NEAR(seen.thicknessM, kDefaultShellThicknessM, 1e-12);
+    EXPECT_FALSE(seen.ballastEnabled);
+    EXPECT_EQ(undo.count(), before + 1);
+    EXPECT_NEAR(project.structure.findShell(2)->thicknessM, 0.25, 1e-12);
+    EXPECT_TRUE(project.structure.findShell(2)->ballastEnabled);
+    EXPECT_DOUBLE_EQ(project.structure.findShell(2)->ballastKnM3, 5000.0);
+    EXPECT_EQ(project.structure.findShell(2)->ballastBehaviour, BallastBehaviour::CompressionOnly);
+    EXPECT_FALSE(project.structure.findShell(1)->ballastEnabled);
+    undo.undo();
+    EXPECT_FALSE(project.structure.findShell(2)->ballastEnabled);
+    // Several shells at once: one undo step.
+    const std::size_t again = undo.count();
+    ASSERT_TRUE(tool->editSection({1, 2}));
+    EXPECT_EQ(undo.count(), again) << "the undone step is replaced by one new step";
+    for (const Shell& sh : project.structure.shells) EXPECT_TRUE(sh.ballastEnabled);
+    undo.undo();
+    for (const Shell& sh : project.structure.shells) EXPECT_FALSE(sh.ballastEnabled);
+}
+
+TEST_F(ShellToolTest, SeccionCancelChangesNothing) {
+    const std::size_t before = undo.count();
+    EXPECT_FALSE(tool->editSection({1, 2}));
+    EXPECT_EQ(dialogs, 1);
+    EXPECT_EQ(undo.count(), before);
 }
 
 TEST_F(ShellToolTest, UndoOfTheChosenShellBreaksTheSteps) {

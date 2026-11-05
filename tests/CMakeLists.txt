@@ -133,9 +133,10 @@ target_include_directories(continuous_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src
 target_link_libraries(continuous_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(continuous_tool_tests)
 
-add_executable(shell_tool_tests shell_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ShellTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+add_executable(shell_tool_tests shell_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ShellTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ShellDialogs.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
 target_include_directories(shell_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
-target_link_libraries(shell_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
+target_link_libraries(shell_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(shell_tool_tests)
 
 add_executable(transform_tool_tests transform_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/TransformTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)

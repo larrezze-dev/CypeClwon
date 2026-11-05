@@ -34,13 +34,15 @@ class Viewport3D;
 ///    only says "dos puntos ... y botón derecho" (laminas.md section 1).
 ///  - Definir eje 'x' (#64716 / #64717): click a shell, then the two nodes of the edge. PROVISIONAL: the original clicks the edge.
 ///  - Ejes locales (#392577): a toggle that draws the local axes of the shells in the 3D windows.
-///  - Disposicion, Seccion and Material: the buttons exist but their dialogs are pending (laminas.md section 4: the fields are not
+///  - Seccion (#65122, laminas.md section 5): LMB selects shells, RMB opens "Sección de la lámina" (thickness, local-Z ballast
+///    modulus and its behaviour) and applies it to all of them as one undo step.
+///  - Disposicion and Material: the buttons exist but their dialogs are pending (laminas.md section 4: the fields are not
 ///    known; the "Describir material" dialog of the bars is for bars and its groups differ from #94482-94486) and only
 ///    emit notAvailable(). TODO(TK-shell-dialogs): link them once the fields are known.
 class ShellTool : public QObject {
     Q_OBJECT
 public:
-    enum class Mode { None, New, Delete, Move, Join, Divide, InvertZ, DefineX };
+    enum class Mode { None, New, Delete, Move, Join, Divide, InvertZ, DefineX, Section };
 
     explicit ShellTool(QObject* parent = nullptr);
 
@@ -72,7 +74,7 @@ public:
     /// Widget the dialogs are parented to (the main window).
     void setDialogParent(QWidget* parent) { m_dialogParent = parent; }
     /// Runs a modal dialog; returns QDialog::Accepted / Rejected. The default is exec(); tests replace it so that nothing blocks.
-    /// (No dialog is opened yet: kept so that the pending Seccion / Disposicion / Material dialogs plug in like the other tools.)
+    /// (Used by the Seccion dialog; Disposicion / Material will plug in the same way.)
     void setDialogRunner(std::function<int(QDialog&)> runner) { m_runner = std::move(runner); }
 
     /// Status bar text. PROVISIONAL: assembled from the generic texts of entopane (laminas.md has no measured bar text).
@@ -83,6 +85,8 @@ public:
     bool deleteShells(const std::vector<int>& shellIds);
     bool joinShells(const std::vector<int>& shellIds);
     bool invertZ(const std::vector<int>& shellIds);
+    /// Opens "Sección de la lámina" (initial values of the first shell) and applies it to every given shell; false if cancelled.
+    bool editSection(const std::vector<int>& shellIds);
 
 signals:
     void statusChanged(const QString& text);
@@ -99,6 +103,7 @@ private:
     void configureViewports();
     void updateEnabled();
     void pruneViewports();
+    int run(QDialog& dialog);
     void onSelectionChanged(Viewport3D* viewport);
     void onActOnSelection(Viewport3D* viewport);
     void onRightClicked();

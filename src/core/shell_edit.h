@@ -33,6 +33,8 @@ enum class ShellError {
     ContourTooComplex, ///< the union has more than 4 corner nodes, which the model cannot hold (PROVISIONAL, no original message)
     InvalidMove,       ///< the move would break a bar or a shell (no original message)
     InvalidEdge,       ///< the pair of nodes is not an edge of the shell (no original message)
+    InvalidThickness,  ///< thickness <= 0 (the original checks espesor > 0, laminas.md section 5)
+    InvalidBallast,    ///< ballast modulus enabled with a value <= 0 (the original checks modulo_de_balasto_en_z_local > 0)
     NothingToChange    ///< nothing selected / the operation changes nothing (no original message)
 };
 
@@ -159,6 +161,24 @@ private:
     ShellError m_error = ShellError::None;
 };
 
+/// "Sección": thickness and local-Z ballast modulus of every given shell in one step (panel "Sección de la lámina", #65122).
+/// A disabled ballast keeps the stored value and behaviour untouched. InvalidThickness / InvalidBallast refuse the whole edit.
+struct ShellSection {
+    double thicknessM = kDefaultShellThicknessM;
+    bool ballastEnabled = false;
+    double ballastKnM3 = 0.0;
+    BallastBehaviour ballastBehaviour = BallastBehaviour::Linear;
+};
+class SetShellSectionCommand : public SnapshotCommand {
+public:
+    SetShellSectionCommand(Project& project, const std::vector<int>& shellIds, const ShellSection& section);
+    bool valid() const { return m_error == ShellError::None; }
+    ShellError error() const { return m_error; }
+
+private:
+    ShellError m_error = ShellError::None;
+};
+
 /// Wrappers: build the command and push it on `stack`; they return ShellError::None on success, otherwise the error and
 /// nothing is pushed.
 ShellError addShell(Project& project, UndoStack& stack, const std::vector<int>& nodeIds, double thicknessM = kDefaultShellThicknessM,
@@ -169,6 +189,7 @@ ShellError divideShells(Project& project, UndoStack& stack, const std::vector<in
 ShellError joinShells(Project& project, UndoStack& stack, const std::vector<int>& shellIds, int* resultId = nullptr);
 ShellError invertShellZ(Project& project, UndoStack& stack, const std::vector<int>& shellIds);
 ShellError setShellXEdge(Project& project, UndoStack& stack, int shellId, int nodeA, int nodeB);
+ShellError setShellSection(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellSection& section);
 ShellError moveShellNodes(Project& project, UndoStack& stack, int shellId, const std::vector<int>& nodeIds, const Point3& delta);
 
 }  // namespace cc::core

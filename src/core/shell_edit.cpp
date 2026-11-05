@@ -88,6 +88,8 @@ std::string shellErrorMessage(ShellError error) {
         case ShellError::ContourTooComplex: return "El contorno de la lámina resultante tiene más de cuatro nudos.";
         case ShellError::InvalidMove: return "El desplazamiento deja una barra o una lámina con una geometría no válida.";
         case ShellError::InvalidEdge: return "Los nudos indicados no forman una arista de la lámina.";
+        case ShellError::InvalidThickness: return "El espesor de la lámina debe ser mayor que cero.";
+        case ShellError::InvalidBallast: return "El módulo de balasto debe ser mayor que cero.";
         case ShellError::NothingToChange: return "No hay nada que modificar.";
     }
     return {};
@@ -486,6 +488,38 @@ InvertShellZCommand::InvertShellZCommand(Project& project, const std::vector<int
     commit();
 }
 
+SetShellSectionCommand::SetShellSectionCommand(Project& project, const std::vector<int>& shellIds, const ShellSection& section)
+    : SnapshotCommand(project, "Sección de la lámina") {
+    std::vector<int> ids = shellIds;
+    sortedUnique(ids);
+    if (ids.empty()) {
+        m_error = ShellError::NothingToChange;
+        return;
+    }
+    if (!(section.thicknessM > 0.0)) {  // also refuses NaN
+        m_error = ShellError::InvalidThickness;
+        return;
+    }
+    if (section.ballastEnabled && !(section.ballastKnM3 > 0.0)) {
+        m_error = ShellError::InvalidBallast;
+        return;
+    }
+    for (int id : ids) {
+        Shell* s = work.findShell(id);
+        if (!s) {
+            m_error = ShellError::UnknownElement;
+            return;
+        }
+        s->thicknessM = section.thicknessM;
+        s->ballastEnabled = section.ballastEnabled;
+        if (section.ballastEnabled) {
+            s->ballastKnM3 = section.ballastKnM3;
+            s->ballastBehaviour = section.ballastBehaviour;
+        }
+    }
+    commit();
+}
+
 SetShellXEdgeCommand::SetShellXEdgeCommand(Project& project, int shellId, int a, int b) : SnapshotCommand(project, "Definir eje x") {
     Shell* s = work.findShell(shellId);
     if (!s) {
@@ -597,6 +631,11 @@ ShellError joinShells(Project& project, UndoStack& stack, const std::vector<int>
 ShellError invertShellZ(Project& project, UndoStack& stack, const std::vector<int>& shellIds) {
     InvertShellZCommand* c = nullptr;
     return run(project, stack, c, shellIds);
+}
+
+ShellError setShellSection(Project& project, UndoStack& stack, const std::vector<int>& shellIds, const ShellSection& section) {
+    SetShellSectionCommand* c = nullptr;
+    return run(project, stack, c, shellIds, section);
 }
 
 ShellError setShellXEdge(Project& project, UndoStack& stack, int shellId, int nodeA, int nodeB) {

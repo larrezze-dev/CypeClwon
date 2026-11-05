@@ -116,6 +116,9 @@ struct Piece {
     bool operator==(const Piece&) const = default;
 };
 
+/// "Comportamiento" of the local-Z ballast modulus of a shell (#377936): "Lineal" (#379172) or "Sólo compresión" (#377979).
+enum class BallastBehaviour { Linear, CompressionOnly };
+
 /// Flat plate or shell with 3 (triangle) or 4 (quadrilateral) corner nodes, listed in order around the contour.
 struct Shell {
     int id = 0;
@@ -127,6 +130,12 @@ struct Shell {
     /// order. 0 / 0 = default direction (see shell_edit.h). A pair that is not a contour edge is ignored.
     int xEdgeStart = 0;
     int xEdgeEnd = 0;
+    /// "Módulo de balasto en Z local" (#65405, laminas.md section 5): the checkbox, the value (> 0, stored in kN/m3 like the
+    /// "peso_especifico" magnitude of the original) and the behaviour (only meaningful while enabled). Files that lack
+    /// these keys load as disabled.
+    bool ballastEnabled = false;
+    double ballastKnM3 = 0.0;
+    BallastBehaviour ballastBehaviour = BallastBehaviour::Linear;
     std::vector<int> layerIds{kDefaultLayerId};  ///< sorted, unique, never empty
     bool operator==(const Shell&) const = default;
 };
