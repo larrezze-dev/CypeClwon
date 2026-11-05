@@ -114,7 +114,7 @@ CC_STRUCT(BeamDeflectionLimit, relative, absoluteMm)
 CC_STRUCT(DeflectionGroup, id, barIds, limit)
 CC_STRUCT(ContinuousElements, columns, beams, pieceReferences, slabDepths, deflectionGroups, nextColumnId, nextBeamId, nextGroupId)
 CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
-CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerIds)
+CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, xEdgeStart, xEdgeEnd, layerIds)
 
 // --- bar_description.h (T-P5-07) ---
 CC_ENUM(BarMaterialIcon, {{BarMaterialIcon::RolledSteel, "rolledSteel"},

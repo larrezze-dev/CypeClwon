@@ -1,0 +1,43 @@
+# Grupo Herramientas (pestaña Geometría) - hallazgos REA estáticos sobre `ed3dlib.dll`
+
+Fuente: REA/Ghidra sobre `ed3dlib.dll` + `data/strings_merged_latin.tsv`; no se lanzó ninguna aplicación. Etiquetas: [REA] pseudocódigo; [CAD] cadena es-ES; [PROB] inferencia; [NV] no verificado.
+
+## 1. Botones (captura `orig_geometria_ribbon.png`)
+Disposición visual: columna 1 «Generar» (icono grande, con flecha = desplegable), a su derecha 4 iconos por fila en 2 filas (fila 1: 4 + un icono «ABC» atenuado; fila 2: 4 con lupa al final) y «Reparar» (icono de llave, grande) a la derecha. Los tooltips se deducen de las cadenas (el nombre de cada icono no consta literalmente en ribbon):
+| Botón (deducido) | Título del comando | Ayuda |
+|---|---|---|
+| Mover (cruz de flechas) | #64802 «Mover elementos» | #64803 mover una selección a una nueva posición; #64804 pasos |
+| Copiar | #64814 «Copiar elementos» | #64815; #64816 |
+| Girar en eje 2 puntos | #64805 «Girar elementos alrededor de un eje definido por dos puntos» | #64806 (en vista 2D el giro es en el plano de la vista); #64807 |
+| Girar en plano xy | #64808 «Girar elementos en el plano xy» | #64809 giro alrededor del eje z global; #64810 |
+| Girar xy con 3 puntos | #64811 «...dados tres puntos» | #64812 origen indicado por el usuario + ángulo definido por tres puntos; #64813 |
+| Simetría en plano xy | #64817 «Simetría de elementos en el plano xy» | #64818 copia simétrica respecto del plano definido por un vector y el eje z global (en 2D: respecto de la recta); #64819 |
+| Simetría respecto de un plano | #64820 «Simetría de elementos respecto de un plano» | #64821 plano definido por **tres puntos** (en 2D: recta de los dos primeros); #64822 |
+| «ABC» (atenuado) y lupa | [NV] | 9 iconos en total sin Generar/Reparar: 7 son los de arriba; los 2 restantes (ABC y lupa) **no identificados** (posibles candidatos por cadena: «Escalar»/«Renumerar»/«Buscar»: no hay cadena que lo confirme; #74706 «Escala» pertenece a otra DLL) |
+| Reparar | #399486 «Reparar» | #399477-399480 (§3) |
+El grupo se titula «Herramientas» (#64843). El encabezado de submenú «Generar» es #392581.
+
+## 2. Generar (desplegable) [CAD]
+Cada opción abre un diálogo con estos campos (títulos/ayudas):
+- **Malla de nudos tridimensional** (#63976) y **bidimensional** (#63979): selección de dos líneas de referencia ortogonales para el plano (#65113); casilla «Generar sólo los nudos» (#63978; ayuda #63983: no se crea ninguna barra).
+- **Nudos sobre un segmento** (#63977; ayuda #64777): «Nº de divisiones del segmento» (#63959); casillas «Agrupar barras paralelas al segmento» (#63974, ayuda #63984) y «Crear pieza entre barras alineadas» (#63975, ayuda #63985); segmentos: 1 = lineal, 2 = plana, 3 = espacial; tras seleccionar los segmentos y botón derecho se pide el nº de divisiones de cada uno (#64778-64779).
+- **Planos** (#63971; ayuda #64775-64776): «Nº de planos a generar» (#63972), «Separación entre planos» (#63981; positivo = sentido + del eje global perpendicular, negativo = sentido contrario, #63980), «Agrupar planos generados» (#63973; ayuda #63982: un cambio en uno se repite en todos). Solo planos ortogonales a los ejes globales; seleccionar dos líneas de referencia del plano. Mensaje #63970 «Se van a desagrupar todos los planos que intervienen en la generación.»
+- **Malla de tetraedros** (#63964 / #64772, ayuda #64780-64782): dos segmentos con el mismo origen definen un plano; el segundo plano sigue la «regla del tornillo». Campos: «Distancia entre planos» (#63960, ayuda #63965 «canto de la malla»), «Agrupar barras de plano inferior» (#63961, #63966), «... de plano superior» (#63962, #63967), «Agrupar barras entre planos (diagonales)» (#63963, #63968); «Nudos y barras» (#64773); «Tamaño máximo de los lados de un triángulo» #64301 pertenece a láminas.
+- Valores por defecto y rangos de todos los campos: [NV].
+
+## 3. Reparar [REA/CAD]
+- Confirmación **#399477**: «El programa analizará a continuación la geometría del modelo e intentará corregirla, si fuera necesario. ¿Desea continuar?» (descriptor usado en `FUN_1800176xx`, ver xrefs 0x1800176e4..0x180017baf; función no decompilada). Resultado: **#399478** «El modelo ha sido modificado, por favor, revíselo antes de continuar.» / **#399479** «No se han realizado modificaciones en el modelo.»
+- Mensajes de incidencia (comprobación, texto con `%s`) [CAD] y su origen leído [REA]:
+  - **#399480** «Los nudos %s y %s están demasiado próximos entre sí (distancia: %s).»: `FUN_180044620` (ed3arnud.c línea 0xe2; `datos_interseccion_nudos`): para cada pareja (i<j) de ids de nudo se comparan las coordenadas 3D con `ebamath_iguales_puntos_3d_con_tolerancia(..., tol = param_1[2])` y, si coinciden, se añade el error con la distancia (`mt_distancia_3D`) vía `ebaerror_append_error_calculo_elem_u` en la posición del primer nudo. Es una comprobación O(n²) con tolerancia **parametrizada** (valor numérico [NV]).
+  - **#400344** «El nudo '%s' está demasiado próximo a la arista (distancia: %s).»: `FUN_1806eb5a0` (ed3ararislamef.c): doble bucle aristas de lámina x nudos; `FUN_1806ed6b0(arista, id, x,y,z, tol, &dist)`; si cae, añade error (si se pidió mensaje) y registra el id de arista en dos arrays «aristas que necesitan ser divididas» (`ebaarray_AppendULong_SiNoExiste`). Es decir, Reparar **divide la arista de lámina por el nudo que la toca**.
+  - **#400345** «El nudo no es necesario ya que no tiene cargas ni vinculación exterior.» (nudo huérfano; el borrado automático [PROB]).
+  - **#400346** «Las barras '%s' y '%s' están solapadas.»; **#400347** «El nudo '%s' está demasiado próximo a la barra '%s' (distancia: %s).» (la barra se divide por el nudo [PROB]); **#64010** nudo sin barras ni láminas; **#65115** barras no importables (longitud > 1000 m, solapadas).
+- Resumen de qué repara [PROB, a partir de los mensajes]: fusiona nudos coincidentes, divide barras/aristas por nudos intermedios, elimina barras solapadas y nudos innecesarios. Las tolerancias, el orden de las operaciones y el contenido del resumen post-operación son **[NV]** (caller: la función que referencia #399477, direcciones 0x1800176e4+, no decompilada).
+
+## 4. Algoritmos de las herramientas de edición
+- No se localizaron las funciones de Mover/Copiar/Girar/Simetría (símbolo stripped). Candidato por nombre: `ed3obra_desplaza_y_gira_en_plano_horizontal` (0x18045a130, usado en obras/BIM) y `ed3obra_copia_parcial` (0x180457660) [NV]. Semántica indicada por ayudas: Mover/Copiar = vector entre dos puntos; Giro eje = eje por dos puntos + ángulo; Giro xy = rotación alrededor de z global, ángulo por dos puntos (#64810) o por origen + tres puntos (#64813); Simetría xy = plano vertical que contiene el vector y la dirección z; Simetría por plano = plano de 3 puntos. Simetría/Copiar **crean copia** (no mueven); Mover/Girar mueven.
+- Qué se copia (nudos, barras, láminas, cargas, vinculaciones, pilares/vigas): [NV]. Invertir orientación local de barras en la simetría: [NV].
+- Diálogos con campos numéricos: solo se pide **el ángulo de giro** (#64807) y no hay cadena de «factor de escala» asociada a este grupo: **«Escalar» no existe en las cadenas del grupo**; si el icono ABC/lupa son otras herramientas, [NV].
+
+## Pendiente (no verificado)
+Identidad de los dos iconos restantes (ABC, lupa); tolerancias numéricas; valores por defecto/rangos de los generadores; función que implementa Reparar y su orden; cuál de #400345-400347 se repara automáticamente frente a solo informar.

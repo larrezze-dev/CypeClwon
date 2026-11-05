@@ -123,6 +123,10 @@ struct Shell {
     double thicknessM = 0.0;
     int materialId = 0;
     bool zAxisInverted = false;  ///< "invertir z": flips the local normal
+    /// "Definir eje x" (#64716 / #64717): the contour edge that gives the local x direction, as its two nodes in contour
+    /// order. 0 / 0 = default direction (see shell_edit.h). A pair that is not a contour edge is ignored.
+    int xEdgeStart = 0;
+    int xEdgeEnd = 0;
     std::vector<int> layerIds{kDefaultLayerId};  ///< sorted, unique, never empty
     bool operator==(const Shell&) const = default;
 };
