@@ -22,6 +22,7 @@
 #include "SARibbonBar.h"
 #include "SARibbonCategory.h"
 #include "SARibbonPanel.h"
+#include "SARibbonToolButton.h"
 #include "SARibbonQuickAccessBar.h"
 #include "SARibbonSystemButtonBar.h"
 #include <QFileInfo>
@@ -45,6 +46,8 @@
 #include "PieceTool.h"
 #include "BarDescribeTool.h"
 #include "ContinuousTool.h"
+#include "ShellTool.h"
+#include "TransformTool.h"
 #include "NodeTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -181,6 +184,8 @@ void MainWindow::createWorkArea() {
             m_pieceTool->deactivate();
             m_describeTool->deactivate();
             m_continuousTool->deactivate();
+            m_shellTool->deactivate();
+            m_transformTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -206,6 +211,10 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(BarDescribeTool::statusText(m_describeTool->mode()));
         else if (m_continuousTool->mode() != ContinuousTool::Mode::None)
             statusBar()->showMessage(ContinuousTool::statusText(m_continuousTool->mode()));
+        else if (m_shellTool->mode() != ShellTool::Mode::None)
+            statusBar()->showMessage(ShellTool::statusText(m_shellTool->mode(), m_shellTool->step()));
+        else if (m_transformTool->mode() != TransformTool::Mode::None)
+            statusBar()->showMessage(TransformTool::statusText(m_transformTool->mode(), m_transformTool->step()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -213,6 +222,8 @@ void MainWindow::createWorkArea() {
         m_pieceTool->deactivate();
         m_describeTool->deactivate();
         m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
     });
     // Geometria > Barras: same rules as Nudos; Pilar without levels asks for a message (#65140).
     connect(m_barTool, &BarTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
@@ -222,6 +233,8 @@ void MainWindow::createWorkArea() {
         m_pieceTool->deactivate();
         m_describeTool->deactivate();
         m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
     });
     connect(m_pieceTool, &PieceTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_pieceTool, &PieceTool::aboutToActivate, this, [this] {
@@ -230,6 +243,8 @@ void MainWindow::createWorkArea() {
         m_barTool->deactivate();
         m_describeTool->deactivate();
         m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
     });
     // Geometria > Barras > Seccion / Material (T-P5-07): same rules; the dialogs are children of the main window.
     m_describeTool->setDialogParent(this);
@@ -240,6 +255,8 @@ void MainWindow::createWorkArea() {
         m_barTool->deactivate();
         m_pieceTool->deactivate();
         m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
     });
     connect(m_describeTool, &BarDescribeTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Barras"), text); });
     connect(m_pieceTool, &PieceTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Barras"), text); });
@@ -256,9 +273,41 @@ void MainWindow::createWorkArea() {
         m_barTool->deactivate();
         m_pieceTool->deactivate();
         m_describeTool->deactivate();
+        m_shellTool->deactivate();
+        m_transformTool->deactivate();
     });
     connect(m_continuousTool, &ContinuousTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Edición de pilares y vigas"), text); });
     connect(m_continuousTool, &ContinuousTool::notAvailable, this, [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); });
+    // Geometria > Laminas (T-P5-09) and Herramientas (T-P5-10): same rules; Seccion / Disposicion / Material and Generar only say so.
+    m_shellTool->setDialogParent(this);
+    connect(m_shellTool, &ShellTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_shellTool, &ShellTool::aboutToActivate, this, [this] {
+        m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+        m_nodeTool->deactivate();
+        m_barTool->deactivate();
+        m_pieceTool->deactivate();
+        m_describeTool->deactivate();
+        m_continuousTool->deactivate();
+        m_transformTool->deactivate();
+    });
+    connect(m_shellTool, &ShellTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Láminas"), text); });
+    connect(m_shellTool, &ShellTool::notAvailable, this, [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); });
+    m_transformTool->setDialogParent(this);
+    connect(m_transformTool, &TransformTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_transformTool, &TransformTool::aboutToActivate, this, [this] {
+        m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
+        m_nodeTool->deactivate();
+        m_barTool->deactivate();
+        m_pieceTool->deactivate();
+        m_describeTool->deactivate();
+        m_continuousTool->deactivate();
+        m_shellTool->deactivate();
+    });
+    connect(m_transformTool, &TransformTool::messageRequested, this, [this](const QString& text) { QMessageBox::warning(this, tr("Herramientas"), text); });
+    connect(m_transformTool, &TransformTool::notAvailable, this, [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); });
+    m_transformTool->setConfirmer([this](const QString& question) {
+        return QMessageBox::question(this, tr("Reparar"), question, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
+    });
     setProjectOpen(false);
 
     // Project lifecycle arrives in T-P2-02..07; until then the entries only report their status.
@@ -282,6 +331,8 @@ void MainWindow::createWorkArea() {
             m_pieceTool->structureChanged();
             m_describeTool->structureChanged();
             m_continuousTool->structureChanged();
+            m_shellTool->structureChanged();
+            m_transformTool->structureChanged();
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
     loadRecentFiles();
@@ -503,6 +554,8 @@ void MainWindow::setProjectOpen(bool open) {
     m_pieceTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_describeTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_continuousTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_shellTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_transformTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
     refreshUndoActions();
@@ -533,6 +586,8 @@ void MainWindow::setProjectOpen(bool open) {
         m_pieceTool->addViewport(viewport);
         m_describeTool->addViewport(viewport);
         m_continuousTool->addViewport(viewport);
+        m_shellTool->addViewport(viewport);
+        m_transformTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -848,6 +903,53 @@ void MainWindow::buildGeometryTab() {
     m_continuousTool->beamsMenu()->setIcon(themedIcon(QStringLiteral("edit_beams")));
     bars->addLargeMenu(m_continuousTool->pillarsMenu(), QToolButton::InstantPopup);
     bars->addLargeMenu(m_continuousTool->beamsMenu(), QToolButton::InstantPopup);
+
+    // "Láminas" (orig_geometria_ribbon.png): Nueva large, then three columns of three small buttons, then Ejes locales.
+    m_shellTool = new ShellTool(this);
+    const auto icon = [](QAction* action, const char* name) { action->setIcon(themedIcon(QString::fromLatin1(name))); };
+    icon(m_shellTool->newAction(), "shell_new");
+    icon(m_shellTool->deleteAction(), "shell_delete");
+    icon(m_shellTool->sectionAction(), "shell_section");
+    icon(m_shellTool->materialAction(), "shell_material");
+    icon(m_shellTool->layoutAction(), "shell_layout");
+    icon(m_shellTool->moveAction(), "shell_move");
+    icon(m_shellTool->joinAction(), "shell_join");
+    icon(m_shellTool->divideAction(), "shell_divide");
+    icon(m_shellTool->invertZAction(), "shell_invert_z");
+    icon(m_shellTool->defineXAction(), "shell_define_x");
+    icon(m_shellTool->localAxesAction(), "shell_axes");
+    SARibbonPanel* shells = tab->addPanel(tr("Láminas"));
+    shells->addLargeAction(m_shellTool->newAction());
+    for (QAction* action : {m_shellTool->deleteAction(), m_shellTool->sectionAction(), m_shellTool->materialAction(), m_shellTool->layoutAction(),
+                            m_shellTool->moveAction(), m_shellTool->joinAction(), m_shellTool->divideAction(), m_shellTool->invertZAction(),
+                            m_shellTool->defineXAction(), m_shellTool->localAxesAction()})
+        shells->addSmallAction(action);
+
+    // "Herramientas": Generar (drop-down) large, the icons in two rows, Reparar large. The two unidentified icons ("ABC" and the
+    // magnifier) of the original are not created yet (herramientas.md section 1).
+    m_transformTool = new TransformTool(this);
+    m_transformTool->generateMenu()->setIcon(themedIcon(QStringLiteral("tool_generate")));
+    icon(m_transformTool->moveAction(), "tool_move");
+    icon(m_transformTool->copyAction(), "tool_copy");
+    icon(m_transformTool->rotateAxisAction(), "tool_rotate_axis");
+    icon(m_transformTool->rotateXYAction(), "tool_rotate_xy");
+    icon(m_transformTool->rotateXY3Action(), "tool_rotate_xy3");
+    icon(m_transformTool->mirrorXYAction(), "tool_mirror_xy");
+    icon(m_transformTool->mirrorPlaneAction(), "tool_mirror_plane");
+    icon(m_transformTool->repairAction(), "tool_repair");
+    SARibbonPanel* tools = tab->addPanel(tr("Herramientas"));
+    tools->addLargeMenu(m_transformTool->generateMenu(), QToolButton::InstantPopup);
+    // Two rows filled column by column, as in the original: Mover / Girar xy, Copiar / Simetría xy, Girar eje / Girar xy (3 puntos),
+    // Simetría respecto de un plano.
+    for (QAction* action : {m_transformTool->moveAction(), m_transformTool->rotateXYAction(), m_transformTool->copyAction(),
+                            m_transformTool->mirrorXYAction(), m_transformTool->rotateAxisAction(), m_transformTool->rotateXY3Action(),
+                            m_transformTool->mirrorPlaneAction()})
+    {
+        tools->addMediumAction(action);
+        // Icon only, like the original (the title is the tooltip).
+        if (SARibbonToolButton* button = tools->actionToRibbonToolButton(action)) button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
+    tools->addLargeAction(m_transformTool->repairAction());
 }
 
 void MainWindow::buildObraTab() {

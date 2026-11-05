@@ -12,6 +12,8 @@
 #include <map>
 #include <utility>
 
+#include "core/shell_edit.h"
+
 namespace cc::app {
 
 using core::Camera;
@@ -391,6 +393,78 @@ void Viewport3D::setRubberChain(std::vector<int> nodeIds) {
     if (nodeIds == m_rubberChain) return;
     m_rubberChain = std::move(nodeIds);
     update();
+}
+
+void Viewport3D::setRubberPoints(std::vector<core::Vec3> points) {
+    if (points == m_rubberPoints) return;
+    m_rubberPoints = std::move(points);
+    update();
+}
+
+void Viewport3D::setShowShellAxes(bool on) {
+    if (on == m_showShellAxes) return;
+    m_showShellAxes = on;
+    update();
+}
+
+void Viewport3D::drawPointRubber(QPainter& painter) const {
+    if (m_rubberPoints.empty()) return;
+    const core::ScreenMapper map = mapper();
+    std::vector<QPointF> points;
+    for (const core::Vec3& p : m_rubberPoints) {
+        double x, y;
+        if (map.toScreen(p, x, y)) points.emplace_back(x, y);
+    }
+    if (points.empty()) return;
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(Qt::black, 1.5));
+    for (std::size_t i = 1; i < points.size(); ++i) painter.drawLine(points[i - 1], points[i]);
+    QPointF end = m_cursor;
+    if (m_snap.snapped()) {  // the line ends on the point about to be chosen
+        double x, y;
+        if (map.toScreen(m_snap.point, x, y)) end = QPointF(x, y);
+    }
+    if (m_cursorInside) painter.drawLine(points.back(), end);
+    painter.setPen(QPen(kHighlight, 2));
+    for (const QPointF& p : points) painter.drawRect(QRectF(p.x() - nodeHalf(), p.y() - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
+}
+
+void Viewport3D::drawShellAxes(QPainter& painter) const {
+    if (!m_showShellAxes || !m_structure || !m_categories.shellsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    struct Arrow { const char* label; QColor colour; };
+    const Arrow arrows[3] = {{"x", QColor(220, 30, 30)}, {"y", QColor(30, 160, 30)}, {"z", QColor(30, 60, 220)}};
+    QFont font = painter.font();
+    font.setBold(true);
+    painter.setFont(font);
+    for (const core::Shell& shell : m_structure->shells) {
+        if (!m_structure->elementVisible(shell.layerIds)) continue;
+        const std::optional<core::ShellAxes> axes = core::shellLocalAxes(*m_structure, shell);
+        if (!axes) continue;
+        Vec3 centre;
+        double reach = 0.0;
+        std::vector<Vec3> corners;
+        for (int id : shell.nodeIds)
+            if (const core::Node* n = m_structure->findNode(id)) corners.push_back(Vec3{n->position.x, n->position.y, n->position.z});
+        if (corners.empty()) continue;
+        for (const Vec3& c : corners) centre = centre + c * (1.0 / static_cast<double>(corners.size()));
+        for (const Vec3& c : corners) {
+            const Vec3 d = c - centre;
+            reach = std::max(reach, std::sqrt(d.x * d.x + d.y * d.y + d.z * d.z));
+        }
+        const double length = reach * 0.5;  // half way to the farthest corner
+        double cx, cy;
+        if (!map.toScreen(centre, cx, cy)) continue;
+        const core::Point3 dirs[3] = {axes->x, axes->y, axes->z};
+        for (int i = 0; i < 3; ++i) {
+            double tx, ty;
+            const Vec3 tip = centre + Vec3{dirs[i].x, dirs[i].y, dirs[i].z} * length;
+            if (!map.toScreen(tip, tx, ty)) continue;
+            painter.setPen(QPen(arrows[i].colour, 1.5));
+            painter.drawLine(QPointF(cx, cy), QPointF(tx, ty));
+            painter.drawText(QPointF(tx + 3, ty - 3), QString::fromLatin1(arrows[i].label));
+        }
+    }
 }
 
 void Viewport3D::drawBarRubber(QPainter& painter) const {

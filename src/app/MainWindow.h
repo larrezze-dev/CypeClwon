@@ -22,6 +22,8 @@ class BarTool;
 class PieceTool;
 class BarDescribeTool;
 class ContinuousTool;
+class ShellTool;
+class TransformTool;
 class Viewport3D;
 class SessionBar;
 class StartPage;
@@ -123,6 +125,8 @@ private:
     BarDescribeTool* m_describeTool = nullptr;  ///< Geometria > Barras (Seccion / Material, T-P5-07)
     PieceTool* m_pieceTool = nullptr;  ///< Geometria > Barras (Pieza / Agrupar / Desagrupar / Mover extremo / Invertir eje)
     ContinuousTool* m_continuousTool = nullptr;  ///< Geometria > Barras (Edición de pilares / vigas, T-P5-08)
+    ShellTool* m_shellTool = nullptr;  ///< Geometria > Láminas (T-P5-09)
+    TransformTool* m_transformTool = nullptr;  ///< Geometria > Herramientas (T-P5-10)
     BarTool* m_barTool = nullptr;    ///< Geometria > Barras (Barra / Pilar / Viga)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;

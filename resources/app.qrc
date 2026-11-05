@@ -56,5 +56,25 @@
     <file>icons/bim_unlink.svg</file>
     <file>icons/bim_query.svg</file>
     <file>icons/bim_share.svg</file>
+    <file>icons/shell_new.svg</file>
+    <file>icons/shell_delete.svg</file>
+    <file>icons/shell_move.svg</file>
+    <file>icons/shell_join.svg</file>
+    <file>icons/shell_divide.svg</file>
+    <file>icons/shell_invert_z.svg</file>
+    <file>icons/shell_define_x.svg</file>
+    <file>icons/shell_axes.svg</file>
+    <file>icons/shell_layout.svg</file>
+    <file>icons/shell_section.svg</file>
+    <file>icons/shell_material.svg</file>
+    <file>icons/tool_generate.svg</file>
+    <file>icons/tool_move.svg</file>
+    <file>icons/tool_copy.svg</file>
+    <file>icons/tool_rotate_axis.svg</file>
+    <file>icons/tool_rotate_xy.svg</file>
+    <file>icons/tool_rotate_xy3.svg</file>
+    <file>icons/tool_mirror_xy.svg</file>
+    <file>icons/tool_mirror_plane.svg</file>
+    <file>icons/tool_repair.svg</file>
   </qresource>
 </RCC>

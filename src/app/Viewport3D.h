@@ -80,6 +80,14 @@ public:
     /// lines, with an elastic black line from the last one to the cursor (the node under it when there is one). Empty: none.
     void setRubberChain(std::vector<int> nodeIds);
     const std::vector<int>& rubberChain() const { return m_rubberChain; }
+    /// Geometria > Laminas / Herramientas: points entered so far that are not nodes (yet), in order. Same look as the chain of
+    /// nodes: orange squares joined by black lines, plus an elastic line from the last one to the cursor (the snapped point
+    /// when there is one). Empty: none.
+    void setRubberPoints(std::vector<core::Vec3> points);
+    const std::vector<core::Vec3>& rubberPoints() const { return m_rubberPoints; }
+    /// "Ejes locales" of Geometria > Laminas: draws the local axes x (red), y (green) and z (blue) of every shell at its centre.
+    void setShowShellAxes(bool on);
+    bool showShellAxes() const { return m_showShellAxes; }
     const core::StructuralModel* structure() const { return m_structure; }
 
     /// Selection mode: what the original does inside a command of the Geometria ribbon tab. The guide lines are hidden,
@@ -315,6 +323,8 @@ private:
     void drawNodes(class QPainter& painter) const;
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
     void drawBarRubber(class QPainter& painter) const;  ///< Barras > Barra / Viga: chosen nodes and the elastic line
+    void drawPointRubber(class QPainter& painter) const;  ///< Laminas / Herramientas: chosen points and the elastic line
+    void drawShellAxes(class QPainter& painter) const;    ///< Laminas > Ejes locales
     void drawHighlight(class QPainter& painter, const core::ElementRef& e, bool selected) const;
     void drawRubberBand(class QPainter& painter) const;
     void drawZoomMark(class QPainter& painter) const;
@@ -357,6 +367,8 @@ private:
     bool m_nodeLabels = false;
     std::optional<int> m_movingNode;
     std::vector<int> m_rubberChain;
+    std::vector<core::Vec3> m_rubberPoints;
+    bool m_showShellAxes = false;
     std::shared_ptr<core::StructuralModel> m_snapModel;  ///< structure without the moving node and its bars (null when none moves)
 
     void notifyCameraChanged();
