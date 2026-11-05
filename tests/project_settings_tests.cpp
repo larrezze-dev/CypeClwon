@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "core/project_settings.h"
@@ -44,4 +45,31 @@ TEST(ProjectSettings, RejectsOutOfRangeValues) {
     EXPECT_FALSE(waste.isValid());
     waste.beams = std::nan("");
     EXPECT_FALSE(waste.isValid());
+}
+
+TEST(ProjectSettings, VerifiedListsFromManualCaptures) {
+    EXPECT_EQ(concreteGrades().size(), 17u);
+    EXPECT_EQ(rebarSteels().size(), 8u);
+    EXPECT_EQ(aggregateKinds().size(), 4u);
+    EXPECT_EQ(timberStrengthClasses().size(), 12u);
+    ASSERT_EQ(timberMaterials().size(), 4u);
+    EXPECT_EQ(timberMaterials()[3], "Laminada encolada, combinada");
+    EXPECT_EQ(std::count(concreteGrades().begin(), concreteGrades().end(), std::string("Bc 45")), 0);
+}
+
+TEST(ProjectSettings, ServiceClassTextsAndAggregateRange) {
+    EXPECT_NE(timberServiceClassText(2).find("85%"), std::string::npos);
+    EXPECT_NE(timberServiceClassText(3).find("superiores a la clase de servicio 2."), std::string::npos);
+    EXPECT_TRUE(timberServiceClassText(4).empty());
+    double mm = 0.0;
+    EXPECT_TRUE(parseAggregateSizeMm("15 mm", &mm));
+    EXPECT_DOUBLE_EQ(mm, 15.0);
+    EXPECT_TRUE(parseAggregateSizeMm("5", nullptr));
+    EXPECT_TRUE(parseAggregateSizeMm("100 mm", nullptr));
+    EXPECT_FALSE(parseAggregateSizeMm("4 mm", nullptr));
+    EXPECT_FALSE(parseAggregateSizeMm("101", nullptr));
+    EXPECT_FALSE(parseAggregateSizeMm("abc", nullptr));
+    AggregateSettings a;
+    a.foundationMaxSizeMm = 4.0;
+    EXPECT_FALSE(a.isValid());
 }

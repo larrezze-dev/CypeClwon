@@ -18,7 +18,14 @@ const std::vector<std::string>& aluminiumAlloys();
 const std::vector<std::string>& aluminiumTempers();
 const std::vector<std::string>& rebarSteels();
 const std::vector<std::string>& aggregateKinds();
-const std::vector<std::string>& aggregateMaxSizes();
+/// "Tamaño máximo" of the aggregate: numeric field in mm, valid between 5 and 100 ("Debe estar entre 5 y 100.").
+/// The 5..100 range was seen in the original on the pillars/beams field; it is applied to the foundation one too.
+constexpr double kAggregateMinMm = 5.0;
+constexpr double kAggregateMaxMm = 100.0;
+/// Parses "15" or "15 mm"; true only when the value is inside [kAggregateMinMm, kAggregateMaxMm].
+bool parseAggregateSizeMm(const std::string& text, double* mm);
+/// Description shown under the "Clase de servicio" radios (1..3); empty otherwise.
+const std::string& timberServiceClassText(int serviceClass);
 
 struct TimberSettings {
     std::string material = "Aserrada, procedente de coníferas o chopos";

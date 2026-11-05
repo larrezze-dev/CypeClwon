@@ -3,6 +3,7 @@
 #include "OptionsDialogs.h"
 #include "OptionsLeafDialogs.h"
 
+#include <cmath>
 #include <QButtonGroup>
 #include <QEvent>
 #include <QCheckBox>
@@ -140,16 +141,7 @@ TimberDialog::TimberDialog(const TimberSettings& initial, QWidget* parent) : Cyp
 }
 
 void TimberDialog::updateServiceText() {
-    switch (m_service->checkedId()) {
-    case 1:
-        m_serviceText->setText(tr("Clase de servicio 1: se caracteriza por un contenido de humedad en los materiales "
-                                  "correspondiente a una temperatura de 20°C y una humedad relativa del aire que sólo "
-                                  "exceda el 65% unas pocas semanas al año."));
-        break;
-    default:
-        // Texts of classes 2 and 3 were not captured from the original (ticket TK-011).
-        m_serviceText->setText(tr("Clase de servicio %1: descripción pendiente de verificar.").arg(m_service->checkedId()));
-    }
+    m_serviceText->setText(QString::fromStdString(timberServiceClassText(m_service->checkedId())));
 }
 
 TimberSettings TimberDialog::value() const {
@@ -267,14 +259,17 @@ AggregateDialog::AggregateDialog(const AggregateSettings& initial, QWidget* pare
         m_kind[i] = makeCombo(aggregateKinds(), sources[i]->kind, box);
         grid->addWidget(m_kind[i], 0, 1);
         grid->addWidget(new QLabel(tr("Tamaño máximo"), box), 1, 0);
-        m_size[i] = makeCombo(aggregateMaxSizes(), sources[i]->maxSize, box);
+        double sizeMm = 15.0;
+        parseAggregateSizeMm(sources[i]->maxSize, &sizeMm);
+        m_size[i] = makeSpin(sizeMm, kAggregateMinMm, kAggregateMaxMm, 0, box);
+        m_size[i]->setSuffix(tr(" mm"));
         grid->addWidget(m_size[i], 1, 1);
         contentLayout()->addWidget(box);
     }
     auto* foundation = new QGroupBox(tr("Cimentación"), this);
     auto* row = new QHBoxLayout(foundation);
     row->addWidget(new QLabel(tr("Tamaño máximo de árido"), foundation));
-    m_foundationSize = makeSpin(initial.foundationMaxSizeMm, 1.0, 100.0, 0, foundation);
+    m_foundationSize = makeSpin(initial.foundationMaxSizeMm, kAggregateMinMm, kAggregateMaxMm, 0, foundation);
     m_foundationSize->setSuffix(tr(" mm"));
     row->addWidget(m_foundationSize);
     contentLayout()->addWidget(foundation);
@@ -287,7 +282,7 @@ AggregateSettings AggregateDialog::value() const {
     AggregateSetting* targets[] = {&s.columns, &s.beams, &s.foundationBeams};
     for (int i = 0; i < 3; ++i) {
         targets[i]->kind = m_kind[i]->currentText().toStdString();
-        targets[i]->maxSize = m_size[i]->currentText().toStdString();
+        targets[i]->maxSize = std::to_string(static_cast<int>(std::lround(m_size[i]->value()))) + " mm";
     }
     s.foundationMaxSizeMm = m_foundationSize->value();
     return s;

@@ -1,0 +1,919 @@
+id	n_latin	es	fr	pt_BR	pt_PT	ca	it	en	gl	de	ro	pl	tr	bg	ru	zh	ja	el	unk
+59339	0										Selectați			Изберете	Выбрать	选择			選択
+397676	1										Dată încheierii	Data zakończenia	Bitiş tarihi	Крайна дата	Дата окончания	结束日期	終了データ		Datum zaključka
+217274	0										Integrare simplă			Простая интеграция		简单集成	シンプルなインテグレーション		
+267589	0										În așteptare	Oczekujące		На рассмотрении		待機中			待决
+278290	0												Arşivlenmiş projeler		Архивированные проекты	归档项目	提出済プロジェクト		
+281926	1										Citește atent următoarele informații înainte de a continua.	Przeczytaj poniższe informacje przed kontynuowaniem.	Devam etmeden önce lütfen aşağıdaki bilgileri dikkatlice okuyun.	Внимательно прочитайте следующую информацию до того как продолжить.		在继续之前请详细阅读以下信息。	実行前に以下の内容をご確認ください。		Pročitati sledeće informacije pre nastavljanja.
+374332	0										.Puteți solicita din nou autorizația pentru a accesa contul din aplicație.	Możesz ponownie ubiegać się o autoryzację w celu uzyskania dostępu do konta z poziomu aplikacji.	Hesaba erişim için yetkiyi tekrar uygulamadan talep edebilirsiniz.		Вы можете повторно запросить авторизацию для доступа к учетной записи из приложения.	您可以通过应用程序再次申请授权访问该账户。	アプリケーションからアカウントへのアクセス権を再度リクエストすることができます。		
+363182	0										Lista de aplicații			Списки приложений		应用程序列表	アプリケーションリスト		
+368926	0										În vizualizarea privată, numai proprietarul si colaboratorii inclusi in mod explicit în proiect pot vizualiza informația și fișierele incluse în proiect și contribuții	W widoku prywatnym jedynie właściciel i współpracownicy jawnie włączeni do projektu mogą przeglądać informacje i pliki zawarte w projekcie, jak i wkład	Özel görünümde, yalnızca proje sahibi ve projeye açıkça dahil edilen işbirlikçileri projede yer alan bilgileri ve dosyaları görebilirler		В частном виде только владелец и соразработчики, включенные в проект, могут просматривать информацию и файлы, включенные в проект и вклады	在私有视图中，仅项目所有者及明确添加的协作者， 可查看项目及成果交付中包含的信息与文件。	プライベートビューでは、オーナーとプロジェクトに明示的に含まれているコラボレーターのみ プロジェクトとコントリビューションに含まれているインフォメーションとファイルの閲覧が可能です		
+313898	0										Cerere de dezabonare trimisă	Wysłano prośbę o zamknięcie konta	Kayıt silme talebi gönderildi		Запрос на удаление был отправлен	已发送注销申请	登録解除リクエスト送信		
+37831	0										Oraș		Şehir	Город	Град	都道府県			城市
+388851	0										Creați incidență		Sorun oluştur	Создать инцидент		新建事项	イシューを作成		
+235803	1										Platforma nu a corespuns asteptărilor mele	Platforma nie spełnia moich oczekiwań	Platform beklentilerimi karşılamadı	Платформа не оправдала мои ожидания		这个平台没有达到我的期望。	プラットフォームが期待通りではなかった		Platforma nije ispunila moja očekivanja
+404431	0										Gestionarea informațiilor	Zarządzanie informacją		Управление на информацията	Управление информацией	情報管理			信息管理
+369795	0										Vizualizați în navigația web	Wyświetl w przeglądarce internetowej	Web tarayıcısında görüntüle	Отобразить в браузере		在 web 浏览器中查看	ウェブブラウザーを表示する		
+31769	1													Заключва	Блокировать	锁定	ロック		Zaključati
+351822	0										Contribuțiile mele	Mój wkład	Katkılarım		Мои вклады	我的成果交付	マイ・コントリビューション		
+227843	0										Studenți		Öğrenciler		Студенты	生徒			学生
+364973	0										Contribuții relevante în funcție de numărul de recomandări primite	Wyróżniony wkład według liczby otrzymanych rekomendacji	Alınan tavsiye sayısına göre öne çıkan katkılar		Выдающиеся вклады по числу полученных рекомендаций	按推荐次数排序的精选成果交付	おすすめを受けた数での注目のコントリビューション		
+47084	1											Dane użytkownika	Kullanıcı verileri	Данни на потребителя	Данные пользователя	用户数据	ユーザーデータ		Korisnički podaci
+367727	0											Usunięto Cię na stałe z konta '%s' z %s. Nie masz już dostępu do tego konta.	'%s' adlı %s hesabından kalıcı olarak çıkarıldınız. Artık bu hesaba erişiminiz yoktur.		Вы были навсегда удалены из учетной записи '%s' в %s. У вас больше нет доступа к этой учетной записи.	您已被永久移除出'%s'（%s）账户。此后将无法访问该账户。	あなたは「%s」アカウント（%s）から完全に削除されました。 このアカウントにはアクセスできません。		
+287846	0												Geçen yıl	Последний год		最近一年			昨年
+373451	0											Przykłady praktyczne	Uygulamalı örnekler		Практические примеры	実例			实例
+55039	0											Właściciel		Собственик	Владелец	所有者	オーナー		
+287210	0												E-posta doğrulandı		Электронная почта проверена	邮件已验证	メール認証済		
+391693	0										Distribuiți în	Udostępnij na	Şurada paylaş	Поделиться на		分享至	以下で共有		
+34248	0										Descrierea îmbunătățirilor propuse	Opis proponowanych ulepszeń	Önerilen iyileştirmelerin açıklaması	Описание на предложените подобрения	Описание предлагаемых улучшений	优化建议说明	提案された改善内容の説明　		
+399005	0										A apărut o eroare neașteptată. Vă rugăm să încercați din nou mai târziu sau să contactați asistența tehnică dacă problema persistă.	Wystąpił nieoczekiwany błąd. Proszę spróbować ponownie później lub skontaktować się z pomocą techniczną, jeśli problem będzie się powtarzał.	Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin veya sorun devam ederse teknik destek ile iletişime geçin.	Възникна неочаквана грешка. Моля, опитайте отново по-късно или се свържете с техническата поддръжка, ако проблемът продължава.	Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз позже или обратитесь в техническую поддержку, если проблема сохраняется.	发生未知错误，请稍后重试。若问题持续，可联系技术支持。	予期しないエラーが発生しました。後でもう一度お試しいただくか、 問題が解決しない場合はテクニカルサポートにお問い合わせください。		
+354912	0										Solicitări în așteptare	Oczekujące wnioski		Заявки к рассмотрению		待定申请	リクエスト待ち		
+29663	0													Извлечение	Сводные данные	总结	まとめ		
+378858	0										Serverul este momentan indisponibil. Încercați din nou mai tarziu.	Serwer jest tymczasowo niedostępny. Spróbuj ponownie później.	Sunucu geçici olarak hizmet dışıdır. Daha sonra tekrar deneyin.		Сервер временно не доступен. Пожалуйста, повторите попытку позже.	服务器暂时停止服务。请稍后再试。	サーバーが一時的に停止しています。後でもう一度お試しください。		
+396757	0												%lu sıra	Место %lu	Място %lu	%lu位			第%lu位
+224247	0										Parola a fost actualizată corect.	Hasło zostało zaktualizowane pomyślnie.	Şifre başarıyla güncellendi.		Пароль был успешно обновлён.	密码已成功更新。	パスワード正常に更新されました。		
+380194	0										Răspunsuri				Ответы	回复			返信
+34244	0													Електронна поща	Электронная почта		メール		
+13879	0										Aplicația			Приложение		应用程序	アプリケーション		
+392075	0										Verificați		Doğrula	Проверете	Проверить	验证			検証
+358578	0										Imaginea asociată cu problema	Obraz powiązany z incydentem	Olayla ilişkili görüntü	Изображение, связанное с инцидентом		与事项关联的图片	イシューに関連したイメージ画像		
+389372	0												Çok yakında	Скоро появится		近日中			敬请期待
+385629	0										Reînnoită			Обновлено		重大更新	リニューアル		
+206170	1										Dacă ștergi acest fișier, nu se va putea recupera. Ești sigur ca dorești sa îl ștergi definitiv?	Jeśli plik zostanie usunięty, nie będzie możliwości jego odzyskania. Jesteś pewien, że chcesz go usunąć?	Bu dosyayı sildikten sonra geri almak mümkün olmayacaktır. Silmek istediğinize emin misiniz?		Если Вы удалите этот файл, то его восстановление будет невозможным. Вы уверены, что хотите удалить его навсегда?	一旦删除该文件，将不能修复。您确定要永久删除此文件吗？	一度このファイルが削除されると、復元できません。 削除してよろしいですか？		Jednom kada se ova datoteka obriše, neće je biti moguće vratiti. Jeste li sigurni da želite da ju izbrišete?
+320764	1										Solicitați o sesiune de informații orientată către profesori și studenți pentru a iniția un flux de lucru cu metodologia BIM.	Poproś o szkolenie skierowane do nauczycieli i uczniów, aby rozpocząć korzystanie z przepływu pracy w metodologii BIM.	Öğretmenlere ve öğrencilere yönelik BIM metodolojisi ile iş akışına başlamak için bir eğitim oturumu talep edin.		Запросите проведение образовательного занятия для преподавателей и студентов, чтобы приступить к рабочему процессу по методологии BIM.	申请面向师生的 BIM 入门培训课程，学习 BIM 工作流程。	BIM手法でワークフローを使用開始をするための 教員と生徒向けトレーニングセッションをリクエスト		Zatražiti obuku namenjenu predavačima i studentima da bi se počeo koristiti tok rada sa BIM metodologijom.
+388857	0										Activați		Etkinleştir	Включить		启用			有効
+75008	0													Да		是	はい		
+404416	0											Link autoryzacyjny wygasł lub został już użyty.	Yetkilendirme bağlantısının süresi dolmuş veya bağlantı zaten kullanılmış.	Линкът за оторизация е с изтекъл срок или вече е бил използван.	Ссылка для авторизации просрочена или уже была использована.	授权链接已过期或已被占用。	認証リンクの有効期限が切れているか、すでに使用されています。		
+223343	0										Șabloane		Şablonlar		Шаблоны	模板	テンプレート		
+61031	0										Data înființării		Oluşturulma tarihi	Дата на създаване	Дата создания	作成日			创建日期
+393263	1										Pagina principală	Powrót do początku	Başa dön	Обратно към началната страница	Вернуться в начало	返回首页	トップへ戻る		Nazaj na začetek
+285755	1										Autorizare respinsă			Отказано в разрешении		授权被拒绝			認証拒否 | Ovlašćenje odbijeno
+257219	0											Kokpit menedżerski		Панель управления		仪表盘	ダッシュボード		
+362191	0										Ați fost eliminat din echipa de lucru a proiectului	Usunięto Cię z zespołu roboczego projektu	Projenin çalışma grubundan çıkarıldınız		Вы были удалены из рабочей группы проекта	您已被从项目工作组中删除	お客様はプロジェクトの作業グループから削除されました		
+227871	0													Филтър	Фильтр	筛选	フィルター		
+224313	10												Değerlendirme	Оценка		评估			評価用 | Evaluación | Évaluation | Avaliação | Avaluació | Valutazione | Evaluation | Evaluare | Prüfung | Testowy | Procena
+404409	0										Utilizați contul dvs. myCYPE pentru a continua	Użyj konta myCYPE, aby kontynuować	Devam etmek için myCYPE hesabınızı kullanın	Използвайте вашия myCYPE акаунт, за да продължите	Используйте учетную запись myCYPE, чтобы продолжить	请使用您的 myCYPE 账户继续操作	続行するには myCYPE アカウントを使用してください		
+271617	0										Probleme în așteptare	Oczekujące kwestie		Ошибки находятся на рассмотрении		待决事项	解決待ちのイシュー		
+367298	0											Nauczyciele, którzy mogą zobaczyć projekt	Projeyi görebilen eğitmenler		Преподаватели, которые могут видеть проект	可以访问项目的教师	プロジェクトを閲覧できる教員		
+400945	0											Żądanie %s zmieniło status na %s	%s isteğinin durumu %s olarak değiştirildi	Заявката %s премина в състояние %s	Запрос %s изменил состояние на %s	%s 申请状态已变更为 %s	リクエスト%sのステータスが%sに変更されました		
+191765	0											Usunięty		Удалено		已删除			削除済
+316312	0												Bu yıl		Этот год	本年			今年
+354843	0										%s a respins invitația la proiect '%s'.	%s odrzucił/a zaproszenie do projektu '%s'.		%s отклонил приглашение в проект '%s'.		%s拒绝了'%s'项目的邀请。	%sは「%s」プロジェクトへの招待を拒否しました。		
+362184	0										Număr de entități		Varlık sayısı	Количество объектов		实体数量	エンティティを見つけた回数		
+361638	0										Respinsă			Отклонен		已拒绝			拒否
+373574	0											Zgłoś		Пожаловаться		举报			報告
+198410	0											Połączony	Bağlandı	Свързан	Подключено	连接			接続済
+388866	0											Średni priorytet		Средний приоритет		中等优先级	中位の優先度		
+261087	0													Политика		政策	ポリシー		
+268210	1										Extensia fișierului "%s" nu este validă. Extensiile permise sunt: %s.	Rozszerzenie pliku "%s" jest nieprawidłowe. Dozwolone rozszerzenia plików to: %s.	"%s" dosya uzantısı geçerli değildir. İzin verilen dosya uzantıları: %s.		Недопустимое расширение файла "%s". Допустимыми расширениями файла являются: %s.	文件扩展名“%s”无效。 允许的文件扩展名为：%s。	ファイル拡張子「%s」は有効ではありません。有効なファイル拡張子は以下のものです： %s		Ekstenzija datoteke "%s" nije važeča. Dozvoljene ekstenzije datoteke su: %s.
+361868	0													Все		全部			
+376831	0										'%s' s-a creat o postare pornind de la proiectul dumneavostră '%s'.	'%s' utworzył/-a publikację na podstawie Twojego projektu '%s'.	'%s', '%s' projenize dayanarak bir gönderi oluşturdu.	'%s' создал публикацию, основанную на вашем проекте '%s'.		'%s'基于您的'%s'项目创建了一条动态。	「%s」があなたのプロジェクト「%s」を基にして1つの投稿を作成しました。		
+404423	0											%s udostępnił post %s	%s gönderi %s öğesini paylaştı	%s сподели публикацията %s	%s поделился(лась) записью %s	%s 分享了帖子 %s	%s が投稿 %s を共有しました		
+402254	0												Doğrulama	Проверка		验证中			検証　
+399961	0										Selectați unul sau mai multe fișiere	Wybierz jeden lub więcej plików		Изберете един или няколко файла	Выберите один или несколько файлов	请选择一个或多个文件	1つ以上のファイルを選択してください　		
+352257	0											Ogólne statystyki użytkowania platformy	Platformun genel kullanım istatistikleri		Общая статистика использования платформы	平台使用统计	一般的なプラットフォーム利用統計		
+13299	0										Hartă			Карта		地图	マップ		
+349536	0													Рекомендация		推荐			提案
+380924	0										Eroare de rețea	Błąd sieci	Ağ hatası	Ошибка сети		网络错误	ネットワークエラー		
+199889	0													Синхронизация	Идет синхронизация	正在同步			同期済
+369278	0														Рекомендуемые требования	推荐要求			推奨要件
+379752	0										Permis aplicații			Разрешение за приложения	Разрешение на приложения	应用许可	アプリケーションの許可		
+224291	0										Termeni și condiții de utilizare	Warunki użytkowania	Kullanım Şartları ve Koşulları	Правила и условия использования		使用条款和条件			使用規約
+369907	0										Facând click pe 'Permiteți', autorizați această aplicație și a %s să utilizeze informațiile dumneavoastă așa cum sunt stabiliteîn condițiile de serviciu și politica de confidențialitate.	Klikając na 'Zezwól', upoważniasz tę aplikację i %s do wykorzystania Twoich informacji w sposób przez nie określony w ich warunkach świadczenia usług i polityce prywatności.	'İzin Ver' seçeneğine tıkladığınızda, bu uygulamaya ve %s kişisine bilgilerinizi kendi hizmet şartları ve gizlilik politikalarında belirtilenlere uygun olarak kullanma yetkisi vermiş olursunuz.		Нажимая кнопку "Разрешить", вы разрешаете этому приложению и %s использовать вашу информацию, согласно установленному в соответствующих данному приложению условиях предоставления услуг и политике конфиденциальности.	点击'允许'，即表示您授权此应用程序和%s根据其服务条款和隐私政策使用您的信息。	「許可する」をクリックし、利用規約とプライバシーポリシーに従って このアプリケーションと%sによる利用者情報の取り扱いを許可します。		
+361572	0										Eliminată	Usunięty		Удален		已删除			削除済
+281939	0										Ajutați-ne să ne îmbunătățim serviciile. De ce doriți să vă închideți contul?	Pomóż nam ulepszać nasze usługi. Dlaczego chcesz zamknąć swoje konto?	Bize gelişmemiz için yardım edin. Hesabınızı neden iptal etmek istiyorsunuz?		Помогите нам улучшить наш сервис. Почему Вы хотите удалить свою учётную запись?	请帮助我们改善。您为什么想注销账户？	弊社サービスの改善にご協力ください。登録解除の理由は何でしょうか？		
+145696	1											Email, który został wprowadzony jest nieprawidłowy.	Girilen e-posta yanlıştır.		Неверный электронный адрес.	输入的电子邮件不正确。	入力されたメールは正しくありません。		E-mail koji je unet je nevažeći.
+397242	0													Стандарт		规范	コード		
+390942	0													Име	Имя	名称			名前
+323110	1										Include aplicații cu plată	Zawiera płatne aplikacje	Ücretli uygulamaları içerir		Включает оплачиваемые приложения	包含付费应用	有料アプリケーションを含む		Uključuje plaćene aplikacije
+259077	0													Администратор		管理员			管理者
+201353	0											Nie pamiętasz hasła?	Şifrenizi mi unuttunuz?	Забравена парола?	Забыли пароль?	忘记密码？	パスワードをお忘れですか？		
+384185	0										Eliminată în curând	Wkrótce nas opuści	Yakında ayrılıyor	Вскоре будет удалено		即将下架	まもなく終了		
+201320	0												Giriş yap	Начать сеанс		登入	ログイン		
+389069	0										Sunteți sigur că doriți să marcați incideța ca fiind în așteptare?	Czy na pewno chcesz oznaczyć incydent jako oczekujący?	Sorunu beklemede olarak işaretlemek istediğinize emin misiniz?		Вы уверены, что хотите пометить инцидент как ожидающий рассмотрения?	您确定要将该事项标记为待处理状态吗？	指摘事項を待機中としてマークしますか？		
+281907	0										Versiunea disponibilă: %s	Dostępna wersja: %s		Доступная версия: %s		可用版本: %s	利用可能バージョン：%s		
+175569	0													Вид	Тип	类型	タイプ		
+402413	0										Acest proiect a primit finanțare din partea Uniunii Europene în baza acordului de subvenție pentru Cercetare și Inovație nr. 835774 (BIMserver.center) și nr. 101058559 (CHEK).	Niniejszy projekt otrzymał finansowanie od Unii Europejskiej na mocy umów o dotację na Badania i Innowacje nr 835774 (BIMserver.center) i nr 101058559 (CHEK).	Bu proje, Avrupa Birliği’nin Horizon 2020 araştırma ve yenilik programı kapsamında, 835774 (BIMserver.center) numaralı ve 101058559 (CHEK) numaralı hibe anlaşmalarıyla fon almıştır.	Настоящият проект получи финансиране от Европейския съюз съгласно споразуменията за безвъзмездни средства за научни изследвания и иновации № 835774 (BIMserver.center) и № 101058559 (CHEK).	Этот проект получил финансирование от Европейского союза в рамках соглашений о предоставлении грантов на исследования и инновации № 835774 (BIMserver.center) и № 101058559 (CHEK).	本项目已获得欧盟根据研究与创新资助协议 nº 835774 (BIMserver.center) 和 nº 101058559 (CHEK) 提供的资金支持。	現状プロジェクトは、欧州連合の研究・技術革新の助成契約 nº 835774 (BIMserver.center) および nº 101058559 (CHEK) に基づく資金提供を受けています。　		
+361774	0										Vedeți mai puțin			Смотреть меньше		查看更少	閉じる		
+374981	0										Stagii de practică disponibile	Dostępne ćwiczenia	Mevcut uygulamalı örnekler		Доступные практические примеры	可用实例	利用可能な実例		
+235587	1										Informații specifice versiunii	Informacje szczegółowe na temat wersji		Специфическая информация версии		版本特定信息	そのバージョンの特徴		Specifične informacije o verziji
+155080	0												Projenin adı	Име на проекта	Имя проекта	项目名称	プロジェクト名		
+357185	0										Adaugă fișier				Добавить файлы	添加文件	ファイルを追加		
+361328	0										Acestă contribuție este în așteptare de revizuire.	Ten wkład oczekuje na sprawdzenie.	Bu katkı henüz incelenmedi.		Этот вклад ожидает проверки.	该成果交付正在等待审核。	このコントリビューションはまだ確認されていません。		
+395372	0										' %s ' a creat o postare pornind de la contribuția dumneavoastră '%s'.	'%s' utworzył/-a publikację na podstawie Twojego wkładu '%s'.	' %s ', '%s' katkınıza dayanarak bir gönderi oluşturdu.	' %s ' е създал публикация въз основа на вашия принос ' %s '.	'%s' создал публикацию на основе вашего вклада '%s'.	'%s'基于您的'%s'成果交付创建了一个帖子。	「%s」があなたのコントリビューション「%s」をもとにして投稿を作成しました。		
+378156	0										Dezvoltatorul '%s' a respins cererea dumneavoastră de a acorda insigna digitală '%s'.	Deweloper '%s' odrzucił Twoją prośbę o autoryzację do przyznania odznaki cyfrowej '%s'.	Geliştirici '%s', '%s' dijital rozetini vermek için yetkilendirme talebinizi reddetti.		Разработчик '%s' отклонил вашу заявку на получение авторизации для выдачи цифрового значка '%s'.	开发人员'%s'已拒绝您授予数字徽章 %s 的授权申请。	デベロッパー「%s」はデジタルバッジ「%s」授与におけるあなたのリクエストを 拒否しました。		
+261108	0										Ultimele modificări		Son değişiklikler	Последние изменения		最后修改	最新の変更		
+318749	0												%lu yıl önce	%lu лет назад		%lu年前			
+348497	1										Specificați dacă proiectul va fi vizibil, într-o măsura limitată, pentru alți utilizatori din afara, sau numai pentru membrii echipei.	Określ, czy projekt będzie widoczny w ograniczonym zakresie dla innych użytkowników spoza projektu, czy tylko dla członków zespołu.	Projenin sınırlı bir şekilde proje dışındaki diğer kullanıcılara mı yoksa yalnızca ekip üyelerine mi görünür olacağını belirtin.		Укажите если проект будет иметь ограниченную видимость для других пользователей, непричастных к нему, или будет виден только членам команды.	请指定项目是对项目外的其他用户有限可见，还是仅对团队成员可见。	プロジェクトの表示を、限定的にプロジェクト外の他のユーザーにも公開するか チームメンバーのみにするか指定してください。		Navedite da li će projekat biti vidljiv, na ograničen način, drugim korisnicima izvan projekta, ili samo članovima tima.
+369020	0											%s udostępnił/-a projekt %s	%s, %s projesini paylaştı	%s поделился проектом %s		%s分享了%s项目	%sがプロジェクト%sを共有しました		
+290640	0										Elimină problema	Usuń incydent	Olayı sil	Удалить инцидент		删除事项	イシューを削除		
+404432	0												Oluşturucu kodu	Код на създател	Код создателя	创建者代码	作成者コード		
+391492	0										Adăugați conturi				Добавить учетные записи	添加账户	アカウントを追加		
+145711	0										Am primit corect mesajul dvs. Vă mulțumim foarte mult pentru colaborarea dvs.	Pomyślnie otrzymano Twoją wiadomość. Bardzo dziękujemy za współpracę.	Mesajınız başarıyla alındı. İş birliğiniz için çok teşekkür ederiz.	Получихме успешно Вашето съобщение. Много Ви благодарим за съдействието.	Мы успешно получили ваше сообщение. Большое спасибо за сотрудничество.	消息已收到，感谢您的配合。	メッセージを正常に受信しました。ご協力いただき、誠にありがとうございます。　		
+362188	1										Cererea de participare este în așteptare de a fi acceptată sau respinsă.	Prośba o wzięcie udziału oczekuje na zaakceptowanie lub odrzucenie.	Katılım talebinizin kabul edilmesi veya reddedilmesi bekleniyor.	Заявка на участие ожидает принятия или отклонения.		参与申请待接受或拒绝。	参加リクエストは承諾、拒否の結果待ちです。		Zahtev za učešće je na čekanju da bude prihvaćen ili odbijen.
+382538	0										Veți fi redirecționat automat. Dacă nu, dați click aici.	Nastąpi automatyczne przekierowanie. Jeśli tak się nie stanie, kliknij tutaj.	Otomatik olarak yönlendirileceksiniz. Eğer yönlendirilmezseniz, buraya tıklayın.		Вы будете перенаправлены автоматически. Если нет, нажмите здесь.	系统将自动跳转到新页面。如未转跳，请点击此处。	自動的にリダイレクトされます。リダイレクトされない場合は、こちらをクリックしてください。		
+313899	1										Acest cont de BIMserver.center se gasește în așteptare de eliminare, in urmatoarele ore din cauza unei cereri făcute de dumneavoastră. Tot lucrul ce contiuă să se realizează deasemenea va fi pierdut.	To konto BIMserver.center zostanie zamknięte w ciągu najbliższych kilku godzin na Twoje żądanie. Cała praca, którą nadal wykonujesz, również zostanie utracona.	Bu BIMserver.center hesabı, sizin adınıza yapılan bir talep nedeniyle önümüzdeki birkaç saat içinde silinecektir. Yaptığınız tüm çalışmalar da kaybolacaktır.		Данная учётная запись BIMserver.center, находится в ожидании удаления в ближайшие несколько часов, в связи с произведённым Вами запросом. Вся работа, которую Вы будете выполнять далее, также будет утеряна.	由于您提出的申请，该 BIMserver.center 账户将在接下来的个小时内删除。您正在执行的工作 也将会丢失。	このBIMserver.centerアカウントは、お客様に代わって行われたリクエストにより、 数時間後に削除されます。続行中のすべての作業も失われます。		Ovaj nalog BIMserver.centra će biti izbrisan na vaš zahtev u narednih nekoliko sati. Sav posao koji nastavite da obavljate će takođe biti izgubljen.
+235756	0										Descarcă URL ul aplicației		Uygulamanın indirme URL'si	URL загрузки приложения		下载应用程序的网址	アプリケーションのダウンロードURL		
+111878	0										Eroare necunoscută	Nieznany błąd		Неизвестная ошибка		未知的错误	不明なエラー		
+268252	0										Campanie nouă de marketing		Yeni pazarlama kampanyası	Новая маркетинговая кампания		新的营销活动	新しい販促キャンペーン		
+75009	0												Hayır	Не	Нет	否	いいえ		
+224201	3										Politica de confidențialitate	Polityka prywatności	Gizlilik Politikası	Политика конфиденциальности	Политика конфиденциальности	隐私政策	プライバシーポリシー		隐私政策 | プライバシーポリシー | Politica de confidențialitate | Polityka prywatności | Gizlilik Politikası
+260980	0										Eroare în realizarea acțiunii.	Błąd podczas wykonywania czynności.	İşlem gerçekleştirilirken hata oluştu.		Ошибка при выполнении действия.	执行操作时出错。	アクション実行に失敗しました。		
+235804	0										Funcționarea platformei nu este corectă	Działanie platformy jest nieprawidłowe	Platformun işleyişi doğru değildir.	Платформа работает неправильно		平台操作不正确	プラットフォームの動作が正常ではなかった		
+389125	0										Incidențe în așteptarea soluționării	Incydenty oczekujące na rozwiązanie			Инциденты, требующие решения	待解决事项	解決待機中のイシュー		
+292616	0														Посмотреть всё	查看全部	すべて見る		
+235629	0											Data żądania		Дата запроса		申请日期	リクエスト日		
+360948	1											%s polecił/a twój wkład '%s'	%s, '%s' adlı katkınızı önerdi.	%s рекомендовал ваш вклад '%s'		%s 推荐了您的'%s'成果交付	%sはお客様のコントリビューション「%s」をおすすめしました		%s je preporučio vaš doprinos '%s'
+404403	0										Solicitarea trimisă către server este incorectă sau este formatată greșit. Încercați din nou sau contactați asistența tehnică.	Żądanie wysłane do serwera jest nieprawidłowe lub ma błędny format. Spróbuj ponownie lub skontaktuj się z pomocą techniczną.	Sunucuya gönderilen istek hatalı veya yanlış biçimlendirilmiş. Lütfen yeniden deneyin veya teknik destekle iletişime geçin.	Заявката, изпратена към сървъра, е неправилна или е неправилно форматирана. Опитайте отново или се свържете с техническата поддръжка.	Запрос, отправленный на сервер, некорректен или имеет неверный формат. Повторите попытку или обратитесь в службу технической поддержки.	向服务器发送的请求无效或格式错误。请重试或联系技术支持。	サーバーに送信したリクエストが不正、または形式が正しくありません。 再試行するか、テクニカルサポートにお問い合わせください。		
+389567	0										Această aplicație este în perioada de probe și se va publica în curând. Momentan este disponibilă doar descărcarea pentru echipa de 'beta testers' ai contului 'Developers' (%s).	Ta aplikacja jest obecnie w fazie testów i zostanie wkrótce opublikowana. W tej chwili jest dostępna do pobrania tylko dla zespołu 'beta testers' konta 'Developers' (%s).	Bu uygulama şu anda test aşamasındadır ve yakında yayımlanacaktır. Şu anda sadece 'Geliştiriciler' hesabındaki beta test kullanıcıları tarafından indirilebilir (%s).		В настоящее время это приложение тестируется и будет выпущено в ближайшее время. На данный момент оно доступно для загрузки только команде "бета-тестеров" учетной записи 'Developers' (%s).	此应用程序目前处于测试阶段，即将发布。现阶段仅限‘测试员’通过‘开发者’账户（%s）下载。	このアプリケーションは現在テスト中で、まもなくリリースされる予定です。 現時点では、ベータテスターチームが「開発者」アカウント(%s)から ダウンロードできるのみです。		
+282828	0										Fără acces la %s	Bez dostępu do %s	%s'ye Erişim yoktur	Без доступа в %s		无法访问 %s	%sへのアクセス無し		
+235575	1													Разрешить		授权			認証 | Autoryzować
+195868	1										Ați fost înregistrat ca nou utilizator. Pentru a accesa serviciul, trebuie să validați în prealabil contul la e-mail-ul dvs.	Zostałeś/aś zarejestrowany/a jako nowy użytkownik. Aby uzyskać dostęp do usługi, należy najpierw zweryfikować adres e-mail.	Yeni bir kullanıcı olarak kaydoldunuz. Hizmete erişmek için önce e-postanızı doğrulamanız gereklidir.		Вы зарегистрировались как новый пользователь. Чтобы получить доступ к сервису, Вы должны подтвердить свой электронный адрес.	您已注册为新用户。要访问该服务，必须首先验证您的电子邮件。	新しいユーザーとして登録されました。 サービスへアクセスするには、初めにメール認証を行う必要があります。		Registrovani ste kao novi korisnik. Da biste pristupili servisu, vaša e-mail mora prvo biti potvrđena.
+224274	0										Fără conexiune	Bez połączenia	Bağlantı Yok	Без соединения		未连接	接続無し		
+373452	0											Przykład praktyczny	Uygulamalı örnek	Практический пример		实例			実例
+279796	0											Domyślnie	Varsayılan olarak	По умолчанию		默认	デフォルト		
+354529	1										Invitație acceptată			Приглашение принято		已接受邀请	承認済みの招待		Poziv prihvaćen
+235788	0										Operațiune realizată corect.	Operacja została wykonana pomyślnie.	İşlem başarıyla gerçekleştirildi.		Действие было выполнено успешно.	操作已正确执行。	操作が正常に実行されました。		
+368927	0										În vizualizarea publică, alți utilizatori pot vizualiza o vedere orientativă 3D a proiectului și a contribuțiilor atât timp cât sunt vizibile	W widoku publicznym inni użytkownicy mogą wizualizować orientacyjny widok 3D projektu i wkładów, o ile są one widoczne	Genel görünümde, diğer kullanıcılar projeyi ve katkıları, görünür oldukları sürece 3D bir görünüm olarak görüntüleyebilirler		В публичном виде другие пользователи могут видеть ориентировочный 3D-вид проекта и вкладов тогда, когда они видимые.	在公开视图下，其他用户可查看项目及成果交付的示意性 3D 预览，前提是相关内容已设置为可见。	パブリックビューでは、他のユーザーは可視である限りプロジェクトとコントリビューションの 参考3Dビューの閲覧が可能です		
+83321	0													Състояние	Состояние	状态	ステータス		
+395512	0										%s a răspuns pe subiectul %s	%s odpowiedział/-a w wątku %s	%s, %s başlığına yanıt verdi	%s отговори в нишката %s	%s ответил в ветке %s	%s回复了%s帖子	%sは、%sのスレッドに返信しました		
+227824	3										Cererea de participare a fost respinsă.	Prośba o dopuszczenie do udziału została odrzucona.	İşbirliği talebi reddedildi.	Запрос на участие был отклонён.	Запрос на участие был отклонён.	参与申请已被驳回。	コラボレーションリクエストは拒否されました。		该参与申请已被驳回。 | コラボレーションリクエストは拒否されました。 | Cererea de participare a fost respinsă. | Prośba o dopuszczenie do udziału została odrzucona. | İşbirliği talebi reddedildi.
+369796	0										Se recomandă vizualizarea în aplicația mobilă %s pentru a vă bucura de o experiență mai bună cu performanță și ușurință de utilizare a vizualizatorului.	Zaleca się wyświetlanie w aplikacji mobilnej %s, aby uzyskać lepsze wrażenia z wydajności i użyteczności przeglądarki.	Görüntüleyici performansı ve kullanılabilirliği açısından en iyi deneyim için %s mobil uygulamasında görüntüleme önerilir.		Рекомендуется просматривать в мобильном приложении %s, чтобы получить более удобный рабочий процесс от производительности и практичности просмотра.	建议在 %s app 应用程序上观看， 以获得最佳的观看性能和使用体验。	最高の体験とビューアのパフォーマンスと使いやすさのために、Viewing on the %s mobile app is recommended		
+363180	0										Vedeți aplicațiile		Uygulamaları görüntüle	Смотреть приложения		查看应用程序	アプリケーションを見る		
+364974	0														Непрофессиональный	非商用	ノンプロフェッショナル		
+397809	0										Experiență	Doświadczenie		Опит	Опыт	经验			経験
+31770	0													Отключва	Разблокировать	解锁	ロック解除		
+287848	0											Zarządzanie etykietami		Управление тегами		标签管理	タグ管理		
+74988	0										Parolă	Hasło	Şifre	Парола	Пароль	密码	パスワード		
+34209	1										Descărcați			Изтегляне	Скачать	下载	ダウンロード		İndir
+292770	0										Scrieți răspunsul	Napisz odpowiedź		Написать ответ		撰写回复	返信を書く。		
+261034	0										Toți utilizatorii			Виден всем пользователям		所有可见	全員に表示		
+388858	0										Dezactivați		Devre dışı bırak	Отключить		禁用			無効
+392209	0										Comparați		Karşılaştır	Сравняване	Сравнить	对比			比較
+366621	0										%s a încărcat o nouă versiune a contribuției '%s'.	%s przesłał/a nową wersję wkładu '%s'.	%s, '%s' katkısının yeni bir sürümünü yükledi.	%s загрузил новую версию вклада '%s'.		%s已上传成果交付'%s'的新版本。	%sはコントリビューション「%s」を新しいバージョンに更新しました。		
+320765	0										Pentru a schimba ordinea rândurilor, acestea trebuie sortate după coloană "%s".	Aby zmienić kolejność wierszy, należy je posortować według kolumny "%s".	Satırların sırasını değiştirmek için, "%s" sütununa göre sıralanmış olmalıdır.		Для изменения порядка строк, они должны быть отсортированы по колонке "%s".	要改变行的顺序，必须按"%s"列排序。	行の順番を変更するためには、列「%s」を並び替える必要があります。		
+257220	0											Udostępnij	Paylaş	Поделиться		共享			共有
+404417	0										%s este codul dumneavoastră de verificare myCYPE.		%s, myCYPE doğrulama kodunuzdur.	%s е вашият код за потвърждение за myCYPE.	%s — ваш проверочный код myCYPE.	%s 为您的 myCYPE 验证码。	%s は、myCYPE の認証コードです。		
+224206	0										Schimbă parola	Zmień hasło	Şifre değiştir	Изменить пароль		更改密码	パスワード変更		
+382348	0										Lucru în echipă într-un mediu BIM este foarte ușor cu BIMserver.center. Există varii tipuri de conturi 'Teams' proiectate special pentru diferite tipuri de grupuri de lucru în funcție de activitatea sa.	Praca zespołowa w środowisku BIM jest bardzo łatwa dzięki BIMserver.center. Istnieje kilka rodzajów kont „Teams” zaprojektowanych z myślą o różnych rodzajach zespołów roboczych w zależności od ich aktywności.	BIMserver.center ile BIM ortamında ekip olarak çalışmak çok kolay. Farklı iş gruplarının aktivitelerine göre özel olarak tasarlanmış çeşitli 'Teams' hesapları vardır.		Работать в команде в среде BIM очень просто с BIMserver.center. Существует несколько типов учетных записей 'Teams' , разработанных специально для различных типов рабочих групп в зависимости от их деятельности.	在 BIMserver.center 的 BIM 环境中，团队协作变得极为简单。 针对不同的团队活动类型，平台提供了多种专为各类工作组设计的'Teams'账户供选择。	BIMserver.centerでは、BIM環境でチームとして作業することが非常に容易になります。 「Teams」アカウントには、作業グループの活動に応じて異なるタイプのために特別に 設計された、複数のタイプがあります。		
+393264	0										Pagină negăsită		Sayfa bulunamadı	Страницата не е намерена	Страница не найдена	页面未找到	ページが見つかりません		
+285760	0											Poproś o autoryzację	Uygulamayı yetkilendir	Запросить разрешение		申请授权	認証アプリケーション		
+354625	8	Formativo	Formatif	Formatiu	Formatiu	Educational	Formare	Ausbildung	Edukacyjny	Obrazovni			Eğitim		Образовательный	教学			教育用
+32959	0													Вид проекта		项目类型	プロジェクトタイプ		
+404410	0										Continuați			Продължаване	Продолжить	继续			続行　
+257183	0										Aprobă	Zatwierdź		Одобрить		通过			承認
+367288	0										Dacă părăsiți proiectul, acesta nu va fi vizibil pentru dumneavoastră. Pentru a îl revedea va trebui să fiți invitat din nou. Doriți să continuați?	Jeśli opuścisz projekt, nie będzie on już dla Ciebie widoczny. Jeśli chcesz zobaczyć go ponownie, trzeba będzie ponownie Cię zaprosić. Czy chcesz kontynuować?	Projeyi terk ederseniz, proje sizin için görünmez olacaktır. Tekrar görmek için yeniden davet edilmeniz gerekecek. Devam etmek istiyor musunuz?		Если вы покинете проект, он больше не будет виден вам. Чтобы увидеть его снова, вам должны снова отправить приглашение. Вы хотите продолжить?	如果您退出项目，它将不再对您可见。如果需要找回项目，您必须再次被邀请。是否要继续？	プロジェクトから離れると、そのプロジェクトはあなたに表示されなくなります。 再度表示するためには、招待をもう一度受け取る必要があります。続けますか？		
+389854	0														Совокупный итог	累计总计			累計合計
+362146	1										Așteptând			В ожидании		等待中			待機中 | Čekanje
+284334	0										Astăzi			Сегодня		今天			今日
+400685	0										Solicitată	Zażądano		Заявено	Запрошено	已申请	リクエスト済		
+373575	0										Sunteți absolut sigur? Ar trebui să raportați comentariul dacă detectați una din următoarele infracțiuni: comportamente abuzive, limbaj ofensiv, hărțuire, fraudă sau înșelăciune, discurs de ură, amenințări sau violențe, conținut explicit sau sexual, sau oricare altă problemă.	Czy jesteś całkowicie pewien? Należy zgłosić komentarz w przypadku wykrycia któregokolwiek z następujących naruszeń: niewłaściwe zachowanie, obraźliwy język, nękanie, oszustwo lub wyłudzenie, mowa nienawiści, groźby lub przemoc, treści o charakterze seksualnym lub jakiekolwiek inne problemy.	Tamamen emin misiniz? Aşağıdaki ihlallerden herhangi birini tespit ederseniz yorumu bildirmelisiniz: küfürlü davranış, saldırgan dil, taciz, dolandırıcılık veya sahtekarlık, nefret söylemi, tehdit veya şiddet, müstehcen veya cinsel içerik veya başka herhangi bir sorun.		Вы абсолютно уверены? Вы должны пожаловаться, если обнаружите любое из следующих нарушений: оскорбительное поведение, неуместный язык, преследование, мошенничество или афера, разжигание ненависти, угрозы или насилие, откровенное или сексуальное содержание, или любая другая проблема.	您确定吗？如果您发现以下任何违规行为， 请举报评论：滥用行为、攻击性语言、骚扰、 欺诈或诈骗、仇恨言论、威胁或暴力、露骨性内容， 或任何其他问题。	本当にいいですか？以下の違反行為を発見した場合、コメントを 報告してください: 暴力的な行動、攻撃的な言語、嫌がらせ、 詐欺やスキャム、ヘイトスピーチ、脅迫や暴力、露骨なもしくは 性的なコンテンツ、その他の問題。		
+354844	0											%s chce podjąć współpracę przy projekcie '%s'.	%s, '%s' projesinde çalışmak için başvurdu.	%s запросил участие в проекте '%s'.		%s申请参与'%s'项目的协作。	%sはプロジェクト「%s」での作業をリクエストしました。		
+388867	0										Prioritate mică		Düşük öncelik	Низкий приоритет		低优先级	低い優先度		
+261088	0										Contactați-ne	Skontaktuj się z nami	Bizimle iletişime geçin	Связаться с нами		联系我们	お問い合わせ		
+363236	0										A fost adăugat în echipa de proiect	Dodano Cię do zespołu roboczego projektu	Projenin çalışma ekibine eklendiniz		Был включен в рабочую группу проекта	您已被添加到项目的工作团队中	プロジェクトの作業チームに追加されました		
+395279	0										Numărul de descărcări ale aplicației.	Liczba użytkowników, którzy pobrali aplikację.	Uygulamayı indiren kullanıcı sayısı.	Брой потребители, които изтеглят приложението.	Количество скачиваний приложения.	下载应用的用户数量。	アプリケーションダウンロード数。		
+377715	0											Dostępne			Доступные	可用			可能
+268211	0										Fișierul "%s" este prea mare. Dimensiunea maximă a fișierului este %s.	Plik "%s" jest za duży. Maksymalny rozmiar pliku to %s.	"%s" dosyası çok büyüktür. Maksimum dosya boyutu %s.		Файл "%s" слишком большой. Максимальный размер файла составляет %s.	文件“%s”太大。 最大文件大小为%s。	ファイル「%s」はサイズが大きすぎます。最大ファイルサイズは%sです。		
+404424	0													Код ISO		ISO 代码	ISO コード		
+103087	0													Спутник		卫星			衛星
+402255	0										Finalizată	Zakończony	Tamamlandı	Завършен	Завершено	已完成			完了　
+352259	0												Coğrafi olarak konumlandırılmış projelerin yerleri		Местоположение геолокализованных проектов	已定位项目的地理位置	プロジェクトの位置情報		
+380925	0										Verificați conexiunea la internet și reîncărcați pagina.	Sprawdź połączenie internetowe i ponownie załaduj stronę.	İnternet bağlantınızı kontrol edin ve sayfayı yeniden yükleyin.	Проверьте подключение к Интернету и перезагрузите страницу.		请检查您的互联网连接然后重新加载页面。	インターネット接続を確認し、ページを再読み込みしてください。		
+36603	0											Bezpieczeństwo		Безопасность		安全性	セキュリティ		
+369279	0											CPU: Intel Core i7 9th Gen lub wyższy			CPU: Intel Core i7 9th Gen или выше	CPU: Intel Core i7 第9代或更高	CPU: Intel Core i7 9th Genかそれ以上		
+350271	0											Masz jakieś pytania?	Bir sorunuz var mı?		У Вас есть вопросы?	您有什么疑问吗？	ご質問はありますか？		
+397308	0										Selectată(e)				Выбранное(ые)	已选	選択済み　		
+369908	0										%s vrea să acceseze contul dumneavoastră de %s	%s chce uzyskać dostęp do Twojego konta na %s	%s uygulaması %s hesabınıza erişmek istiyor	%s хочет получить доступ к вашей учетной записи %s		%s 想要访问您的 %s 账户	%sはあなたの%sのアカウントへのアクセスを求めています。		
+361573	0										Arhivată		Arşivlendi	Заархивирован		已归档			申請済
+35405	0													Проект:		项目:	プロジェクト：		
+151620	1										Trebuie introdusă o parolă validă.	Należy wprowadzić prawidłowe hasło.		Трябва да въведете валидна парола.	Необходимо ввести действительный пароль.	请输入一个有效密码。	有効なパスワードを入力してください。		Važeća šifra mora biti uneta.
+281940	0										Ștergeți contul de %s	Usuń konto %s	%s Hesabını sil		Удалить учётную запись с %s	删除 %s 账号	%sのアカウントを削除		
+235741	0											Prywatność		Конфиденциальность		隐私	プライバシー		
+391383	0										După zile	Według dni		По дням		按天	日ごと		
+379753	1													Разрешение за статистика	Разрешение на статистику	统计许可	統計情報の許可		İstatistik izni
+323111	0										Aplicații gratuite				Бесплатные приложения	免费应用	無料アプリケーション		
+224196	1										Sunteți sigur că doriți să reactivați contul acestui utilizator?	Czy na pewno chcesz ponownie aktywować konto tego użytkownika?	Bu kullanıcının hesabını tekrar etkinleştirmek istediğinize emin misiniz?		Вы уверены, что хотите заново подключить учётную запись данного пользователя?	您确定要重新激活此账户吗？	このユーザーアカウントを再度有効にしてよろしいですか？		Da li ste sigurni da želite da ponovo aktivirate ovaj korisnički nalog?
+261052	0										Pentru a realiza această acțiune trebuie inițiată sesiune în %s.	Aby wykonać tę czynność, musisz zalogować się do %s.	Bu eylemi gerçekleştirmek için %s uygulamasında oturum açmalısınız.		Чтобы совершить данное действие Вам необходимо войти в %s.	要执行此操作，您必须登录到%s。	このアクションを実行するには、%sにログインしてください。		
+356282	0													Что такое BIMserver.center?		什么是 BIMserver.center？	BIMserver.centerとは？		
+388878	0										Filtrați după manager	Filtruj według osoby odpowiedzialnej		Фильтр по ответственному лицу		按负责人筛选	責任者によるフィルター		
+58405	0										Mai multe informații	Więcej informacji		Повче информация	Больше информации	更多信息			詳細情報
+375619	0										%s v-a acordat insigna digitală %s	%s przyznał Ci odznakę cyfrową %s	%s size %s adlı dijital rozeti verdi.		%s наградил вас цифровым значком %s	%s授予了您%s数字徽章。	%sがあなたに%sのデジタルバッジを1つ授与しました		
+363028	0										Modificați la un alt cont	Zmień na inne konto	Başka bir hesaba geçin	Изменить на другую учетную запись		切换其他账户	他のアカウントへ変更		
+286579	0										Aplicație in curs de dezvoltare		Geliştirilmekte olan uygulama	Приложение на стадии разработки		正在开发的应用	開発中のアプリケーション		
+58247	0										Informație			Информация		信息			情報
+287637	0												Tarafından dağıtıldı	Дистрибьютор		分销商			販売元：
+71283	0														Электронная почта	电子邮件	メール		
+120915	0													Нов проект	Новый проект	新项目	新しいプロジェクト		
+361042	0										Recomandare recepționată		Alınan tavsiye	Полученная рекомендация		收到的推荐	個の提案を受取済		
+378241	0											Przykładowe projekty udostępnione przez zespół BIMserver.center w celu wykorzystywania ich jako praktyk szkoleniowych wspomagających opracowywanie projektów w środowisku pracy Open BIM.	Açık BIM çalışma ortamında projelerin geliştirilmesinde eğitim örnekleri olarak yürütmek üzere BIMserver.center ekibi tarafından sağlanan örnek projeler.		Примеры проектов, предоставленные командой BIMserver.center для использования в качестве учебной практики при разработке проектов в рабочей среде Open BIM.	BIMserver.center团队提供的项目示例，用作在Open BIM工作环境中开展项目的培训实例。	BIMserver.centerチームがOpen BIM作業環境におけるプロジェクト開発のトレーニング例として 提供するプロジェクト例。		
+374597	1												Eğitmen	Преподаватель		教师			教員 | Predavač
+318750	0										De %lu săptămâni			%lu недель назад		%lu周前			%lu週間前
+287853	0										Editează eticheta	Edytuj etykietę		Редактировать тег		编辑标签	編集タグ		
+395769	0										Vezi discuția	Zobacz wątek		Вижте нишката	Смотреть ветку	查看讨论串	スレッドを表示		
+369021	0										%s a distribuit contribuția %s	%s udostępnił/-a wkład %s	%s, %s katkısını paylaştı	%s поделился вкладом %s		%s分享了%s成果交付	%sがコントリビューション%sを共有しました		
+123770	0										Tăiați		Kısalt	Отрязване	Обрезка	裁剪	トリム		
+404433	0										Codul de creator face parte din structura de identificare a informațiilor bazată pe standardul ISO 19650, permițând organizarea și gestionarea în mod consecvent a contribuțiilor și a fișierelor aferente acestora.	Kod twórcy jest częścią struktury identyfikacji informacji opartej na normie ISO 19650, co umożliwia spójne porządkowanie i zarządzanie wkładami oraz powiązanymi z nimi plikami.	Oluşturan kodu, ISO 19650 standardına dayalı bilgi tanımlama yapısının bir parçasıdır ve katkıları ile bunlara ait dosyaların tutarlı bir şekilde düzenlenmesini ve yönetilmesini sağlar.	Кодът на създателя е част от структурата за идентифициране на информацията, базирана на стандарта ISO 19650, като позволява последователно организиране и управление на приносите и съответните им файлове.	Код создателя является частью структуры идентификации информации, основанной на стандарте ISO 19650, что позволяет последовательно систематизировать и управлять вкладами и соответствующими файлами.	创建者代码是基于 ISO 19650 标准的信息标识结构的一部分，可用于一致地组织和管理各方提供的内容及其文件。	作成者コードは、ISO 19650 規格に基づく情報識別構造の一部であり、各種成果物およびそのファイルを一貫性のある形で整理・管理することを可能にします。		
+290641	0										Ești sigur ca vrei să elimini această problemă?	Czy na pewno chcesz usunąć ten incydent?	Bu olayı silmek istediğinizden emin misiniz?		Вы уверены, что хотите удалить данную ошибку?	您确定要删除此事项？	このイシューを削除してよろしいですか？		
+227921	0											Nowy użytkownik	Yeni kullanıcı		Новый пользователь	新用户	新しいユーザー		
+404405	1										Sigur doriți să duplicați acest element?		Bu öğeyi kopyalamak istediğinizden emin misiniz?	Сигурни ли сте, че искате да дублирате този елемент?	Вы уверены, что хотите дублировать этот элемент?	是否确定要复制该元素？	この要素を複製してもよろしいですか。		Czy na pewno chcesz zduplikować ten element?
+71413	0													Автор		作者			
+246785	1										Sesiunea nu este validă.	Sesja jest nieprawidłowa.	Oturum geçerli değildir.		Недействительный сеанс.	该对话无效。	セッションが有効ではありません。		Sesija nije važeća.
+362193	0										Invitația încă nu a fost gestionată.	Zaproszenie nie zostało jeszcze rozpatrzone.	Davet henüz işlenmedi.		Приглашение еще не было обработано.	邀请尚未处理。	招待はまだ処理されていません。		
+284626	0													Для рабочего стола		桌面	デスクトップ		
+319345	2										%s pentru recuperarea contului dumneavoastră		Hesabınızı kurtarmak için %s		%s для восстановления Вашей учётной записи	%s 恢复您的账户	アカウントを修復:%s		%s, aby odzyskać swoje konto | %s za vraćanje naloga
+72126	0													Етикети	Отметки	标签	タグ		
+385844	0										Acceptată		Onaylandı	Принято		已接受	承認済み		
+227896	0														Выбрать тип проекта	项目类型选择	プロジェクトタイプ選択		
+235805	1										Conținuturile nu sunt de interesul meu	Zawartość platformy nie leży w moim kręgu zainteresowań		Не интересует содержание		内容我不感兴趣	コンテンツに関心がなかった		İçerikler ilgimi çekmiyor
+227846	1										Aplicații descărcate				Загруженные приложения	已下载的应用程序	ダウンロードしたアプリケーション		İndirilen uygulamalar
+257185	0											Link został skopiowany do schowka	Bağlantı panoya kopyalandı		Ссылка скопирована в буфер обмена	该链接已复制到剪贴板	リンクをクリップボードにコピーしました。		
+171005	0													Фамилия		姓氏			名字
+404404	0										Solicitare incorectă	Nieprawidłowe żądanie		Неправилна заявка	Некорректный запрос	请求无效	不正なリクエスト　		
+389373	0											Od początku	Başlangıç	К источнику		历史			開始点
+235576	0										Ești sigur că dorești autorizarea acestei aplicații?	Jesteś pewny, że chcesz autoryzować tę aplikację? Are you sure you wish to authorise this application?	Bu uygulamayı yetkilendirmek istediğinizden emin misiniz?		Вы уверены, что хотите разрешить использования данного приложения?	您确定要授权这个程序吗？	このアプリケーションを認証してよろしいですか？		
+282829	0											Pierwszy dostęp do %s	%s'ye İlk erişim		Первый доступ в %s	初次访问 %s	%sへの最初のアクセス		
+268181	0										Ați primit un e-mail cu link-ul pentru validare a contului.	Otrzymałeś/aś wiadomość e-mail z łączem do weryfikacji Twojego adresu e-mail.	E-posta hesabınızı doğrulamak için bir bağlantı içeren e-posta gönderildi.		Вам было отправлено электронное письмо со ссылкой для подтверждения Вашей электронной почты.	验证邮箱的链接已发送至您的邮箱。	メールアカウントの認証リンクを、お客様のメールアドレスに送信いたしました。		
+324452	0										Aceasta acțiune vă permite să reinnoiți timp de %lu zile plus acces la API pentru a continua dezvoltarea acestei aplicații.	Ta czynność umożliwia odnowienie dostępu do API na kolejnych %lu dni, aby móc kontynuować rozwój tej aplikacji.	Bu işlem, uygulamayı geliştirmeye devam etmek için API erişimini %lu gün daha yeniler.		Это действие, позволяет обновлять, ещё на %lu дней, доступ к API, для продолжения разработки данного приложения.	该操作可将API的访问权限再延长%lu天，以便继续开发应用程序。	このアクションはアプリケーション開発の継続のため APIへのアクセスをさらに%lu日更新します。		
+224278	1										Am citit, înțeleg și accept următorul document:	Przeczytałem, rozumiem i akceptuję następujący dokument:	Aşağıdaki belgeyi okudum, anladım ve kabul ediyorum:	Я прочитал, ознакомился и принимаю следующий документ:		我已阅读，理解并同意以下文件：	私は以下の書類に関して確認し、理解したため承認します:		Pročitao sam, razumeo i prihvatio sledeći dokument:
+379568	0												Kişisel	Личная		个人			個人
+327693	0										Contribuții	Wkład	Katkılar		Вклады	成果交付	コントリビューション		
+235778	0													Администрация		管理			
+368928	0										Conținutul nu este disponibil	Zawartość niedostępna	İçerik mevcut değil	Содержимое не доступно		内容不可用	利用不可能のコンテンツ		
+46960	2										Anulați			Отменя	Отмена	取消	キャンセル		Prekliči | İptal
+267560	0										Cine poate să vadă adresa mea de e-mail?	Kto może zobaczyć mój adres e-mail?			Кто может увидеть мой электронный адрес?	谁可以看到我的电子邮件地址？	メールアドレスの公開設定		
+364516	0										Descărcați imaginea			Загрузить изображение		下载图像	画像をダウンロード		
+371936	0												'Geliştiriciler' hesabı	Учетная запись 'Разработчики'		'Developers' 账户	「デベロッパー」アカウント		
+65019	0										Etichetă			Етикет	Ярлык	标签	ラベル		
+281930	10												Dosyalandı	Архивирован		已归档			提出済 | Archivado | Archivé | Arquivado | Arxivat | Archiviato | Filed | Arhivat | Abgespeichert | Zarchiwizowany | Arhivirano
+29849	0													Код		编码	コード		
+190333	0													Видим	Видимый	可见			表示
+396758	1										Introduceți țările separate prin virgulă și apăsați 'Enter'	Wprowadź kraje oddzielone przecinkami i naciśnij 'Enter'	Ülkeleri virgülle ayırarak girin ve 'Enter' tuşuna basın	Въведете държавите, разделени със запетаи, и натиснете 'Enter'	Введите страны, разделенные запятыми, и нажмите 'Enter'	请输入国家，以逗号分隔，然后按'回车'键	国名をコンマで区切って入力し、「Enter」キーを押してください		Vnesite države, ločene z vejicami, in pritisnite 'Enter'
+397810	0												Kişisel	Лични	Личные	个人			個人
+388859	1										Sunteți sigur că doriți să schimbați starea ofertei de muncă?		İş teklifinin durumunu değiştirmek istediğinizden emin misiniz?		Вы уверены, что хотите изменить статус предложения о работе?	确定要更改招聘求职状态吗？	求人ステータスを変更しますか？		Czy na pewno chcesz zmienić status oferty pracy?
+29637	0														Учетные записи	账户	アカウント		
+58407	0											Dostęp	Erişim	Достъп	Доступ	访问	アクセス		
+361642	0										Respinsă			Отклонено		已拒绝			拒否
+392210	0										Perioadă precedentă			Предходен период	Предыдущий период	上一周期			前期
+261035	0													Не виден		隐藏所有	全員に非表示		
+139029	0											Wyślij		Изпрати	Отправить	发送			送信
+268162	0										Ești sigur ca dorești eliminarea acestui utilizator din proiect?	Czy na pewno chcesz usunąć tego użytkownika z projektu?	Bu kullanıcıyı projeden silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить данного пользователя с проекта?	确定从项目中删除这位用户?	プロジェクトからこのユーザーを削除してよろしいですか？		
+369087	0										Nu afișa din nou				Больше не показывать	不再显示	今後このメッセージを表示しない		
+404418	0											Wiadomość SMS z kodem weryfikacyjnym została wysłana.	Doğrulama SMS’i gönderildi.	Изпратен е SMS за потвърждение.	Было отправлено SMS для проверки.	验证短信已发送。	確認用SMSが送信されました。		
+356364	1												Kişisel bilgiler		Персональные данные	个人信息			個人情報 | Lični podaci
+382913	0										Nu sunteți înregistrat în BIMserver.center	Nie jesteś zarejestrowany/-na na BIMserver.center	BIMserver.center'da kayıtlı değilsiniz		Вы не зарегистрированы на сайте BIMserver.center	您尚未在 BIMserver.center 注册	BIMserver.centerに登録されていません		
+285764	0										Nouă versiune disponibilă	Nowa wersja dostępna		Доступна новая версия		新版本可用	利用可能な新しいバージョン		
+387384	0										Numele contribuției este incorect	Nazwa wkładu jest niepoprawna	Katkının adı yanlıştır	Имя вклада некорректно		成果交付文件名称不正确	コントリビューションの名前が正しくありません		
+227857	0											Żądania		Заявки		申请	リクエスト		
+389855	0										Descompunere pe țări	Wyszczególnienie według krajów	Ülkelere göre dağılım	Разбивка по странам		按国家分列	国別の内訳		
+276075	0													Курс		课程	コース		
+404411	0										E-mailul sau parola nu sunt corecte. Rețineți că acum contul dvs. pentru Generator de prețuri, Open BIM Systems și BIMserver.center este unic. Puteți să vă autentificați cu parola de la BIMserver.center sau să o recuperați oricând.	Adres e-mail lub hasło są nieprawidłowe. Należy pamiętać, że obecnie konto dla Generador de precios, Open BIM Systems i BIMserver.center jest wspólne. Można się zalogować hasłem do BIMserver.center lub w razie potrzeby je odzyskać w dowolnym momencie.	E-posta veya parola doğru değil. Artık Fiyat Oluşturucu, Open BIM Systems ve BIMserver.center için tek bir hesabınız olduğunu unutmayın. BIMserver.center parolanızla oturum açabilir veya parolanızı dilediğiniz zaman sıfırlayabilirsiniz.	Имейлът или паролата не са правилни. Имайте предвид, че сега вашият акаунт за Generador de precios, Open BIM Systems и BIMserver.center е единен. Можете да влезете с паролата за BIMserver.center или да я възстановите по всяко време.	E-mail или пароль указаны неверно. Обратите внимание, что теперь учетная запись для Generador de precios, Open BIM Systems и BIMserver.center является единой. Вы можете войти в систему, используя пароль от BIMserver.center, или восстановить его в любой момент.	电子邮箱或密码不正确。请注意：您的 CYPE 造价数据库、 Open BIM Systems 与 BIMserver.center 账户 已统一为同一个通用账户，您可使用 BIMserver.center 的密码登录， 也可随时重置密码。	メールアドレスまたはパスワードが正しくありません。現在は、価格ジェネレーター、Open BIM Systems、BIMserver.center で同一のアカウントを使用します。BIMserver.center のパスワードでサインインするか、いつでもパスワードを再設定できます。		
+227876	0											Wyświetl profil		Посмотреть профиль		查看资料	プロファイルを見る		
+367289	0										Sunteți singurul utilizator din cont pentru care proiectul este vizibil. Dacă dezactivați vizibilitatea, proiectul va fi arhivat. Doriți să continuați?	Jesteś jedynym użytkownikiem konta, dla którego projekt jest widoczny. Jeśli wyłączysz jego widoczność, projekt zostanie zarchiwizowany. Czy chcesz kontynuować?	Hesapta projenin görünür olduğu tek kullanıcı sizsiniz. Görünürlüğünü devre dışı bırakmanız durumunda proje arşivlenecektir. Devam etmek istiyor musunuz?		Вы являетесь единственным пользователем учетной записи, для которой виден проект. В случае отключения видимости проекта, он будет помещен в архив. Вы хотите продолжить?	您是该账户中唯一能查看此项目的用户。 若您关闭项目可见性，该项目将被自动存档。是否继续？	プロジェクトを表示できるのはアカウント内であなただけです。表示を無効にすると、 プロジェクトはアーカイブされます。続行しますか？		
+316976	0													Всички	Все	全部	すべて		
+373675	0														Корпоративный e-mail	企业 e-mail	企業メール		
+316314	1													Вчера		昨天			昨日 | Juče
+400689	0										Închisă	Zamknięto	Kapalı	Затворено	Закрыто	已关闭			閉
+354845	0											%s odrzucił/a Twoją prośbę o podjęcie współpracy przy projekcie '%s'.	%s, '%s' projesinde iş birliği talebinizi reddetti.	%s отклонил ваш запрос на участие в проекте '%s'.		%s已拒绝您在'%s'项目中的协作申请。	%sはあなたのプロジェクト「%s」でのコラボレーションリクエストを拒否しました。		
+228123	0										Validați	Zatwierdź	Doğrula	Валидиране	Подтвердить	确认	認証する		
+388868	0										Fără manager			Без ответственного лица		无负责人	責任者なし		
+404425	0													Минимум %lu знака	Минимум %lu символов	至少输入 %lu 个字符			最小 %lu 文字
+261089	0												İletişim formu	Контактная форма		联系方式	お問い合わせフォーム		
+362048	0										Elimină utilizator	Usuń użytkownika	Kullanıcıyı sil	Удалить пользователя		删除用户	ユーザー削除		
+351758	0														Только мои проекты	仅自己的项目	マイプロジェクトのみ		
+268213	0										Fișierul "%s" este gol.		"%s" dosyası boştur.	Файл "%s" пустой.		文件“%s”为空。	ファイル「%s」は空です。		
+287678	0										Numărul de utilizatori care utilizează aplicația	Liczba użytkowników korzystających z aplikacji	Uygulamayı kullanan kullanıcı sayısı	Количество пользователей приложения		使用该应用程序的用户数量	アプリケーション使用者数		
+402256	0										Durata dezvoltării		Geliştirme süresi	Време за разработка	Время разработки	开发周期			開発期間　
+360265	0												Sıralama	Рейтинг		排行	ランキング		
+369280	0											GPU: Nvidia GeForce GTX 2060 lub wyższy			GPU: Nvidia GeForce GTX 2060 или выше	GPU: Nvidia GeForce GTX 2060 或更高	GPU: Nvidia GeForce GTX 2060かそれ以上		
+246782	0													Вебсайт		网站	ウェブサイト		
+380926	0										Acest conținut va fi disponibil când se publică aplicația.	Ta zawartość będzie dostępna po opublikowaniu aplikacji.	Bu içerikler uygulama yayınlandığında mevcut olacak.		Этот контент будет доступен после публикации приложения.	该内容将在应用程序发布时可用。	これらのコンテンツは、アプリケーションの公開時に利用可能となります。		
+397032	0													Неактивно ниво	Уровень Неактивный	萌芽级	非アクティブレベル		
+369909	0										Acestea ii va permite lui %s să facă următoarele:	To umożliwi %s wykonanie następujących czynności:	bu %s uygulamasının aşağıdakileri yapmasına izin verecektir.		Это позволит %s выполнить следующие действия:	将允许 %s 执行以下操作：	これにより%sに次のことを許可します:		
+350272	0											Napisz recenzję	Bir inceleme yazın		Написать отзыв	撰写评论	レビューを書く		
+367292	0										Puteți face proiectul vizibil pentru alți membri ai echipei didactice	Spraw, aby projekt był widoczny dla innych członków kadry dydaktycznej	Projeyi diğer öğretim ekibi üyeleri için görünür yapabilirsiniz		Вы можете сделать проект видимым для других членов команды преподавателей	您可以设置该项目对教学团队其他成员可见	プロジェクトを教育チームの他のメンバーに表示可能にできます		
+391384	0										După săptămâni	Według tygodni	Haftalık	По неделям		按周	週ごと		
+202613	0											Widoczność		Видимость		可见性			表示設定
+199641	0										Selectează proiectul			Изберете проект	Выбрать проект	选择项目	プロジェクト選択		
+281941	0											Zarządzanie komentarzami		Управление комментариями		评论管理	コメント管理		
+235566	0										Ești sigur că vrei să elimini această aplicație?	Jesteś pewny, że chcesz usunąć tę aplikację?	Bu uygulamayı silmek istediğinizden emin misiniz?		Вы уверены, что хотите удалить данное приложение?	您确定要删除这个软件吗？	このアプリケーションを削除してよろしいですか？		
+374508	0												Hesap adı	Имя учетной записи		账户名称	アカウント名		
+224197	1										Sunteți sigur că doriți să dezactivați contului acestui utilizator?	Czy na pewno chcesz dezaktywować konto tego użytkownika?	Bu kullanıcının hesabını devre dışı bırakmak istediğinize emin misiniz?		Вы уверены, что хотите отключить учётную запись данного пользователя?	您确定要停用此账户吗？	このユーザーアカウントを停止してよろしいですか？		Da li ste sigurni da želite da deaktivirate ovaj korisnički nalog?
+113393	0												Doğrulandı	Проверено		已验证			確認済
+74762	1													Размер		大小	サイズ		Veličina
+389070	0										Acreditarea dvs. ca 'beta tester' a '%s' acum este visibilă în profilul public.		'%s' için 'beta tester' olarak akreditasyonunuz artık herkese açık profilinizde görünüyor.	Ваша аккредитация в качестве бета-тестера для '%s' теперь видна в вашем общедоступном профиле.		您的'%s''beta 测试员'身份认证现已显示在您的公开个人资料中。	「%s」の「beta tester」としての認定が、公開プロフィールに表示されるように なりました。		
+379754	0													Административно разрешение	Разрешение на администрирование	管理许可	管理の許可		
+361984	0										Creați lista de aplicații	Utwórz listę aplikacji	Uygulama listesi oluştur	Создать список приложений		创建应用程序列表	アプリケーションリストを作成		
+213252	0												Değerlendirme	Оценка		评分			評価
+358685	1										Așteptați ca acțiunea să fie finalizată.	Poczekaj na zakończenie procesu.	İşlemin bitmesini bekleyin.	Подождите, пока действие будет завершено.		请等待操作完成。	アクション終了までお待ちください。		Sačekati da se postupak završi.
+356603	0										A fost trimisă cererea de înregistrare la această adresă de email. Această înregistrare incă nu s-a produs.	Prośba o zarejestrowanie została już wysłana na ten adres e-mail. Ta rejestracja nie została jeszcze dokonana.	Kayıt talebi bu e-posta adresine gönderildi. Kişi henüz kaydolmadı.		Запрос на регистрацию уже был отправлен на этот адрес электронной почты. Эта регистрация еще не состоялась.	注册请求已发送至此电子邮件地址。此人尚未注册。	登録リクエストがこのメールアドレスに送信されました。 この方はまだ登録されていません。		
+40584	0														Учётная запись	账户	アカウント		
+281910	0											Wyświetl mój profil publiczny			Смотреть мой публичный профиль	查看我的公开简介	公開プロファイルを見る		
+287238	0														Смотреть ещё	查看所有	すべて見る		
+261023	0											Dostępny w tych językach			Доступно на следующих языках	可用语言	それら言語で利用可能		
+378242	0										Spațiul în care puteți urmări cea mai recentă activitate a utilizatorilor platformei.	Miejsce, w którym można śledzić najnowszą aktywność użytkowników platformy.	Platform kullanıcılarının en son aktivitelerini takip edebileceğiniz alan.		Пространство, где можно отслеживать последнюю активность пользователей платформы.	在此页面您可以查看平台用户的最近活动。	プラットフォームユーザーの最新の活動をフォローできるエリア。		
+74725	0												Tanım	Описание		描述			説明
+227823	1										Nu se poate încărca contribuția deoarece deja există o lucrare cu același nume în proiect.	Wkład nie może zostać przesłany, ponieważ w projekcie istnieje już inny wkład o tej samej nazwie.	Katkı yüklenemedi çünkü projede aynı adı taşıyan başka bir katkı zaten mevcuttur.		Вклад не может быть загружен, потому что в проекте уже есть другой вклад с таким же именем.	无法上传，因为项目中已有同名成果交付。	プロジェクト内に同じ名前のコントリビューションがすでにあるため、 アップロードできません。		Doprinos ne može biti učitan jer u projektu već postoji jedan sa istim imenom.
+361043	0										Recomandări recepționate		Alınan tavsiyeler		Полученные рекомендации	收到的推荐	個の提案を受取済		
+195866	1										Parola introdusă este incorectă.	Wprowadzone hasło jest niewłaściwe.	Girilen şifre yanlıştır.		Неправильный пароль.	输入的密码不正确。	入力されたパスワードは正しくありません。		Lozinka koja je uvedena je netačna.
+227902	1										Vei putea primii cereri de colaborare de la toți utilizatorii înregistrați în %s.	Będziesz miał/a możliwość otrzymywania żądań współpracy od wszystkich użytkowników zarejestrowanych na %s.	Tüm %s kayıtlı kullanıcılardan işbirliği talepleri alabileceksiniz.		Вы сможете получать запросы на участие от всех зарегистрированных пользователей в %s.	您将能接收注册在%s用户的协作请求。	%sに登録しているユーザーから、 コラボレーションリクエストを受け取ることが可能です。		Moći ćete da primate zahteve za saradnju od svih korisnika registrovanih na %s.
+122727	10												Tanımlanmadı	Недефинирано	Не определено	未定义			未定義 | Sin definir | Non défini | Sem definir | Sense definir | Non definito | Not defined | Nedefinit | Nicht bezeichnet | Niezdefiniowana | Nije definisano
+369667	0											%s udostępnił/-a projekt %s autorstwa %s	%s, %s'nin %s projesini paylaştı	%s поделился проектом %s от %s		%s分享了%s项目（%s的项目）	%sがプロジェクト%s、%sの、を共有しました		
+396754	0										1 contribuție	1 wkład	1 katkı	1 принос	1 вклад	1项成果交付	1 コントリビューション		
+389219	0										%s v-a desemnat ca fiind responsabil de incidența '%s' în proiectul %s.	%s wyznaczył/-a Cię jako osobę odpowiedzialną w zakresie incydentu %s projektu %s.	%s sizi '%s' konusundan sorumlu kişi olarak %s projesine atadı.		%s назначил вас ответственным по инциденту '%s' в проекте %s.	%s已将您指定为'%s'事项的负责人（%s项目)。	%sは、イシュー「%s」プロジェクト%sにおける、に関する責任者としてあなたを任命しました。		
+391694	0										Se permite doar publicarea proiectelor cu imagine de copertă	Możliwe jest publikowanie wyłącznie projektów z obrazem okładki	Yalnızca kapak resmi olan projeler yayınlanabilir		Публикуются только проекты с изображением обложки	只有带有封面图片的项目才能发布	カバー画像付きプロジェクトのみ公開できます		
+284627	0													Для мобильного устройства		移动设备	スマートフォン		
+257202	1										În așteptare			В ожидании		待决			未解決 | Na čekanju
+404434	0										Configurare salvată corect	Konfiguracja została poprawnie zapisana	Yapılandırma başarıyla kaydedildi	Конфигурацията е запазена успешно	Настройки успешно сохранены	配置已成功保存	設定は正常に保存されました		
+227819	0										Solicitarea de participare în proiect a fost trimisă.	Prośba o dopuszczenie do udziału w projekcie została wysłana.	Projeye katılım talebiniz gönderildi.		Заявка на участие в проекте была отправлена.	项目参与申请已提交。	プロジェクトのコラボレーションリクエストが送信されました。		
+404406	0										Adăugați prima tipologie și începeți să obțineți prețuri personalizate pentru lucrările dumneavoastră	Dodaj swoją pierwszą typologię i zacznij otrzymywać spersonalizowane ceny dla swoich projektów	İlk tipolojinizi ekleyin ve projeleriniz için özelleştirilmiş fiyatlar almaya başlayın	Добавете първата си типология и започнете да получавате персонализирани цени за вашите обекти	Добавьте свою первую типологию и начните получать персонализированные цены для ваших объектов	添加首个类别，即刻获取工程项目个性化报价	最初のタイプを追加して、プロジェクトごとの個別単価の取得を開始してください		
+370073	0										Accesați datele contului dumneavoastră.	Przejdź do danych swojego konta.	Hesap verilerinize erişin.		Доступ к данным вашей учетной записи.	访问您的账户数据。	アカウントデータにアクセスする。		
+371750	0										Vedeți numai proiectele mele				Смотреть только мои проекты	仅查看我的项目	自分のプロジェクトだけ閲覧する		
+388392	0										Răspunsul dvs. a fost procesat corect.	Twoja odpowiedź została przetworzona poprawnie.	Yanıtınız başarıyla işlendi.		Ваш ответ был обработан корректно.	您的回复已正确处理。	返信は正常に処理されました。		
+292190	0										Sînteți sigur că doriți să părăsiți pagina fara sa salvați modificările?	Czy na pewno chcesz opuścić stronę bez zapisywania zmian?	Sayfadan hiçbir değişikliği kaydetmeden çıkmak istediğinize emin misiniz?		Вы уверены, что хотите покинуть страницу без сохранения изменений?	您的更改尚未保存，确定要退出当前页面？	変更を保存せずにページを離れますがよろしいですか？		
+354251	1										Utilizatorul deja participă în acest proiect	Użytkownik już uczestniczy w tym projekcie	Kullanıcı zaten bu projeye katılıyor		Пользователь уже участвует в этом проекте	该用户已参与此项目	そのユーザーは既にこのプロジェクトに参加しています		Korisnik već učestvuje u ovom projektu
+235596	0										Descărcări totale	Pobierz całość		Количество скачиваний		下载全部	すべてのダウンロード		
+227852	0										Acceptă cererea	Zaakceptuje żądanie		Принять заявку		接受申请	リクエストを承諾		
+399957	0													Или		或	または		
+352795	0												Dağıtıcı	Дистрибьютор		分销商			販売業者
+266803	0										Ești sigur că dorești acceptarea cererii?	Czy na pewno chcesz zaakceptować prośbę?	Talebi kabul etmek istediğinize emin misiniz?		Вы уверены, что хотите принять заявку?	您确定要接受该申请吗?	リクエストを承諾してよろしいですか？		
+235806	0												Diğer nedenler		Другие причины	其他原因	その他の理由		
+389486	0											Zarządzanie marketingiem		Маркетинг мениджмънт	Управление маркетингом	市场营销管理	マーケティング管理		
+379569	0										Căutați conturi		Hesapları ara		Найти учетные записи	查找账户	アカウント検索		
+235564	0										Descrierea aplicației		Uygulama açıklaması	Описание приложения		软件描述	アプリケーションの概要		
+282830	1											Żądanie odstąpienia od %s		Запрос на удаление с %s		 %s 注销申请	%sのキャンセルリクエスト		%s İptal talebi
+268182	1										Dacă nu validați contul din adresa de e-mail în două saptămâni, acesta va fi șters.	Jeśli nie potwierdzisz swojego adresu e-mail w ciągu dwóch tygodni, zostanie on usunięty.	E-posta adresinizi iki hafta içinde doğrulamazsanız, hesabınız silinecektir.		В случае если Вы не подтвердите Ваш электронный адрес в течение двух недель, пользователь будет удалён.	若您未在两周内验证邮箱账户，该账户将被自动删除。	2週間以内にメールアドレスの認証を行わない場合、削除されます。		Ako ne potvrdite vašu e-mail adresu za dve nedelje, biće obrisana.
+324453	1										Tineți cont că se va genera un nou cod GUID temporal, care trebuie introdus în aplicația care este dezvoltată.	Pamiętaj, że zostanie wygenerowany nowy tymczasowy kod GUID, który trzeba będzie wprowadzić w aplikacji, którą rozwijasz.	Yeni bir geçici GUID kodu oluşturulacağını ve bunun geliştirilmekte olan uygulamaya girilmesi gerektiğini unutmayın.		Имейте в виду, что будет создан новый временный код GUID, который Вам необходимо будет ввести в приложение, которое Вы разрабатываете.	请注意，将会生成一个新的临时GUID代码，您必须将它输入正在开发的应用程序中。	新しい一時的なGUIDコードが生成されますので、 開発するアプリケーションに忘れずに入力してください。		Imajte na umu da će biti generisan novi privremeni GUID kod, koji mora biti unešen u aplikaciju koja se razvija.
+154998	0										Aplicații			Приложения		软件	アプリケーション		
+29851	0										Preț			Стоимость		价格			価格
+368929	0														Типы видов	视图类型	ビュータイプ		
+251315	0													3D Вид		3D 视图	3Dビュー		
+361983	0										Aplicațiile incluse în această listă	Aplikacje zawarte na tej liście			Приложения, включенные в этот список	此列表中包含的应用程序	このリスト内のアプリケーション		
+352251	0										Spațiu pentru achiziționarea și descărcarea aplicațiilor Open BIM integrate în platforma BIMserver.center	Miejsce do pozyskiwania i pobierania aplikacji Open BIM zintegrowanych z platformą BIMserver.center	BIMserver.center platformuna entegre Open BIM programlarını edinmek ve indirmek için alan		Пространство для приобретения и загрузки приложений Open BIM, интегрированных в платформу BIMserver.center	获取和下载集成在 BIMserver.center 平台中的 Open BIM 应用程序的空间	BIMserver.centerプラットフォームにまとめる Open BIMプログラムをダウンロードするためのスペース		
+364859	0													QR код		二维码	QRコード		
+246850	0										Nu este nimic de arătat.		Gösterilecek bir şey yoktur.	Нет ничего для просмотра.		暂无内容可显示。	表示できるものがありません。		
+227746	1										Data descărcării			Дата скачивания		下载时间	ダウンロード日		İndirme tarihi
+194726	9	Borrado	Supprimé	Eliminado	Esborrat	Cancellato	Deleted	Gelöscht	Izbrisan	Silindi	Șters	Usunięto		Изтрит	Удалён	已删除			削除済
+288118	0										Certificatul nu există sau a fost eliminat.	Certyfikat nie istnieje lub został usunięty.	Sertifika mevcut değil ya da silinmiştir.		Сертификат не существует или был удалён.	证书不存在或已被删除。	証明書は存在しないか、削除されています。		
+196803	0										Acceptă modificări		Değişiklikleri kabul et	Приема промените	Принять изменения	接受修改	変更を保存		
+388860	0										Dezactivată		Devre dışı	Деактивировано		已停用			無効
+380262	1												Kayıtlı hesaplar	Регистрирани акаунти	Зарегистрированные учетные записи	已注册账户	登録されたアカウント		Registrirani računi
+224200	0										Termenii și condițiile de utilizare		Kullanım Şartları ve Koşulları	Положения и условия использования		条件和使用条款			利用規約
+361643	0										Expirată	Wygasłe		Истекло		已过期			失効
+397811	1											Otrzymano wiadomość w %s wysłaną przez %s	%s içinde %s tarafından gönderilen bir mesaj alındı	Получено е съобщение в %s, изпратено от %s	Получено сообщение в %s, отправленное пользователем %s	在 %s 中收到了 %s 发送的消息	%sで%sからのメッセージを受信しました　		Prejeto je sporočilo v %s, ki ga je poslal %s
+34220	0										Repetă e-mail ul		E-postayı tekrar et	Повторете e-mail	Введите повторно электронную почту	再次输入电子邮件	メール再入力		
+395517	0											Nowy wątek		Новая ветка		新帖子串	新しいスレッド		
+257226	0										Ești sigur că dorești eliminarea acestui curs?	Czy na pewno chcesz usunąć ten kurs?	Bu kursu silmek istediğinizden emin misiniz?		Вы уверены что хотите удалить этот курс?	您确定要删除此课程吗？	このコースを削除してよろしいですか？		
+369272	0										Cerințe de sistem				Системные требования	系统要求	システム要件		
+392211	0												Önceki yıl	Предходна година	Предыдущий год	上一年			前年
+29651	1										Importă			Внася	Импортировать	导入	インポート		İçe aktar
+316974	0										%lu aplicații			%lu приложения		%lu 个应用程序	%luアプリケーション		
+404419	0										Numărul dumneavoastră de telefon a fost verificat.	Twój numer telefonu został zweryfikowany.	Telefon numaranız doğrulandı.	Вашият телефонен номер беше потвърден.	Ваш номер телефона был подтвержден.	手机号验证成功。	お客様の電話番号は認証されました。		
+278860	0										Arhivează proiect		Projeyi arşivle	Архивировать проект		归档項目	プロジェクトを提出		
+383660	0												Dosyalanmış proje	Проект в архиве		已归档项目	ファイルされたプロジェクト		
+63569	0										Creștere		Artış	Нарастване	Увеличение	增量			増分
+285765	0										Publică	Udostępnij	Yayınla	Опубликовать		发布			公開
+393763	1										Detaliere pe aplicație	Podział według aplikacji	Uygulamaya göre dağılım	Разбивка по приложение	Разбивка по приложениям	按应用细分	アプリケーション当たりの内訳		Razčlenitev po aplikaciji
+94924	0											Użytkownicy	Kullanıcılar	Потребители	Пользователи	用户	ユーザー		
+404412	0													Групи	Группы	群组	グループ		
+320776	1										Completați formularul și departamentul nostru tehnic vă va contacta pentru a stabili data sesiunii informative și a adapta necesitaților dumneavoastră.	Wypełnij formularz, a nasz dział techniczny skontaktuje się z Tobą w celu ustalenia terminu szkolenia i dostosowania go do Twoich potrzeb.	Formu doldurun ve teknik departmanımız eğitim oturumunun tarihini belirlemek ve ihtiyaçlarınıza göre uyarlamak için sizinle iletişime geçecektir.		Заполните форму, и наш технический отдел с Вами свяжется для определения даты подготовительного сеанса и адаптировать его к Вашим потребностям.	填写表格，我们的技术部门将与您联系，确定培训日期并根据您的需求进行适配。	フォームをご記入いただき、テクニカル部門が トレーニングセッションのお日にちを確定するためにご連絡を差し上げます。		Popunite formular i naše tehničko odeljenje će vas kontaktirati kako bi utvrdili datum treninga i prilagodili ga vašim potrebama.
+404477	0										Opțional		İsteğe bağlı	Незадължително	Необязательно	选填			任意
+246803	0										Notificări prin email				Уведомления по электронной почте	通过电子邮件通知	メールでの通知		
+400946	0										Înaltă			Висока	Высокий	高			
+261057	1										Sistemele producătorului		İmalatçı sistemleri		Системы производителя	制造商系统	メーカーシステム		Sistemi proizvođača
+316315	0										De o săptămână	1 tydzień temu		1 Неделю назад		一周前			1週間前
+389067	0										Incidență respinsă			Инцидент отклонен		事项已排除	却下された指摘事項		
+377717	0													Группа приложений		应用程序组	アプリケーショングループ		
+354846	0											%s zaakceptował/a Twoją prośbę o podjęcie współpracy przy projekcie '%s'.	%s, '%s' projesinde iş birliği talebinizi kabul etti.	%s принял ваш запрос на участие в проекте '%s'.		%s已接受您参与'%s'项目协作的申请。	%sはあなたのプロジェクト「%s」でのコラボレーションリクエストを承諾しました。		
+404426	0											Zgodnie z normą ISO 19650	ISO 19650 standardı ile uyumlu	В съответствие със стандарта ISO 19650	В соответствии со стандартом ISO 19650	符合 ISO 19650 标准	ISO 19650 規格に準拠		
+267566	0										Descarcă-l acum		Şimdi indir	Скачайте прямо сейчас		现在下载	今すぐダウンロード		
+261090	0										Scrie aici conținutul mesajului tău	Wpisz tu treść wiadomości	Mesajınızın içeriğini buraya yazın	Напишите содержание сообщения здесь		请在此处输入消息内容	メッセージの内容をこちらにご記入ください		
+392072	0										Sunteți sigur că doriți să ștergeți acest utilizator din cont?	Czy na pewno chcesz usunąć tego użytkownika z konta?	Bu kullanıcıyı hesaptan silmek istediğinizden emin misiniz?		Вы уверены, что хотите удалить этого пользователя из учетной записи?	您确定要从账户中删除该用户吗？	このユーザーをアカウントから削除しますか？		
+268214	0										Ați selectat prea multe fișiere (%s). Limita maximă de fișiere de încărcat este %s.	Wybrałeś/aś zbyt wiele plików (%s). Maksymalna liczba plików do przesłania to %s.	Çok fazla dosya seçtiniz (%s). Yüklenebilecek dosya sınırı %s.		Вы выбрали слишком много файлов (%s). Максимальное количество загружаемых файлов должно составлять %s.	您选择太多文件(%s).可上传的最大文件数为%s。	選択したファイル（%s）の数が多すぎます。 アップロード可能なファイルの最大数は%sです。		
+369281	0										Pentru iOS și Android, se recomandă ca dispozitivele mobile să nu fie mai vechi de 3 ani.	W przypadku systemów iOS i Android zaleca się, aby urządzenia mobilne nie były starsze niż 3 lata.	iOS ve Android için, mobil cihazların 3 yıldan daha fazla kullanılmamış olmaması önerilir.		Для iOS и Android рекомендуется, чтобы мобильные устройства были не старше 3 лет.	iOS和Android，建议移动设备使用不超过3年。	iOS又はAndroidの場合、使用期間3年以内のモバイルデバイスを推奨いたします。		
+361801	0										Adăugați utilizator	Dodaj użytkownika	Kullanıcı ekle	Добавить пользователя		添加用户	ユーザー追加		
+289725	0										Ultima săptămână	Ostatni tydzień		Последняя неделя		最近一个星期			先週
+402257	0										Scurtă		Kısa	Кратко	Краткий срок	短			短期　
+345348	0										Adăugați eticheta	Dodaj etykietę		Добавить отметку		添加标签	タグを追加		
+380697	0														Новая электронная почта	新邮箱	新しい電子メール		
+58409	1										Următorul	Następny		Следващ	Следущ.	下一步			次 | Sledeće
+350277	0										Răspuns	Odpowiedź	Yanıtla	Ответ		回复			返信
+30048	0											Dane użytkownika	Kullanıcı verileri		Данные пользователя	用户数据	ユーザーデータ		
+391385	0										După perioade de două săptămâni	Według okresów dwutygodniowych	İki haftalık	По двум неделям		按半月	2週間ごと		
+397033	1												Ara sıra düzeyi	Случайно ниво	Уровень Случайный	探索级	一時的なレベル		Občasna raven
+367592	0											Aktywność konta	Hesap etkinliği	Активировать учетную запись		账户活动	アカウントのアクティビティ		
+198877	0										Ați primit un email pentru reamintirea parolei.	Email został wysłany aby przypomnieć Ci o Twoim haśle.	Şifrenizi hatırlatmak için bir e-posta gönderildi		Вам отправили электронное письмо с напоминанием пароля.	已发送一封电子邮件以提醒您密码。	お客様のパスワード確認メールを送信いたしました。		
+138327	1													Версия		版本	バージョン		Različica
+281942	0										Elimină proiect	Usuń projekt		Удалить проект		删除项目	プロジェクト削除		
+198408	0											Wznów synchronizację		Продължи синхронизацията	Возобновить синхронизацию	恢复同步	同期を再開		
+235621	0													Отклонено		已拒绝			拒否
+201317	0										Acasă			В начало		主页	ホーム		
+314662	0												Panoya kopyalandı	Скопировано в буфер обмена		已复制到剪切板	クリップボードへコピーしました		
+384188	0											Wiadomości		Сообщения		信息	メッセージ		
+389071	0										Acreditarea dvs. ca 'beta tester' pentru '%s' nu mai este visibilă în profilul dvs. public.	Twoja akredytacja jako „beta tester” '%s' nie jest już widoczna w Twoim profilu publicznym.	'%s' için 'beta tester' olarak akreditasyonunuz artık herkese açık profilinizde görünmüyor.	Ваша аккредитация в качестве бета-тестера '%s' больше не отображается в вашем общедоступном профиле.		您的'%s''beta 测试员'身份认证不再显示在您的公开个人资料中。	「%s」の「beta tester」としての認定は、開プロファイルから表示されなく なりました。		
+201355	0										Amintește-mi parola	Przypomnij mi hasło	Şifre hatırlatma	Припомняне на паролата	Напомнить пароль	密码提醒	パスワードリマインダー		
+235771	0										Notificări			Уведомления		消息			通知
+379755	1											Zarządzanie kontami		Управление на акаунти	Управление учетными записями	账户管理	アカウント管理		Upravljanje računov
+363183	0										Trageți aici aplicațiile pe care doriți să le introduceți în listă	Przeciągnij tutaj aplikacje, które chcesz umieścić na liście	Listeye dahil etmek istediğiniz uygulamaları buraya sürükleyin		Перетащите сюда приложения, которые вы хотите добавить в список	将要纳入列表的应用程序拖到此处	リストに追加したいアプリケーションをここにドラッグ		
+358939	0										Apariții	Liczba wystąpień		Появления		出现数次	アクティビティ数数		
+356604	0											Wyślij na ten adres e-mail prośbę o rejestrację na %s.	Bu e-posta adresine %s'ye kaydolma isteğini gönderin.		Отправить на этот адрес электронной почты запрос на регистрацию в %s.	将 %s 注册请求发送至此电子邮件地址。	%s に登録するため、このメールアドレスにリクエストを送信してください。		
+235683	0										Elimină filtre	Usuń filtry			Удалить фильтры	清除筛选	フィルター削除		
+13801	0										Documentație			Документи	Документация	文件	ドキュメント	Έγγραφα	
+257177	1												Uygulanan tasarım kodları	Действующая норматива		实施条例	実行した設計コード		Uvedeni proračunski standardi
+367729	0												'Eğitim' hesapları		Учетные записи "Образование"	'Education' 账户	「教育用」アカウント		
+74834	0													Променя	Редактировать	编辑			編集
+266801	0												Tarafından	Создано		由			作成者：
+348504	0										Configurația proiectului		Proje yapılandırması		Параметры проекта	项目设置	プロジェクト設定		
+369668	0										%s a distribuit contribuția %s de %s	%s udostępnił/-a wkład %s autorstwa %s	%s, %s'nin %s katkısını paylaştı	%s поделился вкладом %s от %s		%s分享了%s成果交付（%s的成果交付）	%sがコントリビューション%s、%sの、を共有しました		
+227904	1										Nu veți primii cereri de colaborare.	Nie będziesz otrzymywać żadnych żądań współpracy.	İşbirliği talepleri almayacaksınız.		Вы не будете получать запросы на участие.	您将不会收到任何协作请求。	コラボレーションリクエストは来なくなります。		Nećete primati nikakve zahteve za saradnju.
+319920	1										Am citit, înțeles și accept %s.	Przeczytałem/am, rozumiem i akceptuję %s.	%s'i okudum, anladım ve kabul ediyorum.	Я прочитал, ознакомился и принимаю %s.		我已阅读、理解并接受 %s。	私は%sを確認し、理解し、承諾しました。		Pročitao sam, razumem i prihvatam %s.
+391695	0										Se permite doar publicarea contribuțiilor cu imagine de copertă	Możliwe jest publikowanie wyłącznie wkładów z obrazem okładki	Yalnızca kapak resmi olan katkılar yayınlanabilir		Публикуются только вклады с изображением обложки	仅允许上传带有封面图片的成果交付	カバー画像付きのコントリビューションのみが公開されます		
+396755	0										%lu contribuții	%lu wkładów	%lu katkı	%lu приноса	%lu вкладов	%lu项成果交付	%lu コントリビューション		
+123799	1										Salvați			Записва	Сохранить	保存			Sačuvati
+227860	0										Termeni și condiții		Şartlar ve Koşullar	Положения и условия		条款和条件			利用規約
+284628	0										Tipul de aplicație			Вид приложения		应用程序类型	アプリケーションの種類		
+368723	0											Ranking użytkowników	Kullanıcı sıralaması	Рейтинг пользователей		用户排名	ユーザーランキング		
+404435	0													Роля	Роль	角色	ロール		
+388852	0										Soluționată	Rozwiązany		Решен		已解决	解決済み		
+370074	0										Accesați proiectele dumneavoastră.	Przejdź do swoich projektów.	Projelerinize erişin.	Доступ к вашим проектам.		访问您的项目。	プロジェクトにアクセスする。		
+257212	0														Новый курс	新课程	新しいコース		
+57854	0										Timp de așteptare expirat. Server ocupat.	Przekroczono limit czasu. Serwer jest zajęty.	Zaman aşımı. Sunucu meşgul.	Изтече времето за изчакване. Сървърът е зает.	Время ожидания истекло. Сервер занят.	请求超时。服务器正忙。	タイムアウトしました。サーバーがビジー状態です。　		
+388651	0										Vedeți traducere	Zobacz tłumaczenie		Посмотреть перевод		查看翻译	翻訳を表示		
+382030	1											Żądanie		Запрос		申请	リクエスト		İstek
+356463	0										Lista de fișiere			Список файлов		文件列表	ファイルのリスト		
+38917	0											Tytuł	Başlık	Заглавие		标题	タイトル	Τίτλος	
+398229	0										Autentifică-te cu Google	Zaloguj się przez Google	Google ile oturum açın	Достъп чрез Google	Вход через Google	谷歌账号登录	Googleでサインイン		
+353796	1										Include module ce pot fi plătite	Zawiera płatne moduły	Satın alınabilir modülleri içerir		Включает платные модули	包含付费模块	購入可能なモジュールを含む		Uključuje module koji se mogu kupiti.
+284694	0										Ești sigur că dorești să elimini invitația?	Czy na pewno chcesz usunąć zaproszenie?	Daveti silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить приглашение?	您确定删除邀请？	招待を削除してよろしいですか？		
+289890	0												İşleniyor	Обработка		处理中			処理中
+266805	0										Ești sigur ca vrei respingerea acestei cereri?	Czy na pewno chcesz odrzucić tę prośbę?	Bu talebi reddetmek istediğinize emin misiniz?		Вы уверены, что хотите отклонить заявку?	您确定要驳回该申请吗?	このリクエストを拒否してよろしいですか？		
+227853	0											Odrzuć żądanie		Отклонить заявку		驳回申请	リクエストを拒否		
+389695	0											Wskaźnik aktywności		Индекс активности		活动指数	アクティビティのインデックス		
+261064	0										Editați cont		Hesabı düzenle	Редактировать учетную запись		编辑账户	アカウントを編集		
+235570	1										Aplicație autorizată				Разрешённое приложение	授权应用	承認済アプリケーション		Ovlašćena aplikacija
+369085	0										Numarul total de contribuții (number of professional contributions)	Całkowita liczba wkładów (liczba wkładów profesjonalnych)	Toplam katkı sayısı (profesyonel katkı sayısı)		Общее количество вкладов (количество профессиональных вкладов)	成果交付总数（专业成果交付数）	コントリビューション総数 (プロフェッショナルコントリビューション数)		
+268187	0											Języki			Языки	语言			言語
+195864	1										E-mail sau parolă incorectă	Niewłaściwy e-mail lub hasło	E-posta veya şifre hatalıdır		Неправильный email или пароль	邮箱或者密码不正确	メールかパスワードが正しくありません		Netačan e-mail ili šifra
+110955	0													Комментарии		评论	コメント		
+348917	0										Ordonați după activitate	Sortuj według aktywności	Aktiviteye göre sırala	Сортировать по виду деятельности		按照修改时间排序	アクティビティで並び替え		
+32339	10												Kapsamlı (profesyonel değil)		Типовой (непрофессиональный)	通用（非商用）	一般（プロフェッショナルではない）		Genérico (no profesional) | Générique (non professionnel) | Genérico (não profissional) | Genèric (no professional) | Generico (non professionale) | Generic (not professional) | General (neprofesional) | Allgemein (nicht-professionell) | Ogólny (nieprofesjonalny) | Opšti (ne profesionalni)
+365094	0											Wyróżnione	Öne çıkanlar		Выдающиеся	精选	注目の		
+352252	0										Conturi pentru echipele didactice care oferă studenților lor pregătire în dezvoltarea de proiecte într-un mediu Open BIM	Konta dla zespołów dydaktycznych zapewniających swoim studentom szkolenia w zakresie opracowywania projektów w środowisku Open BIM	Öğrencilerine Open BIM ortamında projeler geliştirme konusunda eğitim sağlayan öğretim ekipleri için hesaplar		Учетные записи для преподавательских групп, которые обеспечивают обучение своих студентов разработке проектов в среде Open BIM	教学团队专用账户，在Open BIM环境中培养您学生的项目设计能力	Open BIM環境でのプロジェクト開発のトレーニングを学生に提供する 教育チームのアカウント		
+321992	1										Aplicații incluse în acest grup				Приложения, включённые в эту группу	列入本组的应用程序	このグループに含まれるアプリケーション		Aplikacije uključene u ovu grupu
+388861	0										Oferta de muncă nu este visibilă când este dezactivată.	Oferta pracy nie jest widoczna jeśli jest nieaktywna.	İş teklifi devre dışı bırakıldığında görünmez.	Предложение о работе не видно, когда оно деактивировано.		招聘求职广告被停用时将不可见。	無効になっている場合、求人は非表示になります。		
+171009	0													Телефон		电话			電話
+227750	0										Actualizări			Обновления		更新	アップデート		
+246851	0													Отклонить		驳回			拒否
+135652	0													Категории		类别	カテゴリー		
+281934	1										Sunteți complet sigur? Această acțiune este ireversibilă și va șterge toate proiectele deținute, va șterge de asemenea și profilul dvs. de utilizator.	Czy jesteś całkowicie pewien/pewna? Ta czynność jest nieodwracalna i spowoduje usunięcie wszystkich posiadanych projektów oraz profilu użytkownika.	Tamamen emin misiniz? Bu işlem geri alınamaz ve sahip olduğunuz tüm projeleri, ayrıca kullanıcı profilinizi silecektir.		Вы уверены, что хотите совершить это действие? Это действие необратимо и удалит все проекты, которые у Вас есть, а также ваш профиль пользователя.	您真的确定吗？此行动是不可逆转的，将会删除所有属于您的项目以及您的用户简介。	本当によろしいですか？ このアクションは、お客様のユーザープロファイルやプロジェクトがすべて削除され、元には戻せません。		Da li ste potpuno sigurni? Ovaj postupak je nepovratan i obrisaće sve projekte koje posedujete, kao i vaš korisnički profil.
+361567	1										Acceptată			Принят		已接受			承諾済 | Prihvaćeno
+396759	0										Locație			Локализация	Местоположение	位置			場所
+224204	1										Am citit, înțeleg și accept următoarele documente:	Przeczytałem, rozumiem i akceptuję następujące dokumenty:	Aşağıdaki belgeleri okudum, anladım ve kabul ediyorum:	Я подтверждаю, что ознакомился, принял к сведению и согласен со следующими документами:		我已阅读，理解并接受以下文件：	私は以下の書類に関して確認し、理解したため承認します:		Pročitao sam, razumeo i prihvatio sledeći dokument:
+369084	0											Prośba o dołączenie do %s - %s	%s'ye katılım talebi - %s	Запрос на присоединение %s - %s		申请加入 %s - %s	%s - %sに参加するリクエスト		
+369273	0										Performanța vizualizatorului depinde în mare măsura de dimensiunea modelelor. Verificați daca nu vă puteti vizualiza modelele utilizând hardware ul actual înainte de a achiziționa un hardware nou.	Wydajność przeglądarki w dużym stopniu zależy od rozmiaru modeli. Upewnij się, że nie możesz przeglądać swoich modeli na obecnym sprzęcie, zanim zakupisz nowy sprzęt.	Görüntüleyici performansı modellerin boyutuna büyük ölçüde bağlıdır. Yeni donanım satın almadan önce modellerinizi mevcut donanımınızla görüntüleyemeyeceğinizi kontrol edin.		Производительность программы просмотра сильно зависит от размера моделей. Убедитесь, что вы не сможете просматривать модели с помощью имеющегося оборудования, прежде чем приобретать новое оборудование.	查看器性能在很大程度上取决于模型的大小。 在购买新硬件之前，请先检查是否真的无法使用当前硬件查看模型。	閲覧者パフォーマンスはモデルのサイズに大きくよります。新しいハードウェアを 購入する前に現在のハードウェアを使用して自身のモデルを閲覧できないことを確認してください。		
+257227	1										Adăugați un profesor	Dodaj wykładowcę	Eğitmen ekle	Добавить преподавателя		添加教师	教員の追加		Dodati predavača
+133535	0													Текущ	Текущее	当前			現在　
+213189	0													Бесплатная		免费			無料
+34221	0										Repetă parola	Powtórz hasło	Şifreyi tekrar et	Повторете паролата	Повторите пароль	再次输入密码	パスワード再入力		
+397812	0										Administrarea comunicațiilor	Zarządzanie komunikacją	İletişim yönetimi	Управление на комуникациите	Управление коммуникациями	沟通管理	コミュニケーション管理		
+389913	0										Nouă cerere de 'beta tester'	Nowe zgłoszenie od „beta testers”	Yeni 'beta tester' isteği	Новая заявка на участие в бета-тестировании		新'beta 测试员'申请	新しい「beta tester」リクエスト		
+382070	0										Acceptați și continuați			Принять и продолжить		接受并继续	同意して続行		
+356457	1											Wkład zawarty w projekcie	Projeye dahil edilen katkılar		Вклады, включенные в проект	项目中包含的成果交付	プロジェクト内のコントリビューション		Prilozi uključeni u projekat
+278862	0										Studentul a fost adăugat corect la curs.	Uczeń został poprawnie dodany do kursu.	Öğrenci kursa başarıyla eklendi.		Студент был успешно добавлен к курсу.	已成功加入课程。	生徒が正常にコースへ追加されました。		
+285766	0														Скрыть	隐藏			非公開
+183369	0											Łącznie		Общо	Общ	全部			合計
+400947	0											Średni		Средна	Средний	中			中位
+393920	0										Variație	Zmienność		Вариация		变化			変動
+320763	1										%s a solicitat o sesiune de formare orientată către profesori si elevi pentru a se iniția in fluxul de lucru cu metodologia BIM.	%s poprosił/a o sesję szkoleniową skierowaną do nauczycieli i uczniów, aby rozpocząć korzystanie z przepływu pracy w metodologii BIM.	%s, öğretmenler ve öğrenciler için BIM metodolojisi ile iş akışını kullanmaya başlamak amacıyla bir eğitim oturumu talep etti.		%s запросил разрешение на образовательный сеанс, направленный на преподавателей и студентов, для начала работы с BIM методологией.	%s申请了教师及学生专属培训，用于入门 BIM 方法学相关工作流程。	%sはBIMワークフローの使用を開始するために教員と生徒向けの トレーニングセッションをリクエストしました。		%s je zahtevao trening sesiju za predavače i studente kako bi počeli sa primenom BIM metodologije u procesu rada.
+355780	0										%s a crescut contribuția '%s'.	%s przesłał/a wkład '%s'.	%s, '%s' katkısını yükledi.	%s загрузил вклад '%s'.		%s已上传'%s'成果交付文件。	%sはコントリビューション「%s」をアップロードしました。		
+373978	0													Публикация		帖子			投稿
+316316	0										De o lună	1 miesiąc temu		1 месяц назад		一个月前	1ヵ月前		
+388872	0										Respinsă			Отклонен		已排除	却下済み		
+377718	0										Din contul 'Educație' %s al BIMserver.center v-a fost solicitată autorizarea pentru a acorda studentului dumneavoastră insigna digitală '%s'.	Z poziomu konta 'Education' %s na BIMserver.center poproszono Cię o udzielenie autoryzacji do przyznawania Twoim uczniom cyfrowej odznaki '%s'.	BIMserver.center'daki %s 'Education' hesabından, öğrencilerinize '%s' dijital rozetini verebilmek için yetkiniz isteniyor.	Из учетной записи 'Education' %s на сайте BIMserver.center вас попросили авторизацию для предоставления вашим студентам цифрового бейджа '%s'.		BIMserver.center 的 %s'Education'账户向您申请授权授予他学生'%s'数字徽章。	BIMserver.centerの「教育」アカウント%sから、あなたの学生にデジタルバッジ「%s」を 授与するための許可がリクエストされました。		
+261007	0													Запрошено		提出者			要求事項：
+404427	0												Oluşturan	Създател	Создатель	创建者			作成者
+392073	0											Użytkownik zostanie powiadomiony e-mailem.	Kullanıcı, bir e-posta ile bilgilendirilecektir.		Пользователь будет уведомлен по электронной почте.	用户将会收到邮件通知。	ユーザーには電子メールで通知されます。		
+284634	0										Introduce-ți parola dumneavoastră:	Wprowadź swoje hasło:	Şifrenizi girin:	Введите пароль:		请输入您的密码:	パスワードを入力：		
+261091	0													Тема		主题			件名
+369282	0										Pentru iOS, se recomandă un iPad de generația 4ª sau 5ª4. Pentru o mai bună experiență in realitatea augumenată, utilizați un iPad cu senzor LiDAR. Pentru Android, datorită varietății mari de dispozitive, se recomandă să încercați vizualizatorul pe dispozitivul actual.	W przypadku systemu iOS zalecany jest iPad 4. lub 5. generacji. Aby uzyskać najlepsze wrażenia podczas korzystania z rzeczywistości rozszerzonej, użyj iPada z czujnikiem LiDAR. W przypadku systemu Android, ze względu na dużą różnorodność urządzeń, zaleca się przetestowanie przeglądarki na bieżącym urządzeniu.	iOS için, 4. veya 5. nesil bir iPad önerilir. En iyi AR deneyimi için LiDAR sensörlü bir iPad kullanın. Android için, geniş cihaz yelpazesi nedeniyle, görüntüleyiciyi mevcut cihazda test etmeniz önerilir.	Для iOS рекомендуется iPad 4-го или 5-го поколения. Для лучшего восприятия дополненной реальности, используйте iPad с датчиком LiDAR. Для Android, в связи с широким разнообразием устройств, рекомендуется тестировать программу просмотра на текущем устройстве.		iOS系统，建议使用第4代或第5代iPad。 为获得最佳 AR 体验，请使用配备 LiDAR 传感器的 iPad。 对于Android，由于设备种类繁多， 建议在现有设备上测试查看器。	iOSは第4世代か第5世代のiPadを推奨いたします。より豊かなARを体験していただくには LiDARセンサー付きiPadをご使用ください。Androidは幅広いデバイスがあるため、 お使いのデバイスでビューワーをお試しいただくことをおすすめいたします。		
+268215	1										Fișierele sunt în curs de încărcare. Dacă închideți pagina acum, procesul va fi anulat.	Pliki są przesyłane. Jeśli zamkniesz teraz stronę, proces zostanie anulowany.	Dosyalar yükleniyor. Sayfayı şimdi kapatırsanız, işlem iptal edilecektir.		Идёт загрузка файлов. Если вы закроете страницу прямо сейчас, то процесс будет отменён.	文件正在上传中。如果您现在关闭该页面，上传将被取消。	ファイルをアップロードしています。 ページを閉じると、プロセスが中断します。		Datoteke se otpremljuju. Ako zatvorite stranicu sada, proces će biti otkazan.
+281980	0										Proiectul nu va fi vizibil pentru restul utilizatorilor de %s, incluzând echipa de lucru, și nu veți putea lucra sau sincroniza proiectul respectiv, dar veți putea restabili în oricare moment din secțiunea de proiecte arhivate.	Projekt nie będzie widoczny dla pozostałych użytkowników %s, w tym dla zespołu roboczego. Nie będzie można nad nim pracować ani go synchronizować, ale w każdej chwili będzie można go przywrócić z sekcji projektów zarchiwizowanych.	Proje, çalışma ekibi dahil diğer %s kullanıcıları için görünür olmayacak ve projede çalışamayacak veya senkronize edemeyeceksiniz ancak arşivlenmiş projeler bölümünden herhangi bir zamanda geri yükleyebilirsiniz.		Проект не будет виден другим пользователям %s, включая рабочую группу, и вы не сможете работать над проектом или синхронизировать его, но вы сможете восстановить его в любое время из раздела архивных проектов.	其他%s用户（包括工团队）将无法看到该项目， 您将无法在项目上工作或将其同步， 但您可以随时从归档项目中恢复该项目。	プロジェクトは、ワークチームを含め他の%sユーザーに表示されなくなります。このプロジェクトの 作業又は同期できなくなりますが、いつでもファイルされたプロジェクトセクションから修復が可能です。		
+289726	0										Ultimele 2 săptămâni			Последние 2 недели		最近两个星期			過去2週間
+34250	0										Parolă curentă	Aktualne hasło	Mevcut şifre	Текущий пароль		当前密码	現在のパスワード		
+402258	0											Średni		Средно	Средний срок	中			中期
+289435	0										Sunteți sigur că doriți să eliminați eticheta?	Czy na pewno chcesz usunąć etykietę?	Etiketi silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить этот тег?	您确定要删除此标签？	タグを削除してよろしいですか？		
+285499	0										Link uri de descărcare		İndirme bağlantıları		Ссылки для скачивания	下载链接	ダウンロードリンク		
+369911	0											Projekty użytkownika	Kullanıcı projeleri		Проекты пользователя	用户的项目	ユーザープロジェクト		
+367731	0										Utilizatorul, %s, v-a invitat să vă alaturăti în contul '%s' de %s.	Użytkownik %s zaprosił Cię do dołączenia do konta '%s' na %s.	Kullanıcı %s, sizi %s platformundaki '%s' hesabına katılmaya davet etti.	Пользователь %s пригласил вас присоединиться к учетной записи '%s' в %s.		%s用户邀请您加入'%s'账户，在%s。	ユーザー%sがあなたを「%s」アカウント（%s）へ参加するよう招待しました。		
+44778	1											Miesięcznie	Aylık	По месяцам		按月			月毎 | Mesečno
+282831	0													Назад		返回	戻る		
+94334	0										Creați		Oluştur	Създава	Создать	创建			作成
+397034	1													Ниво Напреднал	Уровень Продвинутый	活跃级	高度なレベル		İleri Düzey
+185114	0											Dostęp	Erişim	Доступ		入口	アクセス		
+224296	0										Parola și parola de confirmare trebuie să coincidă.	Hasło i potwierdzenie hasła muszą być identyczne.	Şifre ve şifre onayı eşleşmelidir.		Пароль и подтверждение пароля должны совпадать	密码和确认密码必须匹配。	パスワードと確認パスワードは一致していなければなりません。		
+384187	0										Retrasă		Kullanımdan kaldırılmıştır	Недоступное		停更			提供終了
+281943	1										Cerere anulată	Zażądaj odstąpienia		Запрос на удаление		申请注销	削除をリクエスト		İptal talebinde bulun
+235573	0												Geliştirici	Разработчик		开发人员			開発者
+389112	0										%s a aplicat pentru oferta dvs. de muncă	%s zaaplikował/-a na Twoją ofertę pracy	%s iş ilanınıza başvurdu	%s зарегистрировался на ваше предложение о работе		%s 申请了您发布的职位。	%sは、あなたの求人募集に応募しました		
+34233	0										Data înregistrării		Kayıt tarihi	Дата регистрации		注册日期			登録日
+198409	0										Oprește sincronizarea	Zatrzymaj synchronizację		Спира синхронизацията	Остановить синхронизацию	停止同步	同期を停止		
+204663	0												Tarafından gerçekleştirildi	Извършено от	Выполнено	执行者	実行した人：		
+249967	0											Wyślij żądanie współpracy w projekcie	Projede işbirliği talebi gönder	Отправить запрос для участия в проекте		发送申请，请求参与该项目协作	プロジェクトでのコラボレーションリクエストを送る		
+363184	1										Salvați lista	Zapisz listę		Сохранить список		保存列表	リスト保存		Sačuvati listu
+33965	0													Модел	Модель	模型	モデル		
+355407	0										Trimiteți cererea de înregistrare	Wyślij prośbę o rejestrację	Kayıt talebi gönder	Отправить запрос на регистрацию		发送注册请求	登録リクエスト送信		
+359600	0										Clasamentul utilizatorilor după activitatea profesională	Ranking użytkowników według aktywności zawodowej	Kullanıcıların profesyonel aktivitelerine göre sıralaması	Рейтинг пользователей по профессиональной деятельности		职业活动用户排行	プロフェッショナルアクティビティのユーザーランキング		
+287240	1										%s a acceptat invitația sa de a colabora in proiectul '%s'.	%s zaakceptował Twoje zaproszenie do współpracy nad projektem '%s'.	%s, '%s' projesine katılım davetinizi kabul etti.	%s принял Вашу заявку для участия в проекте '%s'.		%s 接受了您的邀请，参与 '%s' 项目的协作。	%sはプロジェクト「%s」でのコラボレーション招待を承諾しました。		%s je prihvatio vaš poziv da sarađujete na projektu '%s'.
+379757	0											Zarządzanie etykietami		Управление на етикети	Управление отметками	标签管理	タグの管理		
+378363	0											Liczba wystąpień	Sayı	Количество		数次			回数
+261025	1											Statystyki dla użytkownika	Kullanıcı istatistikleri	Статистика пользователей		用户统计	ユーザーの統計		Korisnička statistika
+27904	0													Актуализира	Обновить	更新			
+29821	0											Usuń		Изтрива	Удалить	删除			削除
+369791	0										Accesați vizualizarea 3D de pe un telefon mobil.	Jesteś w trakcie uzyskiwania dostępu do wizualizacji 3D z poziomu urządzenia mobilnego.	3D görüntülemeye bir mobil cihazdan erişiyorsunuz.		Вы получаете доступ к 3D-визуализации с мобильного устройства.	您正在使用移动设备访问3D视图。	モバイルデバイスから3Dビューにアクセスしています。		
+363860	0										Aplicații ale BIMserver.center		BIMserver.center uygulamaları	Приложения BIMserver.center		BIMserver.center 应用程序	BIMserver.centerアプリケーション		
+53195	0										Poziția			Разположение	Положение	位置			順序
+348499	1										Indicați daca doriți ca alți utilizatori BIMserver.center sa poată face cereri pentru a face parte din echipa de proiect ișlabora dezvoltarea sa.	Wskaż, czy chcesz, aby inni użytkownicy BIMserver.center mogli wysyłać prośby o dołączenie do zespołu projektowego i współpracować przy jego rozwoju.	Diğer BIMserver.center kullanıcılarının proje ekibinin bir parçası olmak ve geliştirilmesinde işbirliği yapmak için talepte bulunabilmelerini isteyip istemediğinizi belirtin.		Укажите, если Вы хотите, чтобы другие пользователи BIMserver.center смогли подавать заявки для входа в состав команды проекта и участвовать в его разработке.	请选择是否允许 BIMserver.center 其他用户加入您的项目团队并参与协作。	プロジェクトチームの一員になって開発に協力してくれるように、 他のBIMserver.centerユーザーにリクエストを可能にするかを指定してください。		Naznačite da li želite da drugi korisnici BIMserver.center mogu da predaju zahteve da postanu deo projektnog tima i sarađuju u njegovom razvoju.
+388853	0										Schimbați starea în 'Soluționată'	Zmień status na 'Rozwiązany'	Durumu 'Çözüldü' olarak değiştir	Измените статус на "Устранен"		将状态更改为'已解决'	ステータスを「解決済み」へ変更		
+404436	0													%s знака	%s символов	%s 个字符			%s 文字
+391696	0										Acest proiect a fost publicat recent. Nu este posibil să fie republicat până la trecerea a 24 de ore.	Ten projekt został niedawno opublikowany. Jego ponowna publikacja nie jest możliwa przez 24 godziny	Bu proje yakın zamanda yayınlandı. 24 saat içinde tekrar yayınlanamaz		Этот проект был опубликован недавно. Повторная публикация невозможна в течение 24 часов	该项目已于近期发布。在24小时之后才可再次发布	このプロジェクトは最近公開されました。24時間経過するまでは、再度公開することは できません		
+73219	0										Publicări			Публикации		帖子	ポスト		
+382362	0												Aktif değil		Неактивный	不活跃	非アクティブ		
+227861	0										Echipă	Zespół roboczy	Çalışma ekibi	Рабочая группа		工作团队	作業チーム		
+404413	0										Schimbați imaginea	Zmień obraz	Görseli değiştir	Промяна на изображението	Изменить изображение	更改图像	画像を変更　		
+94823	0											Otrzymano wiadomość	Alınan mesaj	Получено сообщение		收到的信息	受信メッセージ		
+370075	0										Accesați contribuțiile acestora.	Przejdź do swoich wkładów.	Katkılarınıza erişin.	AcДоступ к вашим вкладам.		访问您的成果交付。	コントリビューションにアクセスする。		
+32370	0										Închideți			Затвори	Закрыть	关闭	閉じる		
+382031	0										Invitație			Приглашение		邀请			招待
+388652	0										Vedeți textul original				Посмотреть исходный текст	查看原文	原文を表示		
+57855	0										Încercați din nou peste câteva momente.	Proszę spróbować ponownie za kilka chwil.		Опитайте отново след няколко мига.	Повторите попытку через несколько мгновений.	请稍后重试。	しばらくしてから、再度お試しください。　		
+400941	0										%s a creat o nouă solicitare	%s utworzył nowe żądanie	%s yeni bir talep oluşturdu	%s е създал ново искане	%s создал новый запрос	%s 提交了新的申请	%sが新しいリクエストを作成しました　		
+361327	1										Această contribuție a fost analizată și acceptată ca parte a proiectului.	Ten wkład został sprawdzony i zaakceptowany jako część projektu.	Bu katkı kontrol edilmiş ve projenin bir parçası olarak kabul edilmiştir.		Этот вклад был проверен и принят как часть проекта.	该成果交付已审核通过，并纳入项目。	このコントリビューションはプロジェクトの一部として確認、承諾されました。		Ovaj doprinos je proveren i prihvaćen kao deo projekta.
+284693	0										Ești sigur că dorești să elimini cererea?	Czy na pewno chcesz usunąć prośbę?	Talebi silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить запрос?	您确定要删除申请？	リクエストを削除してよろしいですか？		
+353797	0										Utilizare gratuită pentru proiectele neprofesionale.	Bezpłatne użytkowanie w przypadku projektów nieprofesjonalnych.	Profesyonel olmayan projeler için ücretsiz kullanım.		Свободное использование для непрофессиональных проектов.	非专业项目免费使用。	ノンプロフェッショナルプロジェクトは無料でご使用いただけます。		
+270598	10														Активный проект	活跃			有効 | Activo | Actif | Actiu | Attivo | Active | Activ | Aktiv | Aktywny | Aktivno | Aktif
+402260	0										Întrebări frecvente	Najczęściej zadawane pytania	Sıkça Sorulan Sorular	Често задавани въпроси	Часто задаваемые вопросы	常见问题	よくある質問　		
+227854	0										Solicitări de colaborare	Żądanie współpracy	İşbirliği talepleri	Заявки на участие		协作申请	コラボレーションリクエスト		
+293402	0													Задание		活动	アクティビティ		
+361664	1										Filtru de traducere în așteptare	Filtruj oczekujące na tłumaczenie		Фильтр ожидающих переводов		筛选待翻译的	翻訳待ちのフィルター		Filtrirajte prevod na čekanju
+379747	1										Conturi în așteptare	Oczekujące konta		Неплатени сметки	Ожидающие учетные записи	待处理账户	待機中のアカウント		Neporavnani računi
+369086	0												'Eğitim' hesabı	Учетная запись 'Образование'		'Education' 账户	「教育」アカウント		
+292775	0										Problemă nouă			Новая ошибка		新事项	新しいイシュー		
+94831	0										Răspundeți		Yanıtla	Ответить		回复			返信
+261075	0										Trimiteți-ne întrebarea voastră	Wyślij nam swoje pytanie		Отправьте нам свой вопрос		将您的疑问发送给我们	ご質問をお送りください。		
+401184	0										Generator de prețuri		Fiyat oluşturucu	Генератор на цени	Генератор цен	报价生成器	単価ジェネレーター		
+360669	2													Рекомендовать		推荐	おすすめ		Poleć | Preporučiti
+74994	0										Căutați			Търси	Поиск	搜索			検索
+286229	0										Ordonați după nume	Sortuj według nazwy	Ada göre sırala	Сортировать по имени		按名称排序			名前順
+352253	0										Conturi pentru echipele de dezvoltare și marketing ale aplicațiilor Open BIM conectate la platformă	Konta dla zespołów zajmujących się rozwojem i marketingiem aplikacji Open BIM połączonych z platformą	Platforma bağlı Open BIM uygulamalarının geliştirme ve pazarlama ekipleri için hesaplar		Учетные записи для групп разработки и маркетинга приложений Open BIM, подключенных к платформе	程序开发和营销团队专用账户（连接平台的Open BIM应用程序）	プラットフォームに接続されたOpen BIMアプリケーションの開発および マーケティングチームのアカウント		
+34139	1												Çerez politikası ve ayarları	Политика и настройки за бисквитки	Политика и настройки файлов cookie	Cookie 政策与设置	Cookieポリシーおよび設定		Politika za kolačiće (cookies)
+196806	0										Email de rezervă	Zastępczy e-mail		Имейл за възстановяване	Резервная копия электронной почты	电子邮件备份	バックアップ用メール		
+128233	0														Ответственный	负责人			責任者
+288804	0										Acceptați invitația			Принять приглашение		接受邀请	招待を承諾		
+352346	0										Despre hărți		Haritalar hakkında		Карты	关于地图	マップに関して		
+289519	0										În așteptare			На рассмотрении		待定	評価待ち		
+246852	0										Gestionează cererea	Zarządzaj żądaniem		Обработка заявки		管理申请	リクエスト管理		
+281935	0										Eliminare permanentă	Usuń na stałe	Kalıcı olarak sil	Удалить навсегда		永久删除			永久削除
+374012	0										Cererea dumneavoastră de înscriere în contul '%s' a fost acceptată.	Twoja prośba o dołączenie do konta '%s' została zaakceptowana.	'%s' hesabına katılma talebiniz kabul edildi.		Ваша заявка на присоединение к учетной записи '%s' была принята.	您申请加入'%s'账户的请求已被接受。	アカウント「%s」への参加リクエストが承認されました。		
+361568	0										Blocată			Заблокирован		已上锁	ブロック		
+369274	0										Calculatoare și laptop-uri				Стационарные компьютеры и ноутбуки	台式机和笔记本电脑	デスクトップとラップトップ		
+396760	0													Публичен профил	Общедоступный профиль	公开资料	公開プロフィール		
+392415	0										Anterioară			Предишен	Предыдущий	之前			前回
+321988	1										Bifați căsuța de verificare pentru a confirma că nu sunteți un robot.	Zaznacz pole wyboru, aby potwierdzić, że nie jesteś robotem.	Robot olmadığınızı doğrulamak için onay kutusunu işaretleyin.		Нажмите на галочку для подтверждения что Вы не робот.	请勾选该复选框以确认您不是机器人。	ロボットではないことを確認するため、認証ボックスにマークしてください。		Označite polje za verifikaciju da biste potvrdili da niste robot.
+292009	0										Recomandări			Рекомендаций		推荐			提案
+249992	9	No visible	Non visible	Não visível	Non visibile	Not visible	Nu este vizibil	Unsichtbar	Niewidoczny	Nije vidljivo			Görünür değil		Невидимый	不可见			非表示
+398511	1										Comunicări			Комуникации	Сообщения	沟通	コミュニケーション		İletiler
+382071	0										Refuzați și înregistrați-vă gratuit	Odrzuć i zarejestruj się za darmo		Отказаться и зарегистрироваться бесплатно		拒绝并免费注册	拒否して無料登録		
+389914	0										%s a solictat să se unească la echipa de 'beta tester'.	%s zgłosił/-a chęć dołączenia do zespołu „beta testers”.	%s, 'beta tester' ekibine katılmak için başvurdu.	%s подал заявку на участие в команде бета-тестеров.		%s申请加入'beta 测试员'团队。	%sが「beta tester」チームへの参加を申請しました。		
+380071	0											Imię		Име	Имя	名称			名前
+249923	0										Ești sigur ca dorești sa ștergi această notificare?	Czy jesteś pewien, że chcesz usunąć tę uwagę?	Bu bildirimi silmek istediğinize emin misiniz?		Вы уверены что хотите удалить это уведомление?	您确定要删除此消息吗？	この通知を削除してよろしいですか？		
+31067	0													Процент		百分率		Ποσοστό	割合
+279224	0											Statystyki użytkownika	Kullanıcı istatistikleri	Статистика пользователя		用户统计	ユーザー統計		
+224189	0										Utilizatori înregistrați	Zarejestrowani użytkownicy	Kayıtlı kullanıcılar		Зарегистрированные пользователи	已注册用户	登録済みユーザー		
+400948	0										Scăzută		Düşük	Ниска	Низкий	低			低　
+394224	0													Персонализиран	Персонализированный	自定义	カスタマイズ		
+366517	0										Șablonul deja conține un fișier cu acest nume. Ce doriți să faceți?	Szablon zawiera już plik o takiej nazwie. Co chcesz zrobić?	Şablonda bu isimde bir dosya zaten mevcuttur. Ne yapmak istersiniz?		В шаблоне уже есть файл с таким именем. Что вы хотите сделать?	模板中已包含该名称的文件，您想如何处理？	テンプレートは既にその名前のファイルを含んでいますが、どうしますか？		
+373979	0										Vizualizați publicarea	Zobacz publikację		Смотреть публикацию		查看帖子	投稿を見る		
+388873	0										Marcați ca fiind în așteptare	Oznacz jako oczekujący	Beklemede olarak işaretle	Пометить как ожидающий рассмотрения		标记为待处理	待機中としてマーク		
+360947	0										Vezi contribuția	Zobacz wkład	Katkıyı görüntüle	Смотреть вклад		查看成果交付	コントリビューションを見る		
+377719	1										Dezvoltatorul %s (contul 'Developers' de pe BIMserver.center) v-a acordat autorizația de a acorda elevilor dvs. insigna digitală '%s', în contul dvs. 'Education' %s.	Deweloper %s (konto 'Developers' na BIMserver.center) umożliwił Ci przyznawanie Twoim uczniom cyfrowej odznaki '%s' na koncie 'Education' %s.	BIMserver.center'daki %s ("Developers" hesabı), "Education" hesabınız %s üzerinden öğrencilerinize '%s' dijital rozetini verme yetkisi vermiştir.	Разработчикът %s (акаунт 'Developers' на BIMserver.center) ви е предоставил разрешение да присъждате на вашите ученици цифровата значка '%s' в акаунта ви 'Education' %s.	Разработчик %s (учетная запись 'Developers' на BIMserver.center) предоставил вам разрешение выдавать вашим студентам цифровой значок '%s' через вашу учетную запись 'Education' %s.	开发者 %s（BIMserver.center 的'Developers'账户）已授权您， 可在'Education'账户 %s 中向您的学生颁发'%s'数字徽章。	開発者%s（BIMserver.centerの「Developers」アカウント）が、あなたの 「Education」アカウント%sで学生にデジタルバッジ「%s」を付与する 権限を承認しました。		Razvijalec %s (račun 'Developers' na BIMserver.center) vam je odobril dovoljenje za dodelitev digitalne značke '%s' vašim učencem na vašem računu 'Education' %s.
+316319	0												1 yıl önce	1 год назад		一年前			1年前
+354917	0										Filtrează după stare			Фильтр по статусу		按状态筛选	状態で絞り込む		
+404428	0													Най-много %lu знака	Не более %lu символов	最多 %lu 个字符			最大 %lu 文字
+362148	1										Prin confirmarea ștergerii veți pierde definitiv accesul la cont '%s'.	Potwierdzając swoje usunięcie, trwale utracisz dostęp do konta '%s'.	Silme işleminizi onayladığınızda, '%s' hesabına erişiminizi kalıcı olarak kaybedeceksiniz.		Подтвердив удаление, вы навсегда потеряете доступ к аккаунту '%s'.	确认删除后，您将永久失去对'%s'账号的访问权限。	削除を確認すると、アカウント「%s」へのアクセスはこれ以降完全にできなくなります。		Potvrdjivanjem svog brisanja trajno ćete izgubiti pristup nalogu '%s'.
+261092	0											Wiadomość		Сообщение		信息	メッセージ		
+369283	0										Pentru a obține cea mai bună experiență posibilă de vizualizare pe web, utilizați ultima versiune de navighare a lui Google Chrome sau Microsoft Edge.	Aby uzyskać jak najlepsze wrażenia z wizualizacji w sieci, prosimy o korzystanie z najnowszej wersji przeglądarki Google Chrome lub Microsoft Edge.	Web üzerinde en iyi görüntüleme deneyimini elde etmek için lütfen Google Chrome veya Microsoft Edge tarayıcısının en son sürümünü kullanın.	Для наилучшего просмотра веб-страниц, пожалуйста, используйте последнюю версию Google Chrome или Microsoft Edge.		为了获得最佳的网络浏览体验， 请使用最新版本的Google Chrome或Microsoft Edge浏览器。	ウェブ上でより豊かな閲覧を体験していただくには、Google ChromeかMicrosoft Edgeブラウザの 最新バージョンをご利用ください。		
+224257	1										Parola actuală este incorectă.	Aktualne hasło jest niewłaściwe.	Mevcut şifre hatalıdır.		Текущий пароль является неверным.	当前密码不正确。	パスワードが一致しません。		Trenutna lozinka je netačna.
+284664	1										La restaurarea unui proiect arhivat, va fi din nou vizibil pentru persoanele autorizate și vă veți putea întoarce să lucrați in el.	Przywrócenie zarchiwizowanego projektu sprawi, że będzie on ponownie widoczny dla upoważnionych osób i będzie można ponownie nad nim pracować.	Arşivlenmiş bir proje geri yüklendiğinde yetkilendirilmiş kişiler için görünür olacak ve tekrar üzerinde çalışabileceksiniz.		После восстановления архивированного проекта, он станет виден авторизированным лицам, и можно будет заново начать работать над ним.	恢复归档项目后，授权人将重新可见此项目并且使用它。根据项目类型，可能会占用您的储存空间。	提出済プロジェクトが復元されると、承諾した人に表示され、 そこでの作業が再度可能になります。 プロジェクトの種類によっては、ストレージで計算される場合があります。		Kada se arhivirani projekat obnovi, postaće vidljiv onima koji su ovlašćeni i moći ćete ponovo da radite na njemu.
+268217	0										Cerere respinsă	Żądanie odrzucone			Запрос отклонён	申请已被驳回	拒否したリクエスト		
+402259	0										Lungă	Długi		Дължина	Длинный срок	长	長さ　		
+289730	0												Son %lu yıl	Последние %lu лет		最近 %lu 年			過去%lu年
+34251	0										Parolă nouă	Nowe hasło	Yeni şifre		Новый пароль	新密码	新しいパスワード		
+381680	0												%s %lu tarihinden beri kayıtlı	Дата регистрации %s %lu		自%s注册（%lu年）	%s、%luの、から登録済		
+391387	0										După trimestre	Według kwartałów	Üç aylık	По кварталам		按季度	3学期ごと		
+369912	0											Dokumenty użytkownika	Kullanıcı belgeleri		Документы пользователя	用户的文档	ユーザードキュメント		
+282824	0										Cantitate totală	Całkowita ilość		Общая сумма		总金额			合計
+350881	0										Răspunsul dezvoltatorului	Odpowiedź dewelopera	Geliştiricinin yanıtı	Ответ разработчика		开发商的回复	開発者からの回答		
+74777	0													Дата		日期			日付
+358462	0											Dostęp do %s	%s adresine eriş	Доступ к %s		访问 %s	%sへアクセス		
+384353	0													Рекомендовано для вас		为您推荐	あなたへのおすすめ		
+219276	0														Выйти	登出	ログアウト		
+195867	1										Utilizatorul deja există.	Użytkownik już istnieje.	Kullanıcı zaten mevcuttur.	Пользователь уже существует.		用户已存在。	ユーザーが既に存在します		Korisnik već postoji.
+397035	0													Експертно ниво	Уровень Эксперт	专家级	エキスパートレベル		
+235637	0													Обновить		更新			
+260996	0											Projekt został usunięty.			Проект удалён.	项目已删除	プロジェクトは削除されました。		
+389169	0										Incidență modificată			Инцидент изменен		事项已修改	修正されたイシュー		
+153492	0											Rozłączony	Bağlantı kesildi	Несвързан	Отключено	已断开			非接続
+287208	0												Hesap etkinleştirildi		Учётная запись активирована	账户已激活	アカウント有効		
+281922	0											Projekt %s został zarchiwizowany.	%s projesi arşivlendi.	Проект %s архивирован.		 %s 项目已归档。	プロジェクト%sは提出されました。		
+195869	1											Dane, które zostały wprowadzone są niekompletne lub niewłaściwe.	Girilen veriler eksik veya yanlıştır.		Введенные Вами данные неполные или неправильные.	输入的数据不完整或者不正确。	入力データが不完全であるか、正確ではありません。		Podaci koji su uneti su nekompletni ili netačni.
+204665	0											Opuść projekt	Projeden ayrıl	Покинуть проект		离开项目	プロジェクトを離れる		
+362700	0										Căutare după nume	Szukaj według nazwy		Искать по имени		按名称搜索	名前で検索		
+378364	0										Activitatea unui cont se calculează pornind de la etichetele asociate aplicațiilor care s-au utilizat pentru realizarea contribuțiilor încărcate în BIMserver.center din acel cont.	Aktywność konta jest obliczana na podstawie etykiet skojarzonych z aplikacjami, które zostały użyte do przesłania danych na BIMserver.center z tego konta.	Bir hesabın etkinliği, o hesaptan BIMserver.center'a yüklenen katkıları gerçekleştirmek için kullanılan uygulamalarla ilişkili etiketlerden hesaplanır.		Активность учетной записи вычисляется по ометкам, связанным с приложениями, которые использовались для внесения вкладов, загруженных на BIMserver.center с данной учетной записи.	账户活跃度根据该账户向 BIMserver.center 上传成果交付时所使用应用的关联标签计算。	アカウントのアクティビティは、アカウントからBIMserver.centerにアップロードされた コントリビューションを実行するために使用されたアプリケーションに関連付けられた タグから計算されます。		
+355408	0										A fost trimisă cererea de înregistrare	Prośba o rejestrację została wysłana	Kayıt talebi gönderildi		Запрос на регистрацию был отправлен	已发送注册请求	登録リクエストが送信されました。		
+261026	0												Geçmiş	История		历史记录			履歴
+287638	1										Gestionează invitația în așteptare	Zarządzaj oczekującymi zaproszeniami		Управление приглашением, находящемся на рассмотрении		管理待处理邀请	招待待ちの管理		Upravljanje pozivom na čekanju
+65110	0										Activați		Etkinleştir	Активира	Активировать	激活			有効化
+282836	0												%s'a hoş geldiniz	Добро пожаловать в %s		欢迎来到 %s	ようこそ、%sへ		
+227749	0													Обновлено		已更新			更新済
+369792	0										Instalați aplicația %s pentru a accesa vizualizarea din aplicație și pentru a obține așa o experiență mai bună.	Zainstaluj aplikację %s, aby mieć dostęp do wizualizacji z poziomu aplikacji i uzyskać lepsze wrażenia.	Daha iyi bir deneyim için uygulama içi görünüme erişmek için %s uygulamasını yükleyin.		Установите приложение %s, чтобы получить доступ к визуализации из приложения для более удобной работы.	您可以安装 %s 应用程序访问视图以获得更好的体验。	%sのアプリケーションをインストールして、より良い体験のためにアプリ内のビューにアクセスしてください。		
+379758	0											Zarządzanie komentarzami aplikacji		Управление на коментарите на приложенията	Управление комментариями к приложениям	应用评论管理	アプリケーションコメントの管理		
+364422	0												Herkese açık profili görüntüle		Смотреть публичный профиль	查看公开个人资料	公開プロフィールを見る		
+382363	0												Ara sıra		Нерегулярный	一般			時々利用
+388854	1										Sunteți sigur că doriți să schimbați starea incidenței?		Sorunun durumunu değiştirmek istediğinizden emin misiniz?		Вы уверены, что хотите изменить статус инцидента?	您确定要更改事项的状态吗？	イシューのステータスを変更しますか？		Czy na pewno chcesz zmienić stan incydentu?
+391697	0										Această contribuție a fost publicată recent. Nu este posibil să fie republicată până la trecerea a 24 de ore.	Ten wkład został niedawno opublikowany. Jego ponowna publikacja nie jest możliwa przez 24 godziny	Bu katkı yakın zamanda yayınlandı. 24 saat içinde tekrar yayınlanamaz		Этот вклад был опубликован недавно. Повторная публикация невозможна в течение 24 часов	该成果交付已于近期发布。在24小时之后才可再次发布	このコントリビューションは最近公開されました。24時間経過するまでは、再度公開 することはできません。		
+369023	0										Publicări ale utilizatorilor	Publikacje użytkowników	Kullanıcı gönderileri	Публикации пользователей		用户帖子	ユーザーポスト		
+235581	0											Obraz nagłówka	Başlık resmi	Изображение заголовка		标题图片	ヘッダー画像		
+355242	1										Nu sunteți autorizat să generați conținut sau propuneri în acest proiect. Puteți contacta proprietarul proiectului pentru a modifica permisiunile sale.	Nie masz uprawnień do generowania treści ani propozycji w zakresie tego projektu. Możesz skontaktować się z właścicielem projektu, aby zmienić swoje uprawnienia.	Bu projede içerik veya öneride bulunma yetkiniz bulunmamaktadır. İzinlerinizi değiştirmek için proje sahibiyle iletişime geçebilirsiniz.		Вы не авторизованы для создания контента или предложений в этом проекте. Вы можете связаться с владельцем проекта, чтобы изменить свои полномочия.	您无权在此项目中生成内容或提案。请联系项目所有者修改您的权限。	このプロジェクトのコンテンツや提案作成の権限がありません。 許可を変更するよう、プロジェクトオーナーにお問い合わせください。		Niste ovlašćeni da generišete sadržaj ili predloge u ovom projektu. Možete Kontaktirati vlasnika projekta da biste izmenili svoje dozvole.
+404437	0												Oluşturan kodu	Код на създателя	Код создателя	创建者代码	作成者コード		
+404414	0											Bieżący e-mail		Текущ имейл	Текущий адрес электронной почты	当前邮箱	現在のメールアドレス　		
+59054	0											Użytkownik	Kullancı	Потребител	Пользователь	用户	ユーザー		
+370076	0										Modificați datele contului dumneavoastră.		Hesap verilerinizi değiştirin.		Изменить данные учетной записи.	修改您的账户数据。	アカウントのデータを変更する。		
+284633	1										Dacă părăsiți proiectul, nu veți mai putea continua colaborarea, deasemenea nu veți mai putea accesa nici o informație.Cu toate acestea fișierele la care ați contribuit vor rămane disponibile pentru echipa din proiect.	Po opuszczeniu projektu nie będziesz mógł kontynuować współpracy nad nim ani uzyskać dostępu do żadnych informacji na jego temat. Jednak przesłane przez Ciebie pliki będą nadal dostępne dla zespołu projektowego.	Projeden ayrıldığınızda, projeye katılamayacak veya herhangi bir bilgisine erişemeyeceksiniz. Ancak, katkıda bulunduğunuz dosyalar proje ekibi için mevcut kalacaktır.		После выхода из проекта, Вы не сможете продолжить участвовать в нём или получать доступ к любой его информации. Однако, файлы, в которых Вы принимали участие, будут по-прежнему открыты для рабочей группы проекта.	退出项目后，您将无法继续参与协作也无法访问该项目的任何信息。 但是，您的成果交付文件仍然可以被项目团队成员使用。	プロジェクトを離れると、コラボレーションの続行や情報へのアクセスができなくなります。 しかし、携わったプロジェクトのファイルは 他のプロジェクトチームが利用できるように残ります。		Po napuštanju projekta, nećete moći da nastavite da sarađujete na njemu Ili da pristupite bilo kojoj od njegovih informacija. Međutim, datoteke koje ste priložili će ostati dostupne projektnom timu.
+388653	0										Trimiteți cerere	Wyślij zgłoszenie		Отправить заявку		发送申请	リクエストを送信		
+353001	0										CYPE Ingenieros respectă legislația în viguare privind protecția datelor cu caracter personal în conformitate cu prevederile Legii Organice Spaniole 3/2018 și Regulamentul European 679/2016. În calitate de utilizator, aveți dreptul de a vă opune trimiterii de comunicate comerciale acolo unde este cazul, precum și drepturilor de acces, limitare, portabilitate, revendicare la „Agencia Española de Protección de Datos”, ștergere sau uitare, rectificare, anulare și opoziție la preluarea datelor prin e-mail la cype@cype.com.	CYPE Ingenieros przestrzega obowiązujących przepisów dotyczących ochrony danych osobowych, zgodnie z postanowieniami hiszpańskiej ustawy organicznej 3/2018 oraz Rozporządzenia Europejskiego 679/2016. Jako użytkownik, masz prawo sprzeciwić się wysyłaniu informacji handlowych. Ponadto, masz również prawo do dostępu, ograniczenia, przenoszenia, złożenia skargi do Hiszpańskiej Agencji Ochrony Danych, usunięcia lub zapomnienia, sprostowania, anulowania oraz sprzeciwu wobec przetwarzania danych, poprzez wysłanie wiadomości e-mail na adres cype@cype.com.	CYPE Ingenieros, 3/2018 sayılı İspanyol Organik Kanunu ve 679/2016 sayılı Avrupa Yönetmeliği hükümlerine uygun olarak kişisel verilerin korunmasına ilişkin mevcut mevzuata uyar. Bir kullanıcı olarak, cype@cype.com adresine bir e-posta göndererek ticari iletişim gönderilmesine itiraz etme hakkının yanı sıra erişim, sınırlama, taşınabilirlik, 'Agencia Española de Protección de Datos'a başvurma, silme veya unutma, düzeltme, iptal etme ve verilerin işlenmesine itiraz etme haklarına sahip olursunuz.		Компания CYPE Ingenieros соблюдает действующее законодательство в отношении защиты персональных данных в соответствии с положениями Органического закона Испании 3/2018 и Европейского регламента 679/2016. Как пользователь, вы имеете право возражать против рассылки коммерческих сообщений, а также право на доступ, ограничение, перенос, подачу претензий в 'Agencia Española de Protección de Datos', удаление или опущение, исправление, аннулирование и возражение против обработки данных, отправив электронное письмо по адресу cype@cype.com.	根据西班牙3/2018号组织法和欧洲679/2016号条例的规定， CYPE Ingenieros 遵守有关个人数据保护的现行法律。 作为用户，您有权拒绝接收商业信息，并享有访问权、限制权、数据可携权、 向“西班牙数据保护局”投诉的权利、删除或遗忘权、纠正权、 取消权和拒绝数据处理的权利。 您可以通过发送电子邮件至 cype@cype.com 以行使这些权利。	CYPE Ingenierosは、スペイン有機法3/2018および 欧州規則679/2016の規定に従い、個人情報の保護に 関する現行法を遵守します。ユーザーは、cype@cype.com宛に 電子メールを送信することにより、商業通信の送付に 反対する権利、アクセス権、制限権、ポータビリティ権、 「Agencia Española de Protección de Datos」への請求権、 削除または忘却権、修正権、取消権、データ処理に反対する権利を有します。		
+257215	1											Wykładowcy	Eğitmenler	Преподаватели		教师			教員 | Predavači
+359251	0										Ascundeți contribuțiile care nu sunt vizibile	Ukryj niewidoczny wkład	Görünmeyen katkıları gizle		Скрыть невидимые вклады	隐藏不可见的成果交付	非表示のコントリビューションを隠す		
+400942	0										Nouă solicitare 'beta tester'	Nowe żądanie 'beta tester'		Нова заявка 'beta tester'	Новая заявка 'beta tester'	新 'beta tester' 申请			新規「beta tester」申請　
+270600	8	Finalizado	Terminé	Finalitzat	Finalitzat	Finalizzato	Finalized	Finalizat	Fertig	Završeno		Zakończony	Tamamlandı		Проект завершён	最后确定			確定
+57856	0										Comandă incorectă	Nieprawidłowe zamówienie	Hatalı sipariş	Неправилна поръчка	Неверный заказ	指令错误	オーダーが正しくありません　		
+354513	1										Vezi fișierele incluse în contribuție	Zobacz pliki, które zawiera wkład	Katkının içerdiği dosyaları görüntüle		Смотреть файлы, включенные в вклад	查看成果交付所包含的文件	コントリビューション内のファイルを見る		Pogledati datoteke uključene u prilog
+316309	0										Personalizați		Özelleştir	Настроить		个性化	カスタマイズ		
+362040	0											Poczta służbowa			Корпоративная электронная почта	企业邮箱	社用メール		
+402261	0										În așteptare			На опашка	В очереди	排队中			待機中
+227856	0										Caută utilizator	Szukanie użytkownika	Kullanıcı arama	Поиск пользователей		用户搜索	ユーザー検索		
+361813	1										Dicționarul BIMserver.center conține documentația corespunzătoare codurilor atribuite diferitelor entități IFC care exportă aplicațiile integrate în platformă și care fac parte din proiectele găzduite de aceasta. Pentru a integra noi aplicații, dicționarul permite cunoașterea formatului și a parametrilor cu care sunt exportate aceste entități și să poată să le citească corect din aplicații. În plus, dezvoltatorul este asistat în selectarea entităților IFC care urmează să fie citite, furnizând informații privind utilizarea acestora: ce aplicații le exportă, câte contribuții le includ, numărul total de apariții pe platformă etc.	Słownik BIMserver.center zawiera dokumentację odpowiadającą kodom przypisanym do różnych jednostek IFC eksportowanych przez aplikacje zintegrowane na platformie i stanowiących część projektów na niej hostowanych. W celu zintegrowania nowych aplikacji, słownik umożliwia poznanie formatu i parametrów, z jakimi te jednostki są eksportowane, oraz ich prawidłowe odczytanie przez aplikacje. Dodatkowo programiści są wspierani w wyborze jednostek IFC do odczytu, poprzez dostarczenie im informacji na temat ich użycia: które aplikacje je eksportują, ile wkładów je zawiera oraz ile razy wystąpiły na platformie itd.	BIMserver.center sözlüğü, platforma entegre edilen ve oradaki projelerin bir parçası olan uygulamalar tarafından dışa aktarılan farklı varlıklara atanan kodlara karşılık gelen belgeleri içerir. Yeni uygulamaları entegre etmek için sözlük, bu varlıkların hangi formatta ve parametrelerle dışa aktarıldığını gösterir ve uygulamalardan doğru şekilde okunabilmesini sağlar. Ayrıca geliştiriciler, hangi uygulamaların bunları dışa aktardığını, kaç katkının içerdiğini, platformdaki toplam görünüm sayısını vb. belirterek IFC varlıklarını seçme konusunda bilgilendirilir.		Словарь BIMserver.center содержит документацию, соответствующую кодам, присвоенным различным объектам IFC, которые экспортируются приложениями, интегрированными на платформе, и которые являются частью проектов, размещенных на платформе. Для интеграции новых приложений словарь позволяет узнать формат и параметры, с которыми экспортируются эти объекты, и корректно считывать их из приложений. Кроме того, разработчику предоставляется помощь в выборе объектов IFC для чтения, предлагая информацию об их использовании: какие приложения экспортируют их, сколько вкладов включают их, общее количество появлений на платформе и т. д.	BIMserver.center 词典收录了平台集成应用所导出、 并属于平台托管项目的各类 IFC 实体对应编码的相关文档。 该词典可用于新应用集成，帮助开发者了解此类实体的导出格式与参数， 确保各应用能正确读取实体信息。 同时，词典还为开发者提供 IFC 实体的使用信息 （如导出该实体的应用、包含该实体的成果数量、其在平台中的总出现次数等）， 辅助其选取需读取的 IFC 实体。	BIMserver.centerディクショナリーには、 プラットフォームにまとめられたアプリケーションからエクスポートされ、 プラットフォーム上のプロジェクトの一部となる別のエンティティに割り当てられたコードと対応する ドキュメントが含まれています。ディクショナリーでは、新しいアプリケーションを取り込むために、 それらのエンティティでエクスポートされる形式やパラメータを表示し、 エンティティがアプリケーションから正常に読み込まれるようにします。 さらに、開発者が使用中に読み込み可能なエンティティを選択できるよう、 プログラムからサポート情報が提供されます：どのアプリケーションがエクスポートしたか、 どのくらいコントリビューションがあるか、プラットフォーム上の表示総数、等		BIMserver.center rečnik sadrži dokumentaciju koja odgovara kodovima dodeljenim različitim entitetima koji su izvezeni od aplikacija integrisanih u okviru platforme i koji su deo projekata koji se na njoj nalaze. Da bi integrisali nove aplikacije, rečnik pokazuje format i parametre sa kojima se ovi entiteti izvoze i mogu se ispravno očitati iz aplikacija. Dalje, program pomaže programeru da odabere entitete za očitavanje tako što nudi informacije o njihovom korišćenju: koje aplikacije ih izvoze, koliko ih doprinosa obuhvata, ukupan broj pojavljivanja na platformi, itd.
+363027	0													Учетная запись 'Корпоративная'		'Corporate'账户	「企業用」アカウント		
+369592	0										Adăugați un răspuns	Dodaj odpowiedź	Yanıt ekle	Добавить ответ		添加回复	返信を追加する		
+379748	1										Profesori în așteptare	Oczekujący nauczyciele	Bekleyen öğretmenler	Чакащи преподаватели	Ожидающие преподаватели	待处理教师	待機中の教員		Nedokončani predavatelji
+261076	0										Mențiuni legale	Ostrzeżenie prawne	Yasal uyarı	Официальное уведомление		法律声明			法的警告
+390203	0										Autentificări		Girişler		Входы	登录记录	ログイン数		
+404420	0											Wysłany kod jest ważny przez 7 minut.		Изпратеният код е валиден 7 минути.	Отправленный код действителен в течение 7 минут.	验证码有效期为7分钟。	送信されたコードの有効期限は7分です。		
+363238	0											Link dostępu do projektu	Projeye erişim bağlantısı		Ссылка доступа к проекту	项目访问链接	プロジェクトのアクセスリンク		
+389118	0													Приоритет		优先			優先
+293394	0										Adaugă o contribuție la proiect	Dodaj wkład do projektu	Projeye katkıda bulunun	Добавить информацию в проект		向项目添加一项成果交付	プロジェクトにコントリビューションを追加		
+352254	1										Articole, tutoriale și seminarii online ale aplicațiilor disponibile în BIMserver.center	Artykuły, tutoriale i seminaria online dotyczące aplikacji dostępnych na BIMserver.center	BIMserver.center'da bulunan uygulamalarla ilgili makaleler, eğitimler ve çevrimiçi seminerler		Статьи, учебные пособия и семинары по приложениям, доступным на BIMserver.center	与 BIMserver.center 上应用程序相关的文章、教程和在线研讨会	BIMserver.centerのアプリケーションに関する 文献、チュートリアル、オンラインセミナーが閲覧できるサイト		Članci, tutorijali i onlajn seminari aplikacija koje su dostupne na BIMserver.center
+195871	0										Proiectul nu există sau a fost șters.	Ten projekt nie istnieje lub został usunięty.	Proje mevcut değil veya silinmiştir.		Проект не существует или был удалён.	项目不存在或已删除。	プロジェクトが存在しないか、削除されています。		
+33390	0											Społeczność		Сообщество		社区	コミュニティ		
+198574	0												Son değişiklik	Последни промени	Последнее изменение	最后修改			最終変更
+201334	0										Încă nu aveți un cont?		Henüz bir hesabınız yok mu?		У Вас ещё нет учётной записи?	您还没有帐号?	まだアカウントをお持ちでないですか？		
+352343	0										BIMserver.center analizează conținutul proiectelor și îl afișează pe hartă la locația celor pentru care gasește o geolocalizare	BIMserver.center analizuje zawartość projektów i pokazuje na mapie lokalizację tych, dla których znajduje geolokalizację.	BIMserver.center, projelerin içeriğini analiz eder ve coğrafi konum bulduğu projelerin haritadaki konumunu gösterir.		BIMserver.center анализирует содержание проектов и отображает на карте местоположение тех из них, для которых он находит геолокацию.	BIMserver.center 分析项目的内容，并在地图上显示其定位。	BIMserver.centerはプロジェクトコンテンツを解析し、 地理情報検索用マップで位置を示します。		
+38915	0													Коментар	Комментарий	评论	コメント		
+281936	0										Numele proiectului trebuie sa aibă cel puțin 1 caracter fără a include: %s	Nazwa projektu musi zawierać co najmniej 1 znak i nie może zawierać: %s	Projenin adı en az 1 karakter içermeli ve şunları içermemelidir: %s	Название проекта должно содержать не менее 1 символа и не содержать: %s		项目名称必须至少为一个字符成并不包含: %s	プロジェクト名は少なくとも1文字以上で、 以下の文字を含んではいけません： %s		
+227884	1													Статистика		统计数据			統計 | İstatistikler
+380520	0										Afirmație		Açıklama	Утверждение		说明			説明
+361569	1										În așteptare	Oczekujący		В ожидании		待定			待機中 | Na čekanju
+369275	0										Cerințe minime				Минимальные требования	最低要求			最小要件
+60067	1													Възстановява	Восстановить	恢复			復元 | Przywróć
+289731	0										descărcări			скачиваний		下载次数	ダウンロード		
+396761	0											Przejdź do profilu		Отидете в профила	Перейти к профилю	前往个人资料	プロフィールへ		
+143597	10												Açık	Отворено	Открыто	开放	オープン		Abierto | Ouvert | Aberto | Obert | Aperto | Open | Deschis | Offen | Otwarte | Otvoriti
+32330	1										Conținut	Zawartość		Съдържание	Содержание	内容	コンテンツ		İçerik
+155099	0										Limbă	Język		Език	Язык	语言			言語
+399391	0										Producători		İmalatçılar	Производители		制造商			製造元　
+287211	1										Email în așteptare de verificare	E-mail oczekuje na weryfikację	E-posta doğrulama bekliyor		Электронная почта в ожидании проверки	邮件待验证	未認証メール		Email verifikacija na čekanju
+390529	0											Ostatni dostęp	Son erişim	Последнее посещение		最后访问	最終アクセス		
+285767	8	Visible para todos los usuarios	Visible pour tous les utilisateurs	Visível para todos os utilizadores	Visível para todos os utilizadores	Visible per a tots els usuaris	Visibile per tutti gli utenti	Visible to all users	Sichtbar für alle Benutzer	Vidljivo za sve korisnike	Vizibil pentru toți utilizatorii	Widoczny dla wszystkich użytkowników	Tüm kullanıcılar için görünür	Виден всем пользователям		对所有用户可见	すべてのユーザーに表示		
+248637	0													Ошибки		事项	イシュー		
+356505	0										Nume în fiecare limbă	Nazwa w każdym języku			Имя на каждом языке	各语言的名称	各言語での名前		
+402252	0												CYPE hesabı	CYPE акаунт	Учетная запись CYPE	CYPE 账号	CYPEアカウント　		
+224190	0												Oluşturulan projeler		Созданные проекты	已创建项目	作成したプロジェクト		
+388874	1										Respingeți			Отклонить		排除			却下 | Odrzuć
+393483	0														Мои цифровые значки	我的数字徽章	デジタルバッジ		
+374014	0										Aplicație expirată	Wygasła aplikacja	Süresi dolmuş uygulama	Заявка с истекшим сроком действия		到期的应用程序	期限切れアプリケーション		
+138329	0											Zastąp	Değiştir	Заменить		替换			置換
+285789	1										Încorporați vizualizatorul	Umieść w przeglądarce		Встроить средство для просмотра		嵌入查看器	埋込ビューアー		Ugradi prikazivač
+316705	0										Înregistrările sunt disponibile numai de la %s.	Dysponuje się tylko danymi z okresu począwszy od daty %s.	Kayıtlar yalnızca %s tarihinden itibaren kullanılabilir.		Имеются данные только от даты %s.	只有截止到 %s 的记录。	%s以降の記録しかありません。		
+355148	0										Solicitarea dvs. de incorporare la contul '%s' a fost trimisă cu succes.	Twoja prośba o dołączenie do konta '%s' została wysłana pomyślnie.	'%s' hesabına katılma talebiniz başarıyla gönderildi.	Ваш запрос на присоединение к учетной записи '%s' успешно отправлен.		您加入'%s'账户的申请已成功提交。	アカウント「%s」への参加リクエストは正しく送信されました。		
+377720	0										Vedeți toate insignele digitale disponibile	Zobacz dostępne odznaki cyfrowe			Просмотреть доступные цифровые значки	查看可用数字徽章	使用可能なデジタルバッジを表示する		
+404429	0													Код на проекта	Код проекта	项目代码	プロジェクトコード		
+261094	1										Mesajul tău a fost trimis. Vă vom contacta în cel mai scurt timp posibil.	Twoja wiadomość została wysłana. Skontaktujemy się z Tobą tak szybko, jak to możliwe.	Mesajınız gönderildi. En kısa sürede size geri döneceğiz.		Ваше сообщение отправлено. Мы свяжемся с Вами как можнно скорее.	您的信息已发送。我们会尽快与您联系。	メッセージが送信されました。ご連絡を差し上げるまでしばらくお待ちください。		Vaša poruka je poslata. Kontaktiraćemo vas u najranijem mogućem roku.
+366012	0										Echipa didactică		Öğretim ekibi	Преподавательский состав		教学团队	教育チーム		
+369427	0											%s zaprosił/a %s do projektu '%s'.	%s, %s kişisini '%s' projesine davet etti.	%s пригласил %s в проект '%s'.		%s邀请了%s加入'%s'项目。	%sは%sをプロジェクト「%s」に招待しました。		
+34211	0													Предложения		建议	ご提案　		
+224256	1										Parola nouă trebuie să conțină între 4 si 15 caractere.	Nowe hasło musi zawierać od 4 do 15 znaków.	Yeni şifre 4 ile 15 karakter arasında olmalıdır.		Новый пароль должен содержать от 4 до 15 знаков.	新密码必须包含4到15个字符。	新しいパスワードは4文字以上、15文字以下である必要があります。		Nova lozinka mora da sadrži između 4 i 15 znakova.
+224325	0											Uczeń	Öğrenci	Студент		学生			生徒
+284663	1										Restabilește proiectului arhivat		Arşivlenmiş projeyi geri yükle		Восстановить архивированные проекты	恢复归档项目	提出済プロジェクトを復元		Przywróć zarchiwizowany projekt
+383834	0													Требуемое поле		必填字段	必要とされるファイル		
+381681	0										Pentru a realiza această opțiune trebuie să vă autentificați cu un cont personal.	Aby wykonać tę czynność, należy zalogować się przy użyciu konta osobistego.	Bu işlemi gerçekleştirmek için kişisel bir hesapla giriş yapmalısınız.		Для этого вы должны войти в систему с помощью личной учетной записи.	执行此操作，必须使用个人账户登录。	この操作を実行するには、個人用アカウントからログインする必要があります。		
+391388	0										După semestre	Według semestrów	Altı aylık	По семестрам		按学期	2学期ごと		
+373674	0										Puteți continua procesul de autorizare din aplicație.	Możesz kontynuować proces autoryzacji z poziomu aplikacji.	Yetkilendirme işlemi uygulamadan devam ettirilebilir.		Процесс авторизации может быть продолжен из приложения.	授权流程可以在应用程序中继续。	アプリケーションから認証プロセスを続行できます。		
+235619	1											W trakcie wyświetlania			Выполняется проверка	审核中	レビュー中		İncelemede
+213190	0										Număr de descărcări	Liczba pobrań	İndirme sayısı	Количество скачиваний		下载次数	ダウンロード数		
+224211	0										Confirmați noua parolă	Potwierdź nowe hasło	Yeni şifreyi onayla		Подтвердить новый пароль	确认新密码	新しいパスワードの再確認		
+349901	0										Hărți				Карты	地图	マップ		
+83241	0													Изображение		图像	イメージ		
+386643	0										Numele șablonului nu poate râmăne gol și nu poate include următoarele caractere: %s	Nazwa szablonu nie może pozostać pusta ani zawierać następujących znaków: %s	Şablon adı boş olamaz veya şu karakterleri içeremez: %s		Имя шаблона не может быть пустым или содержать следующие символы: %s	模板的名称不能为空或包含以下字符：%s	テンプレート名は空のまま、または以下の文字を含むことは できません: %s		
+283065	0												Genel bağlantı		Открытая ссылка	公众链接	公開リンク		
+220522	0										%s este un sistem pentru administrare, distribuire și actualizare a proiectelor dvs. în cloud.	%s jest systemem do zarządzania, udostępniania i aktualizacji Twoich projektów w chmurze.	%s, projelerinizi bulutta yönetmek, paylaşmak ve güncellemek için bir sistemdir.	%s является системой управления, размещения и обновления Ваших проектов в облаке.		%s是一个可以在云上管理、共享和更新项目的系统。	%sはクラウド内でプロジェクトを管理、共有、更新するためのシステムです。		
+139006	0													Основни данни	Общие данные	常用数据	一般データ		
+198878	1										E-mail ul a fost validat. Puteți accesa contul de utilizator.	Email został zweryfikowany. Możesz teraz zalogować się do swojego konta.	E-posta doğrulandı. Kullanıcı hesabınıza erişebilirsiniz.		Электронный адрес был подтверждён. Вы уже можете войти в свою учётную запись пользователя.	电子邮件已经过验证。 您现在可以访问您的用户账户了。	メールが認証されました。ユーザーアカウントへのアクセスが可能です。		E-mail je potvrđen. Možete pristupiti vašem korisničkom nalogu.
+282825	0													Дублировать		复制	コピー		
+389370	0										Vedeți indicențe		Sorunları görüntüle		Смотреть инциденты	查看事项	イシューを表示		
+397391	1										Datele de acces ale licenței dumneavoastră CYPE sunt diferite de cele din BIMserver.center, așadar, dacă nu aveți cont, va trebui să vă înregistrați pentru a descărca programul.	Dane dostępowe do Twojej licencji CYPE różnią się od danych na BIMserver.center, więc jeśli nie masz konta, musisz się zarejestrować, aby pobrać program.	CYPE lisans erişim bilgileriniz BIMserver.center'dan farklıdır, bu nedenle hesabınız yoksa programı indirmek için kaydolmanız gerekir.	Данните за достъп на вашия CYPE лиценз са различни от тези за BIMserver.center, затова ако нямате акаунт, трябва да се регистрирате, за да изтеглите програмата.	Данные для доступа к вашей лицензии CYPE отличаются от данных для доступа к BIMserver.center, поэтому, если у вас нет учетной записи, вам необходимо зарегистрироваться, чтобы загрузить программу.	您的 CYPE 软件许可证登录信息与 BIMserver.center 平台的登录信息不互通， 若您尚未注册 BIMserver.center 账户，需先完成注册，方可下载该程序。	CYPEライセンスのアクセス情報はBIMserver.centerとは異なります。 そのため、アカウントをお持ちでない場合は、プログラムをダウンロードするために 登録が必要です。		Dostopni podatki za vašo licenco CYPE se razlikujejo od tistih na BIMserver.center, zato se boste morali, če nimate računa, registrirati za prenos programa.
+227894	0										Opțiuni de vizualizare	Wyświetl opcje			Варианты просмотра	可见选项	オプションを見る		
+287209	0												Hesap devre dışı bırakıldı		Учётная запись отключена	账户已停用	アカウント無効		
+281925	5										Sunteți absolut sigur? Această acțiune este ireversibilă și va elimina toate fișierele din proiectul '%s', precum și toate informațiile aferente.	Czy jesteś całkowicie pewien/pewna? Ta czynność jest nieodwracalna i spowoduje usunięcie wszystkich plików w projekcie '%s', a także wszystkich powiązanych informacji.	Tamamen emin misiniz? Bu işlem geri alınamaz ve '%s' projesindeki tüm dosyaları ve ilgili tüm bilgileri silecektir.	Вы полностью уверены? Это действие необратимо и приведет к удалению всех файлов проекта '%s', а также всю связанную с ним информацию.	Необязательно удалять проект, так как заархивированный проект скрыт, и вы сможете восстановить его позже, если возникнет такая необходимость.	您真的确定吗？此行动是不可逆转的，将会删除 '%s' 项目中的所有文件，包括相关信息.	本当によろしいですか？ このアクションは関連情報と、 プロジェクト「%s」のすべてのファイルが削除され、戻すことができません。		您不需要删除项目，已归档的项目对外隐藏，并不占用用户储存空间，若是需要还可随时移出。 | 本当によろしいですか？ 提出したプロジェクトは非表示のままになり、お客様のアカウントのストレージ容量を消費せず、 必要があれば後で復元可能であるため、このプロジェクトを削除する必要はありません。 | Da li ste potpuno sigurni? Ovaj postupak je nepovratan i obrisaće sve datoteke u projektu '%s',kao i sve informacije vezane za. | Nu este necesar să eliminați proiectul, deoarece un proiect arhivat este ascuns și îl puteți restaura mai târziu dacă este necesar. | Nie musisz usuwać projektu, zarchiwizowany projekt pozostaje ukryty, nie zajmuje miejsca na koncie i można go później przywrócić, jeśli zajdzie taka potrzeba. | Ne morate da obrišete projekat; podnet projekat ostaje skriven, ne zauzima nikakav skladišni prostor na vašem nalogu i može biti kasnije vraćen ukoliko je potrebno. | Projeyi silmenize gerek olmayabilir; arşivlenmiş bir proje gizli kalır, hesabınızda yer kaplamaz ve gerektiğinde daha sonra geri yüklenebilir.
+195873	1										Nu este autorizat pentru a realiza acțiunea solicitată.	Nie jesteś autoryzowany do wykonania żądanej akcji.	Talep edilen işlemi gerçekleştirmeye yetkili değilsiniz.		У Вас нет прав на выполнение данного действия.	您无权执行此操作。	リクエストしたアクションの実行権限がありません。		Niste ovlašćeni da izvršite zahtevani postupak.
+235753	0										Aplicație nouă			Новое приложение		新程序	新しいアプリケーション		
+235672	1										Nu s-a găsit nici o aplicație.	Nie znaleziono żadnych aplikacji.	Hiçbir uygulama bulunamadı.		Приложения не найдены.	未找到程序。	アプリケーションが見つかりません。		Prijave nisu pronađene.
+378722	0												Hesap yapılandırması	Конфигурация учетной записи		账户设置	アカウント設定		
+65111	0										Dezactivați		Devre dışı bırak	Деактивира	Деактивировать	禁用			無効化
+373449	0										Adăugați un comentariu			Добавить комментарий		添加评论	コメントを追加する		
+261028	0													Отклонено		被拒			拒否
+287844	0										Ultima lună	Ostatni miesiąc		Последний месяц		最近一个月			先月
+361039	1											Zarządzanie serwerami		Управление серверами		服务器管理	サーバー管理		Rukovođenje serverom
+369793	0										Deja ați descărcat aplicația %s?	Czy pobrałeś już aplikację %s?	%s Uygulamasını zaten indirdiniz mi?		Вы уже загрузили приложение %s?	您是否已下载 %s 应用？	もうアプリケーション%sをダウンロードしましたか？		
+267583	0													Спонсор проектов		项目资助	プロジェクトスポンサー		
+361041	0										Galeria de contribuții	Galeria wkładów	Katkı galerisi	Галерея вкладов		成果交付展示区	コントリビューションギャラリー		
+382364	1														Продвинутый	高级	アドバンス		İleri seviye
+368924	0										Vizualizare privată				Частный вид	私人视角	プライベートビュー		
+379759	0										Editați profesor		Öğretmeni düzenle	Редактиране на преподавател	Редактировать преподавателя	编辑教师	教員の編集		
+321832	0										Toți			Всички	Все	所有	すべて		
+388855	0										Selectați contribuția	Zaznacz wkład	Katkıyı seçin		Выберите вклад	请选择成果交付文件	コントリビューションを選択してください		
+391940	0													Одобрени	Утвержденные	已批准	承認済み		
+356217	0										Proiectul a fost arhivat. Daca aveți permisiuni sa o faceți, puteți modifica stadiul proiectului pe pagina BIMserver.center.	Projekt został zarchiwizowany. Jeśli masz do tego uprawnienia, możesz zmodyfikować status projektu na stronie BIMserver.center.	Proje dosyalanmıştır. Bunu yapmak için izniniz varsa, BIMserver.center web sitesinde projenin durumunu değiştirebilirsiniz.		Проект был заархивирован. Если у вас есть соответствующие полномочия, вы можете изменить статус проекта на сайте BIMserver.center.	该项目已被归档。如果您的权限允许，您可以在 BIMserver.center 网页上更改项目状态。	プロジェクトは提出されていません。許可がある場合は、 BIMserver.centerウェブサイトにてプロジェクトの状態を変更できます。		
+404438	0										Nu a fost definit codul de creator. Îl puteți seta din secțiunea %s	Nie zdefiniowano kodu twórcy. Można go ustawić w sekcji %s	Oluşturan kodu tanımlanmamış. Bunu %s bölümünden yapabilirsiniz.	Не е дефиниран код на създателя. Може да го зададете от секцията %s	Код создателя не указан. Вы можете указать его в разделе %s	尚未定义创建者代码。您可以在 %s 部分进行设置。	作成者コードが定義されていません。%s セクションから設定できます。		
+382361	0										Creați cont		Hesap oluştur	Создать учетную запись		创建账号	アカウントを作成		
+370077	0										Creați, modificați și ștergeți proiecte din contul dumneavoastră.	Twórz, modyfikuj i usuwaj projekty w obrębie swojego konta.	Hesabınızda projeler oluşturun, değiştirin ve silin.		Создавать, изменять и удалять проекты своей учетной записи.	创建、修改和删除您账户上的项目。	アカウントのプロジェクトを作成、変更、削除する。		
+388656	0										Funcție			Должность		职位			役職
+285500	0										Sistemul de operare și versiunea (Example: Windows 7, 8, 10 x64)	System operacyjny i wersja (Przykład: Windows 7, 8, 10 x64)	İşletim sistemi ve sürümü (Örnek: Windows 7, 8, 10 x64)	Операционная система и версия (Например: Windows 7, 8, 10 x64)		系统与版本 (比如: Windows 7, 8, 10 x64)	OSとバージョン（例：Windows 7, 8, 10 x64）		
+227864	1										Cerere de aprobare în așteptare	Czekanie na zatwierdzenie żądania		Заявка находится на рассмотрении		申请待审核	承諾待ちリクエスト		Zahtev čeka odobrenje
+75005	0										Copiați			Копирай	Копировать	复制	コピー		
+382208	0											Zarządzanie wysyłaniem wiadomości		Управление отправкой сообщений		消息发送管理	メッセージ送信の管理		
+271611	0										Nu există nici o problemă.	Nie ma żadnych problemów.		Нет ошибок.		尚无事项。	イシューはありません。		
+360362	0										Ascunde contribuțiile neprofesionale	Ukryj nieprofesjonalny wkład	Profesyonel olmayan katkıları gizle		Скрыть непрофессиональные вклады	隐藏非专业成果交付	ノンプロフェッショナルのコントリビューションを隠す		
+316310	0										Această săptămână	Ten tydzień			Эта неделя	本周			今週
+404407	0												Yapılandırma	Конфигурация		设置			設定
+400943	0											Żądanie		Заявка	Запрос	申请	リクエスト　		
+362041	1										Editează datele utilizatorului	Edytuj dane użytkownika	Kullanıcı verilerini düzenle		Добавить данные пользователя	编辑用户数据	ユーザーデータを編集		Izmeniti korisničke podatke
+354810	1										Fișiere incluse				Включенные файлы	包含的文件	部品ファイル		Uključene datoteke
+374595	9	Profesional	Professionnel	Profissional	Professional	Professionale	Professionell	Profesjonalny	Profesionalni	Profesyonel					Профессиональный	专业	プロフェッショナル		
+361814	1										Pentru a consulta dicționarul, puteți face click pe un cod și se afișează o fereastră cu toată documentația asociată acesteia.	Aby skorzystać ze słownika, należy kliknąć na kod, co spowoduje wyświetlenie okna zawierającego całą dokumentację z nim powiązaną.	Sözlüğe başvurmak için bir koda tıklayabilirsiniz ve tüm ilgili belgelerle birlikte bir pencere açılacaktır.		Чтобы обратиться к словарю, можно щелкнуть по коду, и на экране появится окно со всей связанной с ним документацией.	点击代码可查阅词典，弹出的窗口中将显示所有与其相关的文档。	ディクショナリーを参照するには、コードをクリックして 関連書類のウィンドウを表示します。		Da biste pogledali u rečnik, kliknite na kod i pojaviće se prozor sa celokupnom pripadajućom dokumentacijom.
+361636	1										În așteptare	Oczekująca		В ожидании		待定			待機中 | Na čekanju
+373573	0											Zgłoszony		Жалоба		已举报	報告済み		
+268208	0										Încarcă fișiere	Prześlij pliki			Загрузить файлы	上传文件	アップロードファイル		
+261085	1										Cu %s puteți gestiona, distribui și actualiza proiectele dvs. de arhitectura, inginerie și construcții în Cloud. În plus, prin folosirea tehnologiei Open BIM, acesta poate fi integrat într-un flux de lucru deschis, de colaborare și coordonat de către tot personalul tehnic care fac parte din echipa de lucru.	Dzięki %s można zarządzać, udostępniać i aktualizować projekty architektoniczne, inżynieryjne i budowlane znajdujące się w chmurze. Dodatkowo, korzystając z technologii Open BIM, można je zintegrować ze wspólnym, otwartym i skoordynowanym przepływem pracy między wszystkimi projektantami technicznymi, którzy są częścią zespołu roboczego.	%s ile mimarlık, mühendislik ve inşaat projelerinizi bulutta yönetebilir, paylaşabilir ve güncelleyebilirsiniz. Ayrıca, Open BIM teknolojisi kullanılarak, çalışma ekibinin bir parçasını oluşturan tüm teknik ekip arasında işbirliğine dayalı, açık ve koordineli bir iş akışına entegre edilebilir.		С %s Вы можете управлять, делиться и обновлять архитектурные, инженерные и строительные проекты в облаке. Кроме того, используя OPEN BIM технологию, Вы сможете участвовать в совместном рабочем процессе, который является открытым и скоординированным между всем техническим персоналом, входящим в состав рабочей группы.	通过 %s，您可在云端管理、分享并更新建筑、工程与施工领域的项目。 此外，借助 Open BIM 技术，您能够融入一个协同、开放且协调的工作流， 与团队中的所有技术人员实现高效协作。	%sで、クラウド内における建築、工学、建設プロジェクトの管理、共有、更新が可能になります。 さらに、Open BIM技術を使用することで、それらプロジェクトは 作業チームメンバーのすべての技術設計者にとって 共同的、オープン、協調的なワークフローにまとめることが可能です。		Sa %s možete upravljati, deliti i ažurirati vašu arhitekturu, inženjerstvo i konstruktivne projekte na oblaku (cloud-u). Dodatno, koristeći BIM tehnologiju, one mogu biti integrisane u saradnički, otvoreni i koordinisani proces rada medju svim tehničkim projektantima koji su deo tima koji radi.
+404421	0										Retrimiteți codul	Wyślij kod ponownie		Повторно изпращане на кода	Отправить код повторно	重新获取验证码	コードを再送信		
+388864	0										Soluționați	Rozwiąż		Решить		解决			解決
+379750	0											Użytkownik zgłaszający	Raporlayan kullanıcı	Потребител, който е съобщил	Пользователь, подавший жалобу	举报用户	報告したユーザー		
+359138	1														Предлагаемые	建议	おすすめ		Preporučeno
+376733	0										%s a recomandat contribuția %s	%s zarekomendował/-a wkład %s	%s, %s katkısını tavsiye etti	%s рекомендовал вклад %s		%s推荐了%s成果交付	%sが%sのコントリビューションをお勧めしました		
+352255	1										Aplicații pentru telefoane mobile, tablete și ochelari VR unde poți naviga și vedea proiectele tale BIM în realitatea virtuală și realitatea augmentată	Aplikacje na telefony komórkowe, tablety i okulary VR, dzięki którym możesz nawigować i wyświetlać swoje projekty BIM w wirtualnej rzeczywistości oraz rozszerzonej rzeczywistości	Sanal gerçeklik ve artırılmış gerçeklikte BIM projelerinizi gezinebileceğiniz ve görüntüleyebileceğiniz mobil telefonlar, tabletler ve VR gözlükler için uygulamalar		Приложения для мобильных телефонов, планшетов и VR-очков, где вы можете просматривать и визуализировать ваши проекты BIM в виртуальной и дополненной реальности.	用于手机、平板电脑和VR眼镜的应用程序， 允许在虚拟现实和增强现实中漫游并观看您的BIM项目。	BIMプロジェクトをVRやAR環境で操作・閲覧できる スマートフォン、タブレット、VRゴーグル用アプリケーション		Aplikacije za mobilne telefone, tablete i VR naočare gde možete da se krećete i pregledavate svoje BIM projekte u virtuelnoj i proširenoj stvarnosti
+195874	0										Utilizatorul nu există.	Użytkownik nie istnieje.	Kullanıcı mevcut değildir.	Пользователь не существует.		用户不存在。	ユーザーが存在しません。		
+201335	0										Înregistrați-vă aici	Zarejestruj się tutaj	Buradan kayıt olun	Зарегистрируйтесь здесь		在此注册	ここから登録		
+352344	1										În prezent aplicațiile care vă permit introducerea geolocalizarii a unui proiect sunt:	Obecnie aplikacje, które pozwalają na wprowadzenie geolokalizacji projektu to:	Şu anda, kullanıcıların bir projenin coğrafi konumunu girmesine izin veren uygulamalar şunlardır:	В настоящее время приложениями, позволяющими ввести геолокацию проекта, являются:		目前，允许输入项目地理位置的应用程序有：	現在、プロジェクトの地理情報を ユーザーが入力できるアプリケーション：		Aplikacije koje trenutno dozvoljavaju korisnicima da uđu u geolokaciju projekta su:
+155092	0													Проект		项目	プロジェクト		
+380614	0										Conturi menite pentru a gestiona și coordona o echipă de lucru care dezvoltă proiecte într-un mediu Open BIM.	Konta przeznaczone do zarządzania i koordynowania zespołu roboczego opracowującego projekty w środowisku Open BIM.	Open BIM ortamında proje geliştiren bir çalışma ekibini yönetmek ve koordine etmek için tasarlanmış hesaplar.		Учетные записи, предназначенные для управления и координации рабочей группы, разрабатывающей проекты в среде Open BIM.	该账户用于管理和协调在 Open BIM 环境中开展项目的工作团队。	Open BIM環境でプロジェクトを開発する作業チームを管理・調整するための アカウント。		
+281937	0										Arhivă		Arşivle	Архивировать		归档	アーカイブ		
+249972	0												3D tasarım	3D дизайн		3D 设计	3Dデザイン		
+399960	0													Профиль		用户资料	プロフィール		
+279801	0											użytkownicy	kullanıcılar	пользователи		用户	ユーザー		
+361570	0										Expirată	Wygasły		Истек		已过期			失効
+369905	1										Pemiteți			Разрешить		允许	許可する		İzin ver
+369276	0											CPU: Intel Core i5 7th Gen lub równoważny	CPU: Intel Core i5 7. Nesil veya eşdeğeri		CPU: Intel Core i5 7th Gen или эквивалентный	CPU: Intel Core i5 第7代或同等级别	CPU: Intel Core i5 7th Genか同等		
+396762	0													%s от %lu	%s из %lu	%s，%lu年	%sの%lu　		
+315991	0										Miniatură			Миниатюра		缩图	サムネイル画像		
+261049	0											Zobacz więcej			Ещё	查看更多	さらに見る		
+390659	0										Descompunere pe țară	Wyszczególnienie według kraju	Ülkeye göre dağılım	Разбивка по странам		按国家细分	国ごとの内訳		
+134227	0											Zarejestruj się	Kayıt ol	Регистрация	Зарегистрироваться	注册			登録
+143598	8	Cerrado	Fermé	Fechado	Tancat	Chiuso	Closed	Geschlossen		Zatvoren	Închis	Zamknięte	Kapalı	Затворено	Закрыто	关闭	クローズド		
+384037	0										Recent lansată			Новое		新			新着
+249921	0										Nu există notificări	Nie masz powiadomień.		У Вас нет уведомлений		没有任何消息	通知はありません		
+279228	0										Problemă în așteptare	Oczekująca kwestia		Ошибка ожидающая исправления		待决事项	解決待ちのイシュー		
+388875	0										Vedeți verificări realizate		Yapılan kontrolleri görüntüle		Посмотреть выполненные проверки	查看已执行的检查	実行されたチェックを表示		
+388909	0										Vedeți oferta completă	Zobacz pełną ofertę	Teklifi tamamını gör	Смотреть полное предложение		查看完整广告	求人全体を見る		
+122245	0										Redenumiți	Zmień nazwę	Yeniden adlandır	Преименува	Переименовать	重命名	名前を変更する		
+235761	0										Elimină contul	Usuń konto	Hesabı sil		Удалить учётную запись	删除账户	アカウント削除		
+356985	0												Öğrenciler		Студенты	学生			生徒
+374149	0										%s a comentat publicația %s	%s skomentował/-a publikację %s	%s, %s gönderisini yorumladı.	%s прокомментировал публикацию %s		%s对%s帖子发表了评论	%sが投稿%sにコメントしました		
+285788	0											Podgląd			Предварительный просмотр	预览	プレビュー		
+378154	0										Selectați contul 'Educație' pentru care doriți să solicitați autorizația.	Wybierz konto 'Education', dla którego chcesz uzyskać autoryzację.	Yetki talep etmek istediğiniz 'Eğitim' hesabını seçin.		Выберите учетную запись 'Education', для которой вы хотите запросить авторизацию.	请选择您要申请授权的'Education'账户。	承認をリクエストするには「教育」アカウントを選択してください。		
+317442	0													Текущее состояние		现状	現在の状況		
+286362	1										Informațiile de bază ale proiectului și o vedere orientativă 3D va fi vizibilă pentru oricine, atât în %s cât și in afara platformei, dacă decizi sa partajezi proiectul.	Podstawowe informacje o projekcie i orientacyjny widok 3D będą widoczne dla każdego, zarówno na %s, jak i poza platformą, jeśli zdecydujesz się udostępnić projekt.	Projeyi paylaşmaya karar verirseniz, projenin temel bilgileri ve gösterge niteliğindeki 3D görünümü hem %s'de hem de platform dışında herkes tarafından görülebilecektir.		Основная информация по проекту и его ориентировочный 3D обзор будет виден любым пользователем, в %s и вне платформы, если Вы решите поделиться проектом.	项目的基本信息和示意性 3D 视图将对所有人可见， 无论是在 %s 平台内还是分享项目后在平台外。	プロジェクトの共有を選択すれば、 プロジェクトの基本情報と、その3Dビューは、 %sと外部プラットフォーム両方で全員に表示されます。		Osnovne informacije projekta i indikativni 3D prikaz projekta biće vidljiv svakome, kako na %s tako i izvan platforme, ako odlučite da delite projekat.
+404430	0										Codul proiectului face parte din structura de identificare a informațiilor bazată pe standardul ISO 19650, permițând organizarea și gestionarea contribuțiilor și a fișierelor aferente într-un mod consecvent.	Kod projektu jest częścią struktury identyfikacji informacji opartej na normie ISO 19650, co umożliwia spójne porządkowanie i zarządzanie wkładami oraz ich plikami.	Proje kodu, ISO 19650 standardına dayalı bilgi tanımlama yapısının bir parçasıdır ve katkıları ile bunlara ait dosyaların tutarlı bir şekilde düzenlenip yönetilmesini sağlar.	Кодът на проекта е част от структурата за идентификация на информацията, базирана на стандарта ISO 19650, което позволява последователно организиране и управление на подадените данни и свързаните с тях файлове.	Код проекта является частью структуры идентификации информации, основанной на стандарте ISO 19650, что позволяет последовательно организовывать и управлять вкладами и соответствующими файлами.	项目代码是基于 ISO 19650 标准的信息标识结构的一部分，用于以一致的方式组织和管理提交内容及其文件。	プロジェクトコードは、ISO 19650 規格に基づく情報識別構造の一部であり、各種成果物とそのファイルを一貫した方法で整理および管理することを可能にします。		
+369090	0										Crează o postare	Utwórz publikację	Bir gönderi oluştur	Создать публикацию		创建帖子	ポストを作成する		
+362149	1										Acest utilizator nu a acceptat invitatia dumneavoastră de a intra în cont, prin urmare, eliminarea, prezenta invitație este revocată si fara efect.	Ten użytkownik nie przyjął jeszcze Twojego zaproszenia do konta, więc usuwając tego użytkownika, zaproszenie zostanie cofnięte i nie będzie miało żadnego skutku.	Bu kullanıcı henüz hesap davetinizi kabul etmedi, bu yüzden onu silmek daveti iptal eder ve geçersiz kılar.		Этот пользователь еще не принял ваше приглашение на учетную запись, удалив его, это приглашение аннулируется и будет недействительным.	此用户尚未接受您的账号邀请，因此如果将他/她删除，邀请将被撤销并失效。	このユーザーはお客様のアカウントへの招待をまだ承諾していないため、 そのユーザーを削除して招待を取り消しても問題ありません。		Ovaj korisnik još uvek nije prihvatio vaš poziv na nalog, tako da njegovo/njeno brisanje znači da je poziv poništen i nema efekta.
+261097	0													Активировано		已激活			有効
+34212	0										Dacă doriți să ne trimiteți sugestii pentru a ne ajuta să îmbunătățim conținutul bazei noastre de date de construcții sau să solicitați includerea unor noi unități de lucrări care nu sunt în prezent incluse, trebuie să fiți abonat. Vă reamintim că abonamentul este gratuit.	Jeśli chcą Państwo przesłać nam sugestie, aby pomóc nam ulepszyć zawartość naszej bazy danych budowlanych, lub poprosić o uwzględnienie nowych pozycji robót, które nie są obecnie dostępne, muszą Państwo być subskrybentami. Przypominamy, że subskrypcja jest bezpłatna.	İnşaat veritabanımızın içeriğini geliştirmemize yardımcı olmak için bize öneriler göndermek veya şu anda yer almayan yeni iş kalemlerinin eklenmesini talep etmek istiyorsanız, abone olmanız gerekir. Aboneliğin ücretsiz olduğunu hatırlatırız.	Ако желаете да ни изпратите предложения, за да ни помогнете да подобрим съдържанието на нашата строителна база данни, или да поискате включването на нови единици работи, които понастоящем не са предвидени, трябва да сте абонирани. Напомняме ви, че абонаментът е безплатен.	Если вы хотите прислать нам предложения, чтобы помочь улучшить содержимое нашей строительной базы данных, или запросить включение новых единиц работ, которые в настоящее время не предусмотрены, вам необходимо оформить подписку. Напоминаем, что подписка бесплатна.	如需提交建议以完善建筑数据库，或申请添加未收录的工程项目， 请先完成订阅。温馨提示：订阅完全免费。	建設データベースの内容改善に役立つご提案をお送りいただく場合、 または現在未収録の新しい工事項目の追加をご要望の場合は、 サブスクリプションに登録している必要があります。 サブスクリプションは無料です。		
+201343	0											Profil został uaktualniony.			Данные профиля обновлены.	个人信息已经更新。	プロファイルデータを更新しました。		
+391389	0										După ani	Według lat	Yıllık	По годам		按年	年ごと		
+235719	1											Zaakceptowaliśmy Twoje żądanie usunięcia Twojego konta. Wkrótce otrzymasz e-mail z potwierdzeniem.	Hesabınızın silinmesine ilişkin talebiniz kabul edilmiştir. Yakında bir onay e-postası alacaksınız.		Мы приняли Ваш запрос на удаление учётной записи. В ближайшее время, Вы получите электронное письмо с подтверждением.	我们已经接受了您删除账户的要求。很快您将收到一封确认邮件。	お客様のアカウントの削除依頼を承りました。 すぐに確認メールをお送りいたします。		Prihvatili smo vaš zahtev za uklanjanje vašeg naloga. Dobićete email sa potvrdom što je pre moguće.
+381808	0										Înainte de a șterge contul trebuie să vă dezabonați toți utilizatorii atribuiți acestuia.	Przed usunięciem konta należy usunąć wszystkich przypisanych do niego użytkowników.	Hesabı silmeden önce, atanan tüm kullanıcıları kaldırmalısınız.		Перед удалением учетной записи необходимо удалить всех назначенных ей пользователей.	在删除账户之前，您必须先移除该账户中的所有用户。	アカウントを削除する前に、そのアカウントに割り当てられているすべてのユーザーを削除する必要が あります。		
+267555	0														Действующие проекты	活跃项目	アクティブプロジェクト		
+374331	0											Odmówiono dostępu do konta na %s.	%s hesabına erişim reddedildi.		Доступ к учетной записи %s был отклонен.	%s账户的访问已被拒绝。	%sのアカウントへのアクセスが拒否されました。		
+224224	0										Accesează proiectul	Udostępnij projekt	Projeye erişin	Войти в проект		访问项目	プロジェクトにアクセス		
+46966	1											Błąd		Грешка	Ошибка	错误	エラー		ข้อผิดพลาด
+292426	0										Actualizarea aplicațiilor cu fișierele .csv files	Zaktualizuj aplikacje za pomocą plików .csv	.csv Dosyalarıyla uygulamaları güncelle	Обновление приложений с помощью .csv файла		通过 .csv 文件更新应用	.csvファイルでアプリケーションを更新		
+390946	0											Więcej informacji	Hakkında	Подробнее о		关于	アカウントについて		
+351771	0										Contribuție	Wkład	Katkı	Вклад		成果交付	コントリビューション		
+285781	0										Pentru a partaja proiectul este necesar ca proiectul să fie vizibil pentru toți.	Aby udostępnić projekt, konieczne jest, aby był on widoczny dla wszystkich.	Projenin paylaşılabilmesi için herkes tarafından görülebilir olması gereklidir.		Для того чтобы поделиться проектом, необходимо, чтобы проект был виден всем.	项目必须对所有人可见才可共享。	プロジェクトを共有するためには、全員に表示する必要があります。		
+354517	0										Contribuție nouă	Nowy wkład	Yeni katkı		Новый вклад	新成果交付	新しいコントリビューション		
+260977	1											Użytkownik należy już do zespołu roboczego projektu.	Kullanıcı, proje çalışma ekibine zaten dahildir.	Пользователь уже состоит в рабочей группе проекта.		用户已在项目的工作团队当中。	そのユーザーは既にプロジェクトの作業チームに所属しています。		Korinsik već pripada radnom timu projekta.
+227764	0											Wyślij ponownie		Отправить повторно		重发			再送信
+282827	0												Pazarlama kampanyaları		Маркетинговые кампании	营销活动	マーケティングキャンペーン		
+389371	0												Görünür değil		Невидимые	不可见			非表示
+171015	0										Țara			Страна		国家			国
+283064	1											Nie udało się usunąć projektu.	Projeyi silmek mümkün değildir.	Невозможно удалить проект.		项目未能删除。	プロジェクトが削除できませんでした。		Nije bilo moguće obrisati projekat.
+324446	1										Reînoiește autorizația	Odnów autoryzację		Обновить разрешение		更新授权	認証を更新		Obnoviti ovlašćenje
+378856	0										Resursa pe care încercați să o accesați nu se află pe server.	Zasób, do którego próbujesz uzyskać dostęp, nie znajduje się na serwerze.	Erişmeye çalıştığınız kaynak sunucuda bulunamadı.		Ресурс, к которому вы пытаетесь получить доступ, отсутствует на сервере.	在服务器上未找到您尝试访问的资源。	アクセスしようとしているリソースがサーバー上に見つかりません。		
+397675	1											Data rozpoczęcia	Başlangıç tarihi	Начална дата	Дата начала	开始日期	開始データ		Datum začetka
+227895	0											Zarządzanie żądaniami współpracy	İşbirliği taleplerinin yönetimi	Управление запросами на сотрудничество		协作申请管理	コラボレーションリクエスト管理		
+242968	0													Формат		格式			形式
+43128	0										Noutăți	Nowe funkcjonalności		Нововъведения	Новинки	新特性			新機能
+373450	0													Комментировать		评论	コメント		
+235754	0										Editează datele aplicației				Редактировать данные приложения	编辑程序数据	アプリケーションデータを編集		
+363181	0										Importați lista de aplicații	Importuj listę aplikacji		Импортировать список приложений		导入应用程序列表	アプリケーションリストをインポート		
+249938	1										Acțiuni autorizate	Autoryzowane działania			Разрешённые действия	授权行动	認証したアクション		Ovlašćeni postupci
+382365	0														Эксперт	专业	エキスパート		
+195861	0										A trimite invitație	Wyślij zaproszenie		Изпраща покана	Отправить приглашение	发送邀请	招待を送信		
+368925	0										Vizualizare publică				Публичный вид	公开视角	パブリックビュー		
+361040	1										Dicționar	Słownik		Словарь		字典	ディクショナリー		Rečnik
+369794	0										Vizualizați în aplicația %s	Wyświetl w aplikacji %s	%s Uygulamasında görüntüle	Отобразить в приложении %s		在%s应用程序中查看	アプリケーション%sで表示する		
+287845	0											Ostatnie %lu miesięcy		Последние %lu месяцев		最近 %lu 个月	過去%luヵ月		
+364972	0										Contribuții relevante	Wyróżniony wkład	Öne çıkan katkılar		Выдающиеся вклады	精选成果交付	注目のコントリビューション		
+379910	0										Nou comentariu despre aplicația %s		%s Uygulaması hakkında yeni yorum		Новый комментарий к приложению %s	%s应用程序的新评论	アプリケーション%sへの新しいコメント		
+327914	0											Tytuł incydentu	Olay başlığı	Название ошибки		问题的标题	イシューのタイトル		
+392074	0										Gestionarea notificărilor	Zarządzanie powiadomieniami		Управление оповещениями		通知管理			
+285729	0											Widoczność w "Store"	"Mağaza"da görünürlük	Видно в "Store"		在 "Store" 上的可见性	「Store」での表示設定		
+404415	0										Cererea de autorizare nu este valabilă.	Żądanie autoryzacji jest nieprawidłowe.	Yetkilendirme isteği geçersiz.	Заявката за оторизация не е валидна.	Запрос на авторизацию недействителен.	授权请求无效。	認可要求が無効です。		
+404439	1										Sunteți sigur că doriți să modificați elementele?		Öğeleri değiştirmek istediğinizden emin misiniz?	Сигурни ли сте, че желаете да промените елементите?	Вы уверены, что хотите изменить эти элементы?	是否确定要修改这些元素？	要素を変更してもよろしいですか。		Czy na pewno chcesz zmienić elementy?
+355413	0										Acest tip de fișier nu are asociat un instrument de vizualizare.	Ten typ pliku nie ma skojarzonego narzędzia do wizualizacji.	Bu dosya türüyle ilişkili bir görüntüleme aracı yok.		Этот тип файла не имеет связанного с ним инструмента просмотра.	此类文件没有相关的查看工具。	このタイプのファイルは関連する表示ツールがありません。		
+370078	0										Creați, modificați și ștergeți contribuții din contul dumneavoastră.	Twórz, modyfikuj i usuwaj wkłady w obrębie swojego konta.	Hesabınızda katkılar oluşturun, değiştirin ve silin.		Создавать, изменять и удалять вклады своей учетной записи.	创建、修改和删除您账户上的成果交付。	アカウントのコントリビューションを作成、変更、削除する。		
+388856	0										Scrieți un mesaj	Napisz wiadomość		Написать сообщение		撰写信息	メッセージを作成		
+362195	0										Invitația a fost anulată.	Zaproszenie zostało anulowane.			Приглашение было отменено.	邀请已被取消。	招待はキャンセルされました。		
+284665	0												Boş proje	Проект пустой		空项目	空のプロジェクト		
+74693	1													Приема	Принять	接受			OK
+257218	0										Ești sigur ca dorești să elimini acest element?	Czy na pewno chcesz usunąć ten element?	Bu öğeyi silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить этот элемент?	您确定要删除此要素吗？	この要素を削除してよろしいですか？		
+319742	0														Курсы	课程	コース		
+404408	0										Eliminați recomandarea	Usuń rekomendację	Öneriyi kaldır	Премахване на препоръката	Удалить рекомендацию	取消推荐	推薦を削除　		
+270627	0										Numărul de click uri	Liczba kliknięć	Tıklama sayısı	Количество щелчков		点击次数	クリック数		
+316311	0										Această lună	Ten miesiąc			Этот месяц	本月			今月
+246855	0										Adăugați un comentariu în solicitarea dumneavoastră de colaborare	Dodaj komentarz do swojej prośby o dołączenie do współpracy	İş birliği talebinize yorum ekleyin	Добавить комментарий к вашему запросу о совместной работе		添加协作申请注释	コラボレーションリクエストにコメントを追加		
+400944	0											Zmiana statusu Twojego żądania 'beta tester'	'beta tester' talebinde durum değişikliği	Промяна на състоянието на заявката за 'beta tester'	Изменение статуса вашего запроса 'бета-тестер'	'beta tester' 申请状态变更	「beta tester」申請のステータス変更　		
+249924	1										%s l-a invitat să colaboreze în proiectul '%s' .	%s zaprosił/a Cię do podjęcia współpracy nad projektem '%s'.	%s sizi '%s' projesine iş birliği yapmaya davet etti.	%s пригласил вас к участию в проекте '%s'.		%s 邀请您加入'%s'项目进行协作。	%sはあなたを「%s」プロジェクトでのコラボレーションに招待しました。		%s vas je pozvao da sarađujete na '%s' projektu.
+362043	0										Acest utilizator nu a acceptat încă invitația de a se alătura grupului de lucru	Ten użytkownik nie przyjął jeszcze zaproszenia do dołączenia do zespołu roboczego konta	Bu kullanıcı, hesabın çalışma grubuna katılma davetini henüz kabul etmedi		Этот пользователь пока не принял приглашение присоединиться к рабочей группе учетной записи	该用户尚未接受加入账户工作团队的邀请	このユーザーは、アカウントの作業グループ参加への招待をまだ承諾していません。		
+362183	0										Număr de contribuții	Liczba wkładów	Varlığı içeren katkı sayısı	Количество вкладов		成果交付数量	エンティティを含むコントリビューションの数		
+362187	1										Cererea de participare încă nu a fost gestionată.	Prośba o wzięcie udziału nie została jeszcze rozpatrzona.	Katılım talebi henüz işleme alınmamıştır.	Запрос на участие еще не обработан.		该参与申请尚未处理。	参加リクエストはまだ手続きされていません。		Zahtev za učešće još uvek nije obradjen.
+281974	1										Sunteți sigur că doriți sa respingeți comentariul?		Yorumu reddetmek istediğinize emin misiniz?		Вы уверены, что хотите отклонить комментарий?	您确定要驳回这条评论吗？	コメントを拒否してよろしいですか？		Czy na pewno chcesz odrzucić komentarz?
+268209	1										Trageți și plasați fișierele aici.	Przeciągnij i upuść pliki tutaj.	Dosyaları buraya sürükleyip bırakın.		Перетащите и отпустите файлы сюда.	在此处拖放文件。	ファイルをここにドラッグ＆ドロップしてください。		Prevući i otpustiti datoteke ovde.
+261086	0										Soluții	Rozwiązania		Решения		解决方案	ソリューション		
+388865	0														Высокий приоритет	高优先级	高い優先度		
+353743	0										Introduceți mai puțin %lu caractere	Wprowadź co najmniej %lu znaki		Введите не менее %lu символов		请至少输入%lu个字符	最低%lu文字を入力		
+404422	0										Veți putea retrimite codul peste	Będzie można ponownie wysłać kod za		Ще можете да изпратите отново кода след	Вы сможете повторно отправить код через	倒计时结束后可重新获取	コードを再送信できるまでの残り時間：		
+376829	0										'%s' a creat o postare pornind de la contribuția dumneavostră '%s' în proiectul '%s'.	'%s' utworzył/-a publikację na podstawie Twojego wkładu '%s' do projektu '%s'.	'%s', '%s' katkınıza dayanarak '%s' projesinde bir gönderi oluşturdu.	'%s' создал публикацию, основанную на вашем вкладе '%s' в проект '%s'.		'%s'基于您的'%s'成果交付创建了一条动态（'%s'项目）。	「%s」があなたのコントリビューション「%s」、「%s」内の、を基にして1つの投稿を 作成しました。		
+379751	0										Permis educațional		Eğitim izni	Образователно разрешение	Разрешение на обучение	教育许可			教育許可
+402253	0												Geliştiriliyor	В процес на разработване	В разработке	开发中			開発中　
+290365	0													Блог		博客	ブログ		
+359642	0										Vedeți invitația			Смотреть приглашение		查看邀请	招待を見る		
+349534	0										Problemă			Ошибка		问题	イシュー		
+352256	0										Aplicația de desktop care se ocupă să mențină actualizate fișierele proiectelor dezvoltate în BIMserver.center up-to-date		BIMserver.center'da geliştirilen projelerin dosyalarını güncel tutmakla görevli masaüstü uygulaması		Настольное приложение, которое поддерживает в актуальном состоянии файлы проектов, разработанных в BIMserver.center.	桌面应用程序，允许在 BIMserver.center 上开展的项目文件保持更新状态	最新BIMserver.centerで開発したプロジェクトの ファイル保管用デスクトップアプリケーション		
+197532	0												Senkronize edilmiş projeler	Синхронизирани проекти	Синхронизированные проекты	已同步项目	同期したプロジェクト		
+201328	0										Accesați acum	Uzyskaj dostęp	Şimdi erişin	Войти прямо сейчас		现在登入	今すぐアクセス		
+380693	0										Schimbați e-mail	Zmień adres e-mail	E-postayı değiştir		Изменить электронный адрес	更改邮箱地址	電子メールを変更		
+352345	0										Rețineți că vizualizarea proiectelor respectă setările de confidențialitate definite. Prin urmare, proiectele vizibile sunt diferite în funcție de daca utilizatorii sunt conectați sau nu și în funcție de fiecare utilizator în parte.	Pamiętaj, że wizualizacja projektów jest zgodna ze zdefiniowanymi opcjami prywatności. W związku z tym widoczne projekty są różne w zależności od tego, czy użytkownicy są zalogowani, czy nie, oraz w zależności od każdego użytkownika z osobna.	Proje görselleştirmelerinin tanımlanan gizlilik seçeneklerine uygun olduğunu unutmayın. Bu nedenle, görünür projeler, kullanıcıların oturum açıp açmadıklarına ve her kullanıcıya göre farklıdır.		Помните, что визуализация проектов соответствует установленным параметрам конфиденциальности. Поэтому видимость проектов отличается в зависимости от того, вошли ли пользователи в систему или нет, а также в зависимости от каждого пользователя.	请注意，项目的可见性与其设定的隐私选项符合。因此，可见项目取决于用户是否为登录状态 和每个用户的具体情况。	プロジェクトの表示は、 プライバシーオプション定義に準拠していることに留意してください。 つまり、プロジェクトはユーザーがログインしているかではなく、各ユーザーごとで表示が違います。		
+369277	0											GPU: Nvidia GeForce GTX 1050ti lub równoważny	GPU: Nvidia GeForce GTX 1050ti veya eşdeğeri		GPU: Nvidia GeForce GTX 1050ti или эквивалентный	GPU: Nvidia GeForce GTX 1050ti 或同等级别	GPU: Nvidia GeForce GTX 1050tiか同等		
+281938	0										Vă rugăm,alegeți motivul pentru care doriți să vă închideți contul	Wybierz powód, dla którego chcesz zamknąć swoje konto	Lütfen hesabınızı iptal etmek istemenizin nedenini seçin		Пожалуйста, выберите причину, по которой Вы хотите удалить свою учётную запись	请选择账号注销原因	お客様のアカウントを取り消したい理由をお選びください		
+235799	0											Wyświetl wszystkie		Просмотреть все		查看全部	すべて見る		
+268165	1										Refuzați			Отказать		拒绝			拒否 | Odrzuć
+396763	1											Członek		Член	Участник	成员	メンバー		Član
+361571	0										Respinsă			Отклонен		已拒绝			拒否
+313901	0										Apasă aici		Buraya tıklayın	Нажмите сюда		点击此处	ここをクリック		
+201350	0											%s© jest serwisem zarządzanym przez CYPE	%s©, CYPE tarafından yönetilen bir hizmettir	%s© е услуга управляване от CYPE	%s© является сервисом, управляемым компанией CYPE	%s© 服务器由CYPE管理。	%s© はCYPEによって運営されるサービスです		
+390782	0													%s - копие	%s - копия	%s - 副本	%s - コピー		
+257198	1											Czy już masz konto?	Zaten bir hesabınız var mı?	У Вас уже есть аккаунт?		您已经拥有账户？	すでにアカウントをお持ちですか？		Već ima nalog?
+384186	0										Recent actualizată			Недавно обновлено		最近更新	更新済み		
+57987	0													Проекти	Проекты	项目	プロジェクト		
+41919	0										Adăugați			Добавя	Добавить	添加			追加
+271609	1										Au fost făcute modificari în proiectul '%s' . Este posibil sa necesite să realizați modificari in fișierul '%s'.	Nastąpiły zmiany w projekcie '%s'. Może być konieczne wprowadzenie zmian w pliku '%s'.	'%s' projesinde değişiklikler oldu. '%s' dosyasında değişiklik yapmanız gerekebilir.		В проект '%s' были внесены изменения. Возможно Вам необходимо внести изменения в файл '%s'.	'%s'项目中发生了改变。您可能需要在 '%s' 文件中进行更改。	「%s」プロジェクトに変更があります。 ファイル「%s」の変更が必要な場合があります。		Došlo je do promena u '%s' projektu. Možda ćete morati da uneste promene u datoteku '%s'.
+389068	1										Sunteți sigur că doriți să respingeți incidența?		Sorunu reddetmek istediğinize emin misiniz?		Вы уверены, что хотите отклонить этот инцидент?	您确定要排除此事项吗？	指摘事項を却下しますか？		Czy na pewno chcesz odrzucić ten incydent?
+281904	0										Incidență soluționată	Incydent rozwiązany		Инцидент устранен		已解决事项	解決済みイシュー		
+371933	0										Sunteți sigur că doriți eliminarea comentariului?	Czy na pewno chcesz usunąć ten komentarz?	Yorumu silmek istediğinize emin misiniz?		Вы уверены, что хотите удалить комментарий?	你确定要删除评论吗？	コメントを削除しますか？		
+356986	0										Invită studenții	Zaproś uczniów	Öğrencileri davet et	Пригласить студентов		邀请学生	生徒を招待		
+395112	0										%s a scris un comentariu la o postare la care ați participat.	%s napisał/-a komentarz do publikacji, w której uczestniczyłeś/-aś.	%s, katıldığınız bir gönderiye yorum yaptı.	%s е написал коментар към публикация, в която сте участвали.	%s написал комментарий к публикации, в которой вы участвовали.	%s 在你参与过的帖子中发表了评论。	%sがあなたが参加した投稿にコメントしました。　		
+374150	0											%s zarekomendował/-a Twoją publikację '%s'.	%s, '%s' adlı gönderinizi önerdi.	%s порекомендовал вашу публикацию'%s'		%s推荐了您的'%s'帖子	%sがあなたの投稿「%s」をお勧めにしました		
+356419	1										Documentație inițială	Dokumentacja wstępna	Başlangıç belgeleri	Исходная документация		初始文件	初期ドキュメント		Početni dokumenti
+378155	0										Solicitarea de autorizare pentru acordarea insignei digitale a fost trimisă.	Twoja prośba o autoryzację do przyznania odznaki cyfrowej została wysłana.			Ваш запрос на авторизацию для выдачи цифрового значка был отправлен.	您颁发数字徽章的授权申请已发送。	デジタルバッジ授与の承認リクエストが送信されました。		
+316317	0											%lu miesięcy temu		%lu месяцев назад		%lu 个月前	%luヵ月前		
+261100	0										Părăsește	Opuść	Ayrıl	Покинуть		退出			
+227901	1											Projekt będzie widoczny tylko dla kont należących do zespołu roboczego.	Proje yalnızca çalışma ekibine dahil edilen hesaplar tarafından görülebilir.		Проект будет виден только учетным записям, включенным в рабочую группу.	项目仅对工作团队中的账户可见。	プロジェクトに確実に参加しているユーザーにのみ、そのプロジェクトが表示されます。		Projekat će biti vidljiv samo korisnicima koji su eksplicitno uključeni u projekat.
+369091	1										Doriți să adăugați un comentariu?			Хотите добавить комментарий?		是否添加评论？			Czy chcesz dodać komentarz?

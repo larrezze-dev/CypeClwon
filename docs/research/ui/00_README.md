@@ -21,3 +21,12 @@
 
 ## Huecos
 Capturas y campos reales de TODOS los diálogos; valores por defecto; barra de herramientas superior derecha; solapa Cimentación (ribbon); menú Archivo; diálogos de Datos generales por pestaña (ver wizard en `01_reverse_engineering_findings.md`).
+
+## Actualización 2026-11-03 (cierre de huecos de T-RE-03)
+Ver `t_re_03_cierre_huecos.md`: menú Archivo, barra superior, solapa Cimentación, Uniones, Cálculo, Armaduras (solo REA), Pilar/Viga/Planos (menú Rejilla/Niveles/Cotas/Referencias/Visibilidad), cargas en nudos y superficiales. Persisten: orden de tabulación (solo medido en "Descripción de la obra"), listas desplegables, editor de Armaduras, Calcular/Dimensionar (barrera de licencia M3D) y 8 conmutadores de la barra derecha.
+
+## Actualización 2026-11-04 (capturas manuales del usuario)
+- Listas desplegables (hormigones, acero de barras, árido, clases de madera, posición de etiqueta) y tooltips (barra superior, acceso rápido, direcciones de carga): `t_re_03_cierre_huecos.md` §10. Faltan clases de servicio 2/3 y la lista del combo Material de madera.
+- Regla de orden de tabulación del clon (decisión del usuario, no medida): `tabulacion_regla.md`.
+- La barra de estado de Pieza queda **excluida por decisión del usuario**.
+- 2026-11-05: tooltips de Deshacer/Rehacer y de los conmutadores 1, 3 y 6 capturados a mano; duplicidad «Configuración» resuelta (`t_re_03_cierre_huecos.md` §10). Ya no quedan tooltips sin cubrir.

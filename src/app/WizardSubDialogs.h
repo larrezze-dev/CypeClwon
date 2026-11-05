@@ -78,7 +78,7 @@ public:
 
 private:
     QComboBox* m_kind[3];
-    QComboBox* m_size[3];
+    QDoubleSpinBox* m_size[3];
     QDoubleSpinBox* m_foundationSize;
 };
 

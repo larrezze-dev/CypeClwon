@@ -7,3 +7,4 @@ vcpkg_installed/
 
 # Manual captures dropped by the user for research
 CypeClwonTemp/
+__pycache__/

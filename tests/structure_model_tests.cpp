@@ -198,10 +198,11 @@ Project projectWithStructure() {
 
 TEST(StructureProject, SectionsAreRegisteredAfterTheExistingOnes) {
     const auto& names = project_json::sectionNames();
-    ASSERT_GE(names.size(), 7u);
-    EXPECT_EQ(names[names.size() - 7], "nodes");
-    EXPECT_EQ(names[names.size() - 2], "pieces");
-    EXPECT_EQ(names.back(), "layers");
+    ASSERT_GE(names.size(), 8u);
+    EXPECT_EQ(names[names.size() - 8], "nodes");
+    EXPECT_EQ(names[names.size() - 3], "pieces");
+    EXPECT_EQ(names[names.size() - 2], "layers");
+    EXPECT_EQ(names.back(), "bar_descriptions");
     EXPECT_EQ(project_json::sectionTitle("cross_sections"), "Secciones");
 }
 

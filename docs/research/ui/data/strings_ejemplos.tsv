@@ -1,0 +1,326 @@
+id	n_latin	es	fr	pt_BR	pt_PT	ca	it	en	gl	de	ro	pl	tr	bg	ru	zh	ja	el	unk
+70360	9	El ejemplo %s ya existe y es distinto al original. ¿Desea recuperar el ejemplo original?	L'exemple %s existe déjà et est différent de l'original. Voulez-vous récupérer l'exemple original ?	O exemplo %s já existe e é diferente do original. Deseja recuperar o exemplo original?	L'exemple %s ja existeix i és diferent a l'original. Desitja recuperar l'exemple original?	L'esempio %s esiste già ed è diverso dall'originale. Desidera recuperare l'esempio originale?	The example %s already exists and is different from the original. Would you like to recover the original example?	O exemplo %s xa existe e é distinto ó original. ¿Desexa recuperar o exemplo orixinal?	Das Beispiel %s existiert schon und ist anders als das ursprüngliche Beispiel. Wollen Sie es wiederherstellen?	Primer %s že obstaja in se razlikuje od izvirnika. Ali bi želeli obnoviti izvirni primer?	Exemplul %s deja există și este diferit de cel original. Doriți să recuperați exemplul original?	Przykład %s już istnieje i różni się od oryginału. Czy chcesz odzyskać oryginalny przykład?	%s örneği zaten mevcut ve orijinalinden farklı. Orijinal örneği kurtarmak ister misiniz?	Примерът %s вече съществува и е различен от оригиналния. Желаете ли да взстановите оригиналния пример?	Пример %s уже существует и он отличается от оригинала. Хотите восстановить оригинальный пример?	示例 %s 已存在，且与原始版本不一致。是否恢复为原始示例？	サンプル%sは既に存在し、元ファイルと異なります。元の例を 回復しますか？		
+70361	10										Vreuna dintre lucrările de exemplu a fost modificată. Doriți să fie reinstalată?	Niektóre przykładowe budowy zostały zmodyfikowane. Czy chcesz, aby zostały ponownie zainstalowane?	Bir örnek iş değiştirildi. Yeniden kurulmasını ister misiniz?	Променен е един от примерите. Желаете ли да бъдат инсталирани отново?	Проект примера был изменён. Хотите переустановить?	部分示例工程已被修改。是否重新安装？	サンプルの作業が1つ変更されました。このサンプルをもう一度インストールしますか？		Se ha modificado alguna de las obras de ejemplo. ¿Desea que se vuelvan a instalar? | L'un des ouvrages de l'exemple a été modifié. Voulez-vous les réinstaller? | Foi modificada alguma das obras de exemplo. Deseja que seja instalada novamente? | Foi modificada alguma das obras de exemplo. Deseja que se instalem novamente? | S'ha modificat alguna de les obres d'exemple. Desitja que es tornin a instal·lar? | Sono stati modificati alcuni progetti di esempio. Desidera reinstallarli? | An example job has been modified. Do you wish for it to be reinstalled? | Modificouse algunha das obras de exemplo. Desexa que se volvan a instalar? | Ein Beispielsprojekt ist bearbeitet worden. Wollen Sie es wiederherstellen? | Primer opravila je bil spremenjen. Ali želite, da se ponovno namesti?
+70363	8	Plantilla	Gabarit	Modelo	Modelo	Modello	Template	Vorlage	Predloga	Szablon	Șablon		Şablon	Шаблон		模板	テンプレート		
+70364	9	Selecciona plantilla.	Sélectionnez gabarit.	Seleciona modelo.	Selecciona modelo.	Seleziona modello.	Template selection.	Vorlage auswählen.	Izbira predloge.	Wybierz szablon.	Selectați șablonul.		Şablon seçimi	Изберете шаблон.	Выбор шаблона.	请选择模板。	テンプレートを選択。		
+157018	0											Kąt	Açı	Угол	Ъгъл	角度			
+32339	0										Alții		Diğerleri	Други	Другое	他			其它
+32377	0										Iarnă		Kış	Зима		冬			冬季
+175769	0													Макс.		最大			
+175586	0													Момент		力矩	モーメント		
+29962	0										Măsurare	Wielkości		Спецификация	Количественные характеристики	尺码			数量
+32362	0													Мин.		最小			
+32340	0										Oraș			Град	Город	市			市区町村
+175604	0											Ścinanie		Срязване	Сдвигающее усилие	剪力	せん断		
+32378	0										Vară			Лято	Лето	夏季			夏
+13415	0										Schiță		Şema	Диаграма	Диаграмма	示意图			図
+32363	1														Ссыл.	编号			参照名 | №.
+32342	0										Fișierul %s a fost salvat cu o versiune superioară decât cea pe care o poate citi acest program.	Plik %s został zapisany w wersji nowszej od tej, którą ten program jest w stanie odczytać.	%s dosyası, programın bu sürümü tarafından okunamayan daha yeni bir sürümü tarafından kaydedilmiştir.	Файлът %s е записан от по-нова версия на тази програма, който не може да бъде прочетен от настоящата.	Файл %s сохранен в более поздней версии, чем может прочитать эта версия.	此文件 %s 储存于该程序更新版本中，当前版本无法读取。	このファイル%sは新しいバージョンで保存されており、 このプログラムでは開くことができません。		
+32312	0											Zginający	Eğilme	Огъващ момент	Изгибающий момент	力矩	モーメント		
+32379	0										Definire în așteptare	Oczekujący na zdefiniowanie	Tanım bekleniyor	За дефиниране	Ожидается определение	等待定义	定義待ち		
+32313	0										Axa verticală	Pionowa siła osiowa		Вертикално осово усилие	Вертикальная продольная сила	垂直轴向力			垂直軸方向力
+32380	0										Planșee cu grinzi	Stropy gęstożebrowe	Kirişli döşemeler	Ребрени подове	Балочные перекрытия	搁栅楼板	小梁の床スラブ		
+25993	0												Geliştirici	Предприемач	Разработчик	开发商	デベロッパー		
+139006	0													Основни данни	Основные данные	常用数据	一般データ		
+32314	0										Axa orizontală	Pozioma siła osiowa		Хоризонтално осово усилие	Горизонтальная продольная сила	水平轴向力			水平軸方向力
+156898	0										Înălțime	Wysokość		Висок	Высота	高度	高さ		
+32381	0										Plăci cu goluri	Płyty kanałowe	Boşluklu döşemeler	Олекотени панели	Облегченные плиты	空心板	中空スラブ		
+32330	3											Zawartość		Съдържание	Содержание	内容			Conţinut | เนื้อหา | İçerik
+32315	0										Axa tangențială	Styczna siła osiowa	Teğetsel eksenel kuvvet	Тангенциално осово усилие	Касательная продольная сила	切向轴向力			接戦軸方向力
+27924	0										Împărțiți			Разделя	Разделить	拆分			分割
+32382	0										Plăci mixte	Płyty zespolone	Kompozit döşemeler	Комбинирани плочи	Сталежелезобетонные плиты	复合板	複合スラブ		
+268363	0										Situație			Положение	Местоположение	位置			
+27923	0										Uniți	Połącz	Birleştir	Свързва	Объединить	连接			結合
+32316	0											Moment pionowy (wokół osi poziomej)	Dikey moment (yatay eksen etrafında)	Вертикален момент (около хоризонталната ос)	Вертикальный момент (вокруг горизонтальной оси)	垂直力矩（相对于水平轴）	垂直モーメント(水平軸まわり)		
+32383	0										Panourile de acest tip sunt incluse în vizualizarea 3D a lucrării și pot fi atribuite planurilor înclinate și stabilesc o diferență de înălțime față de pardosea. Pentru a putea calcula lucrarea, trebuie definite toate caracteristicile tuturor panourilor.	Panele tego typu są zawarte w widoku 3D projektu i istnieje możliwość przypisania ich do płaszczyzn pochyłych oraz ustalenia różnicy poziomów w odniesieniu do piętra. W celu obliczenia projektu należy zdefiniować charakterystykę wszystkich paneli.	Bu tip paneller çalışmanın 3D görünümüne dahildir, eğimli düzlemlere atanabilir ve katla arasındaki kot farkı belirlenebilir. Projeyi hesaplayabilmek için tüm panellerin özellikleri tanımlanmalıdır.	Полетата от този вид се включват в 3Д изгледа на задачата и е възможно да се определят за наклонени равнини и да им се зададе денивелация спрямо етажа. За да изчислите задачата, трябва да дефинирате характеристиките на всички полета.	Панели этого типа включены в 3D-вид проекта и могут задаваться как наклонные плиты с разницей высот по отношению к этажу. Для возможности анализа проекта, необходимо задать свойства всех панелей.	此类板面包含于项目的3D视图，可被分配给倾斜平面并建立与地面的高度差。为了分析项目，必须定义所有板面的属性。	このタイプのパネルはジョブの3Dビューに含まれ、また傾斜面に割り当てられ、 床に対して高低差を設定することができます。ジョブを分析するには、 すべてのパネルのプロパティを定義する 必要があります。		
+32371	0										Doriți să vă asumați valoarea selectată: '%s'?	Czy chcesz przyjąć wybraną wartość: '%s'?	Seçili '%s' değerini atamak istiyor musunuz?	Желаете ли да приемете избраната стойност: "%s"?	Присвоить выбранное значение: '%s'?	是否指配所选值：'%s'？	選択した値「%s」を割り当てますか？		
+50503	2												Adı			名称			Име | Имя | Име | Имя | Име | Имя | 名前 | 名称 | 名前 | 名称 | 名前 | İsim | İsim
+32352	0													Лв	Лев	左			
+32317	0											Moment poziomy (wokół osi pionowej)	Yatay moment (dikey eksen etrafında)	Хоризонтален момент (около вертикалната ос)	Горизонтальный момент (вокруг вертикальной оси)	水平力矩（相对于垂直轴）	水平モーメント (垂直軸まわり)		
+32384	0										plăci mixte	płyty zespolone	kompozit döşemeler	комбинирани плочи	сталежелезобетонные плиты	复合板	複合スラブ		
+58410	0													Край	Завершить	完成			終了
+32334	13													Всички	Все	全部	すべて		ทั้งหมด | Todos | Tous | Tots | Tutti | All | Toate | Alles | Vše | Svi | Minden | Wszystko | Tümü
+32353	0												Sağ	Дсн	Прав	右			
+32318	0										Forfecare transversală verticală	Pionowe ścinanie poprzeczne		Напречно вертикално срязване	Поперечное вертикальное сдвигающее усилие	横向垂直剪力	横断垂直せん断		
+32385	0										Între %s și %s.	Pomiędzy %s i %s.	%s ile %s arasında.	Между %s и %s.		在%s和%s之间。	%sと%sの間		
+157219	0												Yer Değiştirme	Преместване	Смещение	位移			距離
+32319	0										Forfecare transversală orizontală	Poziome ścinanie poprzeczne		Напречно хоризонтално срязване	Поперечное горизонтальное сдвигающее усилие	横向水平剪力	横断水平せん断		
+57988	0											Przykłady		Примери	Примеры	示例	サンプル		
+155092	0													Проект		项目	プロジェクト		
+74777	1													Дата	Дата	日期			日付 | 日期 | 日付 | วันที่
+32355	0												Boyutlandırma	Оразмеряване	Расчет	正在计算			設計中
+32320	0										Tracțiune	Rozciąganie		Опън	Растяжение	拉张			張力
+32336	0										Nu a putut fi creat fișierul '%s'.	Nie można było utworzyć pliku '%s'.	'%s' dosyası oluşturulamadı.	Не е възможно да се създаде файлът "%s".	Не удалось создать файл '%s'.	无法创建文件 '%s'。	ファイル「%s」を作成できませんでした。		
+59338	0										Numele fișierului		Dosya adı	Име на файла	Имя файла	文件名	ファイル名		
+26017	0												Kat döşemeleri	Плочи	Перекрытия	楼板	フロアスラブ		
+30137	0													Където:	Где:	其中:			場所：
+32321	1											Ściskanie	Sıkıştırma	Натиск	Сжатие	压缩			圧縮 | การบีบอัด
+32388	0													Време	Время	时间			時間
+171009	0													Телефон		电话			電話
+32322	3										Deschideți numai în citire		Salt okunur olarak açın	Отвори само за четене	Открыть только для чтения	以只读方式打开	読み取り専用で開く		เปิดเป็นแบบอ่านเท่านั้น | Otevřít pouze ke čtení | Otvori samo za čitanje
+32375	0											Piętra		Етажи	Этажи	楼层			階
+32307	0										și			и		和	と	και	
+32358	1													БУЛСТАТ/ЕГН	ИНН				TIN　
+59054	0											Użytkownik	Kullancı	Потребител	Пользователь	用户	ユーザー		
+156949	0													Армировка	Армирование	配筋			鉄筋
+13370	0										%s și %s			%s и %s		%s 和 %s	%sと%s		
+32338	1										Județ			Област/Държава	Область/Страна	省/市/直辖市			都道府県/国/州 | İl
+32324	2										Lăţime	Szerokość	Genişlik	Ширина		宽度			幅 | ความกว้าง | Šířka
+32376	0													Сенки	Тени	阴影			影
+175716	0											Współczynnik		Коефициент	Коэффициент	因数	ファクター		
+138538	0													до		至			最後
+156950	0										Număr		Sayısı	Количество		数量			
+155076	0													Бележки	Примечания	备注			注釈
+34244	0													Електронна поща			メール		
+74929	1													Страница		页码	ページ		หน้า
+75000	0										Derulați în sus	Przesuń do góry	Yukarı kaydır	Преместване нагоре	Переместить вверх	向上移动	１つ上に移動		
+75025	0										Date definite în bibliotecă		Kütüphanede tanımlı veriler	Данни дефинирани в библиотеката	Данные, заданные в библиотеке	库中定义的数据	ライブラリに定義づけられたデータ		
+250065	0										Capăt			Край	Конец	最後			终点
+38793	0										Încărcări ale fundației	Obciążenia fundamentów		Товари в основите	Нагрузки на фундамент	地基承载			基礎荷重
+56434	0													Групи	Группы	组	グループ		
+74944	0												Tanımlı değil	Не определен	Не задано	未定义	定義されませんでした		
+58617	0											Oś		Ос	Ось	軸			轴
+64403	0												Yer değiştirmeler	Премествания	Перемещения	変位		Μετατοπίσεις	位移
+25927	0													Нива	Уровни	标高	レベル		
+74737	0										Oțel în etrieri			Стомана в стремена	Сталь в хомутах	箍筋钢材	スターラップの鋼材		
+71614	0													Изчисление	Расчет	解析			分析
+155074	0													Елемент	Элемент	要素		Στοιχείο	元素
+38405	0										Armatură		Donatı	Пръти	Армирование	配筋			
+29506	0										Piloți		Kazıklar	Пилоти	Сваи	桩			杭
+122487	0										Tipăriți		Yazdır	Печат	Печать	打印	プリント		
+29543	1													От		从			最初 | İtibaren
+322563	1										Doriți să continuați?			Желаете ли да продължите?	Продолжить?	是否继续？	続行しますか？		Czy chcesz kontynuować?
+74914	2											Sprawdź		Проверява	Проверка	检查	チェックする		ตรวจสอบ | Ellenőriz
+74720	0											Szczegóły		Детайли	Детали	细节			詳細
+71602	0										Opțiuni de dimensionare		Boyutlandırma seçenekleri	Опции за оразмеряване	Опции проектирования	设计选项	サイズオプション		
+38520	0													Оси		中央轴			中央軸
+32867	0													Директория:	Папка:	文件夹:	ディレクトリ：		
+75005	1										Copiați			Копира	Копировать	复制	コピー		คัดลอก
+75029	2											Kolory do przedstawienia izowartości		Цветове на изолиниите	Цвета отображения изолиний	等高线图上的颜色	等高線表現のための色		สีสำหรับการแสดงแผนที่เส้นชั้น (contour map) | Barvy pro zobrazení obrysů
+75001	0										Derulați în jos	Przesuń na dół	Aşağı kaydır	Преместване надолу	Переместить вниз	向下移动	１つ下に移動		
+56004	0										Armare manuală	Zbrojenie wprowadzane ręcznie	Manuel donatı	Ръчно армиране	Ручное армирование	手动加筋			手動配筋
+34245	0													Типология	Типы	类型	タイプ		
+250157	0													Разп.	Поз.	正			位置
+43497	0													Контур	Профиль	外形	プロフィール		
+46987	2										Verificări de cod			Проверка	Проверочные расчеты	规范检查	コードチェック		การตรวจสอบหลักเกณฑ์ | Kód ellenőrzése
+74931	1										Exportați		Dışa Aktar	Изнася	Экспорт	导出	エクスポート		ส่งออก
+29544	0										Până la		Karşı	До		至	まで		
+30696	11											Ostrzeżenie	Uyarı	Съобщение	Предупреждение	注意			คำเตือน | Aviso | Alerte | Avís | Avviso | Warning | Avertizare | Warnung | Varování | Upozorenje | Figyelmeztetés
+74778	0										Rezumatul măsurătorilor			Обобщена спецификация	Сводные данные по кол-ым характеристикам	测量汇总			数量概要
+74916	0													Оразмеряване	Проектирование	设计	サイズ		
+38797	0											Wypełnienie		Защриховано	Заштриховано	填实	ハッチング		
+61921	0										Mutați	Przesuń	Taşı	Премества	Переместить	移动			移動
+74868	0											Wartości maksymalne	Maksimum değerler	Максимални стойности	Максимальные значения	最大值			最大値
+65851	0											Wyświetlanie		Онагледяване	Вид	视图			表示
+29542	0											Średn.		Диам.		直径			
+175585	0											Siła osiowa		Нормално усилие	Продольная сила	轴向			軸方向
+214547	0										Nu se poate deschide fișierul '%s', pentru că este utilizat de o altă aplicație.	Nie można otworzyć pliku '%s', ponieważ jest obecnie używany przez inną aplikację.	Başka bir uygulama tarafından kullanıldığı için '%s' dosyası açılamıyor.	Файлът "%s" не може да се отвори защото се използва от друго приложение.	Невозможно открыть файл '%s', так как он используется другим приложением.	无法打开'%s'文件，因为它正在被其他应用程序使用。	ファイル「%s」は他のアプリケーションで使用中のため、 開くことができません。		
+74981	0											Współrzędna X	X Koordinatı	Координата X		X 坐标			X座標
+38501	0											Węzły	Düğümler	Възли	Узлы	节点			接点
+58251	0													Запитване	Вопрос	提问			質問
+28270	0										Opțiuni			Опции		选项	オプション		
+157015	0										Secțiune			Сечение		截面	セクション		
+74967	0										Calculați lucrarea			Изчислява задачата	Проанализировать проект	分析项目	プロジェクト解析		
+74779	0										Dimensiunea textului și grosimea scrisului		Metinlerin ve kalem kalınlığının boyutu	Размер на текстовете и дебелини на перото	Размер текста и толщина пера	字号与笔宽	テキストサイズとペン太さ		
+292012	0										Notă			Бележка	Примечание	备注			注釈
+74721	1													Нов	Новый	新建			新規 | สร้างใหม่
+32858	0										Legendă			Легенда		图例			凡例
+13270	0													Детайл	Детали	详细			詳細
+74756	1										Referință			Номер	Ссылка	编号		Αναφορά	参照 | อ้างอิง
+60182	0												Çerçevenin adı	Име на рамка	Название рамы каркаса	框架名	フレームの名前		
+74740	1													Не.		数目			数 | №
+75004	0										Selectați o opțiune din meniu.	Wybierz opcję z menu.		Изберете опция от менюто.	Выбрать опцию из меню.	请选择菜单中的一个选项。	メニューからオプションを選択します。		
+214548	0										Nu este posibil să se acceseze '%s', pentru că este utilizat de o altă aplicație.	Nie można uzyskać dostępu do '%s', ponieważ jest obecnie używany przez inną aplikację.	Başka bir uygulama tarafından kullanıldığı için '%s' öğesine erişmek mümkün değildir.	Не е възможно да получите достъп до "%s" защото се използва от друго приложение.	Невозможно получить доступ к '%s', так как он используется другим приложением.	无法访问"%s"，因为它正在被其他应用程序使用。	「%s」は他のアプリケーションで使用中のため、 アクセスできません。		
+74982	0											Współrzędna Y	Y Koordinatı	Координата Y		Y 坐标			Y座標
+27949	0												Açıklıklar	Участъци	Участки	跨	スパン		
+74897	0													Перо:		笔:	ペン：		
+356288	0										Secțiune			Сечение		截面	セクション		
+139468	0												Hesaplanıyor	Изчислявайки	Анализ	正在分析			解析中
+74919	0										Animație			Анимация		动画	アニメーション		
+74948	0													Изображения		图像			画像
+74722	1										Ștergeți	Usuń		Изтрива	Удалить	删除			削除 | ลบ
+74780	2										Numele fișierului este incorect	Nazwa pliku jest niewłaściwa	Dosya adı yanlıştır	Името на файла е грешно	Имя файла некорректно	文件名错误	ファイル名が正しくありません。		ชื่อไฟล์ไม่ถูกต้อง | Ime datoteke je napačno
+74706	2										Scară			Мащаб	Масштаб	标尺	スケール		มาตราส่วน | Měřítko
+74870	0										Riglă verticală			Вертикална скала	Вертикальная линейка	垂直尺			垂直定規
+74741	0											Dług.		Дълж.	Длина	长度	長さ		
+366053	0											Całkowite		Завършено	Завершено	完整			完了
+75007	0										Ajustați			Фиксира	Откорректировать	调整			調整
+58304	1												Çalışmanın tanımı	Описание на задачата	Описание проекта	文件描述	ファイルの説明		รายละเอียดงาน
+74878	0										Mărimea textului			Размери на текстове	Размер текстов	字号	テキストの大きさ		
+74898	0										Mărime:			Размер:		大小:	サイズ：		
+38643	0															尺寸			Коти | Размеры | Коти | Размеры | 尺寸 | 寸法 | 寸法
+170708	0										Vedeți plansee din rețea de grinzi și tip dală	Zobacz stropy kasetonowe i płyty	Nervürlü ve düz döşemeleri görüntüle	Показва касетирани и масивни плочи	Просмотр кессонных и плоских плит	查看格板和平板	ワッフルスラブとフラットスラブを表示する		
+74969	1										Salvați ca		Farklı kaydet	Записва като	Сохранить как	另存为	名前を変えて保存		บันทึกเป็น
+74934	1											Kolor tła		Цвят на фона	Цвет фона	背景颜色	背景カラー		สีพื้นหลัง
+74951	0										Schimbați grupul	Zmień grupę	Grubu değiştir	Променя група	Изменить группу	换组	グループを変更する		
+74808	0												Ortogonal açık/kapalı	Ортогонално вкл/изкл	Ортогонально вкл/выкл	正交 开/关	直交のオン/オフ		
+74871	0										Linia de bază a cadrului		Çerçeve tabanı hattı	Основна линия на рамка	Базовая линия рамы каркаса	框架基线	フレーム基準線		
+74984	0												Özetlenmiş	Обобщено	Обобщение	总结			要約
+250158	0											Wartość	Değer	Стойност	Значение	值			値
+123798	3										Manager de fișiere	Menedżer plików		Файлов мениджър	Администратор файлов	文件管理	ファイルマネジャー		จัดการไฟล์ | Správce souborů | Fájlkezelő
+74879	0										Încărcări speciale	Specjalne obciążenia		Специални товари	Специальные нагрузки	特殊荷载			特別荷重
+38789	0											Podłużne	Boylamasına	Надлъжно	Продольн.	纵向			水平
+64404	0												Deforme olmuş	Деформирана форма	Деформированная форма	形变			変形形状
+59343	0													Текст		文本	ラベル名		
+183369	0															总	全て		Общо | Общ. | Общо | Общ. | 总计 | 総数
+37750	0													Видими	Видимые	可视			表示
+74809	0										Modificați ultimul punct marcat	Zmień ostatni zaznaczony punkt	Son işaretli noktayı değiştirin	Променя последната отбелязана точка	Изменить последнюю точку	改变最后一点	最終ポイントを変更		
+74935	1										Proiecție		İzdüşüm	Проекция		投影	プロジェクション		การฉายรูป
+74970	1													мин		最小			ต่ำสุด
+55728	0												Kolon başlangıçları	Начала	Стыки	支柱起基			柱開始
+74872	0												Moment hattı	Линия на моменти	Линия моментов	力矩线	モーメント線		
+155089	0										Încărcări	Obciążenia		Товари	Нагрузки	荷载			荷重
+157223	1											Długość				长度	長さ		Дължина | Длина | Дължина | Длина | 长度 | 長さ | Długość
+55257	0													Текстове	Тексты	文本	テキスト		
+38790	0													Напречно	Поперечн.	横向	横向き		
+137893	0										Primul câmp al titlului nu poate rămâne gol.	Pierwsze pole tytułu nie może być puste.	Başlıktaki ilk alan boş bırakılamaz.	Първото поле на заглавието не може да е празно.	Первое поле заголовка не может оставаться пустым.	标题的第一处空白不能为空。	タイトルの最初のフィールドは空欄にできません。		
+74971	1													макс.	макс	最大			สูงสุด
+156896	0													Резултати	Результаты	结果			結果
+74955	0										Permite refacerea operațiunilor anulate anterior cu ajutorul butonului '%s'.	Umożliwia ponowne wykonanie cofniętych wcześniej operacji za pomocą przycisku '%s'.	Önceden geri alınan işlemleri '%s' seçeneği ile tekrar yapmanızı sağlar.	Позволява да възстановите преди това отменените операции, като използвате опцията "%s".	Позволяет повторно выполнить ранее отмененные операции с помощью кнопки '%s'.	使用选项 '%s' 可以重作之前撤销的步骤。	オプション「%s」を使用して、実行前の操作をやり直すことができます。		
+74709	0										Desenați			Изчертава	Начертить	绘制			描画
+74810	0										Șabloane DXF-DWG		DXF-DWG Şablonları	Шаблони DXF-DWG	Шаблон DXF-DWG	DXF-DWG 模板	DXF-DWGテンプレート		
+74759	0													Таблица_данни	Таблица_данные	表格数据	表_データ		
+74873	0										Linia de tăiere	Linia sił tnących	Kesme hattı	Линия на срязване	Линия поперечных сил	剪力线	せん断線		
+175880	0										Armarea nu a fost definită		Donatı tanımlanmamıştır	Армировката не е дефинирана	Армирование не задано	未定义配筋	配筋が定義されていません		
+74988	0										Parolă	Hasło	Şifre	Парола	Пароль	密码	パスワード		
+74842	0													Линии на полето	Линии полей	格线	ボックスの枠線		
+46966	0											Błąd		Грешка	Ошибка	错误	エラー		
+37832	0													Зона		区域	ゾーン		
+316709	0										Este necesar GL 3.3 sau o versiune superioară				Требуется OpenGL 3.3 или выше	需要OpenGL 3.3或更高版本	OpenGL 3.3以降のものが必要です		
+74972	0										Lucrarea nu este calculată.	Projekt nie został obliczony.	Bu çalışma hesaplanmamıştır.	Задачата не е изчислена.	Проект не проанализирован.	未分析文件。	プロジェクトは解析されていません。		
+74922	0												Kiriş tanımı	Въвеждане греди	Задание балок	梁定义	梁の定義		
+74725	1												Açıklama	Описание		描述			説明 | คำบรรยาย
+74956	0											Wykryto błędy we wprowadzonych danych.	Girilen verilerde hata tespit edilmiştir.	Във въведените данни има грешки.	Во введенных данных обнаружены ошибки.	引入数据中发现错误。	入力データにエラーが検出されました。		
+38333	0												Sınırlar	Граници	Границы	边界	リミット		
+74811	0												Kaynakları düzenleme	Чертожни инструменти	Ресурсы редактирования	绘图工具	編集リソース		
+32667	0											Miesiąc		Месец	Месяц	月			
+34025	0											Ciężar	Ağırlık	Тегло	Вес	重量			質量
+74760	0													Котиране:	Размер:	尺寸:			寸法:
+182413	1											Błędy		Грешки	Ошибки	错误	エラー		ข้อผิดพลาด
+74903	0										Dacă doriți să verificați cu una din dimensiunile stabilite, introduceți aceste dimensiuni aici și, în continuare, apăsați 'Dimensionare > Rearmare'. Dacă doriți să calculați cu dimensiuni minime, introduceți aici și, în continuare, apăsați 'Dimensionare> Dimensiuni minime'.	Jeśli chcesz zweryfikować określone wymiary, wprowadź je tutaj, a następnie naciśnij 'Wymiarowanie> Ponownie dobierz zbrojenie'. Jeśli chcesz wykonać obliczenia z zachowaniem minimalnych wymiarów, wprowadź je tutaj, a następnie kliknij 'Wymiarowanie> Minimalne wymiary'.	Belirtilen boyutlarla kontrol etmek istiyorsanız, bu boyutları buraya girin ve ardından 'Detaylandırma > Yeniden tasarla' seçeneğine tıklayın. Minimum boyutlarla hesaplamak istiyorsanız, bu boyutları buraya girin ve ardından 'Detaylandırma > Minimum boyutlar' seçeneğine tıklayın.	За да проверите с определени размери, въведете ги тук и изберете "Оразмерява > Армира отново". Ако желаете да изчислите с минимални размери, въведете ги тук и изберете "Оразмерява > Минимални размери".	Если вы хотите проверить определенные размеры, введите их здесь, а затем нажмите "Детализация > Переармировать". Если вы хотите рассчитать с минимальными размерами, введите их здесь, а затем нажмите "Детализация > Минимальные размеры".	运行用户定义尺寸检验，首先输入这些尺寸，选择 '详细 > 重新设计'。如果需要使用最小尺寸进行计算， 在此输入并选择'详细 > 最小尺寸'。	ユーザー定義の寸法のチェックを実行するために、こちらにそれら寸法を入力して 「詳細 > 再デザイン」を選択してください。最小寸法で計算する場合、 それらの寸法を入力して「詳細 > 最小寸法」を選択してください。		
+74874	0											Linia momentów skręcających	Burulma hattı	Линия на усукване	Линия кручения	扭矩线			回転線
+156933	0													Геометрия		几何特性	ジオメトリ		
+72070	0													Поле	Текстовое поле	文本框	テキストボックス		
+46260	0										Încărcare permanentă	Stałe obciążenie		Постоянен товар	Постоянная нагрузка	恒荷载			死荷重
+74862	0												Kiriş etiketleri	Етикети греди	Метки балок	梁标签	梁ラベル		
+74881	0													Детайл в 3Д	3D-детали	3D 详细			3D詳細
+74923	1										Unități			Единици	Единицы	单位			単位 | หน่วย
+59655	0													Метри	Метры	米	メートル		
+74957	0											Przed kontynuowaniem należy poprawić wszystkie błędy.		Трябва поправите всички грешки преди да продължите.	Все ошибки необходимо исправить перед тем как продолжить.	修正所有错误后才可继续。	実行前にすべてのエラーを修正する必要があります。		
+74712	0											Urządzenie peryferyjne		Периферно устройство	Периферийные устройства	外部设备			周辺機器
+74812	0										Capturi de șabloane		Şablon nesne yakalamaları	Прихващане на шаблони	Привязки к объектам шаблона	捕捉模板	テンプレートオブジェクトスナップ		
+74745	0											Widok montażowy prętów	Donatı düzeni	Детайл армировка	Детализация армирования	配筋布局	配筋レイアウト		
+42064	0												Kalem kalınlığı	Перо		字体粗细	ペンの太さ		
+75016	0										Îmbinări I: Hale cu profile cu secțiunea I. Îmbinări sudate	Połączenia I: Hale z dwuteowników. Połączenia spawane	Birleşim I: Çift T profile sahip yapılar. Kaynaklı birleşimler	Съединения I: Халета с двойно T профили. Заварени съединения	Соединения I: Промздания с двутавровыми профилями. Сварные соединения	连接 I: 厂房 I 截面钢材。焊接连接	接合 I:鋼断面Iの倉庫。溶接接合		
+66476	0										Proiectați		Boyutlandır	Оразмерява	Проектировать	设计	寸法設定する		
+74990	0													До група	До группы	至组	グループまで		
+74904	0										Armare superioară		Üst donatı	Отрицателна армировка	Верхнее армирование	顶部配筋			上部配筋
+46261	0										Supraîncărcare	Obciążenie zmienne	Canlı yük	Експлоатационен товар	Временная нагрузка	活荷载			生荷重
+74834	1										Editați			Променя	Редактировать	编辑			編集 | แก้ไข
+74863	0										Secțiunea grinzii		Kiriş kesitleri	Разрез греди	Сечение балок	梁截面			梁断面
+38562	0												Sayımlar	Оценки	Счетчик	计数器	カウンター		
+74973	1										Semnătura			Шифър	Подпись	签名			署名 | İmza
+59656	0													Сантиметри	Сантиметры	厘米	センチメートル		
+74713	0										Până la etaj	Aż do piętra		До етаж	До этажа	至楼层	フロアまで		
+71597	0										Calculați			Изчислява	Анализ	分析			解析
+53951	1										Nu se poate șterge fișierul %s	Nie można usunąć pliku %s		Не може да се изтрие файлът %s	Невозможно удалить файл %s	无法删除文件 %s	ファイル%sの削除不可		Datoteke %s ni mogoče izbrisati
+58433	0										Datele lucrării			Данни на задачата	Данные проекта	文件数据	プロジェクトデータ		
+74762	2													Размер		尺寸	大きさ		ขนาด | Veličina
+74746	1										Rezumatul masurătorilor			Обобщена спецификация	Сводные данные по количественным характеристикам	尺码总结	数量サマリー		Povzetek količin
+75017	0										Îmbinări I: Hale cu profile cu secțiunea I. Îmbinări cu șuruburi	Połączenia II: Hale z dwuteowników. Połączenia śrubowe	Birleşim II: Çift T profile sahip yapılar. Cıvatalı bağlantılar	Съединения II: Халета с двойно T профили. Болтови съединения	Соединения II: Промздания с двутавровыми профилями. Болтовые соединения	连接 II: 厂房 I 截面钢材。螺栓连接	接合 II:鋼断面Iの倉庫。ねじ接合		
+74950	0													3Д Модел	3D-модель	3D 模型	3Dモデル		
+139014	0										Se importă ...		İçe aktarılıyor...	Внасяйки...	Импорт...	正在导入...	インポート中...		
+74991	0													От група	От группы	自组	グループから		
+74786	0													Вятър	Ветер	风			風
+27485	0										Texte pentru armături		Donatı metinleri	Текстове пръти	Тексты армирования	配筋文字	配筋テキスト		
+38565	0										Suprafețe			Площи	Площадь	面积			表面積
+74835	0										Tabel de masurători			Таблица спецификация	Таблица количественных характеристик	测量表			数量表
+74974	0											Końcowy raport obliczeń	Son tasarım raporu	Краен отчет за изчислението	Конечный отчет по расчету	最终计算清单	最終設計レポート	Τελική έκθεση σχεδιασμού	
+59657	0													Милиметри	Миллиметры	毫米	ミリメートル		
+57072	0										Izolare acustică		Hava kaynaklı ses yalıtımı	Шумоизолация	Шумоизоляция	隔音			防音
+74959	0										Afișați/Ascundeți problemele	Pokaż/Ukryj incydenty	Hataları Göster/Gizle	Показва/Скрива инцидентите	Скрыть/Показать инциденты	显示/隐藏事件	インシデントの表示/非表示		
+74714	0											Od piętra		От етаж	От этажа	从楼层	フロアから		
+74814	1										Directorul %s nu există. Doriți să îl creați?		%s dizini mevcut değildir. Oluşturmak istiyor musunuz?	Директорията %s не съществува. Искате ли да я създадете?	Папка %s не существует. Создать папку?	文件夹 %s 不存在。是否创建文件夹？	ディレクトリ%sがありません。新しく作成しますか？		Katalog %s nie istnieje. Czy chcesz go utworzyć?
+35435	0											Słupy		Колони	Колонны	支柱			柱
+28251	0											Pręty		Пръти	Стержни	杆件			鉄筋
+123808	0												Yapılandırma	Конфигурация		设置			設定
+75018	0										Îmbinarea III: Cadre de clădire cu profile cu secțiune I. Îmbinări sudate	Połączenia III: Ramy budynków z dwuteowników. Połączenia spawane	Birleşim III: Çift T profile sahip bina çerçeveleri. Kaynaklı birleşimler	Съединения III: Рамки от постройки с двойно T профили. Заварени съединения	Соединения III: Рамы каркасных зданий с двутавровыми профилями. Сварные соединения	连接 III: 建筑物 I 截面钢材。焊接连接	接合 III:鋼断面Iの建築物フレーム。溶接接合		
+74906	0										Importați lucrare			Внася задача	Импортировать проект	导入文件	プロジェクトをインポートする		
+74992	0										Încărcați grupul	Przenieś grupę do góry	Bir grup yukarı	Група нагоре	Группа вверх	上一组	グループを上げる		
+53936	0											Trzęsienie ziemi		Земетръс	Землетрясение	地震			
+74865	0													Такстове стремена	Тексты хомутов	箍筋文字	スターラップテキスト		
+74885	0													Чертеж рамки	План рам каркаса	框架图纸	フレーム描画		
+55238	1										Atribuiți					设置	割り当てる		Определя | Задать | Определя | Задать | 指任 | 割り当てる | Atribuiți
+74975	0											Wprowadzanie za pomocą współrzędnych	Koordinatlara göre giriş	Въвеждане по координати	Ввод координат	坐标引入	座標の挿入		
+74731	0										Fără descriere		Açıklama olmadan	Без описание	Без описания	无描述	説明なし		
+58247	0										Informație			Информация		信息			情報
+74925	0													Основни	Основн.	常见			一般
+57283	0										Scară orizontală			Хоризонтален мащаб	Горизонтальный масштаб	水平标尺			水平定規
+43211	0										Grindă înclinată	Belka pochyła	Eğik kiriş	Наклонена греда	Наклонная балка	倾斜梁			傾斜梁
+74939	0										Denumirea comercială		Şirket adı	Търговско наименование	Название компании	公司名			企業名
+38252	0													Моменти	Моменты	力矩	モーメント	Ροπές	
+53195	0										Poziție			Разположение	Положение	位置			
+75019	0										Îmbinarea IV: Cadre de clădire cu profile cu secțiune I. Îmbinări cu șuruburi	Połączenia IV: Ramy budynków z dwuteowników. Połączenia śrubowe	Birleşim IV: Çift T profile sahip bina çerçeveleri. Cıvatalı bağlantılar	Съединения IV: Рамки от постройки с двойно T профили. Болтови съединения	Соединения IV: Рамы каркасных зданий с двутавровыми профилями. Болтовые соединения	连接 IV：建筑框架， I 型钢截面。螺栓连接	接合 IV:鋼断面Iの建築物フレーム。ねじ接合		
+74993	0										Descărcați grupul	Przenieś grupę na dół	Bir grup aşağı	Група надолу	Группа вниз	下一组	グループを下げる		
+53937	0										Zăpadă	Śnieg		Сняг	Снег	雪			
+32088	0										Zăbrele			Ферми	Фермы	格架			格子
+74886	0													Диаграма времена-дейности	Диаграмма Ганта	甘特图	ガントチャート		
+29565	0										Armătură			Армировка	Армирование	配筋			
+74976	0										Dacă apăsați pe acest buton, se va genera o animație a deformației structurii (cauzată de o simplă ipoteză sau de o combinație de ipoteze selectate în acestă casuță de dialog), pornind de la situația nedeformată.	Po naciśnięciu tego przycisku na ekranie zostanie wygenerowana animacja odkształconej postaci konstrukcji (spowodowanej wpływem przypadku prostego lub kombinacji przypadków wybranych w tym oknie dialogowym), począwszy od postaci niezdeformowanej.	Bu butona basarsanız, deforme olmamış durumdan başlayarak ekranda yapının deformasyonunun (bu diyalog kutusunda seçilen tek senaryonun veya senaryo kombinasyonunun neden olduğu) bir animasyonu oluşturulacaktır.	От този бутон се анимира деформираната форма на конструкцията (получена от единичното съчетание на товари или от комбинация от товарни съчетания, избрани в този диалогов прозорец), тръгвайки от недеформираната форма.	При нажатии этой кнопки будет создан анимированный вид деформированной формы конструкции (вызванной простым нагружением или комбинацией нагружений, выбранной в этом диалоговом окне) на основе ситуации без деформации.	点击此键生成结构形变的动画视图（由简单荷载情景或此对话框中所选择的组合荷载情景引起），从形变仍未发生开始。	このボタンを押すと、未変形状態から出発し、構造の変形した形状 （このダイアログボックスで選択された単純な荷重ケースまたは組み合わせ荷重ケースによる）の アニメーションビューが生成されます。		
+138537	0												ın	от	из	自	の		
+74716	0										Scară verticală  			Вертикален мащаб   	Вертикальный масштаб  	垂直标尺    	垂直スケール   		
+66916	0													Рамка	Рама каркаса	框架	フレーム		
+38806	0										Tăieri	Siły tnące		Срязващи усилия	Поперечные силы	剪力	せん断		
+38889	0											Stały punkt		Фиксирана точка	Фиксированная точка	固定点			不動点
+155079	0										Normă			Норма		规范			規格
+261366	0											Materiał		Материал		材料			
+75020	0											Połączenia V: Kratownice płaskie z profili zamkniętych	Birleşim V: İçi boş profillere sahip düz kafes kirişler	Съединения V: Фермови равнини с тръбни профили	Соединения V: Плоские фермы с полыми профилями	接头V：空心型材扁平桁架	接合 V:鋼管の平トラス		
+74995	0										Lucrare goală		Boş proje	Празна задача	Пустой проект	空白项目	空白のプロジェクト		
+74867	0												Kalem kalınlığı	Пера	Перья	字体粗细	ペン太さ		
+36411	0										Pereți	Ściany		Стени	Стены	墙			壁
+74845	0											Nie można zmienić skali w tego typu rysunkach	Bu tür planlarda ölçeği değiştirmek mümkün değildir	Не можете да променяте мащаба на този вид чертежи	Невозможно изменить масштаб данного типа чертежа	无法改变此类图像的标尺	このタイプの描画でスケールを変更することができません		
+41403	0													Група	Группа	组	グループ		
+74977	0										Introduceți primul punct	Wprowadź pierwszy punkt	İlk noktayı giriniz	Въведете първата точка	Вставить первую точку	引入第一点	最初のポイントを挿入		
+74961	1													Задача	Проект	文件	プロジェクト		โครงการ
+74926	0													Метална	Металлический	钢			鋼
+367502	0												Detaylandırma	Армировъчен план	Детализация	详图			詳細
+156899	0										Rază	Promień	Yarıçap	Радиус		半径			
+74817	0										Vedeți			Прозорец	Вид	查看	ビュー		
+59845	0											Momenty skręcające		Усукване	Крутящие моменты	转矩			回転
+38400	0										Secțiuni			Разрези	Сечения	截面			断面
+74909	0										Copiați din		Şuradan kopyala	Копира от	Копировать из	复制自	以下よりコピーする		
+261382	0													Продънване	Продавливание	冲剪力	パンチングせん断		
+74996	0										Obținerea datelor			Получени данни	Получение данных	正在获取数据	データの取得		
+34753	0													Определено от потребителя	Типовой	普通			一般
+74888	1												Yeni çalışma	Нова задача	Новый проект	新建文件	新しいジョブ		โครงการใหม่
+74847	1											Piętro		Етаж	Этаж	楼层	フロア		ชั้น
+29528	0													Инфо		信息			情報
+74978	0										Introduceți al doilea punct	Wprowadź drugi punkt	İkinci noktayı giriniz	Въведете втората точка	Вставить вторую точку	引入第二点	最後のポイントを挿入		
+58305	1												Çalışmanın adı	Наименование на задачата	Имя проекта	文件名	ファイル名		ชื่อโครงการ
+74927	0										Vedeți elevația			Изглед	Вертикальная проекция	正视图	高度ビュー		
+38794	0												Kat planları	Етажни чертежи	Планы этажей	楼层图纸			平面図
+52260	0												Açıklıklar	Отвори	Проемы	空洞			開口部
+71967	0													Еднопроводна	Однолинейная	单束			単繊維
+292684	1													Вид	Тип	类型	タイプ		ประเภท
+74772	0										Stilouri și texte		Kalem kalınlığı ve metin	Пера и текстове	Перья и тексты	字体粗细及文本	ペン太さと文字		
+41919	0										Adăugați			Добавя	Добавить	添加			追加
+74751	0											Według grup		По групи	По группам	根据组别	グループで		
+75023	1												Hakkında ...	За програмата ...	О программе ...	关于 ...	このプログラムについて...		เกี่ยวกับ ...
+74794	1													Норми	Нормы	规范			規格 | หลักเกณฑ์
+74998	0										În cazul modificării armăturii, trebuie să apăsați pe opțiunea 'Verificați'.	W przypadku modyfikacji zbrojenia, należy wybrać opcję 'Weryfikacja'.	Donatıları değiştirdiğinizde, 'Kod kontrolü' seçeneğine tıklamanız gerekir.	При промяна на армировката, веднага трябва да изберете опцията "Проверка".	При изменении армирования необходимо выбрать опцию "Проверочный расчет".	如果需要修改配筋，请点击‘规范检测’选项。	配筋を変更する場合は、「Codecheck」オプションを選択する 必要があります。		
+75006	0												Kısaltma	Абревиатура	Аббревиатура	缩写			略称
+59554	0										Nouă			Нов	Новый	新建			新規
+139010	0													Записки	Отчеты	报告	レポート		
+74928	0										Opțional			Опционално	Опционально	可选			省略可能
+74963	0												%s elemanının kopyası	Копие на %s	Копия %s	%s 复制件	%sのコピー		
+157086	0											Początek		Начало		原点			
+74699	0										Înainte de a imprima planuri, este necesar să fie definite anexele conectate la calculatorul dumneavoastră. Acest lucru se realizează în opțiunea "Setări generale" de pe linia de sus a ecranului, în secțiunea "Planuri".	Przed wydrukowaniem rysunków konieczne jest zdefiniowanie urządzeń peryferyjnych podłączonych do komputera. Można to wykonać, korzystając z opcji 'Ustawienia Ogólne' górnego paska narzędzi, wybierając 'Rysunki'.	Planları yazdırmadan önce bilgisayarınıza bağlı çevre birimlerini tanımlamış olmanız gerekir. Bu işlem, ekranın üst kısmında yer alan 'Planlar' bölümündeki 'Genel Ayarlar' seçeneğinden yapılır.	Преди разпечатването на чертежите е необходимо да се дефинират периферните устройства към компютъра. Използва се опцията на лентата с бутони "Основни настройки" избирайки "Чертежи".	Перед печатью чертежей необходимо задать периферийные устройства, подключенные к компьютеру. Это можно сделать с помощью опции "Общая конфигурация" - "Чертежи".	打印图像前，须先定义以电脑相连的外围设备。可使用工具栏中的选项‘常用设置’并选择‘制图’ 进行定义。	図面を印刷する前に、コンピューターと接続した周辺機器の設定が必要です。 この設定はツールバーの「一般設定」オプションで「図面」より 行うことができます。		
+355062	0												Görünümlerin planları		Планы видов	视图图纸	ビュープラン		
+31060	0										Referințe			Означения	Ссылки	编号			参照
+56318	0											Według pięter		По етажи	По этажам	根据楼层	フロアで		
+130049	0													Записка	Отчет	报告	レポート		
+74999	0										Verificați datele generale ale lucrării.	Sprawdź ogólne dane projektu.		Проверка на основните данни на задачата.	Проверить общие данные проекта.	检查项目的通用数据。	プロジェクトの一般情報を確認してください。		
+64398	0										Oțel laminat și ramforsat	Elementy stalowe walcowane i złożone	Haddelenmiş ve güçlendirilmiş çelik	Валцована и заварена стомана	Прокатная и сварочная сталь	轧制和焊接钢筋			圧延鋼板
+74736	0										Oțel în bare	Stal prętów		Стомана в пръти	Сталь в стержнях	杆件钢材	鉄筋の鋼材		
+74979	0											Typowe wartości projektu	Proje için yaygın değerler	Типични стойности за проекта	Обычные значения проекта	通常项目使用的值	プロジェクトの通常値		
+74892	1													Чертежи		图纸			描画 | แบบ

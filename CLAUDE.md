@@ -155,7 +155,7 @@ Este programa es para mi uso personal, pero estará en un repositorio de Github.
 - Siempre que hayas finalizado alguna tarea y necesites información para seguir, informa al usuario de inmediato.
 - No te quedes en silencio sin motivo.
 - Si esperas el resultado de alguna tarea en segundo plano, pon un aviso en MAYÚSCULAS (por ejemplo: "ESPERANDO TAREA EN SEGUNDO PLANO: <qué tarea>").
-- Antes de lanzar cualquier aplicación para capturar pantalla (la original o el clon), AVISA al usuario para que libere el workspace (pantalla) y espera su OK explícito antes de lanzarla. No lances aplicaciones con ventana sin ese OK.
+- **Autorización permanente (2026-11-03, a petición del usuario para acelerar):** se pueden lanzar el clon, el original (CYPE 3D) y cualquier otra aplicación con ventana SIN pedir OK previo, siempre en la PANTALLA PRINCIPAL. No escatimar lanzamientos: usar la aplicación real para verificar visualmente y probar funcionalidad en cuanto haya algo que ver. Esta autorización sustituye a la regla anterior de avisar y esperar OK. Seguir cerrando los procesos lanzados al terminar y no tocar ficheros fuera del proyecto.
 
 ## Obras de prueba
 

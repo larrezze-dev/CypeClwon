@@ -109,6 +109,84 @@ CC_STRUCT(Piece, id, barIds, nodeIds, type, groupId)
 CC_STRUCT(Bar, id, startNode, endNode, materialId, sectionId, rollAngleDeg, xAxisInverted, layerIds)
 CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, layerIds)
 
+// --- bar_description.h (T-P5-07) ---
+CC_ENUM(BarMaterialIcon, {{BarMaterialIcon::RolledSteel, "rolledSteel"},
+                          {BarMaterialIcon::RolledSteelFamily2, "rolledSteelFamily2"},
+                          {BarMaterialIcon::ColdFormedSteel, "coldFormedSteel"},
+                          {BarMaterialIcon::Timber, "timber"},
+                          {BarMaterialIcon::ExtrudedAluminium, "extrudedAluminium"},
+                          {BarMaterialIcon::SpecialAluminium, "specialAluminium"},
+                          {BarMaterialIcon::Concrete, "concrete"},
+                          {BarMaterialIcon::Generic, "generic"}})
+CC_ENUM(Arrangement, {{Arrangement::Simple, "simple"},
+                      {Arrangement::SimpleWithHaunches, "simpleWithHaunches"},
+                      {Arrangement::WithConcreteSlab, "withConcreteSlab"},
+                      {Arrangement::DoubleBoxWelded, "doubleBoxWelded"},
+                      {Arrangement::DoubleBoxBattened, "doubleBoxBattened"},
+                      {Arrangement::DoubleBoxGeneric, "doubleBoxGeneric"},
+                      {Arrangement::HalfProfile, "halfProfile"},
+                      {Arrangement::SideFlatPlates, "sideFlatPlates"},
+                      {Arrangement::Boyd, "boyd"},
+                      {Arrangement::DoubleIWelded, "doubleIWelded"},
+                      {Arrangement::DoubleIBattened, "doubleIBattened"},
+                      {Arrangement::DoubleIGeneric, "doubleIGeneric"}})
+CC_ENUM(BehaviourKind, {{BehaviourKind::Linear, "linear"},
+                        {BehaviourKind::TensionOnly, "tensionOnly"},
+                        {BehaviourKind::CompressionOnly, "compressionOnly"}})
+CC_STRUCT(WebStiffeners, present, spacingM, thicknessM)
+CC_STRUCT(GenericSectionData, widthLeftM, widthRightM, depthBottomM, depthTopM, areaM2, shearAreaYM2, shearAreaZM2, inertiaYM4,
+          inertiaZM4, torsionM4)
+CC_STRUCT(MaterialData, elasticModulusMPa, poissonRatio, thermalExpansion, densityKnM3)
+
+inline void to_json(json& j, const BarDescription& d) {
+    j = json{{"id", d.id},
+             {"elementType", d.elementType},
+             {"behaviour", d.behaviour},
+             {"materialIcon", d.materialIcon},
+             {"shape", shapeKey(d.shape)},
+             {"seriesRef", d.seriesRef},
+             {"profileRef", d.profileRef},
+             {"arrangement", d.arrangement},
+             {"stiffeners", d.stiffeners},
+             {"generic", d.generic},
+             {"material", d.material},
+             {"sectionId", d.sectionId},
+             {"materialId", d.materialId}};
+    if (d.inlineSection)
+        j["inlineSection"] = json{{"reference", d.inlineSection->reference},
+                                  {"kind", shapeKey(d.inlineSection->kind)},
+                                  {"dims", d.inlineSection->dims}};
+}
+inline void from_json(const json& j, BarDescription& d) {
+    const BarDescription defaults;
+    d.id = j.value("id", defaults.id);
+    d.elementType = j.value("elementType", defaults.elementType);
+    d.behaviour = j.value("behaviour", defaults.behaviour);
+    d.materialIcon = j.value("materialIcon", defaults.materialIcon);
+    const auto shape = shapeFromKey(j.value("shape", std::string(shapeKey(defaults.shape))));
+    if (!shape) throw std::invalid_argument("forma de perfil desconocida");
+    d.shape = *shape;
+    d.seriesRef = j.value("seriesRef", defaults.seriesRef);
+    d.profileRef = j.value("profileRef", defaults.profileRef);
+    d.arrangement = j.value("arrangement", defaults.arrangement);
+    d.stiffeners = j.value("stiffeners", defaults.stiffeners);
+    d.generic = j.value("generic", defaults.generic);
+    d.material = j.value("material", defaults.material);
+    d.sectionId = j.value("sectionId", 0);
+    d.materialId = j.value("materialId", 0);
+    d.inlineSection.reset();
+    if (j.contains("inlineSection")) {
+        const json& s = j.at("inlineSection");
+        Section section;
+        section.reference = s.at("reference").get<std::string>();
+        const auto kind = shapeFromKey(s.at("kind").get<std::string>());
+        if (!kind) throw std::invalid_argument("forma de perfil desconocida");
+        section.kind = *kind;
+        section.dims = s.at("dims").get<std::vector<double>>();
+        d.inlineSection = section;
+    }
+}
+
 // --- options_settings.h ---
 CC_STRUCT(BeamErrorSettings, compressionHook, topCompressionSteel, bottomCompressionSteel, manualShortCorbel,
           minStirrupDiameter, minStirrupDiameterMm, veryShortTruss, skinAnchorage, shortSpan, levelDifference, barTooLong,
@@ -266,6 +344,26 @@ const std::vector<Section>& sections() {
         makeCollection<Shell>("shells", "Láminas", &StructuralModel::shells, &StructuralModel::nextShellId),
         makeCollection<Piece>("pieces", "Piezas", &StructuralModel::pieces, &StructuralModel::nextPieceId),
         makeCollection<Layer>("layers", "Capas", &StructuralModel::layers, &StructuralModel::nextLayerId),
+        Section{"bar_descriptions", "Descripciones de barras",
+                [](const Project& p) { return json{{"next", p.barDescriptions.next}, {"items", p.barDescriptions.items}}.dump(2); },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    BarDescriptions loaded;
+                    loaded.items = j.value("items", std::vector<BarDescription>{});
+                    int following = 1;
+                    for (const BarDescription& d : loaded.items) following = std::max(following, d.id + 1);
+                    loaded.next = j.value("next", following);
+                    p.barDescriptions = std::move(loaded);
+                },
+                [](const Project& p) {
+                    int previous = 0;
+                    for (const BarDescription& d : p.barDescriptions.items) {
+                        if (d.id <= previous || d.id >= p.barDescriptions.next) return false;
+                        previous = d.id;
+                        if (!p.structure.findSection(d.sectionId) || !p.structure.findMaterial(d.materialId)) return false;
+                    }
+                    return true;
+                }},
     };
     return all;
 }

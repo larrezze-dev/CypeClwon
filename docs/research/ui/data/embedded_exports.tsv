@@ -1,0 +1,42 @@
+dll	export	encoding	bytes	file_version	virtual_path_or_head_hex
+ejd3dale	abstutzung_datos	raw	411635		 02011000435950452d323031312e626574612d6101040164
+ejd3dale	aluminiumkup_datos	raw	2930512		 02011000454a50452d323031312e626574612d610104012c
+ejd3dale	fachwerk_cyp_datos	concat+gunzip	33588987		CYPE-2025.beta-c \CYPE Ingenieros\Proyectos\CYPE 3D\Industriehalle mit Fachwerk Beispiel.ed3
+ejd3dale	tragstruktur_datos	raw	394876		 02011000435950452d323031312e626574612d6101040175
+ejd3dfra	bureaux_attique_cyp_datos	raw+gunzip	3057914		CYPE-2018-h \_ej_\bureaux _attique\Bâtiment de bureaux - Attique.ed3
+ejd3dfra	carportstation_datos	raw	433432		 02010b00454a50452d323031322d6a01fdfe000000000100
+ejd3dfra	chs_poutreplane_cyp_datos	raw+gunzip	354242		EJPE-2011-b \CYPE Ingenieros\Exemples\Structures 3D\CHS Poutre à treillis plane 1.ed3
+ejd3dfra	excoupalum_cyp_datos	concat+gunzip	11603171		EJPE-2010.beta-g \CYPE Ingenieros\Exemples\Métal 3D\Coupole en aluminium.ed3
+ejd3dfra	exefrrefsousplancher_cyp_datos	raw+gunzip	827167		CYPE-2015-d \CYPE Ingenieros\Projets\CYPE 3D\Renfort sous plancher existant.ed3
+ejd3dfra	exehan2_cyp_datos	raw+gunzip	767999		EJPE-2015-e \CYPE Ingenieros\Exemples\CYPE 3D\Exemple de hangar industriel 2.ed3
+ejd3dfra	exfrplancherrehabdwg_datos	raw	30183		 41433130323700000000000803c00100001f081e00000000
+ejd3dfra	exhangind1_cyp_datos	raw+gunzip	6209703		CYPE-2015-e \CYPE Ingenieros\Projets\CYPE 3D\Exemple de hangar industriel 1.ed3
+ejd3dfra	exhangmituniboul_cyp_datos	raw+gunzip	533581		EJPE-2010-h \CYPE Ingenieros\Exemples\Métal 3D\Exemple de hangars mitoyens-2.ed3
+ejd3dfra	rhs_poutreplane_cyp_datos	raw+gunzip	355875		EJPE-2011-d \CYPE Ingenieros\Proyectos\Nuevo Metal 3D\RHS\obras ejemplo\francia\RHS Poutre à treillis plane 1.ed3
+ejd3dfra	supportpansol_datos	raw	394744		 02011000435950452d323031312e626574612d6101040174
+ejd3dpor	chs_trelicaplana_cyp_datos	raw+gunzip	547323		CYPE-2011.beta-a \CYPE Ingenieros\Proyectos\Nuevo Metal 3D\CHS\obras de ejemplo\portugal\CHS Treliça plana 1.ed3
+ejd3dpor	coberturaestac_datos	raw	433442		 02010b00454a50452d323031322d6a01fdfe000000000100
+ejd3dpor	cupulaalum_datos	raw	2930530		 02011000454a50452d323031312e626574612d610104013e
+ejd3dpor	cursocim_cyp_datos	concat+gunzip	12414311		EJPE-2016-d \CYPE Ingenieros\Exemplos\CYPE 3D\CIM.ed3
+ejd3dpor	e3dtxtcerpo_datos	raw	44035		 4e75646f730d0a3120783d32342e37343920793d30207a3d
+ejd3dpor	e3dtxtconpo_datos	raw	4654		 4e75646f730d0a3120783d3520793d30207a3d300d0a3220
+ejd3dpor	e3dtxtcuppo_datos	raw	4670		 4e75646f730d0a3120783d3520793d30207a3d300d0a3220
+ejd3dpor	e3dtxtedipo_datos	raw	11695		 6e75646f730d0a3120583d302e30303020593d302e303030
+ejd3dpor	e3dtxtejepo_datos	raw	814		 6e75646f730d0a3120583d2d302e34303020593d302e3030
+ejd3dpor	e3dtxtelepo_datos	raw	7754		 6e75646f730d0a3120583d2d342e30303020593d302e3030
+ejd3dpor	e3dtxtficpo_datos	raw	122		 4e55444f530d0a3120583d3020593d30205a3d300d0a3220
+ejd3dpor	e3dtxttopo_datos	raw	2196		 4e75646f730d0a3120783d302e3730373120793d30207a3d
+ejd3dpor	e3dtxttorpo_datos	raw	16057		 6e75646f730d0a3120583d302e30303020593d33342e3531
+ejd3dpor	exemnav2_cyp_datos	raw+gunzip	461138		EJPE-2011.beta-e \CYPE Ingenieros\Exemplos\Novo Metal 3D\Exemplo de nave industrial 2.ed3
+ejd3dpor	exemploe3d_cyp_datos	raw+gunzip	10434516		CYPE-2011-d \CYPE Ingenieros\Projectos\Novo Metal 3D\Exemplo 1.ed3
+ejd3dpor	exnavgemunionapar_cyp_datos	raw+gunzip	533471		EJPE-2010-h \CYPE Ingenieros\Exemplos\Novo Metal 3D\Exemplo de naves geminadas-2.ed3
+ejd3dpor	moradia_lsf_cyp_datos	raw+gunzip	7727816		CYPE-2016-e \CYPE Ingenieros\Projectos\CYPE 3D\Moradia LSF.ed3
+ejd3dpor	moradia_lsf_dwg_datos	raw	24743		 41433130313800000000000003a00100001f081e00000000
+ejd3dpor	noseccvariavel_cyp_datos	raw+gunzip	2702156		CYPE-2015-e \CYPE Ingenieros\Exemplos\CYPE 3D\Nó de secção variável.ed3
+ejd3dpor	plantanavindustrial_datos	raw	381705		 41433130313500000000000a01dc000000170a1e00060000
+ejd3dpor	pordepositocilindrico_cyp_datos	raw+gunzip	1892450		CYPE-2015-e \CYPE Ingenieros\Exemplos\CYPE 3D\Depósito cilíndrico.ed3
+ejd3dpor	pordepositoesferico64_cyp_datos	raw+gunzip	16076307		CYPE-2015-e \CYPE Ingenieros\Exemplos\CYPE 3D\Depósito esférico 64 lados.ed3
+ejd3dpor	rhs_trelicaplana_cyp_datos	raw+gunzip	355842		EJPE-2011-d \CYPE Ingenieros\Proyectos\Nuevo Metal 3D\RHS\obras ejemplo\portugal\RHS Treliça plana 1.ed3
+ejd3dpor	silo_cyp_datos	raw+gunzip	4353259		EJPE-2012-d \CYPE Ingenieros\Exemplos\Novo Metal 3D\Silo.ed3
+ejd3dpor	suportepainsol_datos	raw	394726		 02011000435950452d323031312e626574612d6101040169
+ejd3dpor	suportetubagem_cyp_datos	raw+gunzip	5648736		CYPE-2015-e \CYPE Ingenieros\Exemplos\CYPE 3D\Suporte de tubagem.ed3

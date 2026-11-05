@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <initializer_list>
 
 namespace cc::core {
@@ -38,19 +39,25 @@ const std::vector<std::string>& coldFormedSteelGrades() {
 }
 
 const std::vector<std::string>& concreteGrades() {
-    // Verified: first entry C12/15, the run C25/30..C50/60 and Bc 15, Bc 20, Bc 25 ... Bc 60 (intermediate entries unverified).
-    static const std::vector<std::string> v = {"C12/15", "C25/30", "C30/37", "C35/45", "C40/50", "C45/55",
-                                               "C50/60", "Bc 15",  "Bc 20",  "Bc 25",  "Bc 60"};
+    // Verified by hand-made captures (Hormigon 1/2.png, 2026-11-04): full list, note there is no "Bc 45".
+    static const std::vector<std::string> v = {"C12/15", "C16/20", "C20/25", "C25/30", "C30/37", "C35/45",
+                                               "C40/50", "C45/55", "C50/60", "Bc 15",  "Bc 20",  "Bc 25",
+                                               "Bc 30",  "Bc 35",  "Bc 40",  "Bc 50",  "Bc 60"};
     return v;
 }
 
 const std::vector<std::string>& timberMaterials() {
-    static const std::vector<std::string> v = {"Aserrada, procedente de coníferas o chopos"};
+    // Verified (Madera (2).png): four materials.
+    static const std::vector<std::string> v = {"Aserrada, procedente de coníferas o chopos",
+                                               "Aserrada, procedente de especies frondosas",
+                                               "Laminada encolada, homogénea", "Laminada encolada, combinada"};
     return v;
 }
 
 const std::vector<std::string>& timberStrengthClasses() {
-    static const std::vector<std::string> v = {"C24"};
+    // Verified (Material de madera 1/2.png): C14 ... C50 (service classes 2 and 3 texts still pending capture).
+    static const std::vector<std::string> v = {"C14", "C16", "C18", "C20", "C22", "C24",
+                                               "C27", "C30", "C35", "C40", "C45", "C50"};
     return v;
 }
 
@@ -66,18 +73,42 @@ const std::vector<std::string>& aluminiumTempers() {
 }
 
 const std::vector<std::string>& rebarSteels() {
-    static const std::vector<std::string> v = {"S-400"};
+    // Verified (Acero en barras.png).
+    static const std::vector<std::string> v = {"S-220", "S-400", "S-500", "PC 60", "PC 52", "OB 37", "fyk=400", "fyk=500"};
     return v;
 }
 
 const std::vector<std::string>& aggregateKinds() {
-    static const std::vector<std::string> v = {"Cuarcita"};
+    // Verified (Naturaleza del arido.png).
+    static const std::vector<std::string> v = {"Cuarcita", "Caliza", "Arenisca", "Basalto"};
     return v;
 }
 
-const std::vector<std::string>& aggregateMaxSizes() {
-    static const std::vector<std::string> v = {"15 mm"};
-    return v;
+bool parseAggregateSizeMm(const std::string& text, double* mm) {
+    // Accepts "15" or "15 mm" (the stored form of the maximum aggregate size).
+    char* end = nullptr;
+    const double value = std::strtod(text.c_str(), &end);
+    if (end == text.c_str()) return false;
+    std::string rest(end);
+    rest.erase(0, rest.find_first_not_of(' '));
+    if (!rest.empty() && rest != "mm") return false;
+    if (mm) *mm = value;
+    return inRange(value, kAggregateMinMm, kAggregateMaxMm);
+}
+
+const std::string& timberServiceClassText(int serviceClass) {
+    // Verified texts (hand-made captures "Madera (1..8).png", 2026-11-04).
+    static const std::string c1 =
+        "Clase de servicio 1: se caracteriza por un contenido de humedad en los materiales correspondiente a una "
+        "temperatura de 20°C y una humedad relativa del aire que sólo exceda el 65% unas pocas semanas al año.";
+    static const std::string c2 =
+        "Clase de servicio 2: se caracteriza por un contenido de humedad en los materiales correspondiente a una "
+        "temperatura de 20°C y una humedad relativa del aire que sólo exceda el 85% unas pocas semanas al año.";
+    static const std::string c3 =
+        "Clase de servicio 3: condiciones climáticas que conduzcan a contenidos de humedad superiores a la clase de "
+        "servicio 2.";
+    static const std::string none;
+    return serviceClass == 1 ? c1 : serviceClass == 2 ? c2 : serviceClass == 3 ? c3 : none;
 }
 
 bool TimberSettings::isValid() const {
@@ -109,9 +140,9 @@ std::string RebarSteelSettings::summary() const {
 bool AggregateSettings::isValid() const {
     const AggregateSetting* items[] = {&columns, &beams, &foundationBeams};
     const bool ok = std::all_of(std::begin(items), std::end(items), [](const AggregateSetting* a) {
-        return contains(aggregateKinds(), a->kind) && contains(aggregateMaxSizes(), a->maxSize);
+        return contains(aggregateKinds(), a->kind) && parseAggregateSizeMm(a->maxSize, nullptr);
     });
-    return ok && inRange(foundationMaxSizeMm, 1.0, 100.0);
+    return ok && inRange(foundationMaxSizeMm, kAggregateMinMm, kAggregateMaxMm);
 }
 
 std::string AggregateSettings::summary() const {

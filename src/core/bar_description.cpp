@@ -59,6 +59,9 @@ constexpr BehaviourRow kBehaviours[] = {
 
 bool isIShape(ShapeKind shape) { return shape == ShapeKind::IParallel || shape == ShapeKind::ISloped; }
 
+/// The I icon of the original covers both I families (parallel and inclined flanges): the series decides.
+ShapeKind shapeGroup(ShapeKind s) { return s == ShapeKind::ISloped ? ShapeKind::IParallel : s; }
+
 bool finitePositive(double v) { return std::isfinite(v) && v > 0.0; }
 
 }  // namespace
@@ -149,7 +152,9 @@ std::vector<ShapeKind> shapesFor(BarMaterialIcon icon) {
     if (icon == BarMaterialIcon::Generic) return {ShapeKind::Generic};
     if (icon == BarMaterialIcon::Concrete) return shapesOfFamily(SectionFamily::Concrete);
     const auto family = familyOfIcon(icon);
-    return family ? shapesOfFamily(*family) : std::vector<ShapeKind>{};
+    std::vector<ShapeKind> out = family ? shapesOfFamily(*family) : std::vector<ShapeKind>{};
+    if (icon == BarMaterialIcon::RolledSteel) out.erase(std::remove(out.begin(), out.end(), ShapeKind::ISloped), out.end());
+    return out;
 }
 
 std::vector<Arrangement> arrangementsFor(BarMaterialIcon icon, ShapeKind shape) {
@@ -297,7 +302,7 @@ std::string validateDescription(const BarDescription& d, const ProfileLibrary& l
     const auto family = familyOfIcon(d.materialIcon);
     if (family && series->family != *family) return "La serie «" + d.seriesRef + "» no corresponde al material seleccionado.";
     if (!series->findProfile(d.profileRef)) return "El perfil «" + d.profileRef + "» no existe en la serie «" + d.seriesRef + "».";
-    if (series->kind != d.shape) return "La forma del perfil no corresponde a la forma seleccionada.";
+    if (shapeGroup(series->kind) != shapeGroup(d.shape)) return "La forma del perfil no corresponde a la forma seleccionada.";
     return validateSection(*section);
 }
 
