@@ -13,6 +13,8 @@
 #include <QLocale>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
+#include <QPolygonF>
 #include <QPixmap>
 #include <QPushButton>
 #include <QRadioButton>
@@ -247,6 +249,10 @@ bool offeredUnder(const ProfileSeries& s, SectionFamily family, const std::optio
 /// First slot of the icon that has a shape (the default one: the first slots of the conformado icon have none).
 int firstShapedSlot(BarMaterialIcon icon) {
     const auto& slotList = shapeSlots(icon);
+    // The original opens the cold-formed steel icon on "U conformado simple" (series U, UF-60x3), not on the first shape with data.
+    if (icon == BarMaterialIcon::ColdFormedSteel)
+        for (std::size_t i = 0; i < slotList.size(); ++i)
+            if (slotList[i].kind == ShapeKind::ColdFormedU) return static_cast<int>(i);
     for (std::size_t i = 0; i < slotList.size(); ++i)
         if (slotList[i].kind) return static_cast<int>(i);
     return 0;
@@ -270,6 +276,29 @@ QString makeReference(ShapeKind kind, const std::vector<double>& dims) {
 std::vector<double> defaultInlineDims(ShapeKind kind) {
     if (kind == ShapeKind::TimberRound) return {0.10};  // serie "Redondo" Ø100 of the original
     return std::vector<double>(dimensionKeys(kind).size(), 0.30);
+}
+
+// Picture of the generic section of the original: dashed envelope, the red question mark with its Y / Z axes and the four dimensions.
+QPixmap genericSectionPixmap() {
+    QPixmap pm(76, 80);
+    pm.fill(QColor(0xF0, 0xF0, 0xF0));
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(QColor(0x30, 0x30, 0xC0), 1, Qt::DashLine));
+    p.drawRect(QRectF(6, 4, 46, 52));
+    paintGlyph(p, Glyph::Generic, QRectF(12, 10, 34, 40), QColor(0x80, 0x80, 0x80));
+    p.setPen(QPen(Qt::black, 1));
+    p.drawLine(QPointF(6, 66), QPointF(52, 66));
+    p.drawLine(QPointF(60, 4), QPointF(60, 56));
+    QFont f = p.font();
+    f.setPixelSize(10);
+    f.setBold(true);
+    p.setFont(f);
+    p.drawText(QPointF(9, 76), QStringLiteral("1"));
+    p.drawText(QPointF(33, 76), QStringLiteral("2"));
+    p.drawText(QPointF(64, 36), QStringLiteral("3"));
+    p.drawText(QPointF(64, 14), QStringLiteral("4"));
+    return pm;
 }
 
 QWidget* headerBand(const QString& text, QWidget* parent) {
@@ -301,26 +330,123 @@ QToolButton* iconButton(const QPixmap& pm, int box, const QString& tip, QWidget*
     return b;
 }
 
+// Small drawn icons of the + / pencil / table / (i) buttons (the original uses bitmaps: thin black plus, golden pencil, grid, blue
+// information disc).
+QPixmap toolPixmap(const QString& name, const QColor& colour) {
+    const int size = 20;
+    QPixmap pm(size, size);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    if (name == QLatin1String("new")) {
+        p.setPen(QPen(QColor(0x30, 0x30, 0x30), 1.8));
+        p.drawLine(QPointF(10, 3.5), QPointF(10, 16.5));
+        p.drawLine(QPointF(3.5, 10), QPointF(16.5, 10));
+    } else if (name == QLatin1String("edit")) {
+        p.setPen(QPen(QColor(0x8A, 0x6A, 0x00), 1.0));
+        p.setBrush(QColor(0xF2, 0xC2, 0x3A));
+        QPolygonF body;
+        body << QPointF(14.5, 2.5) << QPointF(17.5, 5.5) << QPointF(7, 16) << QPointF(3.5, 16.5) << QPointF(4, 13);
+        p.drawPolygon(body);
+        p.setBrush(QColor(0x60, 0x60, 0x60));
+        p.drawPolygon(QPolygonF() << QPointF(4, 13) << QPointF(7, 16) << QPointF(3.5, 16.5));
+    } else if (name == QLatin1String("table")) {
+        p.setPen(QPen(QColor(0x50, 0x50, 0x50), 1.0));
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(QRectF(3.5, 3.5, 13, 13));
+        p.drawLine(QPointF(3.5, 7.8), QPointF(16.5, 7.8));
+        p.drawLine(QPointF(3.5, 12.2), QPointF(16.5, 12.2));
+        p.drawLine(QPointF(7.8, 3.5), QPointF(7.8, 16.5));
+        p.drawLine(QPointF(12.2, 3.5), QPointF(12.2, 16.5));
+    } else {  // info disc
+        p.setPen(Qt::NoPen);
+        p.setBrush(colour);
+        p.drawEllipse(QRectF(1.5, 1.5, 17, 17));
+        p.setBrush(Qt::white);
+        p.drawEllipse(QRectF(8.7, 4.4, 2.6, 2.6));
+        p.drawRoundedRect(QRectF(8.8, 8.2, 2.4, 7.2), 0.8, 0.8);
+    }
+    return pm;
+}
+
 QToolButton* toolGlyph(const QString& name, const QString& glyph, const QString& colour, const QString& tip, QWidget* parent) {
+    Q_UNUSED(glyph);
     auto* b = new QToolButton(parent);
     b->setObjectName(name);
-    b->setText(glyph);
+    b->setIcon(QIcon(toolPixmap(name, QColor(colour))));
+    b->setIconSize(QSize(20, 20));
     b->setToolTip(tip);
     b->setFocusPolicy(Qt::NoFocus);  // the icons of the toolbars are not tab stops (tabulacion_regla.md)
     b->setAutoRaise(true);
-    b->setFixedSize(24, 24);
-    b->setStyleSheet(QStringLiteral("QToolButton { border: none; background: transparent; color: %1; font-size: 16px; font-weight: bold; }"
-                                    "QToolButton:hover { background: #E5F1FB; }").arg(colour));
+    b->setFixedSize(26, 26);
+    b->setStyleSheet(QStringLiteral("QToolButton { border: none; background: transparent; }"
+                                    "QToolButton:hover { background: #E5F1FB; }"));
     return b;
 }
 
 void warn(QWidget* parent, const QString& text) { profileMessageSink().warn(parent, QObject::tr("Aviso"), text); }
 
+// Yellow drawing area of the Pilar / Viga pages (the original shows a picture of the section with its dimensions on a pale yellow
+// background; the pictures are bitmaps, here a schematic of the rectangle with the same dimension marks).
+class SectionSketch : public QWidget {
+public:
+    SectionSketch(const QString& horizontalLabel, const QString& verticalLabel, QSize size, QWidget* parent)
+        : QWidget(parent), m_h(horizontalLabel), m_v(verticalLabel) {
+        setFixedSize(size);
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.fillRect(rect(), QColor(0xFF, 0xF6, 0xD5));
+        const QRectF box(width() * 0.17, height() * 0.1, width() * 0.6, height() * 0.5);
+        p.setPen(QPen(Qt::black, 1.2));
+        p.setBrush(QColor(0xC4, 0xC4, 0xC4));
+        p.drawRect(box);
+        p.setPen(QPen(QColor(0x30, 0x30, 0xC8), 1));
+        QFont f = p.font();
+        f.setBold(true);
+        f.setPixelSize(15);
+        p.setFont(f);
+        const double yb = box.bottom() + 30, xr = box.right() + 26;
+        p.drawLine(QPointF(box.left(), yb), QPointF(box.right(), yb));
+        p.drawLine(QPointF(box.left(), yb - 6), QPointF(box.left(), yb + 6));
+        p.drawLine(QPointF(box.right(), yb - 6), QPointF(box.right(), yb + 6));
+        p.drawLine(QPointF(xr, box.top()), QPointF(xr, box.bottom()));
+        p.drawLine(QPointF(xr - 6, box.top()), QPointF(xr + 6, box.top()));
+        p.drawLine(QPointF(xr - 6, box.bottom()), QPointF(xr + 6, box.bottom()));
+        p.drawText(QRectF(box.left(), yb - 24, box.width(), 18), Qt::AlignCenter, m_h);
+        p.drawText(QRectF(xr + 6, box.top(), 20, box.height()), Qt::AlignCenter, m_v);
+    }
+
+private:
+    QString m_h, m_v;
+};
+
+QToolButton* wideIconButton(Glyph glyph, QSize box, const QString& tip, QWidget* parent) {
+    auto* b = iconButton(makePixmap(glyph, std::min(box.width(), box.height()) - 12, QColor(0xF7, 0xF7, 0xF7), QColor(0x9A, 0x9A, 0x9A)), 70, tip, parent);
+    b->setFixedSize(box);
+    return b;
+}
+
+// Row with one centred tile per equal cell (the Material / Tipo bands of the Pilar page span the whole width).
+QHBoxLayout* spreadRow(const QList<QToolButton*>& tiles) {
+    auto* row = new QHBoxLayout;
+    row->setContentsMargins(0, 4, 0, 4);
+    for (QToolButton* b : tiles) {
+        row->addStretch(1);
+        row->addWidget(b);
+        row->addStretch(1);
+    }
+    return row;
+}
+
 // Info box (icon, text, Aceptar), like the "Aviso" box but with the information icon.
 class InfoDialog : public CypeDialog {
 public:
     InfoDialog(const QString& title, const QString& text, QWidget* parent) : CypeDialog(title, parent) {
-        setFixedSize(420, 161);
+        setFixedSize(466, 161);  // measured: the original wraps the #65241 text after "principales"
         auto* row = new QHBoxLayout;
         row->setContentsMargins(14, 8, 14, 0);
         auto* icon = new QLabel(this);
@@ -344,7 +470,7 @@ public:
 // "Propiedades del perfil seleccionado" (~516x420): dimensioned drawing on the left, 13 rows on the right.
 class SectionDrawing : public QWidget {
 public:
-    explicit SectionDrawing(const Section& section, QWidget* parent) : QWidget(parent), m_section(section) { setMinimumSize(220, 330); }
+    explicit SectionDrawing(const Section& section, QWidget* parent) : QWidget(parent), m_section(section) { setFixedWidth(212); setMinimumHeight(330); }
 
 protected:
     void paintEvent(QPaintEvent*) override {
@@ -368,16 +494,32 @@ protected:
         p.drawRect(QRectF(origin.x() - w / 2, origin.y() + hh - tfS, w, tfS));
         p.drawRect(QRectF(origin.x() - twS / 2, origin.y(), twS, hh));
         p.setPen(QPen(Qt::black, 1));
+        // Dimension lines with end ticks and extension lines, as the original draws them (measured: b above, h left, tw below the web,
+        // tf right of the lower flange).
+        const auto horizontal = [&](double x1, double x2, double y) {
+            p.drawLine(QPointF(x1, y), QPointF(x2, y));
+            p.drawLine(QPointF(x1 - 3, y + 3), QPointF(x1 + 3, y - 3));
+            p.drawLine(QPointF(x2 - 3, y + 3), QPointF(x2 + 3, y - 3));
+        };
+        const auto vertical = [&](double x, double y1, double y2) {
+            p.drawLine(QPointF(x, y1), QPointF(x, y2));
+            p.drawLine(QPointF(x - 3, y1 + 3), QPointF(x + 3, y1 - 3));
+            p.drawLine(QPointF(x - 3, y2 + 3), QPointF(x + 3, y2 - 3));
+        };
         p.drawText(QRectF(origin.x() - w / 2, origin.y() - 28, w, 16), Qt::AlignCenter, QString::number(b * 1000.0, 'g', 4));
-        p.drawLine(QPointF(origin.x() - w / 2, origin.y() - 8), QPointF(origin.x() + w / 2, origin.y() - 8));
+        horizontal(origin.x() - w / 2, origin.x() + w / 2, origin.y() - 8);
+        p.drawLine(QPointF(origin.x() - w / 2, origin.y() - 12), QPointF(origin.x() - w / 2, origin.y() - 2));
+        p.drawLine(QPointF(origin.x() + w / 2, origin.y() - 12), QPointF(origin.x() + w / 2, origin.y() - 2));
         p.save();
         p.translate(origin.x() - w / 2 - 22, origin.y() + hh / 2);
         p.rotate(-90);
         p.drawText(QRectF(-30, -10, 60, 16), Qt::AlignCenter, QString::number(h * 1000.0, 'g', 4));
         p.restore();
-        p.drawLine(QPointF(origin.x() - w / 2 - 8, origin.y()), QPointF(origin.x() - w / 2 - 8, origin.y() + hh));
-        p.drawText(QPointF(origin.x() + twS / 2 + 4, origin.y() + hh + 18), QString::number(tw * 1000.0, 'g', 3));
-        p.drawText(QPointF(origin.x() + w / 2 + 4, origin.y() + hh - tfS / 2), QString::number(tf * 1000.0, 'g', 3));
+        vertical(origin.x() - w / 2 - 8, origin.y(), origin.y() + hh);
+        horizontal(origin.x() - twS / 2 - 8, origin.x() + twS / 2 + 8, origin.y() + hh + 14);
+        p.drawText(QRectF(origin.x() - 20, origin.y() + hh + 16, 40, 16), Qt::AlignCenter, QString::number(tw * 1000.0, 'g', 3));
+        vertical(origin.x() + w / 2 + 8, origin.y() + hh - tfS - 8, origin.y() + hh + 8);
+        p.drawText(QPointF(origin.x() + w / 2 + 12, origin.y() + hh - tfS / 2 + 4), QString::number(tf * 1000.0, 'g', 3));
     }
 
 private:
@@ -389,6 +531,7 @@ public:
     ProfilePropertiesDialog(const Section& section, QWidget* parent) : CypeDialog(QObject::tr("Propiedades del perfil seleccionado"), parent) {
         setFixedSize(516, 420);
         auto* row = new QHBoxLayout;
+        row->setSpacing(2);  // original: drawing and table are almost contiguous
         row->addWidget(new SectionDrawing(section, this));
         auto* panel = new QFrame(this);
         panel->setStyleSheet(QStringLiteral("QFrame { background: #E3E3E3; border: 1px solid #D0D0D0; }"));
@@ -669,8 +812,8 @@ void BarDescribeDialog::bind(ValueEdit* edit, std::function<double(const BarDesc
 
 void BarDescribeDialog::build(bool showUsedList) {
     auto* root = new QHBoxLayout;
-    root->setContentsMargins(8, 6, 8, 0);
-    root->setSpacing(8);
+    root->setContentsMargins(0, 0, 0, 0);  // verification 2026-11-05: the original's panel starts 14 px from the frame (clone had 23)
+    root->setSpacing(12);
     if (showUsedList) {
         auto* left = new QFrame(this);
         left->setFixedWidth(202);
@@ -695,13 +838,19 @@ void BarDescribeDialog::build(bool showUsedList) {
     right->setSpacing(4);
     right->addWidget(headerBand(tr("Tipo de elemento estructural"), this));
     auto* typeRow = new QHBoxLayout;
-    typeRow->setContentsMargins(4, 0, 0, 0);
+    typeRow->setContentsMargins(0, 0, 0, 0);
     m_typeGroup = new QButtonGroup(this);
     const QStringList types = {tr("Genérico"), tr("Tirante"), tr("Pilar"), tr("Viga")};
     for (int i = 0; i < types.size(); ++i) {
         auto* radio = new QRadioButton(types[i], this);
         radio->setObjectName(QStringLiteral("type%1").arg(i));
         m_typeGroup->addButton(radio, i);
+        // The original writes the chosen element type in bold (Genérico / Pilar in its captures).
+        connect(radio, &QRadioButton::toggled, radio, [radio](bool on) {
+            QFont f = radio->font();
+            f.setBold(on);
+            radio->setFont(f);
+        });
         typeRow->addWidget(radio);
     }
     typeRow->addStretch(1);
@@ -714,6 +863,7 @@ void BarDescribeDialog::build(bool showUsedList) {
     m_typePages->addWidget(buildBeamPage());
     right->addWidget(m_typePages, 1);
     root->addLayout(right, 1);
+    contentLayout()->setContentsMargins(10, 8, 10, 12);  // measured against the original: its first band sits 4 px higher
     contentLayout()->addLayout(root, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
 }
@@ -724,7 +874,7 @@ QWidget* BarDescribeDialog::buildGenericPage() {
     v->setContentsMargins(0, 0, 0, 0);
     v->setSpacing(4);
     auto* behaviourRow = new QHBoxLayout;
-    behaviourRow->setContentsMargins(4, 6, 0, 6);
+    behaviourRow->setContentsMargins(0, 6, 0, 6);
     behaviourRow->addWidget(new QLabel(tr("Comportamiento"), page));
     m_behaviour = new QComboBox(page);
     for (BehaviourKind b : {BehaviourKind::Linear, BehaviourKind::TensionOnly, BehaviourKind::CompressionOnly})
@@ -739,13 +889,14 @@ QWidget* BarDescribeDialog::buildGenericPage() {
 
     v->addWidget(headerBand(tr("Selección del material"), page));
     auto* iconRow = new QHBoxLayout;
-    iconRow->setContentsMargins(4, 4, 0, 4);
+    iconRow->setContentsMargins(0, 1, 0, 7);
+    iconRow->setSpacing(7);  // original: 71 px tiles every 78 px
     m_materialGroup = new QButtonGroup(this);
     m_materialGroup->setExclusive(true);
     const QStringList tips = materialTooltips();
     int index = 0;
     for (BarMaterialIcon icon : allMaterialIcons()) {
-        auto* b = iconButton(makePixmap(glyphOfIcon(icon), 60, QColor(0xF7, 0xF7, 0xF7), fillOfIcon(icon)), 72, tips[index], page);
+        auto* b = iconButton(makePixmap(glyphOfIcon(icon), 60, QColor(0xF7, 0xF7, 0xF7), fillOfIcon(icon)), 71, tips[index], page);
         b->setObjectName(QStringLiteral("material%1").arg(index));
         m_materialGroup->addButton(b, index);
         m_materialButtons.append(b);
@@ -763,16 +914,16 @@ QWidget* BarDescribeDialog::buildGenericPage() {
     ps->setSpacing(4);
     ps->addWidget(headerBand(tr("Selección del perfil"), m_profileSection));
     auto* shapeAndSeries = new QGridLayout;
-    shapeAndSeries->setContentsMargins(4, 4, 0, 0);
+    shapeAndSeries->setContentsMargins(0, 0, 0, 0);
     m_shapeHost = new QWidget(m_profileSection);
     m_shapeHost->setLayout(new QGridLayout);
     static_cast<QGridLayout*>(m_shapeHost->layout())->setContentsMargins(0, 0, 0, 0);
-    static_cast<QGridLayout*>(m_shapeHost->layout())->setSpacing(6);
+    static_cast<QGridLayout*>(m_shapeHost->layout())->setSpacing(8);
     auto* seriesForm = new QWidget(m_profileSection);
     seriesForm->setObjectName(QStringLiteral("seriesForm"));
     auto* sf = new QGridLayout(seriesForm);
     sf->setContentsMargins(0, 0, 0, 0);
-    sf->setHorizontalSpacing(8);
+    sf->setHorizontalSpacing(2);
     sf->addWidget(new QLabel(tr("Serie de perfiles"), seriesForm), 0, 0);
     m_series = new QComboBox(seriesForm);
     m_series->setMinimumWidth(104);
@@ -803,6 +954,7 @@ QWidget* BarDescribeDialog::buildGenericPage() {
     shapeAndSeries->addWidget(seriesForm, 0, 1, Qt::AlignLeft | Qt::AlignTop);
     shapeAndSeries->setColumnStretch(2, 1);
     ps->addLayout(shapeAndSeries);
+    ps->addStretch(1);  // the header band keeps its height when the section is taller (retained room, see below)
     v->addWidget(m_profileSection);
     connect(m_series, &QComboBox::activated, this, [this] { onSeriesChanged(); });
     connect(m_profile, &QComboBox::activated, this, [this] { onProfileChanged(); });
@@ -813,9 +965,17 @@ QWidget* BarDescribeDialog::buildGenericPage() {
         const auto section = resolveSection(current(), m_scratch.library());
         if (section) describeSink().properties(this, *section);
     });
-    v->addStretch(1);
+    // The original keeps "Datos adicionales" at the same height whatever the material (it sits right below the profile area, which
+    // keeps its room even for the generic and concrete bars, which have no profile).
+    {
+        QSizePolicy sp = m_profileSection->sizePolicy();
+        sp.setRetainSizeWhenHidden(true);
+        m_profileSection->setSizePolicy(sp);
+        m_profileSection->setMinimumHeight(149);
+    }
     v->addWidget(headerBand(tr("Datos adicionales"), page));
     v->addWidget(buildExtraPages());
+    v->addStretch(1);
     return page;
 }
 
@@ -966,6 +1126,8 @@ QWidget* BarDescribeDialog::buildExtraPages() {
     const auto column3 = [&](const QString& title, QWidget* parent) {
         auto* w = new QWidget(parent);
         auto* g = new QGridLayout(w);
+        g->setContentsMargins(6, 0, 6, 0);  // original: titles 18 px below the band, rows every 29 px
+        g->setVerticalSpacing(4);
         g->setAlignment(Qt::AlignTop);
         g->setColumnStretch(0, 1);
         g->addWidget(boldLabel(title, w), 0, 0, 1, 3);
@@ -999,11 +1161,11 @@ QWidget* BarDescribeDialog::buildExtraPages() {
         {"genericPoisson", N_("Módulo de Poisson"), 0.001, 50.0, 3, "", [](const BarDescription& d) { return d.material.poissonRatio; }, [](BarDescription& d, double v) { d.material.poissonRatio = v; }, true},
         {"genericAlpha", N_("Coeficiente de dilatación"), 0.000001, 100.0, 6, "m/m°C", [](const BarDescription& d) { return d.material.thermalExpansion; }, [](BarDescription& d, double v) { d.material.thermalExpansion = v; }, false},
         {"genericWeight", N_("Peso específico"), 0.01, 100000.0, 2, "kN/m³", [](const BarDescription& d) { return d.material.densityKnM3; }, [](BarDescription& d, double v) { d.material.densityKnM3 = v; }, false}};
-    const auto fill = [&](QGridLayout* g, QWidget* parent, const Row* rows, int count, int firstRow) {
+    const auto fill = [&](QGridLayout* g, QWidget* parent, const Row* rows, int count, int firstRow, int fieldWidth) {
         for (int i = 0; i < count; ++i) {
             const Row& r = rows[i];
             const QString name = trc(r.label);
-            auto* edit = makeField(QString::fromLatin1(r.object), {name, r.min, r.max, r.decimals, r.poisson}, parent, 84);
+            auto* edit = makeField(QString::fromLatin1(r.object), {name, r.min, r.max, r.decimals, r.poisson}, parent, fieldWidth);
             g->addWidget(new QLabel(name, parent), firstRow + i, 0);
             g->addWidget(edit, firstRow + i, 1);
             g->addWidget(new QLabel(QString::fromUtf8(r.unit), parent), firstRow + i, 2);
@@ -1011,17 +1173,18 @@ QWidget* BarDescribeDialog::buildExtraPages() {
         }
     };
     auto [geometryWidget, geometryGrid] = column3(tr("Geometría"), genericPage);
-    fill(geometryGrid, geometryWidget, geometry, 4, 1);
+    fill(geometryGrid, geometryWidget, geometry, 4, 1, 56);
     auto* drawing = new QLabel(geometryWidget);
-    drawing->setPixmap(makePixmap(Glyph::Generic, 70, QColor(0xF0, 0xF0, 0xF0), QColor(0x80, 0x80, 0x80)));
+    drawing->setPixmap(genericSectionPixmap());
     geometryGrid->addWidget(drawing, 5, 0, 1, 3, Qt::AlignHCenter);
-    gh->addWidget(geometryWidget, 1);
+    geometryWidget->setFixedWidth(206);
+    gh->addWidget(geometryWidget);
     auto* l1 = new QFrame(genericPage);
     l1->setFrameShape(QFrame::VLine);
     l1->setFrameShadow(QFrame::Plain);
     gh->addWidget(l1);
     auto [mechanicsWidget, mechanicsGrid] = column3(tr("Características mecánicas"), genericPage);
-    fill(mechanicsGrid, mechanicsWidget, mechanics, 6, 1);
+    fill(mechanicsGrid, mechanicsWidget, mechanics, 6, 1, 84);
     auto* info = toolGlyph(QStringLiteral("genericInfo"), QStringLiteral("i"), QStringLiteral("#1B7FCC"), tr("Características mecánicas"), mechanicsWidget);
     m_tools.append(info);
     mechanicsGrid->addWidget(info, 0, 2);
@@ -1029,15 +1192,17 @@ QWidget* BarDescribeDialog::buildExtraPages() {
         describeSink().info(this, tr("Características mecánicas"),
                             tr("En la sección transversal, se considera que los ejes de inercia principales coinciden con los ejes locales Y y Z."));  // #65241
     });
-    gh->addWidget(mechanicsWidget, 1);
+    mechanicsWidget->setFixedWidth(252);
+    gh->addWidget(mechanicsWidget);
     auto* l2 = new QFrame(genericPage);
     l2->setFrameShape(QFrame::VLine);
     l2->setFrameShadow(QFrame::Plain);
     gh->addWidget(l2);
     auto [materialWidget, materialGrid] = column3(tr("Material"), genericPage);
-    fill(materialGrid, materialWidget, material, 4, 1);
+    fill(materialGrid, materialWidget, material, 4, 1, 80);
     gh->addWidget(materialWidget, 1);
     m_extra->addWidget(genericPage);
+    gh->setSpacing(4);
 
     // 3: special aluminium (graphic editor, not developed).
     auto* specialPage = new QLabel(tr("El editor gráfico de secciones especiales de aluminio aún no está disponible."), m_extra);
@@ -1070,17 +1235,32 @@ QWidget* BarDescribeDialog::buildTiePage() {
         m_tieButtons.append(b);
         row->addWidget(b);
     }
-    row->addSpacing(16);
+    row->addStretch(1);
+    v->addLayout(row);
+    // Measured: series and profile go below the icons (as in the generic page), with the + / pencil / table / (i) buttons. In the
+    // clone those buttons stay disabled: the tie series are fixed (not in the library) until the tie module exists.
     auto* form = new QGridLayout;
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setHorizontalSpacing(2);
     form->addWidget(new QLabel(tr("Serie de perfiles"), page), 0, 0);
     m_tieSeries = new QComboBox(page);
+    m_tieSeries->setMinimumWidth(104);
     form->addWidget(m_tieSeries, 0, 1);
     form->addWidget(new QLabel(tr("Perfil"), page), 1, 0);
     m_tieProfile = new QComboBox(page);
+    m_tieProfile->setMinimumWidth(104);
     form->addWidget(m_tieProfile, 1, 1);
-    row->addLayout(form);
-    row->addStretch(1);
-    v->addLayout(row);
+    const struct { const char* name; const char* tip; int row; } tieTools[] = {{"new", N_("Nuevo"), 0}, {"edit", N_("Edición del tipo seleccionado."), 0},
+                                                                               {"table", N_("Editar la lista de elementos"), 0}, {"info", N_("Propiedades del perfil seleccionado"), 1}};
+    int column = 2;
+    for (const auto& t : tieTools) {
+        auto* b = toolGlyph(QLatin1String(t.name), QString(), QStringLiteral("#1B7FCC"), trc(t.tip), page);
+        b->setObjectName(QStringLiteral("tie_%1").arg(QLatin1String(t.name)));
+        b->setEnabled(false);
+        form->addWidget(b, t.row, t.row == 0 ? column++ : 2);
+    }
+    form->setColumnStretch(5, 1);
+    v->addLayout(form);
     selectTieShape(m_tieShape);
     // The series and profiles of the five tie shapes were transcribed from the captures (single series per shape: L, L, Pletinas, R,
     // Barras cuadradas). The document "CÁLCULO DE TIRANTES EN CYPE 3D" shown below the combos in the original needs the module of ties,
@@ -1108,28 +1288,33 @@ QWidget* BarDescribeDialog::buildPillarPage() {
     auto* page = new QWidget(this);
     auto* v = new QVBoxLayout(page);
     v->setContentsMargins(0, 0, 0, 0);
-    auto* row = new QHBoxLayout;
-    row->setContentsMargins(4, 4, 0, 0);
-    const auto group = [&](const QString& title, const QStringList& tips, const std::vector<Glyph>& glyphs, int checked) {
-        auto* col = new QVBoxLayout;
-        col->addWidget(headerBand(title, page));
-        auto* icons = new QHBoxLayout;
+    v->setSpacing(4);
+    // Measured: "Material" = three 135x70 tiles in thirds of the full width, "Tipo" = two 56x56 tiles in halves, a thin line, then the
+    // drawing (yellow) with the two fields at its right.
+    const auto group = [&](const QString& title, const QStringList& tips, const std::vector<Glyph>& glyphs, QSize box) {
+        v->addWidget(headerBand(title, page));
         auto* bg = new QButtonGroup(page);
+        QList<QToolButton*> tiles;
         for (int i = 0; i < tips.size(); ++i) {
-            auto* b = iconButton(makePixmap(glyphs[static_cast<std::size_t>(i)], 54, QColor(0xF7, 0xF7, 0xF7), QColor(0x9A, 0x9A, 0x9A)), 66, tips[i], page);
-            b->setChecked(i == checked);
+            auto* b = wideIconButton(glyphs[static_cast<std::size_t>(i)], box, tips[i], page);
+            b->setChecked(i == 0);
             bg->addButton(b, i);
-            icons->addWidget(b);
+            tiles.append(b);
         }
-        icons->addStretch(1);
-        col->addLayout(icons);
-        row->addLayout(col, 1);
+        v->addLayout(spreadRow(tiles));
     };
-    group(tr("Material"), {tr("Hormigón armado"), tr("Metálico"), tr("Sección mixta")}, {Glyph::Concrete, Glyph::IBeam, Glyph::BuiltUp}, 0);
-    group(tr("Tipo"), {tr("Rectangular"), tr("Circular")}, {Glyph::Square, Glyph::Round}, 0);
-    v->addLayout(row);
+    group(tr("Material"), {tr("Hormigón armado"), tr("Metálico"), tr("Sección mixta")}, {Glyph::Concrete, Glyph::IBeam, Glyph::BuiltUp}, QSize(135, 70));
+    group(tr("Tipo"), {tr("Rectangular"), tr("Circular")}, {Glyph::Square, Glyph::Round}, QSize(58, 58));
+    auto* line = new QFrame(page);
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Plain);
+    v->addWidget(line);
+    auto* row = new QHBoxLayout;
+    row->setContentsMargins(0, 0, 0, 0);
+    row->addWidget(new SectionSketch(QStringLiteral("X"), QStringLiteral("Y"), QSize(250, 176), page), 0, Qt::AlignTop);
     auto* fields = new QGridLayout;
-    fields->setContentsMargins(8, 12, 0, 0);
+    fields->setContentsMargins(6, 8, 0, 0);
+    fields->setVerticalSpacing(4);
     fields->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     const FieldSpec spec[] = {{tr("Dimensión X"), 10.0, 1000.0, 0}, {tr("Dimensión Y"), 10.0, 1000.0, 0}};
     const char* names[] = {"pillarX", "pillarY"};
@@ -1140,8 +1325,10 @@ QWidget* BarDescribeDialog::buildPillarPage() {
         fields->addWidget(edit, i, 1);
         fields->addWidget(new QLabel(QStringLiteral("cm"), page), i, 2);
     }
-    v->addLayout(fields);
-    // TODO(captura): the drawing of the section with its dimensions (yellow background) and the metallic / mixed variants.
+    row->addLayout(fields);
+    row->addStretch(1);
+    v->addLayout(row);
+    // TODO(captura): the metallic / mixed variants of the page (only the reinforced concrete one was captured).
     v->addStretch(1);
     return page;
 }
@@ -1150,14 +1337,16 @@ QWidget* BarDescribeDialog::buildBeamPage() {
     auto* page = new QWidget(this);
     auto* v = new QVBoxLayout(page);
     v->setContentsMargins(0, 0, 0, 0);
+    v->setSpacing(4);
     v->addWidget(headerBand(tr("Familia"), page));
-    auto* families = new QHBoxLayout;
-    families->setContentsMargins(4, 4, 0, 4);
     const QStringList familyTips = {tr("Vigas planas"), tr("Vigas descolgadas"), tr("Vigas de celosía"), tr("Vigas pretensadas"),
                                     tr("Vigas metálicas"), tr("Vigas de madera")};
+    auto* families = new QHBoxLayout;
+    families->setContentsMargins(0, 4, 0, 4);
+    families->setSpacing(8);
     auto* fg = new QButtonGroup(page);
     for (int i = 0; i < familyTips.size(); ++i) {
-        auto* b = iconButton(makePixmap(i == 4 ? Glyph::IBeam : i == 5 ? Glyph::Wood : Glyph::Rect, 54, QColor(0xF7, 0xF7, 0xF7), QColor(0x9A, 0x9A, 0x9A)), 66, familyTips[i], page);
+        auto* b = wideIconButton(i == 4 ? Glyph::IBeam : i == 5 ? Glyph::Wood : Glyph::Rect, QSize(71, 71), familyTips[i], page);
         b->setChecked(i == 1);  // descolgadas
         fg->addButton(b, i);
         families->addWidget(b);
@@ -1165,38 +1354,53 @@ QWidget* BarDescribeDialog::buildBeamPage() {
     families->addStretch(1);
     v->addLayout(families);
     v->addWidget(headerBand(tr("Tipo"), page));
-    auto* types = new QHBoxLayout;
-    types->setContentsMargins(4, 4, 0, 4);
     const QStringList typeTips = {tr("Viga descolgada rectangular"), tr("Viga descolgada rectangular con cabeza colaborante"),
                                   tr("Viga invertida rectangular"), tr("Viga descolgada en 'T'"),
                                   tr("Viga descolgada en 'T' con cabeza embebida en el forjado"),
                                   tr("Viga en 'T' invertida con cabeza embebida en el forjado"), tr("Viga invertida en 'T'"),
                                   tr("Viga descolgada rectangular con sección variable")};
+    auto* types = new QHBoxLayout;
+    types->setContentsMargins(0, 4, 0, 4);
+    types->setSpacing(8);
     auto* tg = new QButtonGroup(page);
     for (int i = 0; i < typeTips.size(); ++i) {
-        auto* b = iconButton(makePixmap(i == 7 ? Glyph::Trapezoid : (i == 3 || i == 4 || i == 5 || i == 6) ? Glyph::Tee : Glyph::Rect, 54, QColor(0xF7, 0xF7, 0xF7), QColor(0x9A, 0x9A, 0x9A)), 66, typeTips[i], page);
+        auto* b = wideIconButton(i == 7 ? Glyph::Trapezoid : (i == 3 || i == 4 || i == 5 || i == 6) ? Glyph::Tee : Glyph::Rect, QSize(71, 71), typeTips[i], page);
         b->setChecked(i == 0);
         tg->addButton(b, i);
         types->addWidget(b);
     }
     types->addStretch(1);
     v->addLayout(types);
-    auto* fields = new QGridLayout;
-    fields->setContentsMargins(8, 8, 0, 0);
-    fields->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    // TODO(captura): ranges of the beam fields (only the default values 30 / 30 / 15 / 15 cm were measured).
+    auto* row = new QHBoxLayout;
+    row->setContentsMargins(0, 0, 0, 0);
+    row->addWidget(new SectionSketch(QStringLiteral("b"), QStringLiteral("a"), QSize(257, 190), page), 0, Qt::AlignTop);
+    row->addSpacing(206);  // original: the fields box starts 206 px to the right of the drawing
+    auto* box = new QFrame(page);
+    box->setObjectName(QStringLiteral("beamFields"));
+    box->setStyleSheet(QStringLiteral("QFrame#beamFields { border: 1px solid #D8D8D8; }"));
+    auto* fields = new QGridLayout(box);
+    fields->setContentsMargins(4, 4, 4, 4);
+    fields->setVerticalSpacing(4);
+    // TODO(captura): ranges of the beam fields (only the default values 30 / 30 / 15 / 15 cm were measured) and the checkbox
+    // "Viga bajo forjado" seen under the fields of the rectangular type in orig_describir_viga_tipo.png (meaning not investigated; the
+    // beam module does not exist yet).
     const struct { const char* object; const char* label; double value; } rows[] = {{"beamB", N_("Anchura (b)"), 30.0}, {"beamA", N_("Canto (a)"), 30.0},
                                                                                        {"beamI", N_("Ala izquierda (i)"), 15.0}, {"beamD", N_("Ala derecha (d)"), 15.0}};
     int i = 0;
     for (const auto& r : rows) {
-        auto* edit = makeField(QString::fromLatin1(r.object), {trc(r.label), 1.0, 1000.0, 1}, page, 60);
+        auto* edit = makeField(QString::fromLatin1(r.object), {trc(r.label), 1.0, 1000.0, 1}, box, 44);
         edit->setValue(r.value);
-        fields->addWidget(new QLabel(trc(r.label), page), i, 0);
+        fields->addWidget(new QLabel(trc(r.label), box), i, 0);
         fields->addWidget(edit, i, 1);
-        fields->addWidget(new QLabel(QStringLiteral("cm"), page), i, 2);
+        fields->addWidget(new QLabel(QStringLiteral("cm"), box), i, 2);
         ++i;
     }
-    v->addLayout(fields);
+    auto* fieldsHost = new QVBoxLayout;
+    fieldsHost->setContentsMargins(0, 50, 0, 0);
+    fieldsHost->addWidget(box);
+    row->addLayout(fieldsHost);
+    row->addStretch(1);
+    v->addLayout(row);
     v->addStretch(1);
     return page;
 }
@@ -1291,7 +1495,7 @@ void BarDescribeDialog::rebuildShapes() {
         grid->addWidget(b, static_cast<int>(i) / perRow, static_cast<int>(i) % perRow);
         m_shapeButtons.append(b);
     }
-    m_shapeHost->setFixedWidth(static_cast<int>(std::min<std::size_t>(slotList.size(), perRow)) * 62);
+    m_shapeHost->setFixedWidth(static_cast<int>(std::min<std::size_t>(slotList.size(), perRow)) * 64);
     grid->invalidate();
     m_shapeHost->updateGeometry();
     // The series form goes below the icons when there is one row of them, to their right when there are two (conformado).
@@ -1673,7 +1877,7 @@ void BarDescribeDialog::accept() {
 
 TimberServiceDialog::TimberServiceDialog(const TimberSettings& initial, QWidget* parent)
     : CypeDialog(tr("Perfiles de madera"), parent), m_initial(initial) {
-    setFixedSize(560, 250);
+    setFixedSize(585, 330);  // measured (orig_describir_perfiles_madera.png): 585x330, Aceptar left / Cancelar right
     auto* box = new QFrame(this);
     auto* v = new QVBoxLayout(box);
     v->addWidget(headerBand(tr("Clase de servicio"), box));
@@ -1702,13 +1906,7 @@ TimberServiceDialog::TimberServiceDialog(const TimberSettings& initial, QWidget*
         if (on) m_text->setText(serviceText());
     });
     m_text->setText(serviceText());
-    QHBoxLayout* footer = setupCustomFooter();
-    auto* ok = new QPushButton(tr("Aceptar"), this);
-    ok->setDefault(true);
-    footer->addStretch(1);
-    footer->addWidget(ok);
-    footer->addStretch(1);
-    connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
 }
 
 QString TimberServiceDialog::serviceText() const { return q(timberServiceClassText(m_service->checkedId())); }
@@ -1728,7 +1926,7 @@ TimberSettings TimberServiceDialog::value() const {
 
 DescribeMaterialDialog::DescribeMaterialDialog(const std::vector<GroupSpec>& groups, QWidget* parent)
     : CypeDialog(tr("Describir material"), parent) {
-    int height = 120;
+    int height = 108;  // measured: 427x186 with the single steel group
     for (const GroupSpec& spec : groups) height += spec.group == Group::Timber ? 124 : 78;
     setFixedSize(426, height);
     auto* v = new QVBoxLayout;

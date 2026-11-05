@@ -1,5 +1,7 @@
 #include "ProfileLibraryDialogs.h"
 
+#include <algorithm>
+
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -150,7 +152,10 @@ std::vector<double> defaultDims(ShapeKind kind) {
 class NoticeDialog : public CypeDialog {
 public:
     NoticeDialog(const QString& text, QWidget* parent) : CypeDialog(QObject::tr("Aviso"), parent) {
-        setFixedSize(367, 161);
+        // Width follows the text (measured in the original: 336 px for "La cadena introducida no es un número.", 447 px for the
+        // range message of the generic section); height 160.
+        const int textWidth = fontMetrics().horizontalAdvance(text);
+        setFixedSize(std::clamp(textWidth + 128, 336, 720), 160);
         auto* row = new QHBoxLayout;
         row->setContentsMargins(14, 8, 14, 0);
         auto* icon = new QLabel(this);

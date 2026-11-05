@@ -373,7 +373,11 @@ TEST(BarDescribeDialog, ShapesWithCatalogueDataOfTheOtherFamilies) {
     d->shapeButtons()[1]->click();  // a shape without data: no series
     EXPECT_EQ(d->seriesCombo()->count(), 0);
     clickIcon(*d, BarMaterialIcon::ColdFormedSteel);
-    EXPECT_EQ(d->seriesCombo()->currentText(), "C");  // first shape with data (U conformado rigidizado)
+    EXPECT_EQ(d->seriesCombo()->currentText(), "U");  // the original opens on "U conformado simple" / UF-60x3 (visual check 2026-11-05)
+    EXPECT_EQ(d->profileCombo()->currentText(), "UF-60x3");
+    EXPECT_TRUE(d->shapeButtons()[9]->isChecked());
+    d->shapeButtons()[2]->click();  // U conformado rigidizado: series C
+    EXPECT_EQ(d->seriesCombo()->currentText(), "C");
     EXPECT_EQ(d->profileCombo()->currentText(), "CF-60x2.0");
     d->shapeButtons()[9]->click();  // U conformado simple
     EXPECT_EQ(d->seriesCombo()->currentText(), "U");
