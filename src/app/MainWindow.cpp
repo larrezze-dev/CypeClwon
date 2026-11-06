@@ -53,6 +53,7 @@
 #include "ImportTool.h"
 #include "NodeTool.h"
 #include "SupportTool.h"
+#include "LigatureTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
 #include "Viewport3D.h"
@@ -193,6 +194,7 @@ void MainWindow::createWorkArea() {
             m_generateTool->deactivate();
             m_referenceTool->deactivate();
             m_supportTool->deactivate();
+            m_ligatureTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -224,6 +226,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(TransformTool::statusText(m_transformTool->mode(), m_transformTool->step()));
         else if (m_supportTool->mode() != SupportTool::Mode::None)
             statusBar()->showMessage(SupportTool::statusText(m_supportTool->mode()));
+        else if (m_ligatureTool->mode() != LigatureTool::Mode::None)
+            statusBar()->showMessage(LigatureTool::statusText(m_ligatureTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -355,15 +359,35 @@ void MainWindow::createWorkArea() {
         m_generateTool->deactivate();
         m_referenceTool->deactivate();
     });
+    connect(m_supportTool, &SupportTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
+    // Propiedades > Nudos > Ligaduras (T-P6-02): same rules; its errors are the original's "Error" dialog.
+    m_ligatureTool->setDialogParent(this);
+    connect(m_ligatureTool, &LigatureTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_ligatureTool, &LigatureTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+    });
+    connect(m_ligatureTool, &LigatureTool::errorRequested, this, [this](const QString& text) { QMessageBox::critical(this, tr("Error"), text); });
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_pieceTool, &PieceTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_shellTool, &ShellTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_transformTool, &TransformTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_generateTool, &GenerateTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     m_referenceTool->setDialogParent(this);
     connect(m_referenceTool, &ReferenceTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, this, [this, stopOthers] {
@@ -383,6 +407,8 @@ void MainWindow::createWorkArea() {
         m_transformTool->deactivate();
         m_generateTool->deactivate();
         m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -423,6 +449,7 @@ void MainWindow::createWorkArea() {
             m_generateTool->structureChanged();
             m_referenceTool->structureChanged();
             m_supportTool->structureChanged();
+            m_ligatureTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -652,6 +679,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_generateTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_referenceTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_supportTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_ligatureTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -689,6 +717,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_generateTool->addViewport(viewport);
         m_referenceTool->addViewport(viewport);
         m_supportTool->addViewport(viewport);
+        m_ligatureTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1071,6 +1100,9 @@ void MainWindow::buildGeometryTab() {
     SARibbonPanel* supports = ribbonBar()->categoryPages().at(2)->addPanel(tr("Nudos"));
     supports->addLargeAction(m_supportTool->internalAction());
     supports->addLargeAction(m_supportTool->externalAction());
+    m_ligatureTool = new LigatureTool(this);
+    icon(m_ligatureTool->action(), "support_ligature");
+    supports->addLargeAction(m_ligatureTool->action());
 }
 
 void MainWindow::buildObraTab() {

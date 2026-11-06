@@ -9,6 +9,7 @@
 #include <QChar>
 #include <QString>
 #include <QStringList>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -16,6 +17,7 @@
 
 #include "core/camera.h"
 #include "core/categories.h"
+#include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/clipping.h"
 #include "core/picking.h"
@@ -100,6 +102,14 @@ public:
     /// category like the node squares.
     void setNodeSupports(const core::NodeSupports* supports);
     const core::NodeSupports* nodeSupports() const { return m_nodeSupports; }
+    /// Node ties (not owned): with the labels on (Propiedades > Nudos > Ligaduras) the node text becomes "N1: Dx(1), Dz(2)" in teal and the
+    /// tooltip of the node under the cursor gets a second line "Dx(1)" (ligaduras.md section 7). Null / off: no change.
+    void setNodeLigatures(const core::NodeLigatures* ligatures);
+    void setLigatureLabelsVisible(bool on);
+    const core::NodeLigatures* nodeLigatures() const { return m_nodeLigatures; }
+    bool ligatureLabelsVisible() const { return m_ligatureLabels; }
+    /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
+    void setNodeExclusion(std::function<bool(int)> excluded);
 
     /// Selection mode: what the original does inside a command of the Geometria ribbon tab. The guide lines are hidden,
     /// nodes show as blue squares, the element under the cursor is highlighted orange and the mouse selects:
@@ -369,6 +379,9 @@ private:
 
     const core::StructuralModel* m_structure = nullptr;
     const core::NodeSupports* m_nodeSupports = nullptr;
+    const core::NodeLigatures* m_nodeLigatures = nullptr;
+    bool m_ligatureLabels = false;
+    std::function<bool(int)> m_nodeExcluded;
     const core::WorkPlanes* m_planes = nullptr;
     bool m_selectionMode = false;
     core::SelectionFilter m_filter;

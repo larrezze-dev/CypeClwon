@@ -56,6 +56,7 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     if (!node || !validPosition(newPosition)) return;
     m_before = node->position;
     m_node = *node;
+    m_ligaturesBefore = project.ligatures;
     if (auto it = project.nodeSupports.external.find(nodeId); it != project.nodeSupports.external.end()) m_externalBefore = it->second;
     if (auto it = project.nodeSupports.internal.find(nodeId); it != project.nodeSupports.internal.end()) m_internalBefore = it->second;
 
@@ -111,6 +112,7 @@ void MoveNodeCommand::redo() {
     model.removeNode(m_id);
     m_project.nodeSupports.external.erase(m_id);
     m_project.nodeSupports.internal.erase(m_id);
+    applyLigatureNodesDeleted(m_project.ligatures, {m_id});
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
 }
@@ -127,6 +129,7 @@ void MoveNodeCommand::undo() {
     model.insertNode(m_node);
     if (m_externalBefore) m_project.nodeSupports.external[m_id] = *m_externalBefore;
     if (m_internalBefore) m_project.nodeSupports.internal[m_id] = *m_internalBefore;
+    m_project.ligatures = m_ligaturesBefore;
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
 }
@@ -139,6 +142,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     nodeIds.erase(std::unique(nodeIds.begin(), nodeIds.end()), nodeIds.end());
     nodeIds.erase(std::remove_if(nodeIds.begin(), nodeIds.end(), [&](int id) { return !model.findNode(id); }),
                   nodeIds.end());
+    m_ligaturesBefore = project.ligatures;
     auto deleted = [&](int id) { return std::binary_search(nodeIds.begin(), nodeIds.end(), id); };
 
     std::vector<int> barIds, shellIds;
@@ -189,6 +193,9 @@ void DeleteNodesCommand::redo() {
         m_project.nodeSupports.external.erase(n.id);
         m_project.nodeSupports.internal.erase(n.id);
     }
+    std::vector<int> deletedIds;
+    for (const Node& n : m_nodes) deletedIds.push_back(n.id);
+    applyLigatureNodesDeleted(m_project.ligatures, deletedIds);
     for (const Bar& b : m_merged) model.insertBar(b);
 }
 
@@ -198,6 +205,7 @@ void DeleteNodesCommand::undo() {
     for (const Node& n : m_nodes) model.insertNode(n);
     for (const auto& [id, support] : m_externalBefore) m_project.nodeSupports.external[id] = support;
     for (const auto& [id, link] : m_internalBefore) m_project.nodeSupports.internal[id] = link;
+    m_project.ligatures = m_ligaturesBefore;
     for (const Bar& b : m_bars) model.insertBar(b);
     for (const Shell& s : m_shells) model.insertShell(s);
 }

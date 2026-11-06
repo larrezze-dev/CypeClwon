@@ -513,6 +513,44 @@ const std::vector<Section>& sections() {
                     p.nodeSupports = std::move(loaded);
                 },
                 [](const Project& p) { return validateSupports(p.nodeSupports).empty(); }},
+        Section{"node_ties", "Ligaduras de nudos",
+                [](const Project& p) {
+                    // Nodes that no longer exist are not saved; ties left with < 2 nodes by that are dropped, ties of a single node that were
+                    // already there are kept.
+                    json dirs = json::object();
+                    static const char* const names[3] = {"dx", "dy", "dz"};
+                    for (int d = 0; d < 3; ++d) {
+                        json list = json::array();
+                        for (const Ligature& t : p.ligatures.dirs[static_cast<std::size_t>(d)]) {
+                            std::vector<int> nodes;
+                            for (int n : t.nodeIds)
+                                if (p.structure.findNode(n)) nodes.push_back(n);
+                            if (nodes.size() == t.nodeIds.size() || nodes.size() >= 2) list.push_back({{"id", t.id}, {"nodes", nodes}});
+                        }
+                        dirs[names[d]] = list;
+                    }
+                    return json{{"next", p.ligatures.nextId}, {"ties", dirs}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    NodeLigatures loaded;
+                    static const char* const names[3] = {"dx", "dy", "dz"};
+                    int following = 1;
+                    if (j.contains("ties"))
+                        for (int d = 0; d < 3; ++d) {
+                            if (!j.at("ties").contains(names[d])) continue;
+                            for (const json& e : j.at("ties").at(names[d])) {
+                                Ligature t;
+                                t.id = e.at("id").get<int>();
+                                t.nodeIds = e.at("nodes").get<std::vector<int>>();
+                                following = std::max(following, t.id + 1);
+                                loaded.dirs[static_cast<std::size_t>(d)].push_back(std::move(t));
+                            }
+                        }
+                    loaded.nextId = j.value("next", following);
+                    p.ligatures = std::move(loaded);
+                },
+                [](const Project& p) { return validateLigatures(p.ligatures, p.structure).empty(); }},
     };
     return all;
 }

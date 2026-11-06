@@ -8,6 +8,7 @@
   section_properties.cpp section_properties.h profile_series.cpp profile_series.h profile_library.cpp profile_library.h
   bar_description.cpp bar_description.h bar_element_data.cpp bar_element_data.h tie_document.cpp tie_document.h bar_description_edit.cpp bar_description_edit.h
   node_support.cpp node_support.h node_support_edit.cpp node_support_edit.h
+  node_ligature.cpp node_ligature.h node_ligature_edit.cpp node_ligature_edit.h
   predefined_profiles.cpp predefined_profiles.h profile_catalogue_data.inc
   describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc describir_concrete_data.inc describir_timber_data.inc tie_document_data.inc)
 target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json)

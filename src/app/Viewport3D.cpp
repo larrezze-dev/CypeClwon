@@ -603,6 +603,7 @@ void Viewport3D::cancelWindow() {
 void Viewport3D::updateHover(const QPointF& pos) {
     std::optional<core::ElementRef> hover;
     if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y());
+    if (hover && m_nodeExcluded && hover->kind == core::ElementKind::Node && m_nodeExcluded(hover->id)) hover.reset();
     if (hover != m_hover || m_windowStart) {
         m_hover = hover;
         update();
@@ -624,8 +625,14 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
     if (m_windowStart) {  // second corner
         const QPointF a = *m_windowStart;
         m_windowStart.reset();
-        changed = m_selection.apply(core::pickRect(*m_structure, mapper(), effectiveFilter(), a.x(), a.y(), pos.x(), pos.y()), mode);
-    } else if (const auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y())) {
+        std::vector<core::ElementRef> hits = core::pickRect(*m_structure, mapper(), effectiveFilter(), a.x(), a.y(), pos.x(), pos.y());
+        if (m_nodeExcluded)
+            std::erase_if(hits, [this](const core::ElementRef& e) { return e.kind == core::ElementKind::Node && m_nodeExcluded(e.id); });
+        changed = m_selection.apply(hits, mode);
+    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y());
+               hit && m_nodeExcluded && hit->kind == core::ElementKind::Node && m_nodeExcluded(hit->id)) {
+        // a node the tool cannot capture: the click does nothing (no window starts either)
+    } else if (hit) {
         changed = m_selection.apply({*hit}, mode);
     } else {
         m_windowStart = pos;  // first corner; a plain click on empty space does not clear the selection
@@ -933,6 +940,23 @@ void Viewport3D::setNodeSupports(const core::NodeSupports* supports) {
     update();
 }
 
+void Viewport3D::setNodeLigatures(const core::NodeLigatures* ligatures) {
+    m_nodeLigatures = ligatures;
+    update();
+}
+
+void Viewport3D::setLigatureLabelsVisible(bool on) {
+    if (m_ligatureLabels == on) return;
+    m_ligatureLabels = on;
+    update();
+}
+
+void Viewport3D::setNodeExclusion(std::function<bool(int)> excluded) {
+    m_nodeExcluded = std::move(excluded);
+    m_hover.reset();
+    update();
+}
+
 void Viewport3D::drawSupports(QPainter& painter) const {
     if (!m_structure || !m_nodeSupports || m_nodeSupports->empty() || !m_categories.supportsDrawn()) return;
     const core::ScreenMapper map = mapper();
@@ -1054,14 +1078,25 @@ void Viewport3D::drawNodeTags(QPainter& painter) const {
     font.setPixelSize(13);
     font.setBold(true);
     painter.setFont(font);
-    painter.setPen(QColor(QStringLiteral("#008000")));
+    const QColor green(QStringLiteral("#008000"));
+    // Ligaduras (ligaduras.md section 7): a tied node is written "N1: Dx(1)" in teal (measured RGB 0, 160, 176).
+    const QColor teal(0, 160, 176);
+    painter.setPen(green);
     const core::ScreenMapper map = mapper();
     const QFontMetrics metrics(font);
     for (const core::Node& n : m_structure->nodes) {
         if (m_movingNode && n.id == *m_movingNode) continue;
         double x, y;
         if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z}) || !map.toScreen(n.position, x, y)) continue;
-        const QString text = n.reference.empty() ? QStringLiteral("N%1").arg(n.id) : QString::fromStdString(n.reference);
+        QString text = n.reference.empty() ? QStringLiteral("N%1").arg(n.id) : QString::fromStdString(n.reference);
+        painter.setPen(green);
+        if (m_ligatureLabels && m_nodeLigatures) {
+            const std::string tie = core::ligatureLabel(*m_nodeLigatures, n.id);
+            if (!tie.empty()) {
+                text += QStringLiteral(": ") + QString::fromStdString(tie);
+                painter.setPen(teal);
+            }
+        }
         painter.drawText(QRectF(x + 33, y - 7 - metrics.height() / 2.0, metrics.horizontalAdvance(text) + 2, metrics.height()),
                          Qt::AlignLeft | Qt::AlignVCenter, text);
     }
@@ -1226,7 +1261,12 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     QFont font = painter.font();
     font.setPixelSize(13);
     painter.setFont(font);
-    const QSizeF size(painter.fontMetrics().horizontalAdvance(text) + 16, 28);
+    // Ligaduras: a second, regular-weight line "Dx(1)" under the title (orig_lig_rotulo_dx1_tooltip.png).
+    QString extra;
+    if (m_ligatureLabels && m_nodeLigatures) extra = QString::fromStdString(core::ligatureLabel(*m_nodeLigatures, n->id));
+    double textWidth = painter.fontMetrics().horizontalAdvance(text);
+    if (!extra.isEmpty()) textWidth = std::max(textWidth, static_cast<double>(painter.fontMetrics().horizontalAdvance(extra)));
+    const QSizeF size(textWidth + 16, extra.isEmpty() ? 28 : 54);
     double nx = 0, ny = 0;
     mapper().toScreen(n->position, nx, ny);
     const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, {nx, ny});  // "Posición de los tooltips"
@@ -1236,7 +1276,13 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     painter.drawRect(box);
     font.setBold(true);
     painter.setFont(font);
-    painter.drawText(box, Qt::AlignCenter, text);
+    painter.drawText(extra.isEmpty() ? box : QRectF(box.left(), box.top(), box.width(), 28), Qt::AlignCenter, text);
+    if (!extra.isEmpty()) {
+        painter.drawLine(QPointF(box.left(), box.top() + 28), QPointF(box.right(), box.top() + 28));
+        font.setBold(false);
+        painter.setFont(font);
+        painter.drawText(QRectF(box.left(), box.top() + 28, box.width(), 26), Qt::AlignCenter, extra);
+    }
     painter.setBrush(Qt::NoBrush);
 }
 
