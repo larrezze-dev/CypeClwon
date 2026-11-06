@@ -742,8 +742,12 @@ TEST(BarDescribeDialog, SteelBeamArrangementRadiosFollowTheShapeAndFamily) {
     d->typeRadio(3)->click();
     d->beamFamilyButtons()[4]->click();  // Vigas metálicas
     const ProfilePicker& picker = d->beamPicker();
-    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 7);  // double T (measured 7)
+    // the new steel beam starts on UPE 80, U shape (measured 8 radios)
+    EXPECT_EQ(picker.profile->currentText(), "UPE 80");
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 8);
     EXPECT_TRUE(picker.arrangementRadio(Arrangement::Simple)->isChecked());
+    picker.series->setCurrentIndex(picker.series->findData("IPE"));
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 7);  // double T (measured 7)
     picker.series->setCurrentIndex(picker.series->findData("UPN"));
     EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 8);  // U (measured 8)
     EXPECT_TRUE(picker.arrangementRadio(Arrangement::DoubleBoxFlatPlates)->isVisibleTo(d.get()));
@@ -933,7 +937,7 @@ TEST(BarDescribeDialog, BeamValidationsOnAcceptingAndSteelTimberFamilies) {
     EXPECT_TRUE(s->beamPicker().host->isVisibleTo(s.get()));
     EXPECT_TRUE(s->beamBelowSlabCheck()->isVisibleTo(s.get()));
     EXPECT_FALSE(s->beamTypeButtons()[0]->isVisibleTo(s.get()));
-    EXPECT_EQ(s->beamPicker().profile->currentText(), "IPE 80");
+    EXPECT_EQ(s->beamPicker().profile->currentText(), "UPE 80");  // measured default of the steel beam
     s->beamFamilyButtons()[5]->click();  // madera: timber series of the library
     EXPECT_TRUE(s->beamBelowSlabCheck()->isVisibleTo(s.get()));
     EXPECT_GT(s->beamPicker().series->count(), 0);

@@ -89,14 +89,15 @@ struct BeamData {
     double widthM = kBeamDefaultM;         ///< "Anchura (b)"
     double depthM = kBeamDefaultM;         ///< "Canto (a)"
     double flangeLeftM = kBeamFlangeDefaultM, flangeRightM = kBeamFlangeDefaultM;  ///< "Ala izquierda (i)" / "Ala derecha (d)"
-    /// "canto_vuelo" of the original; label «Canto del ala» taken from #157403 (PROVISIONAL).
+    /// "canto_vuelo" of the original: «Canto del ala (s)», 15 cm, 5 - 500 cm (REA, describir_barras.md section 21.B.3).
     double flangeDepthM = kBeamFlangeDefaultM;
     /// Hung beam type 7 (sección variable): initial / final depth (names of #404312). Defaults PROVISIONAL (not read).
     double depthStartM = kBeamDefaultM, depthEndM = kBeamDefaultM;
     bool belowSlab = false;  ///< «Viga bajo forjado» (#56456); default unchecked as seen in the original, the code default was not read
-    /// Steel / timber beam: library series and profile. PROVISIONAL like PillarData (pnpiezamet_panel_pieza_metalica_viga / _madera_viga).
-    std::string seriesRef = "IPE", profileRef = "IPE 80";
-    ShapeKind shape = ShapeKind::IParallel;
+    /// Steel / timber beam: library series and profile. The new steel beam starts on the U shape with UPE 80 (measured in the
+    /// original, describir_barras.md section 24.2); the selector itself is PROVISIONAL like PillarData (pnpiezamet_panel_pieza_metalica_viga).
+    std::string seriesRef = "UPE", profileRef = "UPE 80";
+    ShapeKind shape = ShapeKind::Channel;
     std::string timberSeriesRef, timberProfileRef;
     ShapeKind timberShape = ShapeKind::TimberRectangular;
     /// "Disposición" of the steel beam; filtered by arrangementsForElement(Beam, shape). Timber beams only offer Perfil simple.

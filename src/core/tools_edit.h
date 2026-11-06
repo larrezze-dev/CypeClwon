@@ -87,8 +87,9 @@ ToolError transformElements(Project& project, UndoStack& stack, const ToolSelect
 
 // --- Reparar ---------------------------------------------------------------------------------------------------------
 
-/// Distance (metres) under which nodes are merged and a node counts as lying on a bar or a shell edge. NOT MEASURED
-/// (herramientas.md section 3: the tolerance of the original is a parameter whose value was not read): provisional.
+/// Distance (metres) under which nodes are merged and a node counts as lying on a bar or a shell edge. REA (herramientas.md
+/// section 9.1): cm3dmalla_precision_nudos_iguales() = 0.001 m; measured (section 11.1) between 0.0004 m (merged) and 0.05 m (kept).
+/// The full list of corrections of the original (FUN_180599f00) was not decompiled: see TK-082.
 inline constexpr double kRepairToleranceM = 1e-3;
 
 struct RepairIssue {
