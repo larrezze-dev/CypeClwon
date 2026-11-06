@@ -117,6 +117,15 @@ try {
                        [D]::keybd_event([byte]$vk, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
                        [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 100
                        [D]::keybd_event([byte]$vk, 0, 2, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
+            'mainclick'  { $xy = $arg.Split(','); $p.Refresh(); $h = $p.MainWindowHandle; $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
+                       [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 150; [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
+                       [D]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }   # left click on the MAIN window (a floating panel may be the topmost one)
+            'mainrclick' { $xy = $arg.Split(','); $p.Refresh(); $h = $p.MainWindowHandle; $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
+                       [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 150; [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150
+                       [D]::mouse_event(8, 0, 0, 0, [UIntPtr]::Zero); [D]::mouse_event(16, 0, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 700 }
+            'mainshot' { $p.Refresh(); $h = $p.MainWindowHandle; $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
+                       $bmp = New-Object System.Drawing.Bitmap ($r.Rt - $r.L), ($r.B - $r.T); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($r.L, $r.T, 0, 0, $bmp.Size); $g.Dispose()
+                       $bmp.Save((Join-Path $OutDir "$arg.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose(); Log "saved main window $arg" }   # screen capture of the MAIN window rectangle (floating panels and tooltips included)
             'sshot'  { SShot $p $arg }
             'fshot'  { FShot $arg }
             'shot'   { Shot $p $arg }

@@ -17,6 +17,8 @@
 
 #include "core/camera.h"
 #include "core/categories.h"
+#include "core/bar_ends.h"
+#include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/clipping.h"
@@ -108,6 +110,23 @@ public:
     void setLigatureLabelsVisible(bool on);
     const core::NodeLigatures* nodeLigatures() const { return m_nodeLigatures; }
     bool ligatureLabelsVisible() const { return m_ligatureLabels; }
+    /// Rigid diaphragms (not owned): with the labels on (Propiedades > Diafragmas > Diafragma) the node text becomes "N4: D1", the node square takes
+    /// the colour of its diaphragm and the tooltip of the node gets a line "Diafragma : D1" (diafragmas.md sections 4 and 8).
+    void setNodeDiaphragms(const core::Diaphragms* diaphragms);
+    void setDiaphragmLabelsVisible(bool on);
+    const core::Diaphragms* nodeDiaphragms() const { return m_nodeDiaphragms; }
+    bool diaphragmLabelsVisible() const { return m_diaphragmLabels; }
+    /// Bar end data (not owned): the black filled circles of the articulations are always drawn (the symbol stays when the tool changes);
+    /// `setEndFixityLabelsVisible` adds the green "xy / xz / yz" texts at both ends and the extra tooltip lines of Empotramiento, and
+    /// `setBarAxesVisible` the local axes of the bars that Articular shows (articulaciones.md sections 3 and 4).
+    void setBarEnds(const core::BarEnds* ends);
+    void setEndFixityLabelsVisible(bool on);
+    void setBarAxesVisible(bool on);
+    const core::BarEnds* barEnds() const { return m_barEnds; }
+    bool endFixityLabelsVisible() const { return m_endFixityLabels; }
+    bool barAxesVisible() const { return m_barAxes; }
+    /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
+    QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
     void setNodeExclusion(std::function<bool(int)> excluded);
 
@@ -362,6 +381,7 @@ private:
     void drawNodeLabel(class QPainter& painter) const;
     void drawNodeTags(class QPainter& painter) const;
     void drawBarTags(class QPainter& painter) const;
+    void drawBarEnds(class QPainter& painter) const;
     void rebuildSnapModel();
     void updateFocusPolicy();
     bool elementExists(const core::ElementRef& e) const;
@@ -381,6 +401,11 @@ private:
     const core::NodeSupports* m_nodeSupports = nullptr;
     const core::NodeLigatures* m_nodeLigatures = nullptr;
     bool m_ligatureLabels = false;
+    const core::Diaphragms* m_nodeDiaphragms = nullptr;
+    bool m_diaphragmLabels = false;
+    const core::BarEnds* m_barEnds = nullptr;
+    bool m_endFixityLabels = false;
+    bool m_barAxes = false;
     std::function<bool(int)> m_nodeExcluded;
     const core::WorkPlanes* m_planes = nullptr;
     bool m_selectionMode = false;

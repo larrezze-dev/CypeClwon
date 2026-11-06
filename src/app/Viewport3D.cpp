@@ -13,6 +13,7 @@
 #include <map>
 #include <utility>
 
+#include "core/geom3.h"
 #include "core/shell_edit.h"
 
 namespace cc::app {
@@ -618,6 +619,7 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
     }
     if (!m_structure) return;
     const QPointF pos = event->position();
+    m_cursor = pos;
     const core::SelectMode mode = event->modifiers().testFlag(Qt::ControlModifier) ? core::SelectMode::Add
                                   : event->modifiers().testFlag(Qt::ShiftModifier) ? core::SelectMode::Remove
                                                                                     : core::SelectMode::Replace;
@@ -833,8 +835,13 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     const std::optional<int> shellId = id ? std::nullopt : infoShellId();
     if (!id && !shellId) return;
     const core::ProfileSettings noProfiles;
-    const QStringList lines = id ? barInfoLines(*m_structure, *id) : shellInfoLines(*m_structure, *shellId, m_profiles ? *m_profiles : noProfiles);
+    QStringList lines = id ? barInfoLines(*m_structure, *id) : shellInfoLines(*m_structure, *shellId, m_profiles ? *m_profiles : noProfiles);
     if (lines.isEmpty()) return;
+    if (id && m_endFixityLabels && m_barEnds) {  // Empotramiento: the fixity of both ends (articulaciones.md section 3)
+        const core::BarEndsRecord record = core::barEndsOf(*m_barEnds, *id);
+        lines << tr("Empotramiento en extremos") << QString::fromStdString(core::endTooltipLine(record, core::kBarOrigin))
+              << QString::fromStdString(core::endTooltipLine(record, core::kBarFinal));
+    }
     QFont font = painter.font();
     font.setPixelSize(14);
     const QFont bold = [&] { QFont f = font; f.setBold(true); return f; }();
@@ -951,6 +958,34 @@ void Viewport3D::setLigatureLabelsVisible(bool on) {
     update();
 }
 
+void Viewport3D::setNodeDiaphragms(const core::Diaphragms* diaphragms) {
+    m_nodeDiaphragms = diaphragms;
+    update();
+}
+
+void Viewport3D::setDiaphragmLabelsVisible(bool on) {
+    if (m_diaphragmLabels == on) return;
+    m_diaphragmLabels = on;
+    update();
+}
+
+void Viewport3D::setBarEnds(const core::BarEnds* ends) {
+    m_barEnds = ends;
+    update();
+}
+
+void Viewport3D::setEndFixityLabelsVisible(bool on) {
+    if (m_endFixityLabels == on) return;
+    m_endFixityLabels = on;
+    update();
+}
+
+void Viewport3D::setBarAxesVisible(bool on) {
+    if (m_barAxes == on) return;
+    m_barAxes = on;
+    update();
+}
+
 void Viewport3D::setNodeExclusion(std::function<bool(int)> excluded) {
     m_nodeExcluded = std::move(excluded);
     m_hover.reset();
@@ -1008,6 +1043,9 @@ void Viewport3D::drawNodes(QPainter& painter) const {
         double x, y;
         if (m_movingNode && n.id == *m_movingNode) continue;  // drawn orange with its cross below
         if (!visibleAfterClipping({n.position.x, n.position.y, n.position.z})) continue;
+        // Diafragmas: the square of a node of a diaphragm takes its colour (measured: magenta).
+        const core::Diaphragm* diaphragm = m_diaphragmLabels && m_nodeDiaphragms ? core::diaphragmOfNode(*m_nodeDiaphragms, n.id) : nullptr;
+        painter.setPen(QPen(diaphragm ? QColor::fromRgb(diaphragm->color) : kNodeBlue, 1));
         if (map.toScreen(n.position, x, y)) painter.drawRect(QRectF(x - nodeHalf(), y - nodeHalf(), 2 * nodeHalf(), 2 * nodeHalf()));
     }
     if (m_movingNode) {  // measured: the chosen node is an orange square with a long orange cross, the node in motion a black square
@@ -1097,9 +1135,104 @@ void Viewport3D::drawNodeTags(QPainter& painter) const {
                 painter.setPen(teal);
             }
         }
+        if (m_diaphragmLabels && m_nodeDiaphragms) {
+            const std::string reference = core::diaphragmNodeLabel(*m_nodeDiaphragms, n.id);
+            if (!reference.empty()) text += QStringLiteral(": ") + QString::fromStdString(reference);
+        }
         painter.drawText(QRectF(x + 33, y - 7 - metrics.height() / 2.0, metrics.horizontalAdvance(text) + 2, metrics.height()),
                          Qt::AlignLeft | Qt::AlignVCenter, text);
     }
+}
+
+void Viewport3D::drawBarEnds(QPainter& painter) const {
+    if (!m_structure || !m_categories.barsDrawn()) return;
+    const bool pinnedSymbols = m_barEnds && !m_barEnds->empty();
+    if (!pinnedSymbols && !m_endFixityLabels && !m_barAxes) return;
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QFont font = painter.font();
+    font.setPixelSize(12);
+    font.setBold(true);
+    painter.setFont(font);
+    const QFontMetrics metrics(font);
+    for (const core::Bar& bar : m_structure->bars) {
+        const core::Node* a = m_structure->findNode(bar.startNode);
+        const core::Node* b = m_structure->findNode(bar.endNode);
+        double ax, ay, bx, by;
+        if (!a || !b || !map.toScreen(a->position, ax, ay) || !map.toScreen(b->position, bx, by)) continue;
+        if (!visibleAfterClipping({a->position.x, a->position.y, a->position.z}) || !visibleAfterClipping({b->position.x, b->position.y, b->position.z})) continue;
+        const QPointF pa(ax, ay), pb(bx, by);
+        const double length = std::hypot(bx - ax, by - ay);
+        if (length < 1e-6) continue;
+        const QPointF along = (pb - pa) / length;
+        const core::BarEndsRecord record = m_barEnds ? core::barEndsOf(*m_barEnds, bar.id) : core::BarEndsRecord{};
+        for (int end = 0; end < 2; ++end) {
+            const QPointF at = end == 0 ? pa : pb;
+            const QPointF inward = end == 0 ? along : -along;
+            const core::BarEndFixity& fixity = record.ends[static_cast<std::size_t>(end)];
+            if (fixity.pinned) {  // black filled circle, a little inside the bar (measured: orig_artic_11)
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(Qt::black);
+                painter.drawEllipse(at + inward * 6.0, 3.5, 3.5);
+            }
+            if (m_endFixityLabels) {  // three green-olive lines "xy: 1.000", rotated along the bar (orig_artic_07 / _08)
+                const QStringList rows = QString::fromStdString(core::endFixityLabel(fixity)).split(QStringLiteral(" "), Qt::SkipEmptyParts);
+                QStringList lines;
+                for (int i = 0; i + 1 < rows.size(); i += 2) lines << rows[i] + QStringLiteral(" ") + rows[i + 1];
+                if (lines.isEmpty()) lines = rows;
+                double angle = std::atan2(inward.y(), inward.x()) * 180.0 / 3.14159265358979323846;
+                if (angle > 90.0) angle -= 180.0;
+                if (angle < -90.0) angle += 180.0;
+                painter.save();
+                painter.translate(at + inward * (end == 0 ? 8.0 : 8.0));
+                painter.rotate(angle);
+                painter.setPen(QColor(QStringLiteral("#6B7F1C")));
+                painter.setBrush(Qt::NoBrush);
+                const double rowHeight = metrics.height();
+                double widest = 0;
+                for (const QString& line : lines) widest = std::max(widest, static_cast<double>(metrics.horizontalAdvance(line)));
+                // Text reading along the bar: the block is placed after the end point (towards the bar), centred on the line.
+                const bool flipped = (inward.x() * std::cos(angle * 3.14159265358979323846 / 180.0) + inward.y() * std::sin(angle * 3.14159265358979323846 / 180.0)) < 0;
+                const double x0 = flipped ? -widest - 4.0 : 4.0;
+                for (int i = 0; i < lines.size(); ++i)
+                    painter.drawText(QRectF(x0, (i - lines.size()) * rowHeight - 3.0, widest + 2.0, rowHeight), Qt::AlignLeft | Qt::AlignVCenter, lines[i]);  // above the bar
+                painter.restore();
+            }
+        }
+        if (m_barAxes) {
+            // Local axes at the end of the bar (orig_artic_01): x red along the bar, y green, z blue. PROVISIONAL: z is the global Z
+            // projected on the plane normal to the bar (the global Y for a vertical bar), y = z x x.
+            const core::Point3 axisX = core::geom::unit(core::geom::sub(b->position, a->position));
+            core::Point3 up{0, 0, 1};
+            if (std::abs(axisX.z) > 0.999) up = {0, 1, 0};
+            const core::Point3 axisY = core::geom::unit(core::geom::cross(up, axisX));
+            const core::Point3 axisZ = core::geom::cross(axisX, axisY);
+            const core::Point3 anchor = b->position;
+            const QPointF base = pb - along * 30.0;
+            double bx0, by0;
+            const core::Point3 dirs[3] = {axisX, axisY, axisZ};
+            const QColor colours[3] = {QColor(230, 0, 0), QColor(0, 190, 0), QColor(0, 0, 230)};
+            if (map.toScreen(anchor, bx0, by0)) {
+                for (int i = 0; i < 3; ++i) {
+                    double tx, ty;
+                    const core::Point3 tip{anchor.x + dirs[i].x, anchor.y + dirs[i].y, anchor.z + dirs[i].z};
+                    if (!map.toScreen(tip, tx, ty)) continue;
+                    QPointF d(tx - bx0, ty - by0);
+                    const double len = std::hypot(d.x(), d.y());
+                    if (len < 1e-6) continue;
+                    d /= len;
+                    const QPointF to = base + d * 22.0;
+                    painter.setPen(QPen(colours[i], 1.5));
+                    painter.drawLine(base, to);
+                    const QPointF side(-d.y(), d.x());
+                    painter.drawLine(to, to - d * 6.0 + side * 3.0);
+                    painter.drawLine(to, to - d * 6.0 - side * 3.0);
+                }
+            }
+        }
+    }
+    painter.restore();
 }
 
 void Viewport3D::drawBarTags(QPainter& painter) const {
@@ -1261,12 +1394,20 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     QFont font = painter.font();
     font.setPixelSize(13);
     painter.setFont(font);
-    // Ligaduras: a second, regular-weight line "Dx(1)" under the title (orig_lig_rotulo_dx1_tooltip.png).
-    QString extra;
-    if (m_ligatureLabels && m_nodeLigatures) extra = QString::fromStdString(core::ligatureLabel(*m_nodeLigatures, n->id));
+    // Ligaduras: a second, regular-weight line "Dx(1)" under the title (orig_lig_rotulo_dx1_tooltip.png); Diafragmas: "Diafragma : D1"
+    // (orig_diaf_23_tooltip_nudo.png).
+    QStringList extras;
+    if (m_ligatureLabels && m_nodeLigatures) {
+        const QString tie = QString::fromStdString(core::ligatureLabel(*m_nodeLigatures, n->id));
+        if (!tie.isEmpty()) extras << tie;
+    }
+    if (m_diaphragmLabels && m_nodeDiaphragms) {
+        const QString line = QString::fromStdString(core::diaphragmTooltipLine(*m_nodeDiaphragms, n->id));
+        if (!line.isEmpty()) extras << line;
+    }
     double textWidth = painter.fontMetrics().horizontalAdvance(text);
-    if (!extra.isEmpty()) textWidth = std::max(textWidth, static_cast<double>(painter.fontMetrics().horizontalAdvance(extra)));
-    const QSizeF size(textWidth + 16, extra.isEmpty() ? 28 : 54);
+    for (const QString& extra : extras) textWidth = std::max(textWidth, static_cast<double>(painter.fontMetrics().horizontalAdvance(extra)));
+    const QSizeF size(textWidth + 16, extras.isEmpty() ? 28 : 28 + 26 * extras.size());
     double nx = 0, ny = 0;
     mapper().toScreen(n->position, nx, ny);
     const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, {nx, ny});  // "Posición de los tooltips"
@@ -1276,12 +1417,13 @@ void Viewport3D::drawNodeLabel(QPainter& painter) const {
     painter.drawRect(box);
     font.setBold(true);
     painter.setFont(font);
-    painter.drawText(extra.isEmpty() ? box : QRectF(box.left(), box.top(), box.width(), 28), Qt::AlignCenter, text);
-    if (!extra.isEmpty()) {
-        painter.drawLine(QPointF(box.left(), box.top() + 28), QPointF(box.right(), box.top() + 28));
-        font.setBold(false);
+    painter.drawText(extras.isEmpty() ? box : QRectF(box.left(), box.top(), box.width(), 28), Qt::AlignCenter, text);
+    font.setBold(false);
+    for (int i = 0; i < extras.size(); ++i) {
+        const double top = box.top() + 28 + 26 * i;
         painter.setFont(font);
-        painter.drawText(QRectF(box.left(), box.top() + 28, box.width(), 26), Qt::AlignCenter, extra);
+        painter.drawLine(QPointF(box.left(), top), QPointF(box.right(), top));
+        painter.drawText(QRectF(box.left(), top, box.width(), 26), Qt::AlignCenter, extras[i]);
     }
     painter.setBrush(Qt::NoBrush);
 }
@@ -1482,6 +1624,7 @@ void Viewport3D::paintGL() {
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
     drawMoveRubber(painter);
     drawBarRubber(painter);
+    drawBarEnds(painter);
     drawNodeTags(painter);
     drawBarTags(painter);
     drawZoomMark(painter);

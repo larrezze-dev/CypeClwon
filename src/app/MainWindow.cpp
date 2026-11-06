@@ -54,6 +54,9 @@
 #include "NodeTool.h"
 #include "SupportTool.h"
 #include "LigatureTool.h"
+#include "DiaphragmTool.h"
+#include "BarEndsTool.h"
+#include "UserMessages.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
 #include "Viewport3D.h"
@@ -195,6 +198,8 @@ void MainWindow::createWorkArea() {
             m_referenceTool->deactivate();
             m_supportTool->deactivate();
             m_ligatureTool->deactivate();
+            m_diaphragmTool->deactivate();
+            m_barEndsTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -228,6 +233,10 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(SupportTool::statusText(m_supportTool->mode()));
         else if (m_ligatureTool->mode() != LigatureTool::Mode::None)
             statusBar()->showMessage(LigatureTool::statusText(m_ligatureTool->mode()));
+        else if (m_diaphragmTool->mode() != DiaphragmTool::Mode::None)
+            statusBar()->showMessage(DiaphragmTool::statusText(m_diaphragmTool->mode()));
+        else if (m_barEndsTool->mode() != BarEndsTool::Mode::None)
+            statusBar()->showMessage(BarEndsTool::statusText(m_barEndsTool->mode(), m_barEndsTool->panel() && m_barEndsTool->panel()->multiple()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -370,6 +379,49 @@ void MainWindow::createWorkArea() {
         m_supportTool->deactivate();
     });
     connect(m_ligatureTool, &LigatureTool::errorRequested, this, [this](const QString& text) { QMessageBox::critical(this, tr("Error"), text); });
+    // Propiedades > Diafragmas (T-P6-03) and Propiedades > Barras > Articular / Empotramiento (T-P6-05): same rules.
+    m_diaphragmTool->setDialogParent(this);
+    m_barEndsTool->setDialogParent(this);
+    connect(m_diaphragmTool, &DiaphragmTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_barEndsTool, &BarEndsTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_diaphragmTool, &DiaphragmTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_barEndsTool->deactivate();
+    });
+    connect(m_barEndsTool, &BarEndsTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+    });
+    connect(m_supportTool, &SupportTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_supportTool, &SupportTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
@@ -409,6 +461,8 @@ void MainWindow::createWorkArea() {
         m_referenceTool->deactivate();
         m_supportTool->deactivate();
         m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -450,6 +504,8 @@ void MainWindow::createWorkArea() {
             m_referenceTool->structureChanged();
             m_supportTool->structureChanged();
             m_ligatureTool->structureChanged();
+            m_diaphragmTool->structureChanged();
+            m_barEndsTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -680,6 +736,8 @@ void MainWindow::setProjectOpen(bool open) {
     m_referenceTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_supportTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_ligatureTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_diaphragmTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_barEndsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -718,6 +776,8 @@ void MainWindow::setProjectOpen(bool open) {
         m_referenceTool->addViewport(viewport);
         m_supportTool->addViewport(viewport);
         m_ligatureTool->addViewport(viewport);
+        m_diaphragmTool->addViewport(viewport);
+        m_barEndsTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1097,12 +1157,29 @@ void MainWindow::buildGeometryTab() {
     m_supportTool = new SupportTool(this);
     icon(m_supportTool->internalAction(), "support_internal");
     icon(m_supportTool->externalAction(), "support_external");
+    // Propiedades > Diafragmas (orig_diaf_01): Editar, Diafragma and Generar por niveles, three small buttons with text stacked; the panel is
+    // the first of the tab, before Nudos and Barras.
+    m_diaphragmTool = new DiaphragmTool(this);
+    icon(m_diaphragmTool->editAction(), "diaphragm_edit");
+    icon(m_diaphragmTool->assignAction(), "diaphragm_assign");
+    icon(m_diaphragmTool->generateAction(), "diaphragm_generate");
+    SARibbonPanel* diaphragms = ribbonBar()->categoryPages().at(2)->addPanel(tr("Diafragmas"));
+    diaphragms->addSmallAction(m_diaphragmTool->editAction());
+    diaphragms->addSmallAction(m_diaphragmTool->assignAction());
+    diaphragms->addSmallAction(m_diaphragmTool->generateAction());
     SARibbonPanel* supports = ribbonBar()->categoryPages().at(2)->addPanel(tr("Nudos"));
     supports->addLargeAction(m_supportTool->internalAction());
     supports->addLargeAction(m_supportTool->externalAction());
     m_ligatureTool = new LigatureTool(this);
     icon(m_ligatureTool->action(), "support_ligature");
     supports->addLargeAction(m_ligatureTool->action());
+    // Propiedades > Barras (orig_diaf_01): Articular and Empotramiento (the other buttons of the group belong to later tasks).
+    m_barEndsTool = new BarEndsTool(this);
+    icon(m_barEndsTool->articulateAction(), "bar_pin");
+    icon(m_barEndsTool->fixityAction(), "bar_fixity");
+    SARibbonPanel* barsPanel = ribbonBar()->categoryPages().at(2)->addPanel(tr("Barras"));
+    barsPanel->addSmallAction(m_barEndsTool->articulateAction());
+    barsPanel->addSmallAction(m_barEndsTool->fixityAction());
 }
 
 void MainWindow::buildObraTab() {

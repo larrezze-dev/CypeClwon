@@ -172,3 +172,15 @@ add_executable(ligature_tool_tests ligature_tool_tests.cpp ${CMAKE_SOURCE_DIR}/s
 target_include_directories(ligature_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(ligature_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::PrintSupport Qt6::Test GTest::gtest)
 gtest_discover_tests(ligature_tool_tests)
+
+add_executable(diaphragm_tool_tests diaphragm_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/DiaphragmTool.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(diaphragm_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(diaphragm_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::PrintSupport Qt6::Test GTest::gtest)
+gtest_discover_tests(diaphragm_tool_tests)
+
+add_executable(bar_ends_tool_tests bar_ends_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/BarEndsTool.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(bar_ends_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(bar_ends_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::PrintSupport Qt6::Test GTest::gtest)
+gtest_discover_tests(bar_ends_tool_tests)
