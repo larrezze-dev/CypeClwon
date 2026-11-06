@@ -164,6 +164,18 @@ TEST(FileManagerDialog, BuscarNeedsMoreThanOneProjectAndSelectsTheMatch) {
     EXPECT_FALSE(SearchProjectDialog::matches("losa", {"beta", "Cimentación profunda"}));
 }
 
+TEST(FileManagerDialog, CompressionMessagesUseTheOriginalTexts) {
+    ensureApp();
+    const QString archive = QDir::toNativeSeparators("C:/obras/nuevo2.cyp");
+    EXPECT_EQ(FileManagerDialog::compressedMessage("C:/obras/nuevo2.cyp"),
+              "Se ha comprimido la obra en el fichero '" + archive + "'.");
+    EXPECT_EQ(FileManagerDialog::decompressConfirmationMessage("C:/obras"),
+              "¿Desea descomprimir la obra en '" + QDir::toNativeSeparators("C:/obras") + "'?");
+    const QString error = FileManagerDialog::decompressErrorMessage("C:/obras/nuevo2.cyp", "fichero dañado");
+    EXPECT_TRUE(error.startsWith("No se ha podido descomprimir el fichero '" + archive + "' por el siguiente motivo:"));
+    EXPECT_TRUE(error.endsWith("fichero dañado"));
+}
+
 int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);

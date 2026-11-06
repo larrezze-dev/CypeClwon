@@ -14,7 +14,7 @@ namespace cc::app {
 /// "Gestión archivos" (676x525): folder tree on the left, list of projects (.ed3) of the selected folder on the
 /// right with the columns Obra | Descripción | Versión | Fecha. Reference: docs/screenshots/orig_gestion_archivos_01.png
 /// and docs/research/ui/dialogs_gestion_archivos.md. Abrir, Nuevo, Copiar, Borrar, Comprimir and Descomprimir are wired (messages captured in
-/// docs/screenshots/orig_ga_*.png); Buscar (enabled with more than one project; provisional dialog), Compartir (disabled: online service), Ejemplos (T-P2-08) and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
+/// docs/screenshots/orig_ga_*.png; .cyp is a gzip container and backups are the sibling .ed$ files, see the research note); Buscar (enabled with more than one project; provisional dialog), Compartir (disabled: online service), Ejemplos (T-P2-08) and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
 class FileManagerDialog : public CypeDialog {
     Q_OBJECT
 public:
@@ -25,6 +25,11 @@ public:
     /// Project selected in the list (absolute path), empty when none.
     QString selectedFile() const;
     QTableWidget* table() const { return m_table; }
+
+    /// Original messages (ids 139020, 46956, 402368), exposed for testing.
+    static QString compressedMessage(const QString& archive);
+    static QString decompressConfirmationMessage(const QString& folder);
+    static QString decompressErrorMessage(const QString& archive, const QString& reason);
 
 signals:
     void openRequested(const QString& path);

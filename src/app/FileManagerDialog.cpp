@@ -256,14 +256,35 @@ void FileManagerDialog::compressProjectAction() {
             QMessageBox::Yes)
         return;
     const auto result = cc::core::compressProject(selectedFile().toStdWString(), archive.toStdWString(), dialog.includeBackups());
-    if (!result.ok) QMessageBox::warning(this, tr("Comprimir"), QString::fromStdString(result.error));
+    if (!result.ok)
+        QMessageBox::warning(this, tr("Comprimir"), QString::fromStdString(result.error));
+    else
+        QMessageBox::information(this, tr("Comprimir"), compressedMessage(archive));
+}
+
+QString FileManagerDialog::compressedMessage(const QString& archive) {
+    // cfgenvio / progreso.dll string id 139020.
+    return tr("Se ha comprimido la obra en el fichero '%1'.").arg(QDir::toNativeSeparators(archive));
+}
+
+QString FileManagerDialog::decompressConfirmationMessage(const QString& folder) {
+    // progreso.dll string id 46956.
+    return tr("¿Desea descomprimir la obra en '%1'?").arg(QDir::toNativeSeparators(folder));
+}
+
+QString FileManagerDialog::decompressErrorMessage(const QString& archive, const QString& reason) {
+    // String id 402368; the reason follows the colon. TODO(medir): how the original presents the reason (same box or appended line).
+    return tr("No se ha podido descomprimir el fichero '%1' por el siguiente motivo:").arg(QDir::toNativeSeparators(archive)) +
+           QLatin1Char('\n') + reason;
 }
 
 void FileManagerDialog::decompressProjectAction() {
     const QString archive = QFileDialog::getOpenFileName(this, tr("Selección de Obra Comprimida"), m_folder, tr("Obras comprimidas (*.cyp)"));
     if (archive.isEmpty()) return;
+    if (QMessageBox::question(this, tr("Descomprimir"), decompressConfirmationMessage(m_folder)) != QMessageBox::Yes) return;
     const auto result = cc::core::extractProject(archive.toStdWString(), QString(m_folder).toStdWString());
-    if (!result.ok) QMessageBox::warning(this, tr("Descomprimir"), QString::fromStdString(result.error));
+    if (!result.ok)
+        QMessageBox::warning(this, tr("Descomprimir"), decompressErrorMessage(archive, QString::fromStdString(result.error)));
     reloadList();
 }
 
