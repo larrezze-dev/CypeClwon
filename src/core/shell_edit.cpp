@@ -210,6 +210,17 @@ std::optional<ShellAxes> shellLocalAxes(const StructuralModel& m, const Shell& s
     return ax;
 }
 
+std::vector<Point3> shellDrawnCorners(const StructuralModel& m, const Shell& s) {
+    std::vector<Point3> pts = positions(m, s.nodeIds);
+    if (pts.size() != s.nodeIds.size()) return {};
+    const double offset = s.layout.centralPlaneOffsetM;
+    if (offset == 0.0) return pts;
+    const std::optional<ShellAxes> axes = shellLocalAxes(m, s);
+    if (!axes) return pts;
+    for (Point3& p : pts) p = add(p, scale(axes->z, offset));
+    return pts;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 namespace {

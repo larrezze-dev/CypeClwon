@@ -343,3 +343,28 @@ TEST(ShellEdit, SectionSetsThicknessAndBallastInOneStepAndIsRefusedWhenInvalid) 
     ASSERT_EQ(divideShells(s.p, s.stack, {id}, {2, -1, 0}, {2, 5, 0}), ShellError::None);
     for (const Shell& part : s.p.structure.shells) EXPECT_TRUE(part.ballastEnabled);
 }
+
+// Measured (laminas.md section 11.2): Z > 0 draws the shell towards +Z local; the nodes do not move.
+TEST(ShellEdit, DrawnCornersFollowTheEccentricityAlongLocalZ) {
+    Project p;
+    auto& m = p.structure;
+    const int a = m.addNode({0, 0, 0}), b = m.addNode({4, 0, 0}), c = m.addNode({4, 3, 0}), d = m.addNode({0, 3, 0});
+    UndoStack stack;
+    int id = 0;
+    ASSERT_EQ(addShell(p, stack, {a, b, c, d}, kDefaultShellThicknessM, 0, &id), ShellError::None);
+    EXPECT_NEAR(kDefaultShellThicknessM, 0.1, 1e-12);
+    EXPECT_NEAR(m.findShell(id)->material.orthoDensityKnM3, 14.72, 1e-12);
+    Shell* shell = m.findShell(id);
+    shell->layout.centralPlaneOffsetM = 1.0;
+    auto corners = shellDrawnCorners(m, *shell);
+    ASSERT_EQ(corners.size(), 4u);
+    const double sign = shellLocalAxes(m, *shell)->z.z;
+    for (const Point3& q : corners) EXPECT_NEAR(q.z, sign * 1.0, 1e-9);
+    EXPECT_NEAR(corners[2].x, 4.0, 1e-9);
+    EXPECT_DOUBLE_EQ(m.findNode(a)->position.z, 0.0) << "the nodes stay on the definition plane";
+    shell->zAxisInverted = !shell->zAxisInverted;
+    corners = shellDrawnCorners(m, *shell);
+    EXPECT_NEAR(corners[0].z, -sign * 1.0, 1e-9) << "follows the local Z, so flipping z flips the displacement";
+    shell->layout.centralPlaneOffsetM = 0.0;
+    EXPECT_NEAR(shellDrawnCorners(m, *shell)[0].z, 0.0, 1e-12);
+}

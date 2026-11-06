@@ -561,3 +561,8 @@ std::string barLabelText(const BarDescription& description) {
 }
 
 }  // namespace cc::core
+    // Circular concrete pillar (measured, describir_barras.md section 24.4): "Diámetro 30" (diameter in centimetres, no unit).
+    // TODO(medir): the label of the rectangular concrete pillar (the "30 cm x 30 cm" below was measured on a beam).
+    if (d.materialIcon == BarMaterialIcon::Concrete && d.inlineSection && d.inlineSection->kind == ShapeKind::ConcreteCircular &&
+        d.inlineSection->dims.size() == 1)
+        return "Diámetro " + compactNumber(d.inlineSection->dims[0] * 100.0);

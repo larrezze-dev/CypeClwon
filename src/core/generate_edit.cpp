@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <array>
 #include <map>
+#include <set>
 
 #include "core/bar_edit.h"
 #include "core/geom3.h"
@@ -33,7 +35,7 @@ std::string generateErrorMessage(GenerateError error) {
         case GenerateError::DegenerateSegments:
             return "Los segmentos seleccionados no permiten generar la malla (longitud nula, alineados o contenidos en un mismo plano).";
         case GenerateError::DistanceOutOfRange:
-            return rangeWarning("Distancia entre planos", ValueRange{-kMaxTetrahedraDistanceM, kMaxTetrahedraDistanceM}, 3) +
+            return rangeWarning("Distancia entre planos", ValueRange{kMinTetrahedraDistanceM, kMaxTetrahedraDistanceM}, 3) +
                    " La distancia no puede ser cero.";
         case GenerateError::TooManyElements: return "La generación crearía demasiados nudos.";
         case GenerateError::NothingGenerated: return "No se ha generado ningún elemento nuevo.";
@@ -255,6 +257,49 @@ void makePieces(StructuralModel& m, const std::vector<Line>& lines, bool piece, 
         if (std::find(pieceIds.begin(), pieceIds.end(), p.id) != pieceIds.end()) p.groupId = groupId;
 }
 
+/// Divides the existing bar `barId` into stretches along `chain` (its end nodes first and last, intermediate nodes in order). The first
+/// stretch keeps the id; a piece the bar belonged to is extended over the new stretches (kept thick, like the original does with the
+/// bars of the segments). Returns the ids of all the stretches when the bar had no piece (they take part in "Crear pieza" / "Agrupar"),
+/// otherwise an empty list. Nothing happens when a stretch already exists as a bar.
+std::vector<int> divideBarAlong(StructuralModel& m, int barId, const std::vector<int>& chain) {
+    for (std::size_t i = 0; i + 1 < chain.size(); ++i)
+        if (barBetween(m, chain[i], chain[i + 1]) != 0) return {};
+    Bar* current = m.findBar(barId);
+    if (!current) return {};
+    const Bar proto = *current;
+    const bool forward = proto.startNode == chain.front();
+    std::vector<int> nodes = chain;
+    if (!forward) std::reverse(nodes.begin(), nodes.end());  // along the bar: start -> end
+    std::vector<int> stretchIds{proto.id};
+    current->endNode = nodes[1];
+    for (std::size_t i = 1; i + 1 < nodes.size(); ++i) {
+        Bar nb = proto;
+        nb.id = m.nextBarId;
+        nb.startNode = nodes[i];
+        nb.endNode = nodes[i + 1];
+        m.insertBar(nb);
+        stretchIds.push_back(nb.id);
+    }
+    if (const Piece* found = m.pieceOfBar(proto.id)) {
+        Piece piece = *found;
+        const auto at = static_cast<std::size_t>(std::find(piece.barIds.begin(), piece.barIds.end(), proto.id) - piece.barIds.begin());
+        const bool pieceForward = piece.nodeIds[at] == proto.startNode;
+        std::vector<int> bs = stretchIds, ns = nodes;
+        if (!pieceForward) {
+            std::reverse(bs.begin(), bs.end());
+            std::reverse(ns.begin(), ns.end());
+        }
+        piece.barIds.erase(piece.barIds.begin() + static_cast<std::ptrdiff_t>(at));
+        piece.barIds.insert(piece.barIds.begin() + static_cast<std::ptrdiff_t>(at), bs.begin(), bs.end());
+        piece.nodeIds.erase(piece.nodeIds.begin() + static_cast<std::ptrdiff_t>(at), piece.nodeIds.begin() + static_cast<std::ptrdiff_t>(at) + 2);
+        piece.nodeIds.insert(piece.nodeIds.begin() + static_cast<std::ptrdiff_t>(at), ns.begin(), ns.end());
+        m.removePiece(piece.id);
+        m.insertPiece(piece);
+        return {};
+    }
+    return stretchIds;
+}
+
 }  // namespace
 
 bool segmentIsIndependent(const StructuralModel& model, const std::vector<int>& soFar, int candidate) {
@@ -367,6 +412,39 @@ GenerateNodeMeshCommand::GenerateNodeMeshCommand(Project& project, const NodeMes
                 grid[index(i, j, k)] = b.node(q);
             }
     if (!spec.onlyNodes) {
+        // Existing bars joining two grid nodes of the same line (e.g. the bars drawn as segments 1 and 2) are divided by the mesh
+        // (measured, herramientas.md section 11.2: 12 bars after 2 x 2 divisions of two 4 m bars).
+        std::map<int, std::array<int, 3>> gridOf;
+        for (int k = 0; k <= nk; ++k)
+            for (int j = 0; j <= n[1]; ++j)
+                for (int i = 0; i <= n[0]; ++i) gridOf[grid[index(i, j, k)]] = {i, j, k};
+        std::set<int> dividedNew;
+        const std::vector<Bar> originalBars = work.bars;
+        for (const Bar& original : originalBars) {
+            const auto a = gridOf.find(original.startNode), c = gridOf.find(original.endNode);
+            if (a == gridOf.end() || c == gridOf.end()) continue;
+            int dir = -1;
+            bool single = true;
+            for (int d = 0; d < 3; ++d)
+                if (a->second[d] != c->second[d]) {
+                    if (dir >= 0) single = false;
+                    dir = d;
+                }
+            if (!single || dir < 0 || std::abs(a->second[dir] - c->second[dir]) < 2) continue;
+            std::vector<int> chain;
+            const int from = a->second[dir], to = c->second[dir], step = to > from ? 1 : -1;
+            for (int t = from; t != to + step; t += step) {
+                std::array<int, 3> idx = a->second;
+                idx[dir] = t;
+                chain.push_back(grid[index(idx[0], idx[1], idx[2])]);
+            }
+            for (int id : divideBarAlong(work, original.id, chain)) dividedNew.insert(id);
+        }
+        const auto lineBar = [&](int a, int c) {
+            if (const int id = b.bar(a, c)) return id;
+            const int existing = barBetween(work, a, c);
+            return dividedNew.count(existing) ? existing : 0;
+        };
         for (int dir = 0; dir < segments; ++dir) {
             std::vector<Line> lines;
             const int limits[3] = {n[0], n[1], nk};
@@ -381,7 +459,7 @@ GenerateNodeMeshCommand::GenerateNodeMeshCommand(Project& project, const NodeMes
                         idx[o2] = v;
                         line.nodes.push_back(grid[index(idx[0], idx[1], idx[2])]);
                     }
-                    for (std::size_t t = 0; t + 1 < line.nodes.size(); ++t) line.bars.push_back(b.bar(line.nodes[t], line.nodes[t + 1]));
+                    for (std::size_t t = 0; t + 1 < line.nodes.size(); ++t) line.bars.push_back(lineBar(line.nodes[t], line.nodes[t + 1]));
                     lines.push_back(std::move(line));
                 }
             makePieces(work, lines, spec.makePieces[dir], spec.groupParallel[dir]);
@@ -409,7 +487,7 @@ GenerateTetrahedraCommand::GenerateTetrahedraCommand(Project& project, const Tet
         m_error = GenerateError::DivisionsOutOfRange;
         return;
     }
-    if (!std::isfinite(spec.distanceM) || spec.distanceM == 0.0 || std::fabs(spec.distanceM) > kMaxTetrahedraDistanceM) {
+    if (!std::isfinite(spec.distanceM) || spec.distanceM <= kMinTetrahedraDistanceM || spec.distanceM > kMaxTetrahedraDistanceM) {
         m_error = GenerateError::DistanceOutOfRange;
         return;
     }

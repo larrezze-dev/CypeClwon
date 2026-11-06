@@ -465,6 +465,8 @@ TEST(BarElements, ProjectionOntoTheIconModel) {
     pillar.pillar.concreteKind = PillarConcreteKind::Circular;
     EXPECT_EQ(projectedDescription(pillar)->inlineSection->kind, ShapeKind::ConcreteCircular);
     // steel pillar: the profile of the register
+    pillar.pillar.diameterM = 0.30;
+    EXPECT_EQ(barLabelText(pillar), "Diámetro 30");  // measured: green, no unit (describir_barras.md section 24.4)
     pillar.pillar.material = PillarMaterial::Steel;
     EXPECT_EQ(projectedDescription(pillar)->materialIcon, BarMaterialIcon::RolledSteel);
     EXPECT_EQ(barLabelText(pillar), "IPE 80");

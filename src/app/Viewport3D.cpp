@@ -878,10 +878,8 @@ void Viewport3D::drawStructure(QPainter& painter) const {
         if (!m_structure->elementVisible(shell.layerIds)) continue;  // layer hidden with the eye
         QPolygonF poly;
         std::vector<Vec3> corners;
-        for (int id : shell.nodeIds) {
-            const core::Node* n = m_structure->findNode(id);
-            if (n) corners.push_back(positionOf(*n));
-        }
+        // The shell is drawn displaced by its eccentricity along local +Z; nodes and the definition contour stay (laminas.md 11.2).
+        for (const core::Point3& c : core::shellDrawnCorners(*m_structure, shell)) corners.push_back(Vec3{c.x, c.y, c.z});
         if (corners.size() != shell.nodeIds.size()) continue;
         if (clipping) corners = core::clipPolygon(corners, spaces);  // sections / clipping volume cut the shell
         for (const Vec3& c : corners) {
@@ -1039,11 +1037,19 @@ void Viewport3D::drawBarTags(QPainter& painter) const {
         if (!a || !b) continue;
         const core::Vec3 mid{(a->position.x + b->position.x) / 2.0, (a->position.y + b->position.y) / 2.0,
                              (a->position.z + b->position.z) / 2.0};
-        double x, y;
+        double x, y, ax, ay, bx, by;
         if (!visibleAfterClipping({mid.x, mid.y, mid.z}) || !map.toScreen(mid, x, y)) continue;
+        // The text runs along the bar (measured: "Diámetro 30" of a circular pillar, describir_barras.md section 24.4); read upwards /
+        // left to right, so a vertical bar keeps the vertical text.
+        double angle = -90.0;
+        if (map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by) && (ax != bx || ay != by)) {
+            angle = std::atan2(by - ay, bx - ax) * 180.0 / 3.14159265358979323846;
+            if (angle >= 90.0) angle -= 180.0;
+            if (angle < -90.0) angle += 180.0;
+        }
         painter.save();
         painter.translate(x - 5, y);
-        painter.rotate(-90.0);
+        painter.rotate(angle);
         painter.drawText(QRectF(-100, -8, 200, 16), Qt::AlignCenter, text);
         painter.restore();
     }

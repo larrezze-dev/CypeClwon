@@ -16,6 +16,8 @@ namespace cc::core {
 /// flow (done in the GUI); that two planes with 1 m separation give 2 copies of the plane displaced 1 m; that 3 divisions of one
 /// segment give 2 intermediate nodes and 3 bars. NOT measured (PROVISIONAL, marked below): the geometry of the 2D / 3D meshes and
 /// of the tetrahedra, what "Agrupar" and "Crear pieza" do exactly, the ranges of the tetrahedra fields.
+/// Update 2026-11-06 (herramientas.md section 11): 2D 2 x 2 gives 9 nodes / 12 bars and the bars already joining the segment ends are
+/// divided; "Generar sólo los nudos" creates no bar and divides nothing; 3D 2 x 2 x 2 gives 27 nodes; tetrahedra 2 x 2 give 13 / 32.
 
 inline constexpr int kMinPlaneCount = 1;
 inline constexpr int kMaxPlaneCount = 100;
@@ -23,8 +25,10 @@ inline constexpr double kMinPlaneSeparationM = -10000.0;
 inline constexpr double kMaxPlaneSeparationM = 10000.0;
 inline constexpr int kMinDivisions = 1;
 inline constexpr int kMaxDivisions = 1000;
-/// Range of "Distancia entre planos" of the tetrahedra mesh. NOT MEASURED: provisional, the plane separation range.
-inline constexpr double kMaxTetrahedraDistanceM = 10000.0;
+/// Range of "Distancia entre planos" of the tetrahedra mesh (measured tooltip "Debe estar entre 0.000 y 1000.000."). The editor accepts
+/// 0; what the original builds with 0 was not measured, the clone refuses it (a mesh without height).
+inline constexpr double kMinTetrahedraDistanceM = 0.0;
+inline constexpr double kMaxTetrahedraDistanceM = 1000.0;
 /// Safety limit on the nodes a single generation may create. NOT in the original: protects the clone from 1000 x 1000 x 1000 meshes.
 inline constexpr std::size_t kMaxGeneratedNodes = 200000;
 /// Distance under which two coordinates count as the same plane / a point counts as lying on a plane (metres). PROVISIONAL.
@@ -135,7 +139,7 @@ private:
 // --- Malla de tetraedros ------------------------------------------------------------------------------------------------------
 
 /// `nodeIds` = start and end of segment 1 and end of segment 2 (same origin). The second plane lies `distanceM` from the first along
-/// the right-hand "screw rule" normal s1 x s2 (a negative distance goes the other way).
+/// the right-hand "screw rule" normal s1 x s2 (measured: +Z for s1 = +X, s2 = +Y). The distance is never negative (range 0 - 1000).
 struct TetrahedraSpec {
     std::array<int, 3> nodeIds{0, 0, 0};
     int divisions1 = 1, divisions2 = 1;
@@ -143,9 +147,10 @@ struct TetrahedraSpec {
     bool groupLowerBars = true, groupUpperBars = true, groupDiagonals = true;
 };
 
-/// PROVISIONAL geometry (the original result was not measured): lower plane = grid of (n1+1) x (n2+1) nodes with bars along both
+/// Geometry measured on 2 x 2 divisions, 1 m (13 nodes, 32 bars): lower plane = grid of (n1+1) x (n2+1) nodes with bars along both
 /// segments; upper plane = one node above the centre of every cell, joined along both directions to its neighbours; every upper node
-/// is joined to the four corners of its cell (the double-layer tetrahedral space frame). "Agrupar" shares a group id (single-bar piece
+/// is joined to the four corners of its cell (the double-layer tetrahedral space frame). There is no "canto" field: the depth of the
+/// mesh is the distance between planes. "Agrupar" shares a group id (single-bar piece
 /// records) among the lower bars, the upper bars and the diagonals respectively.
 class GenerateTetrahedraCommand : public SnapshotCommand {
 public:

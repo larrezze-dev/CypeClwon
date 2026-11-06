@@ -150,7 +150,7 @@ TetrahedraDialog::TetrahedraDialog(QWidget* parent) : CypeDialog(tr("Generación
     const QString d1 = tr("Nº de divisiones del segmento 1"), d2 = tr("Nº de divisiones del segmento 2"), dist = tr("Distancia entre planos");
     m_div1 = makeDivisionsEdit(d1, this);
     m_div2 = makeDivisionsEdit(d2, this);
-    m_distance = new RangedEdit(dist, ValueRange{-kMaxTetrahedraDistanceM, kMaxTetrahedraDistanceM}, 3, this);
+    m_distance = new RangedEdit(dist, ValueRange{kMinTetrahedraDistanceM, kMaxTetrahedraDistanceM}, 3, this);
     m_distance->setValue(1.0);
     grid->addWidget(new QLabel(d1, this), 0, 0);
     grid->addWidget(m_div1, 0, 1);

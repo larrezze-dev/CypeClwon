@@ -65,6 +65,11 @@ struct ShellAxes {
 };
 std::optional<ShellAxes> shellLocalAxes(const StructuralModel& model, const Shell& shell);
 
+/// Corner points of the shell as drawn: the corner nodes displaced by the "Desplazamiento del plano central" Z along the local z axis
+/// (measured, laminas.md section 11.2: with Z > 0 the shell is drawn towards +Z local; nodes and the definition contour do not
+/// move). Empty when a node is missing; the plain node positions when the axes cannot be resolved.
+std::vector<Point3> shellDrawnCorners(const StructuralModel& model, const Shell& shell);
+
 /// "Sección de la lámina" values (see SetShellSectionCommand).
 struct ShellSection {
     double thicknessM = kDefaultShellThicknessM;

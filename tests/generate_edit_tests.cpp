@@ -303,11 +303,82 @@ TEST(GenerateTetrahedra, ScrewRuleAndNegativeDistance) {
     spec.distanceM = 2.0;
     ASSERT_EQ(generateTetrahedra(f.p, f.stack, spec), GenerateError::None);
     EXPECT_TRUE(hasNodeAt(f.p.structure, 2.0, 1.5, -2.0));
+    // Measured range 0.000 - 1000.000: a negative distance is refused, the sense comes from the order of the segments.
     Frame g;
     spec.nodeIds = {1, 2, 3};
     spec.distanceM = -2.0;
-    ASSERT_EQ(generateTetrahedra(g.p, g.stack, spec), GenerateError::None);
-    EXPECT_TRUE(hasNodeAt(g.p.structure, 2.0, 1.5, -2.0));
+    EXPECT_EQ(generateTetrahedra(g.p, g.stack, spec), GenerateError::DistanceOutOfRange);
+    spec.distanceM = 1000.0;
+    EXPECT_EQ(generateTetrahedra(g.p, g.stack, spec), GenerateError::None);
+    Frame h;
+    spec.distanceM = 1000.001;
+    EXPECT_EQ(generateTetrahedra(h.p, h.stack, spec), GenerateError::DistanceOutOfRange);
+    EXPECT_EQ(generateErrorMessage(GenerateError::DistanceOutOfRange).rfind("El valor de 'Distancia entre planos' debe estar entre 0.000 y 1000.000.", 0), 0u);
+}
+
+// Measured in the original (herramientas.md section 11.2): segments of 4 m and 3 m drawn as bars, 2 x 2 divisions, default checkboxes.
+TEST(GenerateNodeMesh, TheBarsOfTheSegmentsAreDividedLikeTheOriginal) {
+    Frame f;
+    f.p.structure.addBar(1, 2);  // segment 1
+    f.p.structure.addBar(1, 3);  // segment 2
+    NodeMeshSpec spec;
+    spec.nodeIds = {1, 2, 3};
+    spec.divisions = {2, 2, 1};
+    ASSERT_EQ(generateNodeMesh(f.p, f.stack, spec), GenerateError::None);
+    EXPECT_EQ(f.p.structure.nodes.size(), 9u + 1u) << "3 x 3 grid plus the unrelated fourth node of the fixture";
+    EXPECT_EQ(f.p.structure.bars.size(), 12u) << "every line of the grid, the original bars divided";
+    EXPECT_TRUE(f.p.structure.validate().empty());
+    f.stack.undo();
+    EXPECT_EQ(f.p.structure.bars.size(), 2u);
+    EXPECT_EQ(f.p.structure.nodes.size(), 4u);
+}
+
+TEST(GenerateNodeMesh, OnlyNodesDoesNotDivideTheExistingBars) {
+    Frame f;
+    f.p.structure.addBar(1, 2);
+    f.p.structure.addBar(1, 3);
+    NodeMeshSpec spec;
+    spec.nodeIds = {1, 2, 3};
+    spec.divisions = {2, 2, 1};
+    spec.onlyNodes = true;
+    ASSERT_EQ(generateNodeMesh(f.p, f.stack, spec), GenerateError::None);
+    EXPECT_EQ(f.p.structure.nodes.size(), 10u);
+    EXPECT_EQ(f.p.structure.bars.size(), 2u) << "no new bar and the originals keep their length";
+}
+
+TEST(GenerateNodeMesh, DividedPiecesStayPiecesAndTheGridPositionsFollowTheFormula) {
+    Frame f;
+    const int b1 = f.p.structure.addBar(1, 2);
+    f.p.structure.addBar(1, 3);
+    Piece piece;
+    piece.id = f.p.structure.nextPieceId;
+    piece.barIds = {b1};
+    piece.nodeIds = {1, 2};
+    piece.type = ElementType::Beam;
+    ASSERT_TRUE(f.p.structure.insertPiece(piece));
+    NodeMeshSpec spec;
+    spec.nodeIds = {1, 2, 3};
+    spec.divisions = {2, 2, 1};
+    ASSERT_EQ(generateNodeMesh(f.p, f.stack, spec), GenerateError::None);
+    const Piece* kept = f.p.structure.findPiece(piece.id);
+    ASSERT_NE(kept, nullptr);
+    EXPECT_EQ(kept->barIds.size(), 2u) << "the original bar became two stretches of the same piece";
+    EXPECT_EQ(kept->type, ElementType::Beam);
+    // point(i, j) = P0 + i * s2 * U2 + j * s1 * U1 with s = L / n.
+    for (int i = 0; i <= 2; ++i)
+        for (int j = 0; j <= 2; ++j) EXPECT_TRUE(hasNodeAt(f.p.structure, j * 2.0, i * 1.5, 0.0));
+}
+
+// Measured: 2 x 2 divisions, 1 m, the three groupings on: 13 nodes and 32 bars (upper layer at the cell centres, 4 diagonals per cell).
+TEST(GenerateTetrahedra, MeasuredCountsOf2x2Divisions) {
+    Frame f;
+    TetrahedraSpec spec;
+    spec.nodeIds = {1, 2, 3};
+    spec.divisions1 = spec.divisions2 = 2;
+    ASSERT_EQ(generateTetrahedra(f.p, f.stack, spec), GenerateError::None);
+    EXPECT_EQ(f.p.structure.nodes.size(), 13u + 1u) << "13 mesh nodes plus the unrelated fourth node of the fixture";
+    EXPECT_EQ(f.p.structure.bars.size(), 32u);
+    EXPECT_TRUE(hasNodeAt(f.p.structure, 1.0, 0.75, 1.0)) << "upper layer in the centre of the first cell, +1 m";
 }
 
 TEST(GenerateTetrahedra, DivisionsAndGroupsAndErrors) {

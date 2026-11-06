@@ -301,3 +301,53 @@ TEST(ToolsEdit, AnalyseReportsOriginalMessages) {
     }
     EXPECT_TRUE(close && onBar && unneeded);
 }
+
+// Measured in the original (herramientas.md section 11.1).
+TEST(ToolsEdit, RepairLeavesNodesAt5cmAndCrossingBarsAlone) {
+    Project p;
+    UndoStack stack;
+    const int a = node(p, 0, 0), b = node(p, 4, 0), c = node(p, 4.05, 0), d = node(p, 8, 0);
+    p.structure.addBar(a, b);
+    p.structure.addBar(c, d);
+    // Two bars that cross without a common node.
+    const int e = node(p, 0, 5), f = node(p, 4, 5), g = node(p, 2, 4), h = node(p, 2, 6);
+    p.structure.addBar(e, f);
+    p.structure.addBar(g, h);
+    const std::size_t nodes = p.structure.nodes.size(), bars = p.structure.bars.size();
+    RepairReport report;
+    EXPECT_FALSE(repairModel(p, stack, &report));
+    EXPECT_FALSE(report.modified());
+    EXPECT_EQ(p.structure.nodes.size(), nodes);
+    EXPECT_EQ(p.structure.bars.size(), bars) << "no crossing node, no division";
+    EXPECT_EQ(stack.count(), 0u);
+}
+
+TEST(ToolsEdit, RepairFusesNodesAtTheToleranceAndDropsTheDegenerateBarThenUndoes) {
+    Project p;
+    UndoStack stack;
+    const int n1 = node(p, 0, 0), n2 = node(p, 4, 0), n3 = node(p, 4, 3);
+    const int n5 = node(p, 8, 0), n6 = node(p, 8.0004, 0);  // 0.4 mm apart
+    p.structure.addBar(n1, n2);
+    p.structure.addBar(n2, n3);
+    p.structure.addBar(n6, n5);  // the degenerate bar joining them
+    ASSERT_EQ(p.structure.nodes.size(), 5u);
+    ASSERT_TRUE(repairModel(p, stack));
+    EXPECT_EQ(p.structure.nodes.size(), 4u);
+    EXPECT_EQ(p.structure.bars.size(), 2u);
+    stack.undo();
+    EXPECT_EQ(p.structure.nodes.size(), 5u);
+    EXPECT_EQ(p.structure.bars.size(), 3u);
+    // Within the tolerance (1 mm) merges, a little more does not.
+    Project q;
+    UndoStack qs;
+    node(q, 0);
+    node(q, 0.0009);
+    node(q, 1);
+    node(q, 1.0011);
+    q.structure.addBar(1, 3);
+    q.structure.addBar(2, 4);
+    RepairReport report;
+    ASSERT_TRUE(repairModel(q, qs, &report));
+    EXPECT_EQ(report.mergedNodes, 1);
+    EXPECT_EQ(q.structure.nodes.size(), 3u);
+}
