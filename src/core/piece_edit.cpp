@@ -146,6 +146,11 @@ void PieceDiffCommand::capture(const StructuralModel& edited) {
     m_nextPieceAfter = edited.nextPieceId;
 }
 
+void PieceDiffCommand::captureBarEnds(const BarEnds& edited) {
+    m_endsBefore = m_project.barEnds;
+    m_endsAfter = edited;
+}
+
 void PieceDiffCommand::redo() {
     if (m_error != PieceError::None) return;
     StructuralModel& m = m_project.structure;
@@ -153,6 +158,7 @@ void PieceDiffCommand::redo() {
         if (Bar* target = m.findBar(b.id)) *target = b;
     m.pieces = m_piecesAfter;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceAfter);
+    if (m_endsAfter) m_project.barEnds = *m_endsAfter;
 }
 
 void PieceDiffCommand::undo() {
@@ -162,6 +168,7 @@ void PieceDiffCommand::undo() {
         if (Bar* target = m.findBar(b.id)) *target = b;
     m.pieces = m_piecesBefore;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceBefore);  // ids are never reused
+    if (m_endsBefore) m_project.barEnds = *m_endsBefore;
 }
 
 // --- CreatePieceCommand -----------------------------------------------------------------------------------------
@@ -377,11 +384,14 @@ InvertBarAxisCommand::InvertBarAxisCommand(Project& project, int barId) : PieceD
         std::reverse(piece->barIds.begin(), piece->barIds.end());
         std::reverse(piece->nodeIds.begin(), piece->nodeIds.end());
     }
+    BarEnds ends = project.barEnds;
     for (int id : bars) {
         Bar* b = work.findBar(id);
         std::swap(b->startNode, b->endNode);
+        setBarEnds(ends, id, swappedEnds(barEndsOf(ends, id)));
     }
     capture(work);
+    captureBarEnds(ends);
 }
 
 // --- wrappers ---------------------------------------------------------------------------------------------------

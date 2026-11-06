@@ -57,6 +57,7 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     m_before = node->position;
     m_node = *node;
     m_ligaturesBefore = project.ligatures;
+    m_diaphragmsBefore = project.diaphragms;
     if (auto it = project.nodeSupports.external.find(nodeId); it != project.nodeSupports.external.end()) m_externalBefore = it->second;
     if (auto it = project.nodeSupports.internal.find(nodeId); it != project.nodeSupports.internal.end()) m_internalBefore = it->second;
 
@@ -113,6 +114,7 @@ void MoveNodeCommand::redo() {
     m_project.nodeSupports.external.erase(m_id);
     m_project.nodeSupports.internal.erase(m_id);
     applyLigatureNodesDeleted(m_project.ligatures, {m_id});
+    applyDiaphragmNodesDeleted(m_project.diaphragms, {m_id});
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
 }
@@ -130,6 +132,7 @@ void MoveNodeCommand::undo() {
     if (m_externalBefore) m_project.nodeSupports.external[m_id] = *m_externalBefore;
     if (m_internalBefore) m_project.nodeSupports.internal[m_id] = *m_internalBefore;
     m_project.ligatures = m_ligaturesBefore;
+    m_project.diaphragms = m_diaphragmsBefore;
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
 }
@@ -143,6 +146,9 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     nodeIds.erase(std::remove_if(nodeIds.begin(), nodeIds.end(), [&](int id) { return !model.findNode(id); }),
                   nodeIds.end());
     m_ligaturesBefore = project.ligatures;
+    m_diaphragmsBefore = project.diaphragms;
+    m_barEndsBefore = project.barEnds;
+    m_barEndsAfter = project.barEnds;
     auto deleted = [&](int id) { return std::binary_search(nodeIds.begin(), nodeIds.end(), id); };
 
     std::vector<int> barIds, shellIds;
@@ -174,6 +180,14 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
         const bool towardsFirstFar = first.startNode == id;
         merged.startNode = towardsFirstFar ? farSecond : farFirst;
         merged.endNode = towardsFirstFar ? farFirst : farSecond;
+        // The new bar runs between the far nodes: each of its ends takes the data of the end of the old bar that sits at that node.
+        auto endDataAt = [&](const Bar& old, int node) { return barEndsOf(project.barEnds, old.id).ends[old.startNode == node ? kBarOrigin : kBarFinal]; };
+        BarEndsRecord rec;
+        for (int e = 0; e < 2; ++e) {
+            const int node = e == kBarOrigin ? merged.startNode : merged.endNode;
+            rec.ends[static_cast<std::size_t>(e)] = endDataAt(node == farFirst ? first : second, node);
+        }
+        setBarEnds(m_barEndsAfter, merged.id, rec);
         m_merged.push_back(merged);
     }
     std::sort(barIds.begin(), barIds.end());
@@ -196,7 +210,9 @@ void DeleteNodesCommand::redo() {
     std::vector<int> deletedIds;
     for (const Node& n : m_nodes) deletedIds.push_back(n.id);
     applyLigatureNodesDeleted(m_project.ligatures, deletedIds);
+    applyDiaphragmNodesDeleted(m_project.diaphragms, deletedIds);
     for (const Bar& b : m_merged) model.insertBar(b);
+    m_project.barEnds = m_barEndsAfter;
 }
 
 void DeleteNodesCommand::undo() {
@@ -206,6 +222,8 @@ void DeleteNodesCommand::undo() {
     for (const auto& [id, support] : m_externalBefore) m_project.nodeSupports.external[id] = support;
     for (const auto& [id, link] : m_internalBefore) m_project.nodeSupports.internal[id] = link;
     m_project.ligatures = m_ligaturesBefore;
+    m_project.diaphragms = m_diaphragmsBefore;
+    m_project.barEnds = m_barEndsBefore;
     for (const Bar& b : m_bars) model.insertBar(b);
     for (const Shell& s : m_shells) model.insertShell(s);
 }

@@ -66,6 +66,7 @@ private:
     std::optional<ExternalSupport> m_externalBefore;  ///< supports of the node that goes away (restored by undo)
     std::optional<InternalLink> m_internalBefore;
     NodeLigatures m_ligaturesBefore;  ///< ties before the merge (the node that goes away leaves them; restored by undo)
+    Diaphragms m_diaphragmsBefore;    ///< diaphragms before the merge (the node that goes away leaves its diaphragm; restored by undo)
 };
 
 /// "Borrar": deletes nodes together with the bars and shells that use them. Exception: a deleted node that joins exactly
@@ -91,6 +92,8 @@ private:
     std::map<int, ExternalSupport> m_externalBefore;  ///< supports of the deleted nodes (restored by undo)
     std::map<int, InternalLink> m_internalBefore;
     NodeLigatures m_ligaturesBefore;  ///< ties before the deletion (deleted nodes leave them and ties are renumbered; restored by undo)
+    Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
+    BarEnds m_barEndsBefore, m_barEndsAfter;  ///< end data of the bars; the bar that replaces a deleted node inherits the ends that touch its far nodes
 };
 
 /// Id of the node nearest to `p` at a distance <= toleranceM, or nullopt when there is none.

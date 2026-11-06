@@ -551,6 +551,90 @@ const std::vector<Section>& sections() {
                     p.ligatures = std::move(loaded);
                 },
                 [](const Project& p) { return validateLigatures(p.ligatures, p.structure).empty(); }},
+        Section{"diaphragms", "Diafragmas rígidos",
+                [](const Project& p) {
+                    // Nodes that no longer exist are not saved.
+                    json items = json::array();
+                    for (const Diaphragm& d : p.diaphragms.items) {
+                        std::vector<int> nodes;
+                        for (int n : d.nodeIds)
+                            if (p.structure.findNode(n)) nodes.push_back(n);
+                        json loads = json::array();
+                        for (const DiaphragmLoad& l : d.loads)
+                            loads.push_back({{"load_case", l.loadCaseId}, {"fx", l.fxKn}, {"fy", l.fyKn}, {"x", l.xM}, {"y", l.yM}});
+                        items.push_back({{"id", d.id}, {"reference", d.reference}, {"color", d.color}, {"nodes", nodes}, {"loads", loads}});
+                    }
+                    return json{{"next", p.diaphragms.nextId}, {"items", items}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    Diaphragms loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            Diaphragm d;
+                            d.id = e.at("id").get<int>();
+                            d.reference = e.value("reference", std::string{});
+                            d.color = e.value("color", kDefaultDiaphragmColor);
+                            d.nodeIds = e.value("nodes", std::vector<int>{});
+                            std::sort(d.nodeIds.begin(), d.nodeIds.end());
+                            if (e.contains("loads"))
+                                for (const json& l : e.at("loads")) {
+                                    DiaphragmLoad load;
+                                    load.loadCaseId = l.value("load_case", 0);
+                                    load.fxKn = l.value("fx", 0.0);
+                                    load.fyKn = l.value("fy", 0.0);
+                                    load.xM = l.value("x", 0.0);
+                                    load.yM = l.value("y", 0.0);
+                                    d.loads.push_back(load);
+                                }
+                            following = std::max(following, d.id + 1);
+                            loaded.items.push_back(std::move(d));
+                        }
+                    loaded.nextId = j.value("next", following);
+                    p.diaphragms = std::move(loaded);
+                },
+                [](const Project& p) { return validateDiaphragms(p.diaphragms, p.structure).empty(); }},
+        Section{"bar_ends", "Extremos de barra (articulaciones y empotramiento parcial)",
+                [](const Project& p) {
+                    // Bars that no longer exist are not saved.
+                    json bars = json::array();
+                    for (const auto& [id, rec] : p.barEnds.bars) {
+                        if (!p.structure.findBar(id)) continue;
+                        json ends = json::array();
+                        for (const BarEndFixity& e : rec.ends) {
+                            json planes = json::array();
+                            for (const EndPlaneFixity& f : e.planes)
+                                planes.push_back({{"rotational", f.kind == EndFixityKind::Rotational}, {"coefficient", f.coefficient}, {"stiffness", f.stiffnessKnMPerRad}});
+                            ends.push_back({{"pinned", e.pinned}, {"planes", planes}});
+                        }
+                        bars.push_back({{"bar", id}, {"ends", ends}});
+                    }
+                    return json{{"bars", bars}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    BarEnds loaded;
+                    if (j.contains("bars"))
+                        for (const json& b : j.at("bars")) {
+                            BarEndsRecord rec;
+                            const json& ends = b.at("ends");
+                            for (std::size_t e = 0; e < 2 && e < ends.size(); ++e) {
+                                rec.ends[e].pinned = ends[e].value("pinned", false);
+                                if (!ends[e].contains("planes")) continue;
+                                const json& planes = ends[e].at("planes");
+                                for (std::size_t k = 0; k < 3 && k < planes.size(); ++k) {
+                                    EndPlaneFixity& f = rec.ends[e].planes[k];
+                                    f.kind = planes[k].value("rotational", false) ? EndFixityKind::Rotational : EndFixityKind::Coefficient;
+                                    f.coefficient = planes[k].value("coefficient", 1.0);
+                                    f.stiffnessKnMPerRad = planes[k].value("stiffness", kDefaultEndRotationalStiffness);
+                                }
+                            }
+                            setBarEnds(loaded, b.at("bar").get<int>(), rec);
+                        }
+                    p.barEnds = std::move(loaded);
+                },
+                [](const Project& p) { return validateBarEnds(p.barEnds, p.structure).empty(); }},
     };
     return all;
 }

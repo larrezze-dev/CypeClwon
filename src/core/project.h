@@ -7,6 +7,8 @@
 #include "core/continuous_model.h"
 #include "core/display_options.h"
 #include "core/limit_states.h"
+#include "core/bar_ends.h"
+#include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/options_settings.h"
@@ -41,6 +43,8 @@ struct Project {
     ContinuousElements continuous;  ///< continuous pillars / beams, references, slab depths, deflection limits (section continuous_elements); empty in older files
     NodeSupports nodeSupports;  ///< external restraints and internal links of nodes (section node_supports); empty in older files
     NodeLigatures ligatures;  ///< node ties "Ligaduras" in X, Y, Z (section node_ties); empty in older files
+    Diaphragms diaphragms;  ///< rigid diaphragms (section diaphragms); empty in older files
+    BarEnds barEnds;  ///< articulations and partial fixity at the ends of bars (section bar_ends); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 

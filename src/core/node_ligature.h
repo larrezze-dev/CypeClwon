@@ -21,7 +21,7 @@ namespace cc::core {
 ///  - Undoable edits (node_ligature_edit.h): assignLigatures / removeLigatures (+ node deletion / merge handled by node_edit).
 ///  - Persistence: JSON section "node_ties" (absent in older files = empty).
 ///
-/// PROVISIONAL / NOT MEASURED (TODO(medir)): the diaphragm check is a stub (no diaphragms yet, T-P6-04); the prescribed-displacement
+/// PROVISIONAL / NOT MEASURED (TODO(medir)): the prescribed-displacement
 /// conflict (#64231) compares only nodes that store a prescribed set for the load case with the DOF blocked (REA FUN_180043f60);
 /// the warnings #64198 / #64199 (prescribed vs tie on already existing data) are not reproduced; ties of a single node left over by an
 /// assignment are kept (measured) and disappear on the next removal / node deletion (REA regeneration).
@@ -51,8 +51,6 @@ std::string ligatureLabel(const NodeLigatures& ligatures, int nodeId);
 /// False when the node does not exist or has an external restraint defined on a line or plane (types Line* / Plane*, generic "sobre una
 /// recta / plano"): the original never captures such nodes and says nothing.
 bool isLigatureCapturable(const StructuralModel& model, const NodeSupports& supports, int nodeId);
-/// True when the node belongs to a diaphragm. STUB: always false until the diaphragms exist (T-P6-04).
-bool isNodeInDiaphragm(int nodeId);
 
 enum class LigatureStatus { Ok, Silent, Error };
 struct LigatureCheck {

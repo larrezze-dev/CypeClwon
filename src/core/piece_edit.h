@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,8 @@ protected:
     explicit PieceDiffCommand(Project& project) : m_project(project) {}
     /// Stores the difference between the project model and `edited` (same bars, possibly changed fields).
     void capture(const StructuralModel& edited);
+    /// Also stores a new state of the bar end data (InvertBarAxisCommand swaps origin / end).
+    void captureBarEnds(const BarEnds& edited);
     Project& m_project;
     PieceError m_error = PieceError::None;
 
@@ -56,6 +59,7 @@ private:
     std::vector<Bar> m_barsBefore, m_barsAfter;
     std::vector<Piece> m_piecesBefore, m_piecesAfter;
     int m_nextPieceBefore = 1, m_nextPieceAfter = 1;
+    std::optional<BarEnds> m_endsBefore, m_endsAfter;
 };
 
 /// "Pieza": defines a piece from its start node (start of the first bar) to its end node (end of the last bar).
@@ -121,8 +125,8 @@ public:
 
 /// "Invertir eje 'x'": swaps the start and end node of the bar (#64640 / #64641). PROVISIONAL decisions: Bar::xAxisInverted
 /// and the roll angle are left alone; for a bar of a multi-bar piece the whole piece is inverted (chain and bar order
-/// reversed) so the alignment stays consistent. NOTE: the model has no fixity coefficients or loads yet; when it does,
-/// they must be mirrored here (x -> L - x, start/end swapped) so the physical structure does not change (#64641).
+/// reversed) so the alignment stays consistent. The end data (articulations, fixity coefficients: bar_ends.h) are swapped origin <-> end so
+/// the physical structure does not change (#64641). NOTE: loads (none in the model yet) must be mirrored too (x -> L - x).
 class InvertBarAxisCommand : public PieceDiffCommand {
 public:
     InvertBarAxisCommand(Project& project, int barId);

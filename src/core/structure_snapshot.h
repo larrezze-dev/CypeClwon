@@ -31,6 +31,10 @@ private:
     std::string m_text;
     bool m_committed = false;
     StructuralModel m_before, m_after;
+    // Data hanging from nodes / bars that the edit may orphan or divide: end data (divided bars hand their end to the last stretch) and
+    // diaphragms (vanished nodes leave them).
+    BarEnds m_endsBefore, m_endsAfter;
+    Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
 };
 
 }  // namespace cc::core

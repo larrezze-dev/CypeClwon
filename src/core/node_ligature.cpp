@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 
+#include "core/node_diaphragm.h"
 #include "core/project.h"
 
 namespace cc::core {
@@ -81,8 +82,6 @@ bool isLigatureCapturable(const StructuralModel& model, const NodeSupports& supp
     return kind != SupportKind::Line && kind != SupportKind::Plane;
 }
 
-bool isNodeInDiaphragm(int) { return false; }  // TODO(T-P6-04): diaphragms do not exist yet
-
 std::string ligatureMessage(int messageId) {
     switch (messageId) {
         case 388777: return "No se ha seleccionado el tipo de ligadura a establecer.";
@@ -132,7 +131,7 @@ LigatureCheck checkLigatureAssign(const Project& project, const std::vector<int>
     const std::vector<int> ids = ligatureSelection(project, nodeIds);
     if (ids.size() < 2) return {LigatureStatus::Silent, 0, {}};
     for (int id : ids)
-        if (isNodeInDiaphragm(id)) return error(375639);
+        if (isNodeInDiaphragm(project.diaphragms, id)) return error(375639);
     std::array<bool, 3> link{};
     bool any = false;
     for (int d = 0; d < 3; ++d) {
