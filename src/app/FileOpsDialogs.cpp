@@ -93,3 +93,61 @@ void RecentFilesDialog::choose() {
 }
 
 }  // namespace cc::app
+
+namespace cc::app {
+
+SearchProjectDialog::SearchProjectDialog(const QList<SearchEntry>& entries, QWidget* parent)
+    : CypeDialog(tr("Buscar obra"), parent), m_entries(entries) {  // TODO(medir): real title and labels
+    setMinimumSize(480, 320);
+    m_query = new QLineEdit(this);
+    m_query->setPlaceholderText(tr("Palabras a buscar en el nombre o la descripción"));
+    m_list = new QListWidget(this);
+    contentLayout()->addWidget(m_query);
+    contentLayout()->addWidget(m_list, 1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+    connect(m_query, &QLineEdit::textChanged, this, [this] { refresh(); });
+    connect(m_list, &QListWidget::itemDoubleClicked, this, [this] { choose(); });
+    disconnect(acceptButton(), &QPushButton::clicked, this, &QDialog::accept);
+    connect(acceptButton(), &QPushButton::clicked, this, [this] { choose(); });
+    refresh();
+}
+
+QString SearchProjectDialog::fold(const QString& text) {
+    const QString decomposed = text.normalized(QString::NormalizationForm_D);
+    QString out;
+    for (const QChar c : decomposed) {
+        if (c.category() != QChar::Mark_NonSpacing) out.append(c);
+    }
+    return out.toLower();
+}
+
+bool SearchProjectDialog::matches(const QString& query, const SearchEntry& entry) {
+    const QString haystack = fold(entry.name + QLatin1Char(' ') + entry.description);
+    const QStringList words = fold(query).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    for (const QString& word : words) {
+        if (!haystack.contains(word)) return false;
+    }
+    return true;
+}
+
+void SearchProjectDialog::refresh() {
+    m_list->clear();
+    for (int i = 0; i < m_entries.size(); ++i) {
+        if (!matches(m_query->text(), m_entries[i])) continue;
+        const QString text = m_entries[i].description.isEmpty() ? m_entries[i].name
+                                                                : m_entries[i].name + QStringLiteral(" - ") + m_entries[i].description;
+        auto* item = new QListWidgetItem(text, m_list);
+        item->setData(Qt::UserRole, i);
+    }
+    if (m_list->count() > 0) m_list->setCurrentRow(0);
+    acceptButton()->setEnabled(m_list->count() > 0);
+}
+
+void SearchProjectDialog::choose() {
+    const QListWidgetItem* item = m_list->currentItem();
+    if (!item) return;
+    m_chosen = item->data(Qt::UserRole).toInt();
+    accept();
+}
+
+}  // namespace cc::app

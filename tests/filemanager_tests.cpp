@@ -89,7 +89,7 @@ TEST(FileManagerDialog, OpenEmitsSelectedPathAndPendingButtonsAreDisabled) {
     barButton(&dialog, "Abrir")->click();
     ASSERT_EQ(spy.count(), 1);
     EXPECT_TRUE(spy.at(0).at(0).toString().endsWith("one.ed3"));
-    for (const char* name : {"Buscar", "Compartir", "Ejemplos"}) {
+    for (const char* name : {"Buscar", "Compartir", "Ejemplos"}) {  // Buscar needs more than one project
         EXPECT_FALSE(barButton(&dialog, name)->isEnabled()) << name;
     }
     for (const char* name : {"Copiar", "Borrar", "Comprimir", "Descomprimir"}) {
@@ -115,7 +115,7 @@ TEST(FileOpsDialogs, CompressProposesCypNextToTheProjectAndReportsKBytes) {
     ASSERT_TRUE(f.open(QIODevice::WriteOnly));
     f.write(QByteArray(2048, 'x'));
     f.close();
-    QFile bak(dir.filePath("nuevo2.bak"));
+    QFile bak(dir.filePath("nuevo2.ed$"));
     ASSERT_TRUE(bak.open(QIODevice::WriteOnly));
     bak.write(QByteArray(1024, 'x'));
     bak.close();
@@ -140,6 +140,28 @@ TEST(FileOpsDialogs, RecentFilesDialogChoosesTheSelectedEntry) {
     dialog.list()->setCurrentRow(1);
     dialog.acceptButton()->click();
     EXPECT_EQ(dialog.chosenFile(), "C:/a/two.ed3");
+}
+
+TEST(FileManagerDialog, BuscarNeedsMoreThanOneProjectAndSelectsTheMatch) {
+    ensureApp();
+    QTemporaryDir dir;
+    touch(dir.filePath("alpha.ed3"));
+    FileManagerDialog single(dir.path());
+    EXPECT_FALSE(barButton(&single, "Buscar")->isEnabled());
+    cc::core::ProjectDocument doc = cc::core::makeDocument(cc::core::Project{}, "Cimentación profunda");
+    ASSERT_TRUE(cc::core::saveProjectFile(std::filesystem::path(dir.filePath("beta.ed3").toStdWString()), doc).ok);
+    FileManagerDialog dialog(dir.path());
+    EXPECT_TRUE(barButton(&dialog, "Buscar")->isEnabled());
+    EXPECT_FALSE(barButton(&dialog, "Compartir")->isEnabled());
+    EXPECT_FALSE(barButton(&dialog, "Compartir")->toolTip().isEmpty());
+    SearchProjectDialog search({{"alpha", ""}, {"beta", "Cimentación profunda"}});
+    EXPECT_EQ(search.list()->count(), 2);
+    search.queryEdit()->setText("CIMENTACION");
+    ASSERT_EQ(search.list()->count(), 1);
+    search.acceptButton()->click();
+    EXPECT_EQ(search.chosenIndex(), 1);
+    EXPECT_TRUE(SearchProjectDialog::matches("profunda cimentacion", {"beta", "Cimentación profunda"}));
+    EXPECT_FALSE(SearchProjectDialog::matches("losa", {"beta", "Cimentación profunda"}));
 }
 
 int main(int argc, char** argv) {

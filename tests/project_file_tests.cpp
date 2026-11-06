@@ -83,6 +83,19 @@ protected:
 
 }  // namespace
 
+TEST_F(ProjectFileTest, SavingKeepsThePreviousVersionAsEdDollarBackup) {
+    ProjectDocument doc = makeDocument(customProject(), "primera");
+    const fs::path path = dir / "obra.ed3";
+    ASSERT_TRUE(saveProjectFile(path, doc).ok);
+    EXPECT_FALSE(fs::exists(dir / "obra.ed$"));  // first save: nothing to preserve
+    const auto firstSize = fs::file_size(path);
+    doc.manifest.description = "segunda, con una descripcion bastante mas larga";
+    ASSERT_TRUE(saveProjectFile(path, doc).ok);
+    ASSERT_TRUE(fs::exists(dir / "obra.ed$"));
+    EXPECT_EQ(fs::file_size(dir / "obra.ed$"), firstSize);
+    EXPECT_TRUE(loadProjectFile(dir / "obra.ed$").ok);
+}
+
 TEST_F(ProjectFileTest, RoundTripKeepsEverySection) {
     ProjectDocument doc = makeDocument(customProject(), "Nave industrial");
     const fs::path path = dir / "obra.ed3";

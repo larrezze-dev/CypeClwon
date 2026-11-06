@@ -66,15 +66,20 @@ FileManagerDialog::FileManagerDialog(const QString& folder, QWidget* parent)
     auto* remove = barButton(tr("Borrar"), QStringLiteral("trash"), this, true);
     bar->addWidget(copy);
     bar->addWidget(remove);
-    // Buscar showed nothing visible when driven in the original: behaviour still unknown (ticket TK-018).
-    bar->addWidget(barButton(tr("Buscar"), QString(), this, false));
+    // Buscar only acts when the folder lists more than one project (REA, cfgenvio 0x18002c1e0): enabled by reloadList().
+    m_search = barButton(tr("Buscar"), QString(), this, false);
+    m_search->setToolTip(tr("Busca una obra de la carpeta por palabras de su nombre o su descripción."));
+    bar->addWidget(m_search);
     bar->addWidget(verticalSeparator(this));
     auto* compress = barButton(tr("Comprimir"), QStringLiteral("compress"), this, true);
     auto* decompress = barButton(tr("Descomprimir"), QStringLiteral("decompress"), this, true);
     bar->addWidget(compress);
     bar->addWidget(decompress);
     bar->addWidget(verticalSeparator(this));
-    bar->addWidget(barButton(tr("Compartir"), QString(), this, false));
+    // Publishing needs CYPE's online server (share.dll): not replicated, the button stays present but disabled.
+    auto* share = barButton(tr("Compartir"), QString(), this, false);
+    share->setToolTip(tr("Requiere un servicio en línea de CYPE que no está disponible en esta versión: la obra no se puede publicar."));
+    bar->addWidget(share);
     bar->addWidget(verticalSeparator(this));
     auto* examples = barButton(tr("Ejemplos"), QStringLiteral("gift"), this, false);
     bar->addWidget(examples);
@@ -140,6 +145,7 @@ FileManagerDialog::FileManagerDialog(const QString& folder, QWidget* parent)
     connect(create, &QToolButton::clicked, this, &FileManagerDialog::newRequested);
     connect(copy, &QToolButton::clicked, this, &FileManagerDialog::copyProject);
     connect(remove, &QToolButton::clicked, this, &FileManagerDialog::deleteProject);
+    connect(m_search, &QToolButton::clicked, this, &FileManagerDialog::searchProject);
     connect(compress, &QToolButton::clicked, this, &FileManagerDialog::compressProjectAction);
     connect(decompress, &QToolButton::clicked, this, &FileManagerDialog::decompressProjectAction);
     setFolder(folder);
@@ -180,6 +186,18 @@ void FileManagerDialog::reloadList() {
         if (!manifest.ok) name->setToolTip(QString::fromStdString(manifest.error));
         m_table->setItem(row, 3, new QTableWidgetItem(info.lastModified().toString(QStringLiteral("dd/MM/yyyy"))));
     }
+    m_search->setEnabled(m_table->rowCount() > 1);
+}
+
+void FileManagerDialog::searchProject() {
+    if (m_table->rowCount() < 2) return;
+    QList<SearchEntry> entries;
+    for (int row = 0; row < m_table->rowCount(); ++row)
+        entries.push_back({m_table->item(row, 0)->text(), m_table->item(row, 1)->text()});
+    SearchProjectDialog dialog(entries, this);
+    if (dialog.exec() != QDialog::Accepted || dialog.chosenIndex() < 0) return;
+    m_table->selectRow(dialog.chosenIndex());
+    m_table->scrollToItem(m_table->item(dialog.chosenIndex(), 0));
 }
 
 bool FileManagerDialog::requireSelection() {

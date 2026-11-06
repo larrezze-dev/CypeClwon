@@ -42,6 +42,38 @@ private:
     QLabel* m_size;
 };
 
+/// One project of the folder as the search sees it: name and description (both columns of the list).
+struct SearchEntry {
+    QString name;
+    QString description;
+};
+
+/// Modal search of "Gestión archivos" > Buscar. The original builds a thesaurus (BPTESAUR) of name + description of every
+/// project and lets the user pick one; its labels, matching rule and defaults were not recovered, so this dialog is
+/// provisional. TODO(medir): title (probably id 139028 "Localización de obra por tesauro"), labels, word matching.
+class SearchProjectDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    SearchProjectDialog(const QList<SearchEntry>& entries, QWidget* parent = nullptr);
+    /// Index (into the entries given) of the accepted project, -1 when none.
+    int chosenIndex() const { return m_chosen; }
+    QLineEdit* queryEdit() const { return m_query; }
+    QListWidget* list() const { return m_list; }
+
+    /// Lower-case text without accents ("Cimentación" -> "cimentacion").
+    static QString fold(const QString& text);
+    /// True when every word of `query` occurs in name + description, ignoring case and accents. Empty query matches all.
+    static bool matches(const QString& query, const SearchEntry& entry);
+
+private:
+    void refresh();
+    void choose();
+    QList<SearchEntry> m_entries;
+    QLineEdit* m_query;
+    QListWidget* m_list;
+    int m_chosen = -1;
+};
+
 /// "Últimos ficheros" list behind the "Más..." button of the start page. The original's dialog was never captured
 /// (the button is disabled with few recent files): this is a provisional layout, see ticket TK-018.
 class RecentFilesDialog : public CypeDialog {

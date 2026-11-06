@@ -1,6 +1,8 @@
 #include "core/project_file.h"
 
 #include <miniz.h>
+
+#include "core/project_archive.h"
 #include <nlohmann/json.hpp>
 
 #include <chrono>
@@ -216,6 +218,7 @@ SaveResult saveProjectFile(const fs::path& path, ProjectDocument& document) {
             return result;
         }
     }
+    createBackup(path);          // previous version -> "<obra>.ed$" (best effort: a failed copy never blocks saving)
     fs::rename(temp, path, ec);  // replaces an existing file
     if (ec) {
         fs::remove(temp, ec);

@@ -6,6 +6,7 @@
 class QFileSystemModel;
 class QLineEdit;
 class QTableWidget;
+class QToolButton;
 class QTreeView;
 
 namespace cc::app {
@@ -13,7 +14,7 @@ namespace cc::app {
 /// "Gestión archivos" (676x525): folder tree on the left, list of projects (.ed3) of the selected folder on the
 /// right with the columns Obra | Descripción | Versión | Fecha. Reference: docs/screenshots/orig_gestion_archivos_01.png
 /// and docs/research/ui/dialogs_gestion_archivos.md. Abrir, Nuevo, Copiar, Borrar, Comprimir and Descomprimir are wired (messages captured in
-/// docs/screenshots/orig_ga_*.png); Buscar, Compartir, Ejemplos and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
+/// docs/screenshots/orig_ga_*.png); Buscar (enabled with more than one project; provisional dialog), Compartir (disabled: online service), Ejemplos (T-P2-08) and the Descripción/Versión columns (stored inside the file, T-P3-04) are gaps (ticket TK-018).
 class FileManagerDialog : public CypeDialog {
     Q_OBJECT
 public:
@@ -33,6 +34,7 @@ private:
     bool requireSelection();
     void copyProject();
     void deleteProject();
+    void searchProject();
     void compressProjectAction();
     void decompressProjectAction();
     void reloadList();
@@ -42,6 +44,7 @@ private:
     QTreeView* m_tree;
     QTableWidget* m_table;
     QLineEdit* m_path;
+    QToolButton* m_search = nullptr;
 };
 
 }  // namespace cc::app
