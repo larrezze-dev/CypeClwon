@@ -185,7 +185,7 @@ inline void from_json(const json& j, TieData& t) {
 inline void to_json(json& j, const PillarData& p) {
     j = json{{"material", p.material},   {"concreteKind", p.concreteKind}, {"mixedKind", p.mixedKind}, {"widthXM", p.widthXM},
              {"widthYM", p.widthYM},     {"diameterM", p.diameterM},       {"seriesRef", p.seriesRef}, {"profileRef", p.profileRef},
-             {"shape", shapeKey(p.shape)}};
+             {"shape", shapeKey(p.shape)},       {"arrangement", p.arrangement}};
 }
 inline void from_json(const json& j, PillarData& p) {
     const PillarData d;
@@ -198,6 +198,7 @@ inline void from_json(const json& j, PillarData& p) {
     p.seriesRef = j.value("seriesRef", d.seriesRef);
     p.profileRef = j.value("profileRef", d.profileRef);
     p.shape = readShape(j, "shape", d.shape);
+    p.arrangement = j.value("arrangement", d.arrangement);  // absent in older files: Perfil simple
 }
 inline void to_json(json& j, const BeamData& b) {
     j = json{{"family", b.family},           {"type", b.type},           {"widthM", b.widthM},
@@ -205,7 +206,7 @@ inline void to_json(json& j, const BeamData& b) {
              {"flangeDepthM", b.flangeDepthM}, {"depthStartM", b.depthStartM}, {"depthEndM", b.depthEndM},
              {"belowSlab", b.belowSlab},     {"seriesRef", b.seriesRef}, {"profileRef", b.profileRef},
              {"shape", shapeKey(b.shape)},   {"timberSeriesRef", b.timberSeriesRef}, {"timberProfileRef", b.timberProfileRef},
-             {"timberShape", shapeKey(b.timberShape)}};
+             {"timberShape", shapeKey(b.timberShape)}, {"arrangement", b.arrangement}};
 }
 inline void from_json(const json& j, BeamData& b) {
     const BeamData d;
@@ -225,6 +226,7 @@ inline void from_json(const json& j, BeamData& b) {
     b.timberSeriesRef = j.value("timberSeriesRef", d.timberSeriesRef);
     b.timberProfileRef = j.value("timberProfileRef", d.timberProfileRef);
     b.timberShape = readShape(j, "timberShape", d.timberShape);
+    b.arrangement = j.value("arrangement", d.arrangement);  // absent in older files: Perfil simple
     if (b.type < 0 || b.type >= std::max(1, beamTypeCount(b.family))) throw std::invalid_argument("tipo de viga no válido");
 }
 

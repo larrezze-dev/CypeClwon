@@ -40,6 +40,10 @@ def fmt(values):
     return ", ".join(("%g" % v) for v in values)
 
 
+# UB rows whose mass-paired name the original does not list (measured, describir_barras.md section 24.1: the 920 x 420 group ends at 1194)
+UB_NOT_LISTED = {"UB 920 x 420 x 1377", "UB 920 x 420 x 1269"}
+
+
 def expect(label, got, want):
     if got != want:
         raise SystemExit("%s: %d rows, expected %d" % (label, got, want))
@@ -219,15 +223,17 @@ def rolled_rows():
         if r["serie"] == "UB":
             r = dict(r, perfil=ub_names[i_ub])
             i_ub += 1
+            if r["perfil"] in UB_NOT_LISTED:  # not offered by the original (describir_barras.md section 24.1)
+                continue
         extra.append(r)
-    expect("laminados extra", len(extra), 453)
+    expect("laminados extra", len(extra), 453 - len(UB_NOT_LISTED))
     seen = set()
     for r in read("describir_perfiles_laminados_extra2_rea.tsv"):  # IPE 750, IPE V, HLZ; the 5th IPE 750 repeats the name of the 4th
         if r["perfil"] == "IPE 750 x 196" and r["perfil"] in seen:
             r["perfil"] = "IPE 750 x 220"
         seen.add(r["perfil"])
         extra.append(r)
-    expect("laminados extra2", len(extra), 453 + 14)
+    expect("laminados extra2", len(extra), 453 - len(UB_NOT_LISTED) + 14)
     out += [(r["serie"].replace("_", " "), r["perfil"], [r["A_cm2"], r["Iyy_cm4"], r["Izz_cm4"], r["It_cm4"], r["Iw_1e3cm6"], r["Wply_cm3"],
                                                         r["Wplz_cm3"], r["Avz_cm2"]]) for r in extra]
     angles = read("describir_perfiles_l_rea.tsv")

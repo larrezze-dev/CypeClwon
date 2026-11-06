@@ -58,6 +58,11 @@ struct ProfilePicker {
     QWidget* host = nullptr;
     QComboBox* series = nullptr;
     QComboBox* profile = nullptr;
+    /// "Disposición" radios below the combos (steel pillar and steel beam pickers only; null for the embedded-profile picker of the
+    /// mixed pillar). One radio per cc::core::Arrangement; only those of cc::core::arrangementsForElement are shown.
+    QWidget* arrangementHost = nullptr;
+    QButtonGroup* arrangementGroup = nullptr;
+    QRadioButton* arrangementRadio(cc::core::Arrangement arrangement) const;
 };
 
 /// Rows (label with its colon, value with unit) of the "Propiedades del perfil seleccionado" box. Dimensions with one decimal,
@@ -203,6 +208,9 @@ private:
     QWidget* buildBeamPage();
     QWidget* buildExtraPages();
     ProfilePicker makePicker(QWidget* parent, const QString& prefix, cc::core::SectionFamily family);
+    /// Shows / checks the "Disposición" radios of a steel pillar or beam picker (hidden when `shown` is false).
+    void updateArrangementPanel(ProfilePicker& picker, cc::core::ElementType type, cc::core::ShapeKind shape,
+                                cc::core::Arrangement arrangement, bool shown);
     void fillPicker(ProfilePicker& picker, cc::core::SectionFamily family, const std::string& seriesRef, const std::string& profileRef);
     void onPickerChanged(bool pillar, bool seriesChanged);
     void updatePillarPage();

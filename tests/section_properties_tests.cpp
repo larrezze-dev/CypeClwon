@@ -298,7 +298,7 @@ TEST(SectionProperties, ExtraRolledSeriesOfTheOriginalAreTabulated) {
     // Series that pfarcelor.dll / perfil3.dll embed besides the six above (docs/research/ui/describir_barras.md section 18).
     const std::vector<std::pair<std::string, std::size_t>> expected = {{"L", 179}, {"IPE A", 18}, {"IPE AA", 9}, {"IPE O", 13}, {"HEAA", 24},
                                                                        {"HE", 16}, {"HEC", 12}, {"HL", 35}, {"HD", 42}, {"HP", 31},
-                                                                       {"UBP", 17}, {"UC", 46}, {"J", 10}, {"UPE", 14}, {"PFC", 16}, {"UB", 180},
+                                                                       {"UBP", 17}, {"UC", 46}, {"J", 10}, {"UPE", 14}, {"PFC", 16}, {"UB", 178},
                                                                        {"IPE 750", 5}, {"IPE V", 5}, {"HLZ", 4}};
     std::map<std::string, const ProfileSeries*> byName;
     for (const ProfileSeries& s : predefinedSeries()) byName[s.reference] = &s;
@@ -341,10 +341,14 @@ TEST(SectionProperties, ExtraRolledSeriesOfTheOriginalAreTabulated) {
     const auto he = effectiveProperties(find("HE", "HE 600 x 337"));
     ASSERT_TRUE(he.has_value());
     EXPECT_NEAR(he->iy, 283200 * kCm4, 1e-9);
-    // UB paired by mass: the first value row (h 1093, A 1753.7) carries the name matched by mass; the original's own first name is not paired with it
-    const auto ub = effectiveProperties(find("UB", "UB 920 x 420 x 1377"));
+    // UB paired by mass: the value row of "UB 920 x 420 x 1194" (h 1081, A 1521.5) carries the name matched by mass. The original does not list
+    // 920 x 420 x 1269 / x 1377 (describir_barras.md section 24.1), so those two rows are not in the series (178 profiles).
+    const auto ub = effectiveProperties(find("UB", "UB 920 x 420 x 1194"));
     ASSERT_TRUE(ub.has_value());
-    EXPECT_NEAR(ub->area, 1753.7 * kCm2, 1e-12);
+    EXPECT_NEAR(ub->area, 1521.5 * kCm2, 1e-12);
+    EXPECT_FALSE(byName["UB"]->findProfile("UB 920 x 420 x 1377"));
+    EXPECT_FALSE(byName["UB"]->findProfile("UB 920 x 420 x 1269"));
+    EXPECT_TRUE(byName["UB"]->findProfile("UB 920 x 420 x 1077"));
     EXPECT_NEAR(*find("UB", "UB 127 x 76 x 13").tabulated.area, 16.5 * kCm2, 1e-12);  // small section: now the values of a 127 mm deep beam
     EXPECT_TRUE(byName["IPE 750"]->findProfile("IPE 750 x 220"));
     EXPECT_NEAR(*byName["IPE 750"]->findProfile("IPE 750 x 220")->tabulated.area, 280.7 * kCm2, 1e-12);

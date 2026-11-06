@@ -3,6 +3,7 @@
 // the original (docs/research/ui/describir_barras.md).
 #include <gtest/gtest.h>
 
+#include <QButtonGroup>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -695,6 +696,70 @@ TEST(BarDescribeDialog, PillarPageMaterialsTypesAndFields) {
     // the register of the generic page is untouched
     EXPECT_EQ(d->entries()[0].description.profileRef, "IPE 80");
     EXPECT_NEAR(d->entries()[0].description.pillar.widthXM, 0.45, 1e-12);  // and so is the rectangular one
+}
+
+namespace {
+QStringList visibleArrangements(const ProfilePicker& picker, QWidget* root) {
+    QStringList out;
+    for (QAbstractButton* b : picker.arrangementGroup->buttons())
+        if (b->isVisibleTo(root)) out << b->text();
+    return out;
+}
+}  // namespace
+
+TEST(BarDescribeDialog, SteelPillarArrangementRadiosFollowTheShape) {
+    Sinks sinks;
+    auto d = make();
+    d->typeRadio(2)->click();
+    d->pillarMaterialButtons()[1]->click();
+    const ProfilePicker& picker = d->pillarPicker();
+    ASSERT_NE(picker.arrangementHost, nullptr);
+    EXPECT_TRUE(picker.arrangementHost->isVisibleTo(d.get()));
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 8);  // IPE 80: 8 radios, no "Simple con cartelas" (measured)
+    EXPECT_FALSE(picker.arrangementRadio(Arrangement::SimpleWithHaunches)->isVisibleTo(d.get()));
+    EXPECT_TRUE(picker.arrangementRadio(Arrangement::Simple)->isChecked());  // default: Perfil simple
+    picker.arrangementRadio(Arrangement::Boyd)->click();
+    EXPECT_EQ(d->entries()[0].description.pillar.arrangement, Arrangement::Boyd);
+    // another I series keeps the choice; a series of another shape falls back to Perfil simple (only radio offered)
+    picker.series->setCurrentIndex(picker.series->findData("HEA"));
+    EXPECT_EQ(d->entries()[0].description.pillar.arrangement, Arrangement::Boyd);
+    picker.series->setCurrentIndex(picker.series->findData("UPN"));
+    EXPECT_EQ(d->entries()[0].description.pillar.arrangement, Arrangement::Simple);
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 1);
+    // Aceptar keeps it in the register and the projection used by the conversion of the pieces
+    picker.series->setCurrentIndex(picker.series->findData("HEA"));
+    picker.arrangementRadio(Arrangement::WithConcreteSlab)->click();
+    d->accept();
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(d->result(), QDialog::Accepted);
+    EXPECT_EQ(d->entries()[0].description.pillar.arrangement, Arrangement::WithConcreteSlab);
+    EXPECT_EQ(projectedDescription(d->entries()[0].description)->arrangement, Arrangement::WithConcreteSlab);
+}
+
+TEST(BarDescribeDialog, SteelBeamArrangementRadiosFollowTheShapeAndFamily) {
+    Sinks sinks;
+    auto d = make();
+    d->typeRadio(3)->click();
+    d->beamFamilyButtons()[4]->click();  // Vigas metálicas
+    const ProfilePicker& picker = d->beamPicker();
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 7);  // double T (measured 7)
+    EXPECT_TRUE(picker.arrangementRadio(Arrangement::Simple)->isChecked());
+    picker.series->setCurrentIndex(picker.series->findData("UPN"));
+    EXPECT_EQ(visibleArrangements(picker, d.get()).size(), 8);  // U (measured 8)
+    EXPECT_TRUE(picker.arrangementRadio(Arrangement::DoubleBoxFlatPlates)->isVisibleTo(d.get()));
+    picker.arrangementRadio(Arrangement::DoubleIGeneric)->click();
+    EXPECT_EQ(d->entries()[0].description.beam.arrangement, Arrangement::DoubleIGeneric);
+    d->accept();  // valid for a channel beam
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+    EXPECT_EQ(d->result(), QDialog::Accepted);
+    // back to a double T: the choice is not offered any more and falls back to Perfil simple
+    picker.series->setCurrentIndex(picker.series->findData("IPE"));
+    EXPECT_EQ(d->entries()[0].description.beam.arrangement, Arrangement::Simple);
+    // timber beams offer no choice
+    d->beamFamilyButtons()[5]->click();
+    EXPECT_FALSE(picker.arrangementHost->isVisibleTo(d.get()));
+    d->beamFamilyButtons()[4]->click();
+    EXPECT_TRUE(picker.arrangementHost->isVisibleTo(d.get()));
 }
 
 TEST(BarDescribeDialog, PillarSteelAndMixedPages) {

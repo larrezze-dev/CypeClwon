@@ -217,6 +217,11 @@ std::vector<Arrangement> arrangementsForElement(ElementType type, ShapeKind shap
     return {Arrangement::Simple};
 }
 
+Arrangement normalisedArrangement(ElementType type, ShapeKind shape, Arrangement arrangement) {
+    const auto offered = arrangementsForElement(type, shape);
+    return std::find(offered.begin(), offered.end(), arrangement) != offered.end() ? arrangement : Arrangement::Simple;
+}
+
 bool stiffenersAllowed(BarMaterialIcon icon, Arrangement arrangement) {
     const auto offered = arrangementsFor(icon, ShapeKind::IParallel);
     return icon == BarMaterialIcon::RolledSteelFamily2 &&
@@ -405,6 +410,7 @@ std::optional<BarDescription> projectedDescription(const BarDescription& d) {
             e.seriesRef = p.seriesRef;
             e.profileRef = p.profileRef;
             e.shape = p.shape;
+            e.arrangement = p.arrangement;
             break;
         case PillarMaterial::Mixed: return std::nullopt;  // composite sections: no shape in the clone yet
         }
@@ -416,6 +422,7 @@ std::optional<BarDescription> projectedDescription(const BarDescription& d) {
             e.seriesRef = b.seriesRef;
             e.profileRef = b.profileRef;
             e.shape = b.shape;
+            e.arrangement = b.arrangement;
             break;
         case BeamFamily::Timber:
             e.materialIcon = BarMaterialIcon::Timber;
@@ -511,7 +518,10 @@ std::string validateDescription(const BarDescription& description, const Profile
 
 namespace {
 std::string validateResolved(const BarDescription& d, const ProfileLibrary& library) {
-    const auto offered = arrangementsFor(d.materialIcon, d.shape);
+    // Steel pillars / beams offer the radios of their own panel (describir_barras.md 24.2), not those of the generic one.
+    const bool steelElement = d.materialIcon == BarMaterialIcon::RolledSteel &&
+                              (d.elementType == ElementType::Pillar || d.elementType == ElementType::Beam);
+    const auto offered = steelElement ? arrangementsForElement(d.elementType, d.shape) : arrangementsFor(d.materialIcon, d.shape);
     if (std::find(offered.begin(), offered.end(), d.arrangement) == offered.end())
         return "La disposición «" + std::string(arrangementNameEs(d.arrangement)) + "» no está disponible para esta sección.";
     if (d.stiffeners.present) {

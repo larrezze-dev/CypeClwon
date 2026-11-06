@@ -1464,9 +1464,52 @@ ProfilePicker BarDescribeDialog::makePicker(QWidget* parent, const QString& pref
     form->addWidget(picker.profile, 1, 1);
     form->setColumnStretch(2, 1);
     const bool pillar = prefix.startsWith(QLatin1String("pillar")) || prefix.startsWith(QLatin1String("mixed"));
+    if (!prefix.startsWith(QLatin1String("mixed"))) {
+        // "Disposición" radios of the steel panel (describir_barras.md 24.2): the visible ones depend on (element type, shape).
+        picker.arrangementHost = new QWidget(picker.host);
+        auto* column = new QVBoxLayout(picker.arrangementHost);
+        column->setContentsMargins(0, 6, 0, 0);
+        column->setSpacing(2);
+        column->addWidget(boldLabel(tr("Disposición"), picker.arrangementHost));
+        picker.arrangementGroup = new QButtonGroup(picker.host);
+        for (Arrangement a : {Arrangement::Simple, Arrangement::SimpleWithHaunches, Arrangement::WithConcreteSlab, Arrangement::DoubleBoxWelded,
+                              Arrangement::DoubleBoxBattened, Arrangement::DoubleBoxGeneric, Arrangement::HalfProfile, Arrangement::SideFlatPlates,
+                              Arrangement::Boyd, Arrangement::DoubleIWelded, Arrangement::DoubleIBattened, Arrangement::DoubleIGeneric,
+                              Arrangement::DoubleBoxFlatPlates}) {
+            auto* radio = new QRadioButton(arrangementText(a), picker.arrangementHost);
+            radio->setObjectName(prefix + QStringLiteral("Arrangement_") + QString::fromLatin1(arrangementKey(a)));
+            picker.arrangementGroup->addButton(radio, static_cast<int>(a));
+            column->addWidget(radio);
+            connect(radio, &QRadioButton::clicked, this, [this, pillar, a] {
+                if (m_syncing) return;
+                (pillar ? current().pillar.arrangement : current().beam.arrangement) = a;
+                refreshUsedList();
+            });
+        }
+        form->addWidget(picker.arrangementHost, 2, 0, 1, 3);
+    }
     connect(picker.series, &QComboBox::currentIndexChanged, this, [this, pillar](int) { onPickerChanged(pillar, true); });
     connect(picker.profile, &QComboBox::currentIndexChanged, this, [this, pillar](int) { onPickerChanged(pillar, false); });
     return picker;
+}
+
+QRadioButton* ProfilePicker::arrangementRadio(Arrangement arrangement) const {
+    return arrangementGroup ? qobject_cast<QRadioButton*>(arrangementGroup->button(static_cast<int>(arrangement))) : nullptr;
+}
+
+void BarDescribeDialog::updateArrangementPanel(ProfilePicker& picker, ElementType type, ShapeKind shape, Arrangement arrangement, bool shown) {
+    if (!picker.arrangementHost) return;
+    picker.arrangementHost->setVisible(shown);
+    const auto offered = arrangementsForElement(type, shape);
+    for (QAbstractButton* button : picker.arrangementGroup->buttons()) {
+        const auto a = static_cast<Arrangement>(picker.arrangementGroup->id(button));
+        button->setVisible(std::find(offered.begin(), offered.end(), a) != offered.end());
+        QSignalBlocker block(button);
+        button->setChecked(a == arrangement);
+        QFont f = button->font();
+        f.setBold(a == arrangement);  // the active one is shown in bold, like the generic panel
+        button->setFont(f);
+    }
 }
 
 void BarDescribeDialog::fillPicker(ProfilePicker& picker, SectionFamily family, const std::string& seriesRef, const std::string& profileRef) {
@@ -1510,6 +1553,7 @@ void BarDescribeDialog::onPickerChanged(bool pillar, bool seriesChanged) {
         d.pillar.seriesRef = seriesRef;
         d.pillar.profileRef = profileRef;
         d.pillar.shape = series->kind;
+        d.pillar.arrangement = normalisedArrangement(ElementType::Pillar, d.pillar.shape, d.pillar.arrangement);
     } else if (d.beam.family == BeamFamily::Timber) {
         d.beam.timberSeriesRef = seriesRef;
         d.beam.timberProfileRef = profileRef;
@@ -1518,6 +1562,7 @@ void BarDescribeDialog::onPickerChanged(bool pillar, bool seriesChanged) {
         d.beam.seriesRef = seriesRef;
         d.beam.profileRef = profileRef;
         d.beam.shape = series->kind;
+        d.beam.arrangement = normalisedArrangement(ElementType::Beam, d.beam.shape, d.beam.arrangement);
     }
     if (seriesChanged) {
         if (pillar) updatePillarPage();
@@ -1695,6 +1740,7 @@ void BarDescribeDialog::updatePillarPage() {
     m_pillarMixedPicker->setVisible(embedded);
     fillPicker(m_pillarPicker, SectionFamily::HotRolledSteel, p.seriesRef, p.profileRef);
     fillPicker(m_mixedPicker, SectionFamily::HotRolledSteel, p.seriesRef, p.profileRef);
+    updateArrangementPanel(m_pillarPicker, ElementType::Pillar, p.shape, p.arrangement, true);
     m_syncing = wasSyncing;
 }
 
@@ -1864,6 +1910,8 @@ void BarDescribeDialog::updateBeamPage() {
         fillPicker(m_beamPicker, lib, b.family == BeamFamily::Timber ? b.timberSeriesRef : b.seriesRef,
                    b.family == BeamFamily::Timber ? b.timberProfileRef : b.profileRef);
     }
+    // Timber beams only offer Perfil simple (piezamet type 6 = {0}): no radios to choose from.
+    updateArrangementPanel(m_beamPicker, ElementType::Beam, b.shape, b.arrangement, b.family == BeamFamily::Steel);
     const std::vector<BeamField> shown = beamFields(b.family, b.type);
     const struct { const char* object; BeamField field; } map[] = {{"beamB", BeamField::Width}, {"beamA", BeamField::Depth}, {"beamI", BeamField::FlangeLeft},
                                                                    {"beamD", BeamField::FlangeRight}, {"beamFlangeDepth", BeamField::FlangeDepth},

@@ -11,6 +11,23 @@ namespace cc::core {
 /// datos_seccion_barra / tirante / viga ...): switching the type radio never converts or clears the registers of the other types, so
 /// BarDescription holds all of them at once and only the active one is applied.
 
+/// "Disposición" (Datos adicionales).
+enum class Arrangement {
+    Simple,             ///< Perfil simple (default)
+    SimpleWithHaunches, ///< Simple con cartelas
+    WithConcreteSlab,   ///< Con losa de hormigón
+    DoubleBoxWelded,    ///< Doble en cajón soldado
+    DoubleBoxBattened,  ///< Doble en cajón con presillas
+    DoubleBoxGeneric,   ///< Doble en cajón unión genérica
+    HalfProfile,        ///< Medio perfil
+    SideFlatPlates,     ///< Con platabandas laterales
+    Boyd,               ///< Boyd (alma aligerada)
+    DoubleIWelded,      ///< Doble en I unión soldada
+    DoubleIBattened,    ///< Doble en I presillas
+    DoubleIGeneric,     ///< Doble en I unión genérica
+    DoubleBoxFlatPlates ///< Doble en cajón con platabandas (only offered to steel beams with a U profile, describir_barras.md 24.2)
+};
+
 // --- Pilar (pilargeo.dll, epseccion_tipo_t) --------------------------------------------------------------------------------------
 
 /// Icons of the "Material" group of the Pilar page, in screen order (i_tipo_material_t 0, 1, 2; timber and generic section are hidden
@@ -45,6 +62,8 @@ struct PillarData {
     /// builds the selector with pnpiezamet_panel_pieza_metalica_pilar (piezamet.dll, not read); the clone reuses the rolled steel series.
     std::string seriesRef = "IPE", profileRef = "IPE 80";
     ShapeKind shape = ShapeKind::IParallel;
+    /// "Disposición" of the steel pillar (and of the embedded profile); filtered by arrangementsForElement(Pillar, shape).
+    Arrangement arrangement = Arrangement::Simple;
     bool operator==(const PillarData&) const = default;
 };
 
@@ -80,6 +99,8 @@ struct BeamData {
     ShapeKind shape = ShapeKind::IParallel;
     std::string timberSeriesRef, timberProfileRef;
     ShapeKind timberShape = ShapeKind::TimberRectangular;
+    /// "Disposición" of the steel beam; filtered by arrangementsForElement(Beam, shape). Timber beams only offer Perfil simple.
+    Arrangement arrangement = Arrangement::Simple;
     bool operator==(const BeamData&) const = default;
 };
 

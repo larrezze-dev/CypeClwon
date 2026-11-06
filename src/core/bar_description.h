@@ -36,22 +36,7 @@ enum class BarMaterialIcon {
     Generic              ///< 8: sección genérica (values typed by the user)
 };
 
-/// "Disposición" (Datos adicionales).
-enum class Arrangement {
-    Simple,             ///< Perfil simple (default)
-    SimpleWithHaunches, ///< Simple con cartelas
-    WithConcreteSlab,   ///< Con losa de hormigón
-    DoubleBoxWelded,    ///< Doble en cajón soldado
-    DoubleBoxBattened,  ///< Doble en cajón con presillas
-    DoubleBoxGeneric,   ///< Doble en cajón unión genérica
-    HalfProfile,        ///< Medio perfil
-    SideFlatPlates,     ///< Con platabandas laterales
-    Boyd,               ///< Boyd (alma aligerada)
-    DoubleIWelded,      ///< Doble en I unión soldada
-    DoubleIBattened,    ///< Doble en I presillas
-    DoubleIGeneric,     ///< Doble en I unión genérica
-    DoubleBoxFlatPlates ///< Doble en cajón con platabandas (only offered to steel beams with a U profile, describir_barras.md 24.2)
-};
+// enum class Arrangement ("Disposición") lives in bar_element_data.h (PillarData / BeamData hold one).
 
 /// piezamet_tipo_t of piezamet.dll: 23 values (0..0x16) behind the "Disposición" radios of the metallic pillar / beam panels
 /// (describir_barras.md 23.1). Only the texts that were read are known: 0 "Perfil simple" (#141110), 1 "Simple con cartelas" (#141122),
@@ -73,6 +58,8 @@ std::optional<Arrangement> arrangementOfPieceMet(PieceMetType type);
 /// shape of the profile). Generic + I: 9; Pillar + I: 8 (no "Simple con cartelas"); Beam + double T: 7; Beam + U: 8; any other shape
 /// (TODO(medir): not measured, the REA rule of FUN_1800272f0 only gives "Perfil simple" for some profile types) -> Perfil simple.
 std::vector<Arrangement> arrangementsForElement(ElementType type, ShapeKind shape);
+/// `arrangement` when arrangementsForElement offers it, otherwise Perfil simple (used when the shape / series of the profile changes).
+Arrangement normalisedArrangement(ElementType type, ShapeKind shape, Arrangement arrangement);
 
 /// "Comportamiento" combo.
 enum class BehaviourKind { Linear, TensionOnly, CompressionOnly };

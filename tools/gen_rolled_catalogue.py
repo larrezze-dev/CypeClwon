@@ -24,6 +24,11 @@ OUT = os.path.join("src", "core", "profile_catalogue_rea_data.inc")
 ORDER = ["L", "IPE A", "IPE AA", "IPE O", "HEAA", "HE", "HEC", "HL", "HD", "HP", "UBP", "UC", "J", "UPE", "PFC", "UB", "IPE 750", "IPE V", "HLZ"]
 
 
+# Names that the original's profile list does NOT offer (measured 2026-11-06, describir_barras.md section 24.1: the 920 x 420 group ends at
+# 1077 and 1194). They appear in the mass pairing of pfarcelor.dll, but the original never shows them, so the clone drops these two rows.
+UB_NOT_LISTED = {"UB 920 x 420 x 1377", "UB 920 x 420 x 1269"}
+
+
 def fmt(x):
     v = float(x)
     return repr(int(v)) if v == int(v) else repr(v)
@@ -78,6 +83,8 @@ def main():
         if s == "UB":
             r = dict(r, perfil=names[ub_index])  # paired by mass, see the docstring
             ub_index += 1
+            if r["perfil"] in UB_NOT_LISTED:
+                continue
         if s == "J":
             dims = [r["h_mm"], r["b_mm"], r["tw_mm"], r["tf_mm"], r["r_o_r1_mm"], r["r2_mm"]]
         else:

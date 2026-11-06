@@ -554,6 +554,8 @@ TEST(BarElements, JsonRoundTripKeepsAllRegisters) {
     stored.beam.type = 4;
     stored.beam.belowSlab = true;
     stored.beam.depthStartM = 0.55;
+    stored.pillar.arrangement = Arrangement::HalfProfile;
+    stored.beam.arrangement = Arrangement::DoubleBoxWelded;
     stored.tie.shape = 3;
     stored.tie.seriesRef = "R";
     stored.tie.profileRef = "R 10";
@@ -579,6 +581,42 @@ TEST(BarElements, JsonRoundTripKeepsAllRegisters) {
     EXPECT_EQ(q.barDescriptions.items.front().pillar, PillarData{});
     EXPECT_EQ(q.barDescriptions.items.front().beam, BeamData{});
     EXPECT_EQ(q.barDescriptions.items.front().tie, TieData{});
+    // files saved before the arrangement field existed load with Perfil simple
+    nlohmann::json old = nlohmann::json::parse(project_json::dumpSection(f.project, "bar_descriptions"));
+    for (auto& item : old["items"]) {
+        item["pillar"].erase("arrangement");
+        item["beam"].erase("arrangement");
+    }
+    Project r;
+    project_json::loadSection(r, "bar_descriptions", old.dump());
+    EXPECT_EQ(r.barDescriptions.items.front().pillar.arrangement, Arrangement::Simple);
+    EXPECT_EQ(r.barDescriptions.items.front().beam.arrangement, Arrangement::Simple);
+    EXPECT_EQ(r.barDescriptions.items.front().pillar.widthXM, stored.pillar.widthXM);
+}
+
+TEST(BarElements, SteelPillarAndBeamArrangementsAreProjectedAndValidated) {
+    ProfileLibrary lib;  // the Fixture only imports IPE and HEA: this test also needs a channel series
+    lib.series = predefinedSeries();
+    BarDescription pillar = pillarDescription();
+    pillar.pillar.material = PillarMaterial::Steel;
+    pillar.pillar.arrangement = Arrangement::Boyd;
+    EXPECT_EQ(projectedDescription(pillar)->arrangement, Arrangement::Boyd);
+    EXPECT_EQ(validateDescription(pillar, lib), "");
+    pillar.pillar.arrangement = Arrangement::SimpleWithHaunches;  // not offered to pillars (measured)
+    EXPECT_NE(validateDescription(pillar, lib), "");
+    EXPECT_EQ(normalisedArrangement(ElementType::Pillar, ShapeKind::IParallel, Arrangement::SimpleWithHaunches), Arrangement::Simple);
+    EXPECT_EQ(normalisedArrangement(ElementType::Pillar, ShapeKind::IParallel, Arrangement::HalfProfile), Arrangement::HalfProfile);
+    BarDescription beam = beamDescription();
+    beam.beam.family = BeamFamily::Steel;
+    beam.beam.shape = ShapeKind::Channel;
+    ASSERT_NE(lib.find("UPN"), nullptr);
+    beam.beam.seriesRef = "UPN";
+    beam.beam.profileRef = lib.find("UPN")->profiles.front().reference;
+    beam.beam.arrangement = Arrangement::DoubleBoxFlatPlates;
+    EXPECT_EQ(projectedDescription(beam)->arrangement, Arrangement::DoubleBoxFlatPlates);
+    EXPECT_EQ(validateDescription(beam, lib), "");
+    beam.beam.shape = ShapeKind::IParallel;  // the same arrangement on a double T is refused
+    EXPECT_NE(validateDescription(beam, lib), "");
 }
 
 TEST(BarElements, TieDocumentFollowsTheOriginalOrder) {
