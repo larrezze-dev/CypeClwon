@@ -110,6 +110,7 @@ Restraint restraintOf(const ExternalSupport& s) {
                 }
             } else {
                 applyUserVector(r, g.mode == GenericDisplacementMode::OnLine ? SupportKind::Line : SupportKind::Plane, g.vector);
+                for (int i = 0; i < 3; ++i) r.elastic[i] = r.fixed[i] && g.translations[i] == DofMode::Elastic;
             }
             for (int i = 0; i < 3; ++i) {
                 r.fixed[3 + i] = g.rotations[i] != DofMode::Free;
@@ -120,8 +121,7 @@ Restraint restraintOf(const ExternalSupport& s) {
     }
     if (info.rotationsFixed)
         for (int i = 3; i < 6; ++i) r.fixed[i] = true;
-    if (s.elastic)
-        for (int i = 0; i < 6; ++i) r.elastic[i] = r.fixed[i];
+    for (int i = 0; i < 6; ++i) r.elastic[i] = r.fixed[i] && s.elasticDofs[i];
     return r;
 }
 
@@ -198,16 +198,14 @@ std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& s) {
     if (info.userVector || genericVector) {
         const Point3& v = genericVector ? s.generic.vector : s.userVector;
         if (!finite3(v) || norm(v) < 1e-12)
-            out.push_back({0, IssueSeverity::Error, "El vector director no puede ser nulo."});  // TODO(medir): literal of the original
+            out.push_back({0, IssueSeverity::Error, "La dirección introducida no es correcta."});  // measured
     }
-    // #65006: a generic restraint with nothing blocked.
-    if (s.type == ExternalSupportType::Generic && !restraintOf(s).any()) out.push_back(issue(65006, IssueSeverity::Error));
-
     // Spring constants (only the ones that are used).
     const Restraint r = restraintOf(s);
     for (int i = 0; i < 6; ++i)
-        if (r.elastic[i] && !(std::isfinite(s.elasticConstants[i]) && s.elasticConstants[i] > 0.0)) {
-            out.push_back({0, IssueSeverity::Error, "La constante de apoyo elástico debe ser mayor que cero."});  // TODO(medir)
+        if (r.elastic[i] && !(std::isfinite(s.elasticConstants[i]) && s.elasticConstants[i] >= kMinElasticConstant &&
+                              s.elasticConstants[i] <= kMaxElasticConstant)) {
+            out.push_back({0, IssueSeverity::Error, "El valor de 'K' debe estar entre 1 y 10000000."});  // measured
             break;
         }
 
@@ -259,8 +257,9 @@ std::vector<PrescribedDisplacement> effectivePrescribed(const ExternalSupport& s
 std::vector<SupportIssue> checkInternalLink(const InternalLink& l, int elementCount) {
     std::vector<SupportIssue> out;
     auto bad = [&](const char* text) { out.push_back({0, IssueSeverity::Error, text}); };  // TODO(medir): literals of the original
-    if (l.type == InternalLinkType::PartialFixity && !(std::isfinite(l.partialCoefficient) && l.partialCoefficient >= 0.0))
-        bad("El coeficiente de empotramiento parcial debe ser mayor o igual que cero.");
+    const char* range = "El valor de 'Coef.Emp.Parc.' debe estar entre 0.00 y 10000000.00.";  // measured
+    const auto inRange = [](double v) { return std::isfinite(v) && v >= 0.0 && v <= kMaxPartialCoefficient; };
+    if (l.type == InternalLinkType::PartialFixity && !inRange(l.partialCoefficient)) bad(range);
     if (l.type != InternalLinkType::Generic) return out;
 
     if (l.elementRow.empty()) bad("La vinculación genérica debe tener, al menos, un elemento.");
@@ -272,8 +271,8 @@ std::vector<SupportIssue> checkInternalLink(const InternalLink& l, int elementCo
             break;
         }
     for (const GenericLinkRow& row : l.rows)
-        if (!(std::isfinite(row.coefficient) && row.coefficient >= 0.0)) {
-            bad("El coeficiente de empotramiento parcial debe ser mayor o igual que cero.");
+        if (!inRange(row.coefficient)) {
+            bad(range);
             break;
         }
     return out;

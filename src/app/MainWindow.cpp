@@ -52,6 +52,7 @@
 #include "ReferenceTool.h"
 #include "ImportTool.h"
 #include "NodeTool.h"
+#include "SupportTool.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
 #include "Viewport3D.h"
@@ -191,6 +192,7 @@ void MainWindow::createWorkArea() {
             m_transformTool->deactivate();
             m_generateTool->deactivate();
             m_referenceTool->deactivate();
+            m_supportTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -220,6 +222,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(ShellTool::statusText(m_shellTool->mode(), m_shellTool->step()));
         else if (m_transformTool->mode() != TransformTool::Mode::None)
             statusBar()->showMessage(TransformTool::statusText(m_transformTool->mode(), m_transformTool->step()));
+        else if (m_supportTool->mode() != SupportTool::Mode::None)
+            statusBar()->showMessage(SupportTool::statusText(m_supportTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -343,6 +347,23 @@ void MainWindow::createWorkArea() {
     m_generateTool->setConfirmer([this](const QString& question) {
         return QMessageBox::question(this, tr("Generar"), question, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
     });
+    // Propiedades > Nudos (T-P6-01): one viewport tool at a time, like the others.
+    m_supportTool->setDialogParent(this);
+    connect(m_supportTool, &SupportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_supportTool, &SupportTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+    });
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
     m_referenceTool->setDialogParent(this);
     connect(m_referenceTool, &ReferenceTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, this, [this, stopOthers] {
@@ -401,6 +422,7 @@ void MainWindow::createWorkArea() {
             m_transformTool->structureChanged();
             m_generateTool->structureChanged();
             m_referenceTool->structureChanged();
+            m_supportTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -599,6 +621,7 @@ void MainWindow::syncViewSettings() {
             viewport->setCategorySettings(project.categories);
             viewport->setWorkPlanes(&project.workPlanes);
             viewport->setProfileSettings(&project.profiles);
+            viewport->setNodeSupports(&project.nodeSupports);
         }
 }
 
@@ -628,6 +651,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_transformTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_generateTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_referenceTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_supportTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -664,6 +688,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_transformTool->addViewport(viewport);
         m_generateTool->addViewport(viewport);
         m_referenceTool->addViewport(viewport);
+        m_supportTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1038,6 +1063,14 @@ void MainWindow::buildGeometryTab() {
     SARibbonPanel* import = tab->addPanel(tr("Importar"));
     import->addSmallAction(m_importTool->dxfAction());
     import->addSmallAction(m_importTool->textAction());
+
+    // Propiedades > Nudos (orig_vinc_ext_dialogo_inicial.png): Vinculación interior and Vinculación exterior, two large buttons.
+    m_supportTool = new SupportTool(this);
+    icon(m_supportTool->internalAction(), "support_internal");
+    icon(m_supportTool->externalAction(), "support_external");
+    SARibbonPanel* supports = ribbonBar()->categoryPages().at(2)->addPanel(tr("Nudos"));
+    supports->addLargeAction(m_supportTool->internalAction());
+    supports->addLargeAction(m_supportTool->externalAction());
 }
 
 void MainWindow::buildObraTab() {

@@ -23,6 +23,9 @@ public:
     const QString& label() const { return m_label; }
     /// Unit written after each bound of the warning and the tooltip ("-360.000 grados y 360.000 grados", measured for the angle).
     void setBoundUnit(const QString& unit);
+    /// Strict number reading (vinculaciones.md 5.1): the text is not rewritten ("1,5" is not a number) and an unreadable text says
+    /// "La cadena introducida no es un número." instead of the range warning. Off by default.
+    void setStrictNumber(bool on) { m_strict = on; }
     /// Reads the text now. True when it is valid (the value is taken); otherwise warns, restores the previous text and returns false.
     bool commit();
     /// Warning text of the last rejected entry (tests).
@@ -45,6 +48,7 @@ private:
     double m_value = 0.0;
     QString m_lastWarning;
     bool m_committing = false;
+    bool m_strict = false;
 };
 
 }  // namespace cc::app

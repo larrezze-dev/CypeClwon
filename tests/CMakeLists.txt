@@ -11,12 +11,12 @@ target_include_directories(workarea_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(workarea_tests PRIVATE Qt6::Widgets GTest::gtest)
 gtest_discover_tests(workarea_tests)
 
-add_executable(viewport3d_tests viewport3d_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+add_executable(viewport3d_tests viewport3d_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(viewport3d_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(viewport3d_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(viewport3d_tests)
 
-add_executable(viewbar_tests viewbar_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewBar.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewIcons.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewOptionsDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+add_executable(viewbar_tests viewbar_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewBar.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewIcons.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewOptionsDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(viewbar_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(viewbar_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(viewbar_tests)
@@ -77,7 +77,7 @@ target_link_libraries(units_dialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg G
 gtest_discover_tests(units_dialog_tests)
 
 add_executable(leftpanel_tests leftpanel_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LeftPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/DisplayOptionsPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/LayersPanel.cpp ${CMAKE_SOURCE_DIR}/src/app/CategoriesPanel.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(leftpanel_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(leftpanel_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(leftpanel_tests)
@@ -99,17 +99,17 @@ target_link_libraries(cypedialog_tests PRIVATE Qt6::Widgets GTest::gtest)
 gtest_discover_tests(cypedialog_tests)
 
 add_executable(node_tool_tests node_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/NodeTool.cpp ${CMAKE_SOURCE_DIR}/src/app/NodeCalculatorDialog.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(node_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(node_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(node_tool_tests)
 
-add_executable(bar_tool_tests bar_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/BarTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+add_executable(bar_tool_tests bar_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/BarTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(bar_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(bar_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(bar_tool_tests)
 
-add_executable(piece_tool_tests piece_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/PieceTool.cpp ${CMAKE_SOURCE_DIR}/src/app/BarTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+add_executable(piece_tool_tests piece_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/PieceTool.cpp ${CMAKE_SOURCE_DIR}/src/app/BarTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(piece_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(piece_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Test GTest::gtest)
 gtest_discover_tests(piece_tool_tests)
@@ -121,26 +121,26 @@ target_link_libraries(profile_library_dialogs_tests PRIVATE cc_core Qt6::Widgets
 gtest_discover_tests(profile_library_dialogs_tests)
 
 add_executable(bar_describe_tests bar_describe_dialog_tests.cpp bar_describe_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/BarDescribeDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/DescribePictograms.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/BarDescribeTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ProfileLibraryDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/BarDescribeTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ProfileLibraryDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(bar_describe_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(bar_describe_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(bar_describe_tests)
 
 add_executable(continuous_tool_tests continuous_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ContinuousTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ContinuousDialogs.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(continuous_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(continuous_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(continuous_tool_tests)
 
 add_executable(shell_tool_tests shell_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/ShellTool.cpp ${CMAKE_SOURCE_DIR}/src/app/ShellDialogs.cpp
   ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/ViewIcons.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp)
+  ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp)
 target_include_directories(shell_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(shell_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::PrintSupport Qt6::Test GTest::gtest)
 gtest_discover_tests(shell_tool_tests)
 
-add_executable(transform_tool_tests transform_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/TransformTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp
+add_executable(transform_tool_tests transform_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/TransformTool.cpp ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp
   ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/NodeCalculatorDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(transform_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(transform_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
@@ -155,7 +155,14 @@ gtest_discover_tests(import_tool_tests)
 
 add_executable(generate_tool_tests generate_tool_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/GenerateTool.cpp ${CMAKE_SOURCE_DIR}/src/app/GenerateDialogs.cpp
   ${CMAKE_SOURCE_DIR}/src/app/ReferenceTool.cpp ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp
-  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(generate_tool_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(generate_tool_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::Test GTest::gtest)
 gtest_discover_tests(generate_tool_tests)
+
+add_executable(support_dialogs_tests support_dialogs_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/SupportTool.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/SupportPictograms.cpp ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/Viewport3D.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(support_dialogs_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(support_dialogs_tests PRIVATE cc_core Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg Qt6::PrintSupport Qt6::Test GTest::gtest)
+gtest_discover_tests(support_dialogs_tests)

@@ -26,8 +26,8 @@ namespace cc::core {
 /// Degrees of freedom are always ordered Dx, Dy, Dz, Gx, Gy, Gz, in global axes.
 /// PROVISIONAL / NOT MEASURED (TODO(medir)): units and range of the rotational spring constants (stored kN.m/rad by inference), the
 /// meaning of the per-DOF modes of a generic restraint while it is dependent on a line or plane (the modes are kept but ignored: the vector decides),
-/// the default partial fixity coefficient (1.0 is taken: "coeficiente unidad por barra", #64632), what counts as an "element" of a node for the
-/// generic internal link (bars + shells are counted), the message when a user vector is zero, and the exact format of the "%s" of #65010.
+/// (the default partial fixity coefficient is 0.00, measured), what counts as an "element" of a node for the
+/// generic internal link (bars + shells are counted), prescribed displacements (units mm / mRad measured; they depend on load cases, T-P7-01).
 
 /// The 20 values of ed3tipo_vinculacion_externa_t (REA). The integer value is the index of the original enum.
 enum class ExternalSupportType {
@@ -72,13 +72,19 @@ inline int supportTypeIndex(ExternalSupportType type) { return static_cast<int>(
 
 /// "Libre / Fijo / Elástico" radios of the generic restraint.
 enum class DofMode { Free, Fixed, Elastic };
-/// Combo "Sentido" of the elastic support (#377980): Ambos (#377983), Sólo tracción (#377935), Sólo compresión (#377979).
-enum class SupportSense { Both, TensionOnly, CompressionOnly };
+/// Combo "Sentido" of the elastic support, measured in the original: Ambos (default), Positivo, Negativo.
+enum class SupportSense { Both, Positive, Negative };
 /// Radios "Desplazamientos" of the generic restraint: Independientes (#65009), Sobre una recta (#65366), Sobre un plano (#65367).
 enum class GenericDisplacementMode { Independent, OnLine, OnPlane };
 
-/// Default spring constant of the elastic support, kN/m (measured in the original).
+/// Default spring constant of the elastic support (kN/m for displacements, kN.m/rad for rotations), measured in the original.
 inline constexpr double kDefaultElasticConstant = 100000.0;
+/// Range of the integer constant "K" (measured: "El valor de 'K' debe estar entre 1 y 10000000.").
+inline constexpr double kMinElasticConstant = 1.0;
+inline constexpr double kMaxElasticConstant = 10000000.0;
+/// Range of the vector fields of the dialog (tooltip "Debe estar entre -1000.000 y 1000.000 .") and of "Coef.Emp.Parc." (0.00 .. 10000000.00).
+inline constexpr double kMaxVectorComponent = 1000.0;
+inline constexpr double kMaxPartialCoefficient = 10000000.0;
 
 struct GenericSupportData {
     GenericDisplacementMode mode = GenericDisplacementMode::Independent;
@@ -100,10 +106,13 @@ struct ExternalSupport {
     ExternalSupportType type = ExternalSupportType::Free;
     GenericSupportData generic;           ///< used when type == Generic
     Point3 userVector{0.0, 0.0, 1.0};     ///< director vector (user line) or normal vector (user plane) of the predefined user types
-    bool elastic = false;                 ///< "Apoyo elástico" checkbox of the predefined types: every blocked DOF becomes a spring
+    /// Predefined types (and the dependent modes of the generic one): the blocked DOFs whose radio is "Elástico" instead of "Fijo".
+    /// For the generic independent mode the springs come from the DofMode of each DOF and this array is ignored.
+    std::array<bool, 6> elasticDofs{};
     std::array<double, 6> elasticConstants{kDefaultElasticConstant, kDefaultElasticConstant, kDefaultElasticConstant,
                                            kDefaultElasticConstant, kDefaultElasticConstant, kDefaultElasticConstant};  ///< K per DOF
-    SupportSense sense = SupportSense::Both;
+    std::array<SupportSense, 6> senses{SupportSense::Both, SupportSense::Both, SupportSense::Both,
+                                       SupportSense::Both, SupportSense::Both, SupportSense::Both};  ///< "Sentido" per DOF
     std::vector<PrescribedDisplacement> prescribed;  ///< at most one set per load case
     bool operator==(const ExternalSupport&) const = default;
 };
@@ -130,13 +139,13 @@ enum class InternalLinkType { Fixed, PartialFixity, Pinned, Generic };
 /// One row ("Vínculo n") of the generic table.
 struct GenericLinkRow {
     bool partialToNode = false;   ///< checkbox of partial fixity to the node (red line in the sketch)
-    double coefficient = 1.0;     ///< "Coef.Emp.Parc." >= 0 (0 = pinned); without the checkbox it has no effect
+    double coefficient = 0.0;     ///< "Coef.Emp.Parc." 0..10000000 (0 = pinned, default measured); without the checkbox it has no effect
     bool operator==(const GenericLinkRow&) const = default;
 };
 
 struct InternalLink {
     InternalLinkType type = InternalLinkType::Fixed;
-    double partialCoefficient = 1.0;  ///< PartialFixity: coefficient for all pieces, >= 0 (0 = pinned)
+    double partialCoefficient = 0.0;  ///< PartialFixity: kN.m/rad for all pieces, 0..10000000 (0 = pinned; default measured)
     /// Generic: one entry per element (bar / shell) at the node, in order: the index of its row. Elements with the same row are fixed to
     /// each other and pinned to the rest. rows.size() = number of rows ("Vínculo 0, 1, ...").
     std::vector<int> elementRow;
@@ -177,14 +186,16 @@ struct SupportIssue {
 /// Literal es-ES texts of the original (strings table ids): 65006, 65010, 65465, 65466, 65467, 65473. Empty for another id.
 std::string supportMessage(int messageId);
 
-/// Checks on pressing Aceptar. Error = blocks (#65006: a generic restraint with no blocked DOF; K <= 0 / not finite; zero user vector;
-/// prescribed sets with duplicated load case #65465 or all-zero #65466). Warning = accepted but values are ignored (#65467).
+/// Checks on pressing Aceptar. Error = blocks (K outside 1..10000000 "El valor de 'K' debe estar entre 1 y 10000000."; zero user vector
+/// "La dirección introducida no es correcta."; prescribed sets with duplicated load case #65465 or all-zero #65466). Warning = accepted but
+/// values are ignored (#65467). A generic restraint with nothing blocked is NOT an error: the original closes silently and the node stays free
+/// (#65006 was not reproduced), so the assignment command treats it as "libre".
 /// The question #65010 depends on the entered K text: see elasticConstantIsDefault.
 std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& support);
 /// True when the support is elastic and some K equals kDefaultElasticConstant: the dialog then asks #65010 (Sí / No).
 bool elasticConstantIsDefault(const ExternalSupport& support);
-/// Text of #65010 with %s replaced by `constantText` (the value as shown to the user).
-std::string elasticDefaultQuestion(const std::string& constantText);
+/// Text of #65010 with %s replaced by `constantText`; the original always writes the literal "K" (also for rotations).
+std::string elasticDefaultQuestion(const std::string& constantText = "K");
 /// Prescribed values that survive: the values of unblocked DOFs are zeroed (#65467 says they are not taken into account).
 std::vector<PrescribedDisplacement> effectivePrescribed(const ExternalSupport& support);
 

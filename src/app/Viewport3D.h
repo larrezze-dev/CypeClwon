@@ -16,6 +16,7 @@
 
 #include "core/camera.h"
 #include "core/categories.h"
+#include "core/node_support.h"
 #include "core/clipping.h"
 #include "core/picking.h"
 #include "core/project_settings.h"
@@ -94,6 +95,11 @@ public:
     void setShowShellAxes(bool on);
     bool showShellAxes() const { return m_showShellAxes; }
     const core::StructuralModel* structure() const { return m_structure; }
+    /// Supports of the nodes (not owned; must outlive the viewport or be reset to nullptr): the blue symbols of the external restraints and
+    /// internal links are drawn from them, of constant screen size and without text (vinculaciones.md 5.2 / 5.4). They follow the "Nudos"
+    /// category like the node squares.
+    void setNodeSupports(const core::NodeSupports* supports);
+    const core::NodeSupports* nodeSupports() const { return m_nodeSupports; }
 
     /// Selection mode: what the original does inside a command of the Geometria ribbon tab. The guide lines are hidden,
     /// nodes show as blue squares, the element under the cursor is highlighted orange and the mouse selects:
@@ -335,6 +341,7 @@ private:
     void drawGuideLine(class QPainter& painter, core::Vec3 a, core::Vec3 b) const;
     void drawStructure(class QPainter& painter) const;
     void drawNodes(class QPainter& painter) const;
+    void drawSupports(class QPainter& painter) const;  ///< symbols of the external restraints and internal links
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
     void drawBarRubber(class QPainter& painter) const;  ///< Barras > Barra / Viga: chosen nodes and the elastic line
     void drawPointRubber(class QPainter& painter) const;  ///< Laminas / Herramientas: chosen points and the elastic line
@@ -361,6 +368,7 @@ private:
     DragAction m_drag = DragAction::None;
 
     const core::StructuralModel* m_structure = nullptr;
+    const core::NodeSupports* m_nodeSupports = nullptr;
     const core::WorkPlanes* m_planes = nullptr;
     bool m_selectionMode = false;
     core::SelectionFilter m_filter;

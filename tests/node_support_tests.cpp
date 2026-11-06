@@ -92,11 +92,11 @@ TEST(NodeSupport, SkewUserVectorIsOblique) {
 
 TEST(NodeSupport, ElasticCheckboxTurnsBlockedDofsIntoSprings) {
     ExternalSupport s = of(ExternalSupportType::Pinned);
-    s.elastic = true;
+    s.elasticDofs = {true, false, true, true, true, true};  // Dy stays "Fijo"; the rotations are not blocked, so they cannot be springs
     const Restraint r = restraintOf(s);
-    EXPECT_EQ(r.elastic, (Dofs{true, true, true, false, false, false}));
+    EXPECT_EQ(r.elastic, (Dofs{true, false, true, false, false, false}));
     EXPECT_DOUBLE_EQ(kDefaultElasticConstant, 100000.0);
-    EXPECT_EQ(s.sense, SupportSense::Both);
+    for (SupportSense sense : s.senses) EXPECT_EQ(sense, SupportSense::Both);
 }
 
 TEST(NodeSupport, GenericIndependent) {
@@ -120,40 +120,56 @@ TEST(NodeSupport, GenericOnLineAndPlane) {
     EXPECT_EQ(restraintOf(s).oblique, Restraint::Oblique::PlaneFree);
 }
 
-TEST(NodeSupport, Validation65006) {
+TEST(NodeSupport, GenericWithEverythingFreeIsFreeSilently) {
+    // Measured: the original closes the dialog without a message and the node stays free (#65006 was not reproduced).
     ExternalSupport s = of(ExternalSupportType::Generic);
-    auto issues = checkExternalSupport(s);
-    ASSERT_EQ(issues.size(), 1u);
-    EXPECT_EQ(issues[0].messageId, 65006);
-    EXPECT_EQ(issues[0].text, "Debe coaccionar, al menos, un grado de libertad del nudo.");
-    EXPECT_TRUE(hasError(issues));
-    s.generic.rotations[1] = DofMode::Fixed;
     EXPECT_TRUE(checkExternalSupport(s).empty());
+    EXPECT_EQ(supportMessage(65006), "Debe coaccionar, al menos, un grado de libertad del nudo.");
+    Project p = twoNodes();
+    UndoStack stack;
+    ASSERT_EQ(assignExternalSupport(p, stack, {1}, of(ExternalSupportType::Fixed)), 1);
+    EXPECT_EQ(assignExternalSupport(p, stack, {1}, s), 1);  // turns a restrained node into a free one
+    EXPECT_TRUE(p.nodeSupports.empty());
+    s.generic.rotations[1] = DofMode::Fixed;
+    EXPECT_EQ(assignExternalSupport(p, stack, {2}, s), 1);
+    EXPECT_EQ(p.nodeSupports.external.size(), 1u);
 }
 
 TEST(NodeSupport, ValidationUserVectorAndSpringConstant) {
     ExternalSupport s = of(ExternalSupportType::LineUserFixed);
     s.userVector = {0, 0, 0};
-    EXPECT_TRUE(hasError(checkExternalSupport(s)));
+    auto vectorIssues = checkExternalSupport(s);
+    ASSERT_EQ(vectorIssues.size(), 1u);
+    EXPECT_EQ(vectorIssues[0].text, "La dirección introducida no es correcta.");
     s.userVector = {1, 1, 1};
     EXPECT_TRUE(checkExternalSupport(s).empty());
     ExternalSupport e = of(ExternalSupportType::Fixed);
-    e.elastic = true;
-    e.elasticConstants[2] = -1.0;
-    EXPECT_TRUE(hasError(checkExternalSupport(e)));
-    e.elasticConstants[2] = 5e5;
+    e.elasticDofs = {false, false, true, false, false, false};
+    // Measured range of K: 1 .. 10000000.
+    for (double bad : {0.0, -5.0, 20000000.0}) {
+        e.elasticConstants[2] = bad;
+        const auto issues = checkExternalSupport(e);
+        ASSERT_EQ(issues.size(), 1u) << bad;
+        EXPECT_EQ(issues[0].text, "El valor de 'K' debe estar entre 1 y 10000000.");
+    }
+    for (double good : {1.0, 5e5, 10000000.0}) {
+        e.elasticConstants[2] = good;
+        EXPECT_FALSE(hasError(checkExternalSupport(e))) << good;
+    }
+    e.elasticConstants[2] = -1.0;  // a spring that is not used (Dz is "Fijo" again) is not checked
+    e.elasticDofs[2] = false;
     EXPECT_FALSE(hasError(checkExternalSupport(e)));
 }
 
 TEST(NodeSupport, DefaultElasticConstantQuestion65010) {
     ExternalSupport s = of(ExternalSupportType::Pinned);
     EXPECT_FALSE(elasticConstantIsDefault(s));  // not elastic
-    s.elastic = true;
+    s.elasticDofs = {true, true, true, false, false, false};
     EXPECT_TRUE(elasticConstantIsDefault(s));
-    for (int i = 0; i < 3; ++i) s.elasticConstants[i] = 2e5;
+    for (int i = 0; i < 3; ++i) s.elasticConstants[i] = 5000;  // measured: another K does not ask
     EXPECT_FALSE(elasticConstantIsDefault(s));
-    const std::string q = elasticDefaultQuestion("100000 kN/m");
-    EXPECT_NE(q.find("(100000 kN/m) coincide con el valor por defecto"), std::string::npos);
+    const std::string q = elasticDefaultQuestion();  // the original writes the literal "K"
+    EXPECT_NE(q.find("(K) coincide con el valor por defecto"), std::string::npos);
     EXPECT_EQ(q.find("%s"), std::string::npos);
     EXPECT_NE(q.find("¿Desea continuar?"), std::string::npos);
 }
@@ -188,10 +204,15 @@ TEST(NodeSupport, PrescribedValidation) {
 TEST(NodeSupport, InternalLinkValidation) {
     InternalLink partial;
     partial.type = InternalLinkType::PartialFixity;
-    partial.partialCoefficient = 0.0;  // pinned
+    EXPECT_DOUBLE_EQ(partial.partialCoefficient, 0.0);  // measured default 0.00
     EXPECT_TRUE(checkInternalLink(partial).empty());
-    partial.partialCoefficient = -0.1;
-    EXPECT_TRUE(hasError(checkInternalLink(partial)));
+    EXPECT_TRUE(checkInternalLink({InternalLinkType::PartialFixity, kMaxPartialCoefficient, {}, {}}).empty());
+    for (double bad : {-1.0, 20000000.0}) {
+        partial.partialCoefficient = bad;
+        const auto issues = checkInternalLink(partial);
+        ASSERT_EQ(issues.size(), 1u) << bad;
+        EXPECT_EQ(issues[0].text, "El valor de 'Coef.Emp.Parc.' debe estar entre 0.00 y 10000000.00.");
+    }
 
     InternalLink g;
     g.type = InternalLinkType::Generic;
@@ -242,7 +263,9 @@ TEST(NodeSupport, AssignRemoveUndoRedoAndQueries) {
 TEST(NodeSupport, InvalidAssignmentPushesNothing) {
     Project p = twoNodes();
     UndoStack stack;
-    EXPECT_EQ(assignExternalSupport(p, stack, {1}, of(ExternalSupportType::Generic)), 0);  // #65006
+    ExternalSupport zero = of(ExternalSupportType::LineUserFixed);
+    zero.userVector = {0, 0, 0};
+    EXPECT_EQ(assignExternalSupport(p, stack, {1}, zero), 0);
     EXPECT_EQ(stack.count(), 0u);
     EXPECT_TRUE(p.nodeSupports.empty());
 }
@@ -315,12 +338,13 @@ TEST(NodeSupport, JsonRoundTripAndBackwardCompatibility) {
     s.generic.vector = {1, 2, 3};
     s.generic.rotations[2] = DofMode::Elastic;
     s.elasticConstants[5] = 123.5;
-    s.sense = SupportSense::CompressionOnly;
+    s.senses[5] = SupportSense::Negative;
+    s.senses[2] = SupportSense::Positive;
     s.prescribed.push_back({3, {0, 0, 0.004, 0, 0, 0}});
     p.nodeSupports.external[1] = s;
     ExternalSupport pinned = of(ExternalSupportType::LineUserPinned);
     pinned.userVector = {1, 0, 1};
-    pinned.elastic = true;
+    pinned.elasticDofs = {true, false, true, false, false, false};
     p.nodeSupports.external[2] = pinned;
     InternalLink g;
     g.type = InternalLinkType::Generic;

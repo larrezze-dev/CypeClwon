@@ -26,7 +26,10 @@ void restore(std::map<int, T>& target, const std::map<int, std::optional<T>>& sn
 // --- external ---------------------------------------------------------------------------------------------------
 
 ExternalSupportCommand::ExternalSupportCommand(Project& project, std::vector<int> nodeIds, std::optional<ExternalSupport> support)
-    : m_project(project), m_remove(!support || support->type == ExternalSupportType::Free), m_support(std::move(support)) {
+    // A generic restraint with every DOF free is "libre" (measured: the original closes silently and leaves the node free).
+    : m_project(project),
+      m_remove(!support || support->type == ExternalSupportType::Free || !restraintOf(*support).any()),
+      m_support(std::move(support)) {
     if (m_remove) m_support.reset();
     for (int id : existingNodes(project, std::move(nodeIds))) {
         const auto it = project.nodeSupports.external.find(id);

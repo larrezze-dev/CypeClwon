@@ -140,14 +140,14 @@ CC_ENUM(ExternalSupportType, {{ExternalSupportType::Free, "free"}, {ExternalSupp
                               {ExternalSupportType::PlaneXZPinned, "planeXZPinned"}, {ExternalSupportType::PlaneYZPinned, "planeYZPinned"},
                               {ExternalSupportType::PlaneUserPinned, "planeUserPinned"}})
 CC_ENUM(DofMode, {{DofMode::Free, "free"}, {DofMode::Fixed, "fixed"}, {DofMode::Elastic, "elastic"}})
-CC_ENUM(SupportSense, {{SupportSense::Both, "both"}, {SupportSense::TensionOnly, "tensionOnly"}, {SupportSense::CompressionOnly, "compressionOnly"}})
+CC_ENUM(SupportSense, {{SupportSense::Both, "both"}, {SupportSense::Positive, "positive"}, {SupportSense::Negative, "negative"}})
 CC_ENUM(GenericDisplacementMode, {{GenericDisplacementMode::Independent, "independent"}, {GenericDisplacementMode::OnLine, "onLine"},
                                   {GenericDisplacementMode::OnPlane, "onPlane"}})
 CC_ENUM(InternalLinkType, {{InternalLinkType::Fixed, "fixed"}, {InternalLinkType::PartialFixity, "partialFixity"},
                            {InternalLinkType::Pinned, "pinned"}, {InternalLinkType::Generic, "generic"}})
 CC_STRUCT(GenericSupportData, mode, translations, vector, rotations)
 CC_STRUCT(PrescribedDisplacement, loadCaseId, values)
-CC_STRUCT(ExternalSupport, type, generic, userVector, elastic, elasticConstants, sense, prescribed)
+CC_STRUCT(ExternalSupport, type, generic, userVector, elasticDofs, elasticConstants, senses, prescribed)
 CC_STRUCT(GenericLinkRow, partialToNode, coefficient)
 CC_STRUCT(InternalLink, type, partialCoefficient, elementRow, rows)
 

@@ -1,4 +1,5 @@
 ﻿#include "Viewport3D.h"
+#include "SupportPictograms.h"
 
 #include <QFont>
 #include <QFontMetrics>
@@ -927,9 +928,55 @@ void Viewport3D::drawStructure(QPainter& painter) const {
     }
 }
 
+void Viewport3D::setNodeSupports(const core::NodeSupports* supports) {
+    m_nodeSupports = supports;
+    update();
+}
+
+void Viewport3D::drawSupports(QPainter& painter) const {
+    if (!m_structure || !m_nodeSupports || m_nodeSupports->empty() || !m_categories.supportsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    const auto colourOf = [&](int nodeId) {
+        const core::ElementRef ref{core::ElementKind::Node, nodeId};
+        if (m_selectionMode && m_selection.contains(ref)) return kHighlight;  // measured: orange when selected
+        if (m_selectionMode && m_hover && *m_hover == ref) return QColor(QStringLiteral("#C8B68E"));  // beige under the cursor
+        return kNodeBlue;
+    };
+    const auto screenOf = [&](const core::Node& n, QPointF& out) {
+        double x, y;
+        if (!map.toScreen(n.position, x, y)) return false;
+        out = QPointF(x, y);
+        return visibleAfterClipping({n.position.x, n.position.y, n.position.z});
+    };
+    for (const auto& [id, support] : m_nodeSupports->external) {
+        const core::Node* n = m_structure->findNode(id);
+        QPointF at;
+        if (!n || !screenOf(*n, at)) continue;
+        SymbolAxes axes{QPointF(1, 0), QPointF(0.87, 0.5), QPointF(0, -1)};  // fallbacks when an axis cannot be projected
+        for (int i = 0; i < 3; ++i) {
+            double x, y;
+            core::Point3 p = n->position;
+            (i == 0 ? p.x : (i == 1 ? p.y : p.z)) += 1.0;
+            if (!map.toScreen(p, x, y)) continue;
+            const QPointF d(x - at.x(), y - at.y());
+            const double len = std::hypot(d.x(), d.y());
+            if (len > 1e-6) axes[static_cast<std::size_t>(i)] = d / len;
+        }
+        drawExternalSupportSymbol(painter, support, at, axes, colourOf(id));
+    }
+    for (const auto& [id, link] : m_nodeSupports->internal) {
+        const core::Node* n = m_structure->findNode(id);
+        QPointF at;
+        if (n && screenOf(*n, at)) drawInternalLinkSymbol(painter, link, at, colourOf(id));
+    }
+    painter.restore();
+}
+
 void Viewport3D::drawNodes(QPainter& painter) const {
-    // Support symbols are not drawn yet; they follow the same rule as the nodes (CategorySettings::supportsDrawn).
     if (!m_structure || !m_categories.nodesDrawn()) return;
+    drawSupports(painter);
     const core::ScreenMapper map = mapper();
     painter.setBrush(Qt::NoBrush);
     painter.setPen(QPen(kNodeBlue, 1));

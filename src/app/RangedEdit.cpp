@@ -58,7 +58,9 @@ void RangedEdit::setValue(double value) {
 bool RangedEdit::commit() {
     if (m_committing) return true;
     bool ok = false;
-    double typed = text().trimmed().replace(QLatin1Char(','), QLatin1Char('.')).toDouble(&ok);
+    QString raw = text().trimmed();
+    if (!m_strict) raw.replace(QLatin1Char(','), QLatin1Char('.'));
+    double typed = raw.toDouble(&ok);
     if (ok && m_decimals == 0) typed = std::round(typed);  // whole-number editors (Z of "Disposición")
     // The text equal to the stored value (already formatted) is accepted as it is: the stored value may sit on a bound.
     if (ok && std::isfinite(typed) && m_range.contains(typed)) {
@@ -70,6 +72,7 @@ bool RangedEdit::commit() {
     }
     const QString suffix = m_boundUnit.isEmpty() ? QString() : QLatin1Char(' ') + m_boundUnit;
     m_lastWarning = tr("El valor de '%1' debe estar entre %2 y %3.").arg(m_label, formatted(m_range.min) + suffix, formatted(m_range.max) + suffix);
+    if (m_strict && !(ok && std::isfinite(typed))) m_lastWarning = tr("La cadena introducida no es un número.");
     setText(formatted(m_value));  // the field recovers the previous value
     m_committing = true;           // the warning window takes the focus: its editingFinished must not warn again
     showWarning(window(), m_lastWarning);

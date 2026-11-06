@@ -18,6 +18,7 @@ namespace cc::app {
 
 class LeftPanel;
 class NodeTool;
+class SupportTool;
 class BarTool;
 class PieceTool;
 class BarDescribeTool;
@@ -125,6 +126,7 @@ private:
     QAction* m_showNewPlanesAction = nullptr;
     class DimensionsBar* m_dimensionsBar = nullptr;
     NodeTool* m_nodeTool = nullptr;  ///< Geometria > Nudos (Nuevo / Borrar / Mover)
+    SupportTool* m_supportTool = nullptr;  ///< Propiedades > Nudos (Vinculación exterior / interior, T-P6-01)
     BarDescribeTool* m_describeTool = nullptr;  ///< Geometria > Barras (Seccion / Material, T-P5-07)
     PieceTool* m_pieceTool = nullptr;  ///< Geometria > Barras (Pieza / Agrupar / Desagrupar / Mover extremo / Invertir eje)
     ContinuousTool* m_continuousTool = nullptr;  ///< Geometria > Barras (Edición de pilares / vigas, T-P5-08)
