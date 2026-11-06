@@ -69,6 +69,10 @@ const std::vector<ProfileSeries>& predefinedSeries() {
             {"J", "Perfiles J (alas inclinadas)", ShapeKind::ISloped},
             {"UPE", "Perfiles UPE (U de alas paralelas)", ShapeKind::Channel},
             {"PFC", "Perfiles PFC (U de alas paralelas, serie británica)", ShapeKind::Channel},
+            {"UB", "Perfiles UB (vigas universales, alas paralelas)", ShapeKind::IParallel},
+            {"IPE 750", "Perfiles IPE 750 (alas paralelas)", ShapeKind::IParallel},
+            {"IPE V", "Perfiles IPE V (alas paralelas)", ShapeKind::IParallel},
+            {"HLZ", "Perfiles HLZ (alas anchas, gran tamaño)", ShapeKind::IParallel},
         };
         std::vector<ProfileSeries> out;
         for (const SeriesDef& def : defs) {

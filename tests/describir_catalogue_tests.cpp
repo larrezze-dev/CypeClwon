@@ -310,7 +310,9 @@ TEST(DescribirCatalogue, TimberMaterialValues) {
     EXPECT_NEAR(timberMaterialData(types[1], "D30").elasticModulusMPa, 12000.0, 1e-9);
     EXPECT_NEAR(timberMaterialData(types[2], "GL28h").elasticModulusMPa, 12600.0, 1e-9);
     EXPECT_NEAR(timberMaterialData(types[3], "GL32c").elasticModulusMPa, 13700.0, 1e-9);
-    EXPECT_NEAR(timberMaterialData(types[0], "C24").poissonRatio, 0.3, 1e-12);  // the original's nu (about 7) is not usable
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").poissonRatio, 11000.0 / 1380.0 - 1.0, 1e-9);  // nu = E/(2G)-1 uncapped (about 6.97)
+    EXPECT_NEAR(timberMaterialData(types[0], "C24").thermalExpansion, 5e-6, 1e-15);
+    EXPECT_NEAR(shearModulusMPa(timberMaterialData(types[0], "C24")), 690.0, 1e-9);
     EXPECT_NEAR(timberShearModulusMPa("C24"), 690.0, 1e-9);
     EXPECT_EQ(timberShearModulusMPa("nope"), 0.0);
     // a class of another type falls back to the default

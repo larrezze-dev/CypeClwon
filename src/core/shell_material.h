@@ -39,6 +39,21 @@ inline constexpr ValueRange kShellOffsetMm{-5000.0, 5000.0};
 /// "El valor de 'Espesor' debe estar entre 0.10 y 10000.00." (the warning of the original; `decimals` digits after the point).
 std::string rangeWarning(const std::string& label, const ValueRange& range, int decimals);
 
+/// Input of the CLT panel assistant (`dlg_asist_clt` of ed3dlib, REA 2026-11-06): E along / across the fibres of the outer boards, the shear
+/// modulus of the planes xy / xz and yz (N/mm2) and the density (kg/m3). Defaults of the original's dialog (CLT of C24 boards).
+struct CltInput {
+    double elasticModulusMPa = 11000.0;
+    double elasticModulusPerpMPa = 360.0;
+    double shearModulusXYMPa = 690.0;  ///< xy = xz
+    double shearModulusYZMPa = 50.0;
+    double densityKgM3 = 450.0;
+};
+inline constexpr ValueRange kCltModulusMPa{0.0, 100000000.0};
+inline constexpr ValueRange kCltDensityKgM3{0.0, 100000.0};
+/// Writes the assistant's result into the orthotropic fields of a material: Ex, Ey, G12 = G13, G23, nu12 = 0, alpha = 5e-6 in both
+/// directions and the weight density = rho / 1000 T/m3 x 9.81 (kN/m3). The kind is not changed.
+void applyCltAssistant(ShellMaterial& material, const CltInput& input);
+
 /// First problem of a material (a range warning of the original) or empty when it is valid. Only the fields of the active kind
 /// are checked.
 std::string validateShellMaterial(const ShellMaterial& material);

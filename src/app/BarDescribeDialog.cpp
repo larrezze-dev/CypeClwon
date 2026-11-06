@@ -1788,13 +1788,13 @@ QWidget* BarDescribeDialog::buildBeamPage() {
         const char* label;
         double BeamData::*member;
     };
-    static const Row rows[] = {{"beamB", N_("Anchura (b)"), &BeamData::widthM},
+    static const Row rows[] = {{"beamB", N_("Anchura (b)"), &BeamData::widthM},  // suffixes read in seccviga.dll 0x1800da224..
                                {"beamA", N_("Canto (a)"), &BeamData::depthM},
                                {"beamI", N_("Ala izquierda (i)"), &BeamData::flangeLeftM},
                                {"beamD", N_("Ala derecha (d)"), &BeamData::flangeRightM},
-                               {"beamFlangeDepth", N_("Canto del ala"), &BeamData::flangeDepthM},
-                               {"beamDepthStart", N_("Canto inicial"), &BeamData::depthStartM},
-                               {"beamDepthEnd", N_("Canto final"), &BeamData::depthEndM}};
+                               {"beamFlangeDepth", N_("Canto del ala (s)"), &BeamData::flangeDepthM},
+                               {"beamDepthStart", N_("Canto inicial (a)"), &BeamData::depthStartM},
+                               {"beamDepthEnd", N_("Canto final (c)"), &BeamData::depthEndM}};
     int i = 0;
     for (const Row& r : rows) {
         const FieldSpec spec{trc(r.label), kBeamMinM * 100.0, kBeamMaxM * 100.0, 1};
@@ -1843,8 +1843,8 @@ void BarDescribeDialog::updateBeamPage() {
                               tr("Viga descolgada rectangular con sección variable")};
     const QStringList lattice = {tr("Viga de celosía plana rectangular"), tr("Viga de celosía plana en 'T'"), tr("Viga de celosía plana con ala a la derecha"),
                                  tr("Viga de celosía plana con ala a la izquierda"), tr("Viga de celosía descolgada rectangular")};
-    const QStringList prestressed = {tr("Viga pretensada rectangular"), tr("Viga pretensada en 'T'"), tr("Viga pretensada con ala a la derecha"),
-                                     tr("Viga pretensada con ala a la izquierda")};
+    const QStringList prestressed = {tr("Viga pretensada plana rectangular"), tr("Viga pretensada plana en 'T'"),  // #157455, #157458
+                                     tr("Viga pretensada plana con ala a la derecha"), tr("Viga pretensada plana con ala a la izquierda")};  // #157456, #157457
     const QStringList* tips = b.family == BeamFamily::Flat ? &flat : b.family == BeamFamily::Hung ? &hung
                               : b.family == BeamFamily::Lattice ? &lattice : &prestressed;
     for (int i = 0; i < m_beamTypeButtons.size(); ++i) {
@@ -2359,13 +2359,19 @@ void BarDescribeDialog::accept() {
             warn(this, tr("Esta función aún no está disponible."));
             return;
         }
-        if (m_typeUi[i] == 0 && d.materialIcon == BarMaterialIcon::Generic &&
-            (d.generic.shearAreaYM2 > d.generic.areaM2 + 1e-12 || d.generic.shearAreaZM2 > d.generic.areaM2 + 1e-12)) {
-            // #65239 / #65240 (checked on accepting is NOT verified in the original, describir_barras.md section 6)
-            selectEntry(static_cast<int>(i));
-            warn(this, tr("Los valores de las áreas de cortante '%1' y '%2' no pueden ser mayores que el valor del área de la sección.")
-                           .arg(tr("Avy"), tr("Avz")));
-            return;
+        if (m_typeUi[i] == 0 && d.materialIcon == BarMaterialIcon::Generic) {
+            // ed3secgen.c FUN_180602480 (REA): A < Avy or A < Avz (strict; A == Av is accepted) -> #65239 (both) / #65240 (one), no close.
+            const bool badY = d.generic.areaM2 < d.generic.shearAreaYM2, badZ = d.generic.areaM2 < d.generic.shearAreaZM2;
+            if (badY || badZ) {
+                selectEntry(static_cast<int>(i));
+                if (badY && badZ)
+                    warn(this, tr("Los valores de las áreas de cortante '%1' y '%2' no pueden ser mayores que el valor del área de la sección.")
+                                   .arg(tr("Avy"), tr("Avz")));
+                else
+                    warn(this, tr("El valor del área de cortante '%1' no puede ser mayor que el valor del área de la sección.")
+                                   .arg(badY ? tr("Avy") : tr("Avz")));
+                return;
+            }
         }
         const std::string problem = validateDescription(d, m_scratch.library());
         if (!problem.empty()) {

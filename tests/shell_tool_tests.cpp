@@ -333,12 +333,12 @@ TEST_F(ShellToolTest, NuevaOpensTheDialogFirstAndCancellingReleasesTheButton) {
 TEST_F(ShellToolTest, NuevaGivesTheDialogValuesToTheShellsItCreates) {
     tool->setDialogRunner([&](QDialog& d) {
         auto& dialog = static_cast<cc::app::ShellNewDialog&>(d);
-        // Measured defaults: 100 mm (shown in the project unit, cm), ballast off, concrete from the general data.
+        // Measured defaults: 100 mm (always shown in mm), ballast off, concrete from the general data.
         EXPECT_NEAR(dialog.section().thicknessM, 0.1, 1e-12);
         EXPECT_FALSE(dialog.section().ballastEnabled);
         EXPECT_EQ(dialog.material().kind, ShellMaterialKind::Concrete);
         EXPECT_TRUE(dialog.material().useGeneralData);
-        dialog.sectionPanel()->setThickness(30.0);
+        dialog.sectionPanel()->setThickness(300.0);  // always mm
         dialog.materialPanel()->setKind(ShellMaterialKind::GenericIsotropic);
         return static_cast<int>(QDialog::Accepted);
     });
@@ -525,7 +525,7 @@ TEST_F(ShellToolTest, SeccionAppliesTheDialogToTheSelectedShellsAsOneUndoStep) {
         EXPECT_EQ(d.windowTitle(), QStringLiteral("Describir sección"));
         EXPECT_FALSE(dialog.ballastEditable()) << "the editor follows the checkbox";
         EXPECT_FALSE(dialog.behaviourEditable());
-        dialog.setThickness(25.0);  // cm (project unit)
+        dialog.setThickness(250.0);  // mm, whatever the project unit
         dialog.setBallastEnabled(true);
         EXPECT_TRUE(dialog.ballastEditable());
         EXPECT_TRUE(dialog.behaviourEditable());
@@ -577,4 +577,56 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+TEST_F(ShellToolTest, ThicknessIsAlwaysInMillimetresWhateverTheWorkUnit) {
+    cc::app::ShellSectionPanel panel(ShellSection{0.15, false, 0.0, BallastBehaviour::Linear}, LengthUnit::Centimetres);
+    EXPECT_EQ(panel.thicknessEdit()->text(), QStringLiteral("150.00"));
+    EXPECT_NEAR(panel.thicknessEdit()->range().min, 0.10, 1e-12);
+    EXPECT_NEAR(panel.thicknessEdit()->range().max, 10000.0, 1e-9);
+    panel.thicknessEdit()->setText(QStringLiteral("20000"));
+    EXPECT_FALSE(panel.validate());
+    EXPECT_EQ(warnings.back(), QStringLiteral("El valor de 'Espesor' debe estar entre 0.10 y 10000.00."));
+    panel.thicknessEdit()->setText(QStringLiteral("250"));
+    EXPECT_TRUE(panel.validate());
+    EXPECT_NEAR(panel.section().thicknessM, 0.25, 1e-12);
+}
+
+TEST_F(ShellToolTest, CltAssistantWritesTheOrthotropicValues) {
+    ShellMaterial m;
+    m.kind = ShellMaterialKind::GenericOrthotropic;
+    cc::app::ShellMaterialPanel panel(m, project);
+    ASSERT_NE(panel.cltButton(), nullptr);
+    EXPECT_EQ(panel.cltButton()->toolTip(), QStringLiteral("Asistente para la introducción de propiedades de paneles CLT"));
+    cc::app::CltAssistantDialog::setRunner([](QDialog& d) {
+        const auto& edits = static_cast<cc::app::CltAssistantDialog&>(d).edits();
+        EXPECT_EQ(edits.size(), 5u);
+        EXPECT_DOUBLE_EQ(edits[0]->value(), 11000.0);
+        EXPECT_DOUBLE_EQ(edits[1]->value(), 360.0);
+        EXPECT_DOUBLE_EQ(edits[2]->value(), 690.0);
+        EXPECT_DOUBLE_EQ(edits[3]->value(), 50.0);
+        EXPECT_DOUBLE_EQ(edits[4]->value(), 450.0);
+        return true;
+    });
+    panel.cltButton()->click();
+    cc::app::CltAssistantDialog::setRunner(nullptr);
+    const ShellMaterial out = panel.material();
+    EXPECT_DOUBLE_EQ(out.orthoElasticModulusXMPa, 11000.0);
+    EXPECT_DOUBLE_EQ(out.orthoElasticModulusYMPa, 360.0);
+    EXPECT_DOUBLE_EQ(out.orthoShearModulusXYMPa, 690.0);
+    EXPECT_DOUBLE_EQ(out.orthoShearModulusXZMPa, 690.0);
+    EXPECT_DOUBLE_EQ(out.orthoShearModulusYZMPa, 50.0);
+    EXPECT_DOUBLE_EQ(out.orthoPoissonRatioXY, 0.0);
+    EXPECT_DOUBLE_EQ(out.orthoThermalExpansionX, 5.0e-6);
+    EXPECT_NEAR(out.orthoDensityKnM3, 0.45 * 9.81, 1e-12);
+}
+
+TEST_F(ShellToolTest, CltAssistantCancelChangesNothing) {
+    ShellMaterial m;
+    m.kind = ShellMaterialKind::GenericOrthotropic;
+    cc::app::ShellMaterialPanel panel(m, project);
+    cc::app::CltAssistantDialog::setRunner([](QDialog&) { return false; });
+    panel.cltButton()->click();
+    cc::app::CltAssistantDialog::setRunner(nullptr);
+    EXPECT_EQ(panel.material().orthoElasticModulusXMPa, m.orthoElasticModulusXMPa);
 }

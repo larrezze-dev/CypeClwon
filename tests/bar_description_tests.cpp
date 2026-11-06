@@ -316,7 +316,9 @@ TEST(BarDescription, GenericSection) {
     bad.generic.inertiaYM4 = 0.0;
     EXPECT_FALSE(validateDescription(bad, f.project.profileLibrary).empty());
     bad = g;
-    bad.material.poissonRatio = 0.7;
+    bad.material.poissonRatio = 0.7;  // no upper cap in the original (timber nu is about 7)
+    EXPECT_TRUE(validateDescription(bad, f.project.profileLibrary).empty());
+    bad.material.poissonRatio = -1.0;
     EXPECT_FALSE(validateDescription(bad, f.project.profileLibrary).empty());
 }
 

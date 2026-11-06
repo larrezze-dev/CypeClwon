@@ -796,6 +796,50 @@ TEST(BarDescribeDialog, BeamPageFamiliesTypesAndFields) {
     EXPECT_TRUE(d->beamBelowSlabCheck()->isVisibleTo(d.get()));
 }
 
+TEST(BarDescribeDialog, PrestressedAndLatticeTooltipsAndBeamLabels) {
+    Sinks sinks;
+    auto d = make();
+    d->typeRadio(3)->click();
+    d->beamFamilyButtons()[3]->click();
+    EXPECT_EQ(d->beamTypeButtons()[0]->toolTip(), "Viga pretensada plana rectangular");  // #157455
+    EXPECT_EQ(d->beamTypeButtons()[1]->toolTip(), "Viga pretensada plana en 'T'");  // #157458
+    EXPECT_EQ(d->beamTypeButtons()[2]->toolTip(), "Viga pretensada plana con ala a la derecha");  // #157456
+    EXPECT_EQ(d->beamTypeButtons()[3]->toolTip(), "Viga pretensada plana con ala a la izquierda");  // #157457
+    d->beamFamilyButtons()[2]->click();
+    EXPECT_EQ(d->beamTypeButtons()[4]->toolTip(), "Viga de celosía descolgada rectangular");  // #157438
+    d->beamFamilyButtons()[1]->click();
+    QStringList labels;
+    for (const QLabel* l : d->findChildren<QLabel*>()) labels << l->text();
+    for (const char* text : {"Anchura (b)", "Canto (a)", "Canto del ala (s)", "Canto inicial (a)", "Canto final (c)"})
+        EXPECT_TRUE(labels.contains(QString::fromUtf8(text))) << text;
+    d->field("beamFlangeDepth")->setText("1");
+    EXPECT_FALSE(d->field("beamFlangeDepth")->commit());
+    EXPECT_EQ(sinks.warnings.value(0), "El valor de 'Canto del ala (s)' debe estar entre 5.0 y 500.0.");
+}
+
+TEST(BarDescribeDialog, GenericShearAreasAboveTheAreaAreRefusedOnAccepting) {
+    Sinks sinks;
+    const auto d = make();
+    clickIcon(*d, BarMaterialIcon::Generic);
+    d->field("genericArea")->setText("10");
+    ASSERT_TRUE(d->field("genericArea")->commit());
+    d->accept();  // Avy = Avz = 20.83 > 10: both (#65239)
+    ASSERT_EQ(sinks.warnings.size(), 1);
+    EXPECT_EQ(sinks.warnings[0], "Los valores de las áreas de cortante 'Avy' y 'Avz' no pueden ser mayores que el valor del área de la sección.");
+    EXPECT_NE(d->result(), QDialog::Accepted);
+    d->field("genericShearY")->setText("10");  // A == Av is accepted
+    ASSERT_TRUE(d->field("genericShearY")->commit());
+    sinks.warnings.clear();
+    d->accept();  // only Avz is above (#65240)
+    ASSERT_EQ(sinks.warnings.size(), 1);
+    EXPECT_EQ(sinks.warnings[0], "El valor del área de cortante 'Avz' no puede ser mayor que el valor del área de la sección.");
+    d->field("genericShearZ")->setText("10");
+    ASSERT_TRUE(d->field("genericShearZ")->commit());
+    sinks.warnings.clear();
+    d->accept();
+    EXPECT_TRUE(sinks.warnings.isEmpty());
+}
+
 TEST(BarDescribeDialog, BeamValidationsOnAcceptingAndSteelTimberFamilies) {
     Sinks sinks;
     auto d = make();
@@ -888,11 +932,11 @@ TEST(BarDescribeDialog, AcceptValidatesTheDescription) {
     d->accept();
     EXPECT_EQ(sinks.warnings.value(0), "Esta función aún no está disponible.");
     clickIcon(*d, BarMaterialIcon::Generic);
-    d->field("genericShearY")->setText("100");  // Avy > A: refused on accepting (provisional)
+    d->field("genericShearY")->setText("100");  // Avy > A: refused on accepting (#65240, one area)
     d->field("genericShearY")->commit();
     sinks.warnings.clear();
     d->accept();
-    EXPECT_EQ(sinks.warnings.value(0), "Los valores de las áreas de cortante 'Avy' y 'Avz' no pueden ser mayores que el valor del área de la sección.");
+    EXPECT_EQ(sinks.warnings.value(0), "El valor del área de cortante 'Avy' no puede ser mayor que el valor del área de la sección.");
     d->field("genericShearY")->setText("20");
     d->field("genericShearY")->commit();
     sinks.warnings.clear();

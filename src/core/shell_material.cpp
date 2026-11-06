@@ -75,4 +75,14 @@ std::string shellMaterialName(const ShellMaterial& m, const ProfileSettings& pro
     return {};
 }
 
+void applyCltAssistant(ShellMaterial& m, const CltInput& in) {
+    m.orthoElasticModulusXMPa = in.elasticModulusMPa;
+    m.orthoElasticModulusYMPa = in.elasticModulusPerpMPa;
+    m.orthoPoissonRatioXY = 0.0;
+    m.orthoShearModulusXYMPa = m.orthoShearModulusXZMPa = in.shearModulusXYMPa;
+    m.orthoShearModulusYZMPa = in.shearModulusYZMPa;
+    m.orthoThermalExpansionX = m.orthoThermalExpansionY = 5.0e-6;  // ed3dlib 0x3ed4f8b588e368f1
+    m.orthoDensityKnM3 = in.densityKgM3 / 1000.0 * 9.81;
+}
+
 }  // namespace cc::core

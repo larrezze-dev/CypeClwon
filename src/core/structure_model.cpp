@@ -88,7 +88,7 @@ int StructuralModel::addNode(const Point3& position) {
 
 int StructuralModel::addMaterial(Material material) {
     if (!positiveFinite(material.elasticModulusMPa) || !std::isfinite(material.poissonRatio) || material.poissonRatio <= -1.0 ||
-        material.poissonRatio >= 0.5 || !positiveFinite(material.densityKnM3) || !std::isfinite(material.thermalExpansion))
+        !positiveFinite(material.densityKnM3) || !std::isfinite(material.thermalExpansion))
         return 0;
     material.id = nextMaterialId;
     if (!insertSorted(materials, material)) return 0;
@@ -487,7 +487,7 @@ std::string StructuralModel::validate() const {
         if (!finite(n.position)) return "El nudo " + std::to_string(n.id) + " tiene coordenadas no válidas.";
 
     for (const Material& m : materials) {
-        if (!positiveFinite(m.elasticModulusMPa) || !std::isfinite(m.poissonRatio) || m.poissonRatio <= -1.0 || m.poissonRatio >= 0.5 ||
+        if (!positiveFinite(m.elasticModulusMPa) || !std::isfinite(m.poissonRatio) || m.poissonRatio <= -1.0 ||
             !positiveFinite(m.densityKnM3) || !std::isfinite(m.thermalExpansion))
             return "El material " + std::to_string(m.id) + " tiene propiedades no válidas.";
     }

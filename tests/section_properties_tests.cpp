@@ -298,10 +298,11 @@ TEST(SectionProperties, ExtraRolledSeriesOfTheOriginalAreTabulated) {
     // Series that pfarcelor.dll / perfil3.dll embed besides the six above (docs/research/ui/describir_barras.md section 18).
     const std::vector<std::pair<std::string, std::size_t>> expected = {{"L", 179}, {"IPE A", 18}, {"IPE AA", 9}, {"IPE O", 13}, {"HEAA", 24},
                                                                        {"HE", 16}, {"HEC", 12}, {"HL", 35}, {"HD", 42}, {"HP", 31},
-                                                                       {"UBP", 17}, {"UC", 46}, {"J", 10}, {"UPE", 14}, {"PFC", 16}};
+                                                                       {"UBP", 17}, {"UC", 46}, {"J", 10}, {"UPE", 14}, {"PFC", 16}, {"UB", 180},
+                                                                       {"IPE 750", 5}, {"IPE V", 5}, {"HLZ", 4}};
     std::map<std::string, const ProfileSeries*> byName;
     for (const ProfileSeries& s : predefinedSeries()) byName[s.reference] = &s;
-    EXPECT_EQ(byName.count("UB"), 0u);  // names and values of the original's UB do not correspond: not integrated
+    // UB: the names of the original are paired with the values by mass (describir_barras.md section 21.A.6); IPE 750: 5th row renamed "x 220"
     for (const auto& [name, count] : expected) {
         ASSERT_TRUE(byName.count(name)) << name;
         const ProfileSeries& s = *byName[name];
@@ -340,6 +341,15 @@ TEST(SectionProperties, ExtraRolledSeriesOfTheOriginalAreTabulated) {
     const auto he = effectiveProperties(find("HE", "HE 600 x 337"));
     ASSERT_TRUE(he.has_value());
     EXPECT_NEAR(he->iy, 283200 * kCm4, 1e-9);
+    // UB paired by mass: the first value row (h 1093, A 1753.7) carries the name matched by mass; the original's own first name is not paired with it
+    const auto ub = effectiveProperties(find("UB", "UB 920 x 420 x 1377"));
+    ASSERT_TRUE(ub.has_value());
+    EXPECT_NEAR(ub->area, 1753.7 * kCm2, 1e-12);
+    EXPECT_NEAR(*find("UB", "UB 127 x 76 x 13").tabulated.area, 16.5 * kCm2, 1e-12);  // small section: now the values of a 127 mm deep beam
+    EXPECT_TRUE(byName["IPE 750"]->findProfile("IPE 750 x 220"));
+    EXPECT_NEAR(*byName["IPE 750"]->findProfile("IPE 750 x 220")->tabulated.area, 280.7 * kCm2, 1e-12);
+    EXPECT_NEAR(*find("HLZ", "HLZ 1100 D").tabulated.iy, 1165000 * kCm4, 1e-9);
+    EXPECT_NEAR(*find("IPE V", "IPE V 600").tabulated.area, 233.8 * kCm2, 1e-12);
 }
 
 TEST(SectionProperties, GenericSectionNeedsTabulatedValues) {
@@ -392,7 +402,7 @@ TEST(SectionProperties, ValidationMessages) {
 
 TEST(SectionProperties, PredefinedSeriesHaveTheDocumentedContent) {
     const auto& all = predefinedSeries();
-    ASSERT_EQ(all.size(), 21u);
+    ASSERT_EQ(all.size(), 25u);
     const std::vector<std::pair<std::string, std::size_t>> expected = {{"IPE", 18}, {"HEA", 24}, {"HEB", 24}, {"HEM", 24},
                                                                        {"IPN", 21}, {"UPN", 18}};
     for (std::size_t i = 0; i < expected.size(); ++i) {

@@ -211,9 +211,23 @@ def rolled_rows():
     upn = read("describir_perfiles_upn_rea.tsv")
     expect("UPN", len(upn), 18)
     out += [("UPN", r["perfil"], [r["A_cm2"], r["Iyy_cm4"], r["Izz_cm4"], r["It_cm4"], r["Iw_1e3cm6"], r["Wply_cm3"], r["Wplz_cm3"], "-1"]) for r in upn]
-    # the other series of pfarcelor.dll (UB excluded: its names and values do not correspond, see tools/gen_rolled_catalogue.py)
-    extra = [r for r in read("describir_perfiles_laminados_extra_rea.tsv") if r["serie"] != "UB"]
-    expect("laminados extra", len(extra), 453 - 180)
+    # the other series of pfarcelor.dll; the UB rows take the name paired by mass (see tools/gen_rolled_catalogue.py)
+    ub_names = [r["nombre_emparejado_por_masa_y_h_b"] for r in read("describir_perfiles_ub_emparejamiento_rea.tsv")]
+    expect("UB", len(ub_names), 180)
+    extra, i_ub = [], 0
+    for r in read("describir_perfiles_laminados_extra_rea.tsv"):
+        if r["serie"] == "UB":
+            r = dict(r, perfil=ub_names[i_ub])
+            i_ub += 1
+        extra.append(r)
+    expect("laminados extra", len(extra), 453)
+    seen = set()
+    for r in read("describir_perfiles_laminados_extra2_rea.tsv"):  # IPE 750, IPE V, HLZ; the 5th IPE 750 repeats the name of the 4th
+        if r["perfil"] == "IPE 750 x 196" and r["perfil"] in seen:
+            r["perfil"] = "IPE 750 x 220"
+        seen.add(r["perfil"])
+        extra.append(r)
+    expect("laminados extra2", len(extra), 453 + 14)
     out += [(r["serie"].replace("_", " "), r["perfil"], [r["A_cm2"], r["Iyy_cm4"], r["Izz_cm4"], r["It_cm4"], r["Iw_1e3cm6"], r["Wply_cm3"],
                                                         r["Wplz_cm3"], r["Avz_cm2"]]) for r in extra]
     angles = read("describir_perfiles_l_rea.tsv")

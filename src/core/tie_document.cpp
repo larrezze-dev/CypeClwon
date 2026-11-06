@@ -53,11 +53,11 @@ const std::vector<TieBlock>& tieDocument() {
         add(TieBlockKind::Caption, 64107);
         add(TieBlockKind::Caption, 64108);
         add(TieBlockKind::Caption, 64109);
-        add(TieBlockKind::Caption, 64110, {"T1", "T2"});
+        add(TieBlockKind::Caption, 64110, {"C=0", "T*=T+|C|"});  // ed3ayuda FUN_180077490 (REA)
         add(TieBlockKind::Caption, 64111);
         add(TieBlockKind::Caption, 64112);
-        add(TieBlockKind::Caption, 64113, {"T2"});
-        add(TieBlockKind::Caption, 64114, {"ΔT"});
+        add(TieBlockKind::Caption, 64113, {"C*"});
+        add(TieBlockKind::Caption, 64114, {"C*"});
         add(TieBlockKind::Caption, 64115);
         add(TieBlockKind::Caption, 64116);
         add(TieBlockKind::Caption, 64117);

@@ -188,11 +188,11 @@ MaterialData defaultMaterialData(BarMaterialIcon icon) {
     switch (icon) {
     case BarMaterialIcon::RolledSteel:
     case BarMaterialIcon::RolledSteelFamily2:
-    case BarMaterialIcon::ColdFormedSteel: m = {210000.0, 0.3, 1.2e-5, 78.5}; break;
+    case BarMaterialIcon::ColdFormedSteel: m = {210000.0, 0.3, 1.2e-5, 77.01}; break;  // 7.85 T/m3 x 9.81 (datmater.dll)
     case BarMaterialIcon::ExtrudedAluminium:
     case BarMaterialIcon::SpecialAluminium: m = {70000.0, 0.3, 2.3e-5, 27.0}; break;
     case BarMaterialIcon::Concrete: m = {31476.0, 0.2, 1.0e-5, 2.5 * kOriginalGravity}; break;  // C25/30; nu, alpha and 2.5 T/m3 (x 9.81 = 24.525 kN/m3): REA constants of datmater.dll / basicos.dll
-    case BarMaterialIcon::Timber: m = {11000.0, 0.3, 5.0e-6, 4.2}; break;
+    case BarMaterialIcon::Timber: m = {11000.0, 11000.0 / (2.0 * 690.0) - 1.0, 5.0e-6, 420.0 * kOriginalGravity / 1000.0}; break;  // CONIFERAS_C24 (CTE DB SE-M set); alpha 5e-6 (ed3dlib FUN_1803b3650)
     case BarMaterialIcon::Generic: break;  // dialog defaults
     }
     return m;
@@ -261,7 +261,11 @@ MaterialData timberMaterialData(const std::string& timberMaterial, const std::st
     if (!type || !props || props->type != type) return m;
     m.elasticModulusMPa = props->e0MeanMPa;
     m.densityKnM3 = props->densityKgM3 * kOriginalGravity / 1000.0;
-    // poissonRatio stays 0.3: the original derives nu = E0 / (2 G) - 1 (about 7, see timberClassProperties), which this model rejects.
+    // nu = E0 / (2 G) - 1 without any cap (cypemat_modulo_poisson, about 6.97 for C24): the solver recovers the tabulated G exactly.
+    if (props->gMeanMPa > 0.0 && props->e0MeanMPa > props->gMeanMPa) {
+        const double nu = props->e0MeanMPa / (2.0 * props->gMeanMPa) - 1.0;
+        if (nu > 0.0) m.poissonRatio = nu;
+    }
     return m;
 }
 
@@ -476,7 +480,7 @@ std::string validateResolved(const BarDescription& d, const ProfileLibrary& libr
             return "La separación y el espesor de los rigidizadores deben ser mayores que cero.";
     }
     const MaterialData& m = d.material;
-    if (!finitePositive(m.elasticModulusMPa) || !std::isfinite(m.poissonRatio) || m.poissonRatio <= -1.0 || m.poissonRatio >= 0.5 ||
+    if (!finitePositive(m.elasticModulusMPa) || !std::isfinite(m.poissonRatio) || m.poissonRatio <= -1.0 ||
         !std::isfinite(m.thermalExpansion) || m.thermalExpansion < 0.0 || !finitePositive(m.densityKnM3))
         return "Los valores del material no son válidos.";
 

@@ -6,8 +6,10 @@ pfarcelor.dll and perfil3.dll, see tools/extract_pfarc_extra.py and docs/researc
                                             IPE A / AA / O, HEAA, HE, HEC, HL, HD, HP, UBP, UC, J, UPE and PFC
   The tabulated properties of these profiles are written by tools/gen_describir_data.py (describir_rolled_data.inc).
 
-The series "UB" is NOT generated: in pfarcelor.dll the names (pfarc_ub_referencia_perfil_UB) and the values (pfarc_ub_obtener_valores_perfil_UB)
-use the same index but do not correspond (176 of 180 rows pair a name such as "UB 127 x 76 x 13" with the values of a section 1093 mm deep).
+The series "UB": in pfarcelor.dll the names (pfarc_ub_referencia_perfil_UB) and the values (pfarc_ub_obtener_valores_perfil_UB) do NOT correspond
+by index; they are paired by mass (docs/research/ui/data/describir_perfiles_ub_emparejamiento_rea.tsv, describir_barras.md section 21.A.6) and
+each row of the values table gets the name matched by mass. Also IPE 750, IPE V and HLZ (describir_perfiles_laminados_extra2_rea.tsv); the
+repeated "IPE 750 x 196" of the original (5th row, A = 280.7 cm2 = 220 kg/m) is renamed "IPE 750 x 220" so that references stay unique.
 
 Usage: python tools/gen_rolled_catalogue.py     (run from the project root)
 """
@@ -19,7 +21,7 @@ DATA = os.path.join("docs", "research", "ui", "data")
 OUT = os.path.join("src", "core", "profile_catalogue_rea_data.inc")
 
 # series in the order they are appended to the clone's predefined series (after IPE, HEA, HEB, HEM, IPN, UPN)
-ORDER = ["L", "IPE A", "IPE AA", "IPE O", "HEAA", "HE", "HEC", "HL", "HD", "HP", "UBP", "UC", "J", "UPE", "PFC"]
+ORDER = ["L", "IPE A", "IPE AA", "IPE O", "HEAA", "HE", "HEC", "HL", "HD", "HP", "UBP", "UC", "J", "UPE", "PFC", "UB", "IPE 750", "IPE V", "HLZ"]
 
 
 def fmt(x):
@@ -30,6 +32,22 @@ def fmt(x):
 def read(name):
     with open(os.path.join(DATA, name), encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f, delimiter="\t"))
+
+
+def ub_names():
+    """Matched names of the 180 UB rows, in the row order of describir_perfiles_laminados_extra_rea.tsv (verified by the h and A columns)."""
+    return [r["nombre_emparejado_por_masa_y_h_b"] for r in read("describir_perfiles_ub_emparejamiento_rea.tsv")]
+
+
+def extra2_rows():
+    """Rows of IPE 750, IPE V and HLZ with the duplicated name of the original fixed."""
+    out, seen = [], set()
+    for r in read("describir_perfiles_laminados_extra2_rea.tsv"):
+        if r["perfil"] in seen and r["perfil"] == "IPE 750 x 196":
+            r["perfil"] = "IPE 750 x 220"
+        seen.add(r["perfil"])
+        out.append(r)
+    return out
 
 
 def angle_name(row, seen):
@@ -53,15 +71,22 @@ def main():
     for r in read("describir_perfiles_l_rea.tsv"):
         r1 = float(r["r1_mm"])
         rows["L"].append(("L", angle_name(r, seen), [r["h_mm"], r["t_mm"], r["r1_mm"], r1 / 2]))
+    names = ub_names()
+    ub_index = 0
     for r in read("describir_perfiles_laminados_extra_rea.tsv"):
         s = r["serie"].replace("_", " ")
         if s == "UB":
-            continue  # see the docstring
+            r = dict(r, perfil=names[ub_index])  # paired by mass, see the docstring
+            ub_index += 1
         if s == "J":
             dims = [r["h_mm"], r["b_mm"], r["tw_mm"], r["tf_mm"], r["r_o_r1_mm"], r["r2_mm"]]
         else:
             dims = [r["h_mm"], r["b_mm"], r["tw_mm"], r["tf_mm"], r["r_o_r1_mm"]]
         rows[s].append((s, r["perfil"], dims))
+    assert ub_index == 180
+    for r in extra2_rows():
+        s = r["serie"].replace("_", " ")
+        rows[s].append((s, r["perfil"], [r["h_mm"], r["b_mm"], r["tw_mm"], r["tf_mm"], r["r_o_r1_mm"]]))
     for r in read("describir_perfiles_upe_pfc_rea.tsv"):
         rows[r["serie"]].append((r["serie"], r["perfil"], [r["h_mm"], r["b_mm"], r["tw_mm"], r["tf_mm"], r["r_mm"], 0]))
     with open(OUT, "w", encoding="utf-8", newline="\n") as f:

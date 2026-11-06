@@ -3,6 +3,7 @@
 #include <QPointF>
 #include <QWidget>
 #include <array>
+#include <functional>
 #include <vector>
 
 #include "CypeDialog.h"
@@ -21,9 +22,8 @@ class QToolButton;
 namespace cc::app {
 
 /// Panel "Sección de la lámina" (#65122) of the dialogs "Nueva" and "Describir sección". Measured in the original (laminas.md 7.1):
-/// "Espesor" 100.00 mm (0.10 - 10000.00), casilla "Módulo de balasto en Z local" (off) with the editor 29430.00 kN/m3
+/// "Espesor" 100.00 mm (0.10 - 10000.00; always in mm, whatever the unit of the work), casilla "Módulo de balasto en Z local" (off) with the editor 29430.00 kN/m3
 /// (0.01 - 1000000.00) and, once the box is checked, the row "Comportamiento" as a combo: "Lineal" / "Sólo compresión".
-/// The thickness is shown in the dimension unit of the work (mm in the measured case) and the range follows it.
 class ShellSectionPanel : public QGroupBox {
     Q_OBJECT
 public:
@@ -51,10 +51,28 @@ private:
     QComboBox* m_behaviour = nullptr;
 };
 
+/// Runs a modal dialog and answers whether it was accepted; tests replace the runner through CltAssistantDialog::setRunner.
+bool runDialog(QDialog& dialog);
+
+/// Assistant for the input of the properties of CLT panels (`dlg_asist_clt`, laminas.md section 8.3): E along / across the fibres of the outer
+/// boards, shear modulus (xy = xz, and yz) and density, with the defaults of the original (11000, 360, 690, 50 N/mm2; 450 kg/m3).
+class CltAssistantDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit CltAssistantDialog(QWidget* parent = nullptr);
+    cc::core::CltInput input() const;
+    const std::vector<RangedEdit*>& edits() const { return m_edits; }
+    static void setRunner(std::function<bool(QDialog&)> runner);
+
+private:
+    void accept() override;
+    std::vector<RangedEdit*> m_edits;
+};
+
 /// Panel "Material" (#261366) of the dialogs "Nueva" and "Describir material": the six types on the left (Hormigón, Acero laminado,
 /// Acero conformado, Aluminio extruido, Genérico isótropo, Genérico ortótropo) and the detail of the chosen one on the right, with the
-/// defaults, ranges and warnings measured in the original (laminas.md 7.1). The arrow button next to the orthotropic Ex of the original
-/// has an unknown action (no visible effect when pressed) and is not reproduced.
+/// defaults, ranges and warnings measured in the original (laminas.md 7.1). The blue arrow next to the orthotropic Ex opens the CLT
+/// assistant (laminas.md 8.3).
 class ShellMaterialPanel : public QGroupBox {
     Q_OBJECT
 public:
@@ -75,6 +93,9 @@ public:
     const std::vector<RangedEdit*>& orthotropicEdits() const { return m_ortho; }
     const std::vector<QRadioButton*>& coldFormedRadios() const { return m_gradePages[2].radios; }
     QRadioButton* kindRadio(cc::core::ShellMaterialKind kind) const { return m_kindRadios.at(static_cast<std::size_t>(kind)); }
+    QToolButton* cltButton() const { return m_cltButton; }
+    /// Opens the CLT assistant and, once accepted, writes its result into the orthotropic editors.
+    void runCltAssistant();
 
 private:
     std::size_t pageIndex() const;
@@ -92,6 +113,7 @@ private:
     };
     std::array<GradePage, 4> m_gradePages{};  ///< concrete, rolled steel, cold formed, aluminium
     std::vector<RangedEdit*> m_iso, m_ortho;
+    QToolButton* m_cltButton = nullptr;
 };
 
 /// "Nueva" (title "Nueva"): the two panels stacked, Sección de la lámina over Material (laminas.md 5 and 7.1).

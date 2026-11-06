@@ -18,6 +18,8 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <tuple>
 
 #include "ViewIcons.h"
 #include "core/project_settings.h"
@@ -34,17 +36,15 @@ QString unitLabel(const char* text) { return QString::fromUtf8(text); }
 // ---- Sección de la lámina ------------------------------------------------------------------------------------------------------
 
 ShellSectionPanel::ShellSectionPanel(const ShellSection& initial, LengthUnit unit, QWidget* parent)
-    : QGroupBox(tr("Sección de la lámina"), parent), m_unit(unit) {
+    : QGroupBox(tr("Sección de la lámina"), parent), m_unit(LengthUnit::Millimetres) {
+    Q_UNUSED(unit)  // the thickness is always in mm: the editor of the original uses the fixed 0.1 - 10000 mm descriptor (laminas.md section 8.1)
     auto* grid = new QGridLayout(this);
     grid->setColumnStretch(3, 1);
-    // The range of the original is in mm; it follows the dimension unit of the work.
-    const double perMm = unitsPerMetre(unit) / 1000.0;
-    const int decimals = unit == LengthUnit::Millimetres ? 2 : (unit == LengthUnit::Centimetres ? 3 : 5);
-    m_thickness = new RangedEdit(tr("Espesor"), ValueRange{kShellThicknessMm.min * perMm, kShellThicknessMm.max * perMm}, decimals, this);
-    m_thickness->setValue(fromMetres(initial.thicknessM, unit));
+    m_thickness = new RangedEdit(tr("Espesor"), kShellThicknessMm, 2, this);
+    m_thickness->setValue(fromMetres(initial.thicknessM, m_unit));
     grid->addWidget(new QLabel(tr("Espesor"), this), 0, 0);
     grid->addWidget(m_thickness, 0, 1);
-    grid->addWidget(new QLabel(QString::fromLatin1(unitSymbol(unit)), this), 0, 2);
+    grid->addWidget(new QLabel(QStringLiteral("mm"), this), 0, 2);
 
     m_ballast = new QCheckBox(tr("Módulo de balasto en Z local"), this);
     m_ballastValue = new RangedEdit(tr("Módulo de balasto en Z local"), kShellBallastKnM3, 2, this);
@@ -92,6 +92,68 @@ void ShellSectionPanel::setBallastValue(double knM3) { m_ballastValue->setValue(
 void ShellSectionPanel::setBehaviour(BallastBehaviour behaviour) { m_behaviour->setCurrentIndex(behaviour == BallastBehaviour::CompressionOnly ? 1 : 0); }
 bool ShellSectionPanel::ballastEditable() const { return m_ballastValue->isEnabled(); }
 bool ShellSectionPanel::behaviourEditable() const { return m_behaviourRow->isVisibleTo(this) && m_behaviour->isEnabled(); }
+
+// ---- CLT assistant -------------------------------------------------------------------------------------------------------------
+
+namespace {
+using DialogRunner = std::function<bool(QDialog&)>;
+DialogRunner defaultRunner() {
+    return [](QDialog& d) { return d.exec() == QDialog::Accepted; };
+}
+DialogRunner& dialogRunner() {
+    static DialogRunner runner = defaultRunner();
+    return runner;
+}
+}  // namespace
+
+void CltAssistantDialog::setRunner(std::function<bool(QDialog&)> runner) { dialogRunner() = runner ? std::move(runner) : defaultRunner(); }
+
+bool runDialog(QDialog& dialog) { return dialogRunner()(dialog); }
+
+CltAssistantDialog::CltAssistantDialog(QWidget* parent) : CypeDialog(tr("Asistente para la introducción de propiedades de paneles CLT"), parent) {
+    const CltInput d;
+    const auto group = [this](const QString& title, const std::vector<std::tuple<QString, ValueRange, double, QString>>& rows) {
+        auto* box = new QGroupBox(title, this);
+        auto* grid = new QGridLayout(box);
+        int row = 0;
+        for (const auto& [label, range, value, unit] : rows) {
+            auto* edit = new RangedEdit(label, range, 2, box);
+            edit->setValue(value);
+            m_edits.push_back(edit);
+            grid->addWidget(new QLabel(label, box), row, 0);
+            grid->addWidget(edit, row, 1);
+            grid->addWidget(new QLabel(unit, box), row, 2);
+            ++row;
+        }
+        grid->setColumnStretch(0, 1);
+        contentLayout()->addWidget(box);
+    };
+    const QString nmm2 = QStringLiteral("N/mm²");
+    group(tr("Módulo de elasticidad"),  // #29419, #378168, #378169
+          {{tr("En la dirección de las fibras de las tablas exteriores"), kCltModulusMPa, d.elasticModulusMPa, nmm2},
+           {tr("Perpendicular a las fibras de las tablas exteriores"), kCltModulusMPa, d.elasticModulusPerpMPa, nmm2}});
+    // TODO(medir): the two labels of the shear modulus group (editor ids xy_xz and the second) were not read; xy = xz and yz are assumed.
+    group(tr("Módulo de cortadura"),  // #139476
+          {{tr("Planos xy y xz"), kCltModulusMPa, d.shearModulusXYMPa, nmm2}, {tr("Plano yz"), kCltModulusMPa, d.shearModulusYZMPa, nmm2}});
+    group(tr("Densidad"), {{tr("Densidad"), kCltDensityKgM3, d.densityKgM3, QStringLiteral("kg/m³")}});  // #184756
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+}
+
+CltInput CltAssistantDialog::input() const {
+    CltInput in;
+    in.elasticModulusMPa = m_edits[0]->value();
+    in.elasticModulusPerpMPa = m_edits[1]->value();
+    in.shearModulusXYMPa = m_edits[2]->value();
+    in.shearModulusYZMPa = m_edits[3]->value();
+    in.densityKgM3 = m_edits[4]->value();
+    return in;
+}
+
+void CltAssistantDialog::accept() {
+    for (RangedEdit* e : m_edits)
+        if (!e->commit()) return;
+    CypeDialog::accept();
+}
 
 // ---- Material -----------------------------------------------------------------------------------------------------------------
 
@@ -203,6 +265,16 @@ ShellMaterialPanel::ShellMaterialPanel(const ShellMaterial& initial, const Proje
             grid->addWidget(new QLabel(label, page), row, 0);
             grid->addWidget(edit, row, 1);
             grid->addWidget(new QLabel(unit, page), row, 2);
+            if (&edits == &m_ortho && row == 0) {
+                // Blue arrow (icon `asis_clt`) next to Ex: opens the CLT panel assistant (#378170).
+                m_cltButton = new QToolButton(page);
+                m_cltButton->setObjectName(QStringLiteral("cltAssistant"));
+                m_cltButton->setArrowType(Qt::RightArrow);
+                m_cltButton->setStyleSheet(QStringLiteral("QToolButton { color: #1060d0; }"));
+                m_cltButton->setToolTip(tr("Asistente para la introducción de propiedades de paneles CLT"));
+                grid->addWidget(m_cltButton, row, 3);
+                connect(m_cltButton, &QToolButton::clicked, this, [this] { runCltAssistant(); });
+            }
             ++row;
         }
         grid->setColumnStretch(3, 1);
@@ -249,6 +321,22 @@ ShellMaterialPanel::ShellMaterialPanel(const ShellMaterial& initial, const Proje
         });
     setKind(initial.kind);
     refreshEnabled();
+}
+
+void ShellMaterialPanel::runCltAssistant() {
+    CltAssistantDialog dialog(this);
+    if (!runDialog(dialog)) return;
+    ShellMaterial m = material();
+    applyCltAssistant(m, dialog.input());
+    m_ortho[0]->setValue(m.orthoElasticModulusXMPa);
+    m_ortho[1]->setValue(m.orthoElasticModulusYMPa);
+    m_ortho[2]->setValue(m.orthoPoissonRatioXY);
+    m_ortho[3]->setValue(m.orthoShearModulusXYMPa);
+    m_ortho[4]->setValue(m.orthoShearModulusXZMPa);
+    m_ortho[5]->setValue(m.orthoShearModulusYZMPa);
+    m_ortho[6]->setValue(m.orthoThermalExpansionX);
+    m_ortho[7]->setValue(m.orthoThermalExpansionY);
+    m_ortho[8]->setValue(m.orthoDensityKnM3);
 }
 
 ShellMaterialKind ShellMaterialPanel::kind() const {

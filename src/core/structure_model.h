@@ -41,7 +41,7 @@ struct Material {
     MaterialKind kind = MaterialKind::Generic;
     double elasticModulusMPa = 210000.0;
     double poissonRatio = 0.3;
-    double densityKnM3 = 78.5;
+    double densityKnM3 = 77.01;  // steel: 7.85 T/m3 x 9.81 (REA, datmater.dll)
     double thermalExpansion = 1.2e-5;  ///< 1/ºC
 
     /// Shear modulus G = E / (2 (1 + nu)), in MPa.

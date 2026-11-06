@@ -141,7 +141,7 @@ struct BarDescription {
     bool operator==(const BarDescription&) const = default;
 };
 
-/// Default material values of an icon: steel 210000 MPa / 0.3 / 78.5 kN/m3 / 1.2e-5; aluminium (EN 1999-1-1) 70000 / 0.3 / 27 /
+/// Default material values of an icon: steel 210000 MPa / 0.3 / 77.01 kN/m3 / 1.2e-5; aluminium (EN 1999-1-1) 70000 / 0.3 / 27 /
 /// 2.3e-5; concrete C25/30 of the original (31476 MPa, 0.2, 1e-5, 25 kN/m3); timber provisional (11000 MPa, 4.2 kN/m3, 5e-6, TK-063);
 /// generic: the dialog defaults (206010 / 0.3 / 77.01 / 1.2e-5).
 MaterialData defaultMaterialData(BarMaterialIcon icon);
@@ -164,9 +164,8 @@ std::optional<TimberClassProperties> timberClassProperties(const std::string& st
 ///    included), nu = 0.2, alpha = 1e-5 1/C, weight 25 kN/m3 (the original loads 2.5 T/m3; the factor T -> kN is taken as 10, not
 ///    verified). G = E / (2 (1 + nu)) as `cypemat_modulo_cortadura`.
 ///  - timber: E0,mean and mean density of the class from ec5.dll (REA; default set CteSeM, see TimberPropertySet), weight = rho * kOriginalGravity (9.81).
-///    nu stays 0.3 and alpha 5e-6 as defaultMaterialData(Timber): the original derives nu = E0 / (2 G) - 1 (about 7), a value this
-///    model rejects (nu must be below 0.5), and the thermal expansion of timber was not found. The timber type must match the class
-///    (a class of another type returns the default).
+///    nu = E0 / (2 G) - 1 without cap (about 6.97 for C24, as the original) and alpha 5e-6 1/C (REA, ed3dlib FUN_1803b3650).
+///    The timber type must match the class (a class of another type returns the default C24).
 MaterialData concreteMaterialData(const std::string& grade);
 MaterialData timberMaterialData(const std::string& timberMaterial, const std::string& strengthClass,
                                 TimberPropertySet set = TimberPropertySet::CteSeM);

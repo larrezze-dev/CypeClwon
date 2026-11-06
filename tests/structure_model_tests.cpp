@@ -135,7 +135,7 @@ TEST(StructureModel, RejectsInvalidMaterialsAndSections) {
     bad.elasticModulusMPa = 0.0;
     EXPECT_EQ(m.addMaterial(bad), 0);
     bad = Material{};
-    bad.poissonRatio = 0.5;
+    bad.poissonRatio = -1.0;  // the original has no upper cap (timber nu = E/(2G)-1 is about 7)
     EXPECT_EQ(m.addMaterial(bad), 0);
     CrossSection s;
     EXPECT_EQ(m.addSection(s), 0) << "zero area";

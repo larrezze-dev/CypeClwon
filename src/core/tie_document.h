@@ -18,7 +18,7 @@ struct TieBlock {
 };
 
 /// Blocks in the order of the original. The %s arguments of #64096 (20 %) come from the REA; those of #64110 / #64113 / #64114 are
-/// names of the tie bars of the original's figures (not extracted): the clone fills them with «T1» / «T2» / «ΔT» (PROVISIONAL).
+/// «C=0» + «T*=T+|C|», «C*» and «C*» (ed3ayuda FUN_180077490, REA; the message-to-call pairing was deduced from the number of %s).
 const std::vector<TieBlock>& tieDocument();
 
 }  // namespace cc::core
