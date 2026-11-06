@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -62,6 +63,8 @@ private:
     Node m_node;
     std::vector<Bar> m_oldBars, m_newBars;
     std::vector<Shell> m_oldShells, m_newShells;
+    std::optional<ExternalSupport> m_externalBefore;  ///< supports of the node that goes away (restored by undo)
+    std::optional<InternalLink> m_internalBefore;
 };
 
 /// "Borrar": deletes nodes together with the bars and shells that use them. Exception: a deleted node that joins exactly
@@ -84,6 +87,8 @@ private:
     std::vector<Bar> m_bars;
     std::vector<Shell> m_shells;
     std::vector<Bar> m_merged;
+    std::map<int, ExternalSupport> m_externalBefore;  ///< supports of the deleted nodes (restored by undo)
+    std::map<int, InternalLink> m_internalBefore;
 };
 
 /// Id of the node nearest to `p` at a distance <= toleranceM, or nullopt when there is none.

@@ -7,6 +7,7 @@
 #include "core/continuous_model.h"
 #include "core/display_options.h"
 #include "core/limit_states.h"
+#include "core/node_support.h"
 #include "core/options_settings.h"
 #include "core/profile_series.h"
 #include "core/project_settings.h"
@@ -37,6 +38,7 @@ struct Project {
     ProfileLibrary profileLibrary;  ///< "Biblioteca de perfiles" of the work (section profile_library); empty in a new work
     BarDescriptions barDescriptions;  ///< "Describir" of bars (section bar_descriptions); empty in older files
     ContinuousElements continuous;  ///< continuous pillars / beams, references, slab depths, deflection limits (section continuous_elements); empty in older files
+    NodeSupports nodeSupports;  ///< external restraints and internal links of nodes (section node_supports); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 

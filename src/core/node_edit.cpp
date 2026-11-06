@@ -56,6 +56,8 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     if (!node || !validPosition(newPosition)) return;
     m_before = node->position;
     m_node = *node;
+    if (auto it = project.nodeSupports.external.find(nodeId); it != project.nodeSupports.external.end()) m_externalBefore = it->second;
+    if (auto it = project.nodeSupports.internal.find(nodeId); it != project.nodeSupports.internal.end()) m_internalBefore = it->second;
 
     // Another node already lies at the destination: the two merge (nudos.md section 9.2).
     for (const Node& other : model.nodes)
@@ -107,6 +109,8 @@ void MoveNodeCommand::redo() {
     for (const Shell& s : m_oldShells) model.removeShell(s.id);
     for (const Bar& b : m_oldBars) model.removeBar(b.id);
     model.removeNode(m_id);
+    m_project.nodeSupports.external.erase(m_id);
+    m_project.nodeSupports.internal.erase(m_id);
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
 }
@@ -121,6 +125,8 @@ void MoveNodeCommand::undo() {
     for (const Shell& s : m_newShells) model.removeShell(s.id);
     for (const Bar& b : m_newBars) model.removeBar(b.id);
     model.insertNode(m_node);
+    if (m_externalBefore) m_project.nodeSupports.external[m_id] = *m_externalBefore;
+    if (m_internalBefore) m_project.nodeSupports.internal[m_id] = *m_internalBefore;
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
 }
@@ -139,6 +145,8 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     int nextBarId = model.nextBarId;
     for (int id : nodeIds) {
         m_nodes.push_back(*model.findNode(id));
+        if (auto it = project.nodeSupports.external.find(id); it != project.nodeSupports.external.end()) m_externalBefore[id] = it->second;
+        if (auto it = project.nodeSupports.internal.find(id); it != project.nodeSupports.internal.end()) m_internalBefore[id] = it->second;
         std::vector<int> used = model.barsUsingNode(id);
         std::sort(used.begin(), used.end());
         const std::vector<int> shellsUsed = model.shellsUsingNode(id);
@@ -176,7 +184,11 @@ void DeleteNodesCommand::redo() {
     StructuralModel& model = m_project.structure;
     for (const Shell& s : m_shells) model.removeShell(s.id);
     for (const Bar& b : m_bars) model.removeBar(b.id);
-    for (const Node& n : m_nodes) model.removeNode(n.id);
+    for (const Node& n : m_nodes) {
+        model.removeNode(n.id);
+        m_project.nodeSupports.external.erase(n.id);
+        m_project.nodeSupports.internal.erase(n.id);
+    }
     for (const Bar& b : m_merged) model.insertBar(b);
 }
 
@@ -184,6 +196,8 @@ void DeleteNodesCommand::undo() {
     StructuralModel& model = m_project.structure;
     for (const Bar& b : m_merged) model.removeBar(b.id);
     for (const Node& n : m_nodes) model.insertNode(n);
+    for (const auto& [id, support] : m_externalBefore) m_project.nodeSupports.external[id] = support;
+    for (const auto& [id, link] : m_internalBefore) m_project.nodeSupports.internal[id] = link;
     for (const Bar& b : m_bars) model.insertBar(b);
     for (const Shell& s : m_shells) model.insertShell(s);
 }

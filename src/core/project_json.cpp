@@ -128,6 +128,29 @@ CC_STRUCT(ShellLayout, considerEccentricity, centralPlaneOffsetM)
 CC_STRUCT(Shell, id, nodeIds, thicknessM, materialId, zAxisInverted, xEdgeStart, xEdgeEnd, ballastEnabled, ballastKnM3, ballastBehaviour,
           material, layout, reference, layerIds)
 
+// --- node_support.h (T-P6-01) ---
+CC_ENUM(ExternalSupportType, {{ExternalSupportType::Free, "free"}, {ExternalSupportType::Pinned, "pinned"}, {ExternalSupportType::Generic, "generic"},
+                              {ExternalSupportType::Fixed, "fixed"}, {ExternalSupportType::LineXFixed, "lineXFixed"},
+                              {ExternalSupportType::LineYFixed, "lineYFixed"}, {ExternalSupportType::LineZFixed, "lineZFixed"},
+                              {ExternalSupportType::LineUserFixed, "lineUserFixed"}, {ExternalSupportType::PlaneXYFixed, "planeXYFixed"},
+                              {ExternalSupportType::PlaneXZFixed, "planeXZFixed"}, {ExternalSupportType::PlaneYZFixed, "planeYZFixed"},
+                              {ExternalSupportType::PlaneUserFixed, "planeUserFixed"}, {ExternalSupportType::LineXPinned, "lineXPinned"},
+                              {ExternalSupportType::LineYPinned, "lineYPinned"}, {ExternalSupportType::LineZPinned, "lineZPinned"},
+                              {ExternalSupportType::LineUserPinned, "lineUserPinned"}, {ExternalSupportType::PlaneXYPinned, "planeXYPinned"},
+                              {ExternalSupportType::PlaneXZPinned, "planeXZPinned"}, {ExternalSupportType::PlaneYZPinned, "planeYZPinned"},
+                              {ExternalSupportType::PlaneUserPinned, "planeUserPinned"}})
+CC_ENUM(DofMode, {{DofMode::Free, "free"}, {DofMode::Fixed, "fixed"}, {DofMode::Elastic, "elastic"}})
+CC_ENUM(SupportSense, {{SupportSense::Both, "both"}, {SupportSense::TensionOnly, "tensionOnly"}, {SupportSense::CompressionOnly, "compressionOnly"}})
+CC_ENUM(GenericDisplacementMode, {{GenericDisplacementMode::Independent, "independent"}, {GenericDisplacementMode::OnLine, "onLine"},
+                                  {GenericDisplacementMode::OnPlane, "onPlane"}})
+CC_ENUM(InternalLinkType, {{InternalLinkType::Fixed, "fixed"}, {InternalLinkType::PartialFixity, "partialFixity"},
+                           {InternalLinkType::Pinned, "pinned"}, {InternalLinkType::Generic, "generic"}})
+CC_STRUCT(GenericSupportData, mode, translations, vector, rotations)
+CC_STRUCT(PrescribedDisplacement, loadCaseId, values)
+CC_STRUCT(ExternalSupport, type, generic, userVector, elastic, elasticConstants, sense, prescribed)
+CC_STRUCT(GenericLinkRow, partialToNode, coefficient)
+CC_STRUCT(InternalLink, type, partialCoefficient, elementRow, rows)
+
 // --- bar_description.h (T-P5-07) ---
 CC_ENUM(BarMaterialIcon, {{BarMaterialIcon::RolledSteel, "rolledSteel"},
                           {BarMaterialIcon::RolledSteelFamily2, "rolledSteelFamily2"},
@@ -470,6 +493,26 @@ const std::vector<Section>& sections() {
                     }
                     return true;
                 }},
+        Section{"node_supports", "Vinculaciones de nudos",
+                [](const Project& p) {
+                    // Entries of nodes that no longer exist (deleted by an operation that does not know the supports) are not saved.
+                    json ext = json::array(), in = json::array();
+                    for (const auto& [id, v] : p.nodeSupports.external)
+                        if (p.structure.findNode(id)) ext.push_back({{"node", id}, {"support", v}});
+                    for (const auto& [id, v] : p.nodeSupports.internal)
+                        if (p.structure.findNode(id)) in.push_back({{"node", id}, {"link", v}});
+                    return json{{"external", ext}, {"internal", in}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    NodeSupports loaded;
+                    if (j.contains("external"))
+                        for (const json& e : j.at("external")) loaded.external[e.at("node").get<int>()] = e.at("support").get<ExternalSupport>();
+                    if (j.contains("internal"))
+                        for (const json& e : j.at("internal")) loaded.internal[e.at("node").get<int>()] = e.at("link").get<InternalLink>();
+                    p.nodeSupports = std::move(loaded);
+                },
+                [](const Project& p) { return validateSupports(p.nodeSupports).empty(); }},
     };
     return all;
 }
