@@ -1,6 +1,12 @@
 #include "FileOpsDialogs.h"
 
 #include <QCheckBox>
+#include <QComboBox>
+#include <QFrame>
+#include <QRegularExpression>
+#include <QSignalBlocker>
+#include <QSplitter>
+#include <QTreeWidget>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -96,57 +102,97 @@ void RecentFilesDialog::choose() {
 
 namespace cc::app {
 
-SearchProjectDialog::SearchProjectDialog(const QList<SearchEntry>& entries, QWidget* parent)
-    : CypeDialog(tr("Buscar obra"), parent), m_entries(entries) {  // TODO(medir): real title and labels
-    setMinimumSize(480, 320);
-    m_query = new QLineEdit(this);
-    m_query->setPlaceholderText(tr("Palabras a buscar en el nombre o la descripción"));
-    m_list = new QListWidget(this);
-    contentLayout()->addWidget(m_query);
-    contentLayout()->addWidget(m_list, 1);
+ProjectThesaurusDialog::ProjectThesaurusDialog(const QList<SearchEntry>& entries, QWidget* parent)
+    : CypeDialog(tr("Localización de obra por tesauro"), parent), m_entries(entries) {
+    setMinimumSize(560, 460);
+    const QStringList words = thesaurusWords(entries);
+    m_combo = new QComboBox(this);
+    m_combo->setEditable(true);
+    m_combo->setInsertPolicy(QComboBox::NoInsert);
+    m_combo->addItems(words);
+    m_combo->setCurrentIndex(-1);
+    m_combo->clearEditText();
+    contentLayout()->addWidget(m_combo);
+
+    auto* splitter = new QSplitter(Qt::Horizontal, this);
+    m_words = new QListWidget(splitter);
+    m_words->addItems(words);
+    m_preview = new QFrame(splitter);
+    m_preview->setObjectName(QStringLiteral("thesaurusPreview"));
+    m_preview->setAutoFillBackground(true);
+    m_preview->setBackgroundRole(QPalette::Base);
+    static_cast<QFrame*>(m_preview)->setFrameShape(QFrame::StyledPanel);
+    splitter->addWidget(m_words);
+    splitter->addWidget(m_preview);
+    splitter->setStretchFactor(1, 1);
+    splitter->setSizes({170, 360});
+    contentLayout()->addWidget(splitter, 2);
+
+    m_projects = new QTreeWidget(this);
+    m_projects->setColumnCount(2);
+    m_projects->setHeaderLabels({tr("Obra"), tr("Descripción")});
+    m_projects->setRootIsDecorated(false);
+    contentLayout()->addWidget(m_projects, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
-    connect(m_query, &QLineEdit::textChanged, this, [this] { refresh(); });
-    connect(m_list, &QListWidget::itemDoubleClicked, this, [this] { choose(); });
+
+    connect(m_words, &QListWidget::currentTextChanged, this, [this](const QString& word) {
+        if (!m_syncing && !word.isEmpty()) selectWord(word);
+    });
+    connect(m_combo, &QComboBox::editTextChanged, this, [this](const QString& text) {
+        if (!m_syncing) selectWord(text.trimmed());
+    });
+    connect(m_projects, &QTreeWidget::itemDoubleClicked, this, [this] { choose(); });
     disconnect(acceptButton(), &QPushButton::clicked, this, &QDialog::accept);
     connect(acceptButton(), &QPushButton::clicked, this, [this] { choose(); });
-    refresh();
+    refreshProjects(QString());
+    m_combo->setFocus();
 }
 
-QString SearchProjectDialog::fold(const QString& text) {
-    const QString decomposed = text.normalized(QString::NormalizationForm_D);
-    QString out;
-    for (const QChar c : decomposed) {
-        if (c.category() != QChar::Mark_NonSpacing) out.append(c);
+QStringList ProjectThesaurusDialog::thesaurusWords(const QList<SearchEntry>& entries) {
+    QStringList words;
+    for (const SearchEntry& entry : entries) {
+        words << entry.name.toLower();
+        words << entry.description.toLower().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
     }
-    return out.toLower();
+    words.removeDuplicates();
+    words.sort();
+    return words;
 }
 
-bool SearchProjectDialog::matches(const QString& query, const SearchEntry& entry) {
-    const QString haystack = fold(entry.name + QLatin1Char(' ') + entry.description);
-    const QStringList words = fold(query).split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    for (const QString& word : words) {
-        if (!haystack.contains(word)) return false;
+bool ProjectThesaurusDialog::contains(const SearchEntry& entry, const QString& word) {
+    const QString wanted = word.toLower();
+    if (entry.name.toLower() == wanted) return true;
+    return entry.description.toLower().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts).contains(wanted);
+}
+
+void ProjectThesaurusDialog::selectWord(const QString& word) {
+    const QSignalBlocker blockWords(m_words);
+    const QSignalBlocker blockCombo(m_combo);
+    m_syncing = true;
+    const auto found = m_words->findItems(word.toLower(), Qt::MatchExactly);  // case-insensitive: the thesaurus is lower case
+    m_words->setCurrentItem(found.isEmpty() ? nullptr : found.first());
+    if (found.isEmpty()) m_words->clearSelection();
+    else if (m_combo->currentText() != found.first()->text() && m_combo->currentText().toLower() != word.toLower())
+        m_combo->setEditText(found.first()->text());
+    m_syncing = false;
+    refreshProjects(word.isEmpty() ? QString() : (found.isEmpty() ? QStringLiteral("") : found.first()->text()));
+}
+
+void ProjectThesaurusDialog::refreshProjects(const QString& word, bool noMatch) {
+    m_projects->clear();
+    for (int i = 0; i < m_entries.size() && !noMatch; ++i) {
+        if (!word.isEmpty() && !contains(m_entries[i], word)) continue;
+        auto* item = new QTreeWidgetItem(m_projects, {m_entries[i].name, m_entries[i].description});
+        item->setData(0, Qt::UserRole, i);
     }
-    return true;
+    if (m_projects->topLevelItemCount() > 0) m_projects->setCurrentItem(m_projects->topLevelItem(0));
+    acceptButton()->setEnabled(m_projects->topLevelItemCount() > 0);
 }
 
-void SearchProjectDialog::refresh() {
-    m_list->clear();
-    for (int i = 0; i < m_entries.size(); ++i) {
-        if (!matches(m_query->text(), m_entries[i])) continue;
-        const QString text = m_entries[i].description.isEmpty() ? m_entries[i].name
-                                                                : m_entries[i].name + QStringLiteral(" - ") + m_entries[i].description;
-        auto* item = new QListWidgetItem(text, m_list);
-        item->setData(Qt::UserRole, i);
-    }
-    if (m_list->count() > 0) m_list->setCurrentRow(0);
-    acceptButton()->setEnabled(m_list->count() > 0);
-}
-
-void SearchProjectDialog::choose() {
-    const QListWidgetItem* item = m_list->currentItem();
+void ProjectThesaurusDialog::choose() {
+    const QTreeWidgetItem* item = m_projects->currentItem();
     if (!item) return;
-    m_chosen = item->data(Qt::UserRole).toInt();
+    m_chosen = item->data(0, Qt::UserRole).toInt();
     accept();
 }
 

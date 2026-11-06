@@ -5,9 +5,11 @@
 #include "CypeDialog.h"
 
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
+class QTreeWidget;
 
 namespace cc::app {
 
@@ -42,35 +44,46 @@ private:
     QLabel* m_size;
 };
 
-/// One project of the folder as the search sees it: name and description (both columns of the list).
+/// One project of the folder as the thesaurus sees it: name, description (both columns of the list) and the path to open.
 struct SearchEntry {
     QString name;
     QString description;
+    QString path;
 };
 
-/// Modal search of "Gestión archivos" > Buscar. The original builds a thesaurus (BPTESAUR) of name + description of every
-/// project and lets the user pick one; its labels, matching rule and defaults were not recovered, so this dialog is
-/// provisional. TODO(medir): title (probably id 139028 "Localización de obra por tesauro"), labels, word matching.
-class SearchProjectDialog : public CypeDialog {
+/// "Localización de obra por tesauro" (id 139028), modal opened by "Gestión archivos" > Buscar. Measured in the original
+/// (dialogs_gestion_archivos.md, 2026-11-06): an editable combo on top, a column of words (the thesaurus) on the left, a preview of the
+/// chosen project on the right and an "Obra / Descripción" list below with the projects that contain the word; Aceptar / Cancelar.
+/// The words are the whole file name without extension plus every word of the description, in lower case, sorted alphabetically,
+/// each one once (a lone "-" is a word). The search ignores case. Aceptar OPENS the project chosen in the list.
+/// TODO(medir): contents of the lower list before a word is chosen (the clone lists every project), partial words typed in the combo,
+/// the preview (the original draws a document sheet "Obra: <name>.ed3" + description; the clone leaves the panel empty).
+class ProjectThesaurusDialog : public CypeDialog {
     Q_OBJECT
 public:
-    SearchProjectDialog(const QList<SearchEntry>& entries, QWidget* parent = nullptr);
+    ProjectThesaurusDialog(const QList<SearchEntry>& entries, QWidget* parent = nullptr);
     /// Index (into the entries given) of the accepted project, -1 when none.
     int chosenIndex() const { return m_chosen; }
-    QLineEdit* queryEdit() const { return m_query; }
-    QListWidget* list() const { return m_list; }
+    QComboBox* combo() const { return m_combo; }
+    QListWidget* wordList() const { return m_words; }
+    QTreeWidget* projectList() const { return m_projects; }
+    QWidget* previewPanel() const { return m_preview; }
 
-    /// Lower-case text without accents ("Cimentación" -> "cimentacion").
-    static QString fold(const QString& text);
-    /// True when every word of `query` occurs in name + description, ignoring case and accents. Empty query matches all.
-    static bool matches(const QString& query, const SearchEntry& entry);
+    /// Thesaurus of the entries: lower-case file names and description words, sorted, without repetitions.
+    static QStringList thesaurusWords(const QList<SearchEntry>& entries);
+    /// True when the entry contains the word (case-insensitive): its file name or one of the words of its description.
+    static bool contains(const SearchEntry& entry, const QString& word);
 
 private:
-    void refresh();
+    void selectWord(const QString& word);
+    void refreshProjects(const QString& word, bool noMatch = false);
     void choose();
     QList<SearchEntry> m_entries;
-    QLineEdit* m_query;
-    QListWidget* m_list;
+    QComboBox* m_combo;
+    QListWidget* m_words;
+    QWidget* m_preview;
+    QTreeWidget* m_projects;
+    bool m_syncing = false;
     int m_chosen = -1;
 };
 

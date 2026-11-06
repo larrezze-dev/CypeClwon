@@ -148,7 +148,8 @@ CC_ENUM(Arrangement, {{Arrangement::Simple, "simple"},
                       {Arrangement::Boyd, "boyd"},
                       {Arrangement::DoubleIWelded, "doubleIWelded"},
                       {Arrangement::DoubleIBattened, "doubleIBattened"},
-                      {Arrangement::DoubleIGeneric, "doubleIGeneric"}})
+                      {Arrangement::DoubleIGeneric, "doubleIGeneric"},
+                      {Arrangement::DoubleBoxFlatPlates, "doubleBoxFlatPlates"}})
 CC_ENUM(BehaviourKind, {{BehaviourKind::Linear, "linear"},
                         {BehaviourKind::TensionOnly, "tensionOnly"},
                         {BehaviourKind::CompressionOnly, "compressionOnly"}})

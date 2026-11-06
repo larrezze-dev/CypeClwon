@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 
 #include "core/bar_description_edit.h"
 #include "core/bar_edit.h"
@@ -464,9 +465,9 @@ TEST(BarElements, ProjectionOntoTheIconModel) {
     EXPECT_EQ(barLabelText(pillar), "40 cm x 25 cm");
     pillar.pillar.concreteKind = PillarConcreteKind::Circular;
     EXPECT_EQ(projectedDescription(pillar)->inlineSection->kind, ShapeKind::ConcreteCircular);
-    // steel pillar: the profile of the register
     pillar.pillar.diameterM = 0.30;
     EXPECT_EQ(barLabelText(pillar), "Diámetro 30");  // measured: green, no unit (describir_barras.md section 24.4)
+    // steel pillar: the profile of the register
     pillar.pillar.material = PillarMaterial::Steel;
     EXPECT_EQ(projectedDescription(pillar)->materialIcon, BarMaterialIcon::RolledSteel);
     EXPECT_EQ(barLabelText(pillar), "IPE 80");
@@ -595,4 +596,36 @@ TEST(BarElements, TieDocumentFollowsTheOriginalOrder) {
     EXPECT_GE(figures, 1);
     for (const TieBlock& b : blocks)
         if (b.id == 64096) EXPECT_NE(b.text.find("20 %"), std::string::npos);  // #64096 carries the 20 % limit
+}
+
+TEST(BarDescription, SteelArrangementsDependOnElementTypeAndShape) {
+    using A = Arrangement;
+    const auto generic = arrangementsForElement(ElementType::Generic, ShapeKind::IParallel);
+    EXPECT_EQ(generic.size(), 9u);
+    const auto pillar = arrangementsForElement(ElementType::Pillar, ShapeKind::IParallel);  // IPE 80 (measured 8)
+    EXPECT_EQ(pillar.size(), 8u);
+    EXPECT_EQ(std::count(pillar.begin(), pillar.end(), A::SimpleWithHaunches), 0);
+    EXPECT_EQ(pillar.front(), A::Simple);
+    const auto channelBeam = arrangementsForElement(ElementType::Beam, ShapeKind::Channel);  // UPE 80 (default, measured 8)
+    ASSERT_EQ(channelBeam.size(), 8u);
+    EXPECT_EQ(channelBeam[2], A::DoubleBoxFlatPlates);
+    EXPECT_STREQ(arrangementNameEs(A::DoubleBoxFlatPlates), "Doble en cajón con platabandas");
+    EXPECT_EQ(channelBeam.back(), A::DoubleIGeneric);
+    const auto teeBeam = arrangementsForElement(ElementType::Beam, ShapeKind::IParallel);  // double T (measured 7)
+    EXPECT_EQ(teeBeam.size(), 7u);
+    EXPECT_EQ(teeBeam.back(), A::Boyd);
+    EXPECT_EQ(arrangementsForElement(ElementType::Beam, ShapeKind::RoundBar), std::vector<A>{A::Simple});
+    EXPECT_EQ(arrangementFromKey("doubleBoxFlatPlates"), A::DoubleBoxFlatPlates);
+}
+
+TEST(BarDescription, PieceMetTypeHasTwentyThreeValuesAndOnlyKnownTexts) {
+    EXPECT_EQ(kPieceMetTypeCount, 23);
+    EXPECT_EQ(static_cast<int>(PieceMetType::Type22), 22);
+    EXPECT_STREQ(pieceMetTypeNameEs(PieceMetType::Simple), "Perfil simple");
+    EXPECT_STREQ(pieceMetTypeNameEs(PieceMetType::SimpleWithHaunches), "Simple con cartelas");
+    EXPECT_STREQ(pieceMetTypeNameEs(PieceMetType::WithConcreteSlab), "Con losa de hormigón");
+    EXPECT_STREQ(pieceMetTypeNameEs(PieceMetType::MetalTube), "Tubo metálico");
+    EXPECT_STREQ(pieceMetTypeNameEs(PieceMetType::Type7), "");  // not read: not invented
+    EXPECT_EQ(arrangementOfPieceMet(PieceMetType::WithConcreteSlab), Arrangement::WithConcreteSlab);
+    EXPECT_FALSE(arrangementOfPieceMet(PieceMetType::MetalTube).has_value());
 }

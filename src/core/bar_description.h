@@ -49,8 +49,30 @@ enum class Arrangement {
     Boyd,               ///< Boyd (alma aligerada)
     DoubleIWelded,      ///< Doble en I unión soldada
     DoubleIBattened,    ///< Doble en I presillas
-    DoubleIGeneric      ///< Doble en I unión genérica
+    DoubleIGeneric,     ///< Doble en I unión genérica
+    DoubleBoxFlatPlates ///< Doble en cajón con platabandas (only offered to steel beams with a U profile, describir_barras.md 24.2)
 };
+
+/// piezamet_tipo_t of piezamet.dll: 23 values (0..0x16) behind the "Disposición" radios of the metallic pillar / beam panels
+/// (describir_barras.md 23.1). Only the texts that were read are known: 0 "Perfil simple" (#141110), 1 "Simple con cartelas" (#141122),
+/// 2 "Con losa de hormigón" (#141124), 15 "Tubo metálico" (#99023). The enum value of the other known texts ("Con platabandas
+/// laterales" #141109, "Doble en I unión soldada" #141111, "Doble en T unión soldada" #141113, "Doble en I con presillas" #141115)
+/// was not verified, so they are not assigned here.
+enum class PieceMetType {
+    Simple = 0, SimpleWithHaunches = 1, WithConcreteSlab = 2,
+    Type3, Type4, Type5, Type6, Type7, Type8, Type9, Type10, Type11, Type12, Type13, Type14,  // TODO(medir): texts not read
+    MetalTube = 15,
+    Type16, Type17, Type18, Type19, Type20, Type21, Type22  // TODO(medir): texts not read
+};
+inline constexpr int kPieceMetTypeCount = 23;
+/// Spanish text of a piezamet type; empty when it was not read (TODO(medir)).
+const char* pieceMetTypeNameEs(PieceMetType type);
+/// "Disposición" the clone models for a piezamet type (only 0, 1 and 2 are verified); nullopt otherwise.
+std::optional<Arrangement> arrangementOfPieceMet(PieceMetType type);
+/// Radios of "Disposición" of the steel panel of an element type (describir_barras.md 24.2, measured): they depend on (element type,
+/// shape of the profile). Generic + I: 9; Pillar + I: 8 (no "Simple con cartelas"); Beam + double T: 7; Beam + U: 8; any other shape
+/// (TODO(medir): not measured, the REA rule of FUN_1800272f0 only gives "Perfil simple" for some profile types) -> Perfil simple.
+std::vector<Arrangement> arrangementsForElement(ElementType type, ShapeKind shape);
 
 /// "Comportamiento" combo.
 enum class BehaviourKind { Linear, TensionOnly, CompressionOnly };

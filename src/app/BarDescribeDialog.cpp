@@ -1034,7 +1034,8 @@ QWidget* BarDescribeDialog::buildExtraPages() {
     m_arrangements = new QButtonGroup(this);
     for (Arrangement a : {Arrangement::Simple, Arrangement::SimpleWithHaunches, Arrangement::WithConcreteSlab, Arrangement::DoubleBoxWelded,
                           Arrangement::DoubleBoxBattened, Arrangement::DoubleBoxGeneric, Arrangement::HalfProfile, Arrangement::SideFlatPlates,
-                          Arrangement::Boyd, Arrangement::DoubleIWelded, Arrangement::DoubleIBattened, Arrangement::DoubleIGeneric}) {
+                          Arrangement::Boyd, Arrangement::DoubleIWelded, Arrangement::DoubleIBattened, Arrangement::DoubleIGeneric,
+                          Arrangement::DoubleBoxFlatPlates}) {
         auto* radio = new QRadioButton(arrangementText(a), arrangementPage);
         radio->setObjectName(QString::fromLatin1(arrangementKey(a)));
         m_arrangements->addButton(radio, static_cast<int>(a));

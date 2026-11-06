@@ -46,6 +46,7 @@ constexpr ArrangementRow kArrangements[] = {
     {Arrangement::DoubleIWelded, "doubleIWelded", "Doble en I unión soldada"},
     {Arrangement::DoubleIBattened, "doubleIBattened", "Doble en I con presillas"},
     {Arrangement::DoubleIGeneric, "doubleIGeneric", "Doble en I unión genérica"},
+    {Arrangement::DoubleBoxFlatPlates, "doubleBoxFlatPlates", "Doble en cajón con platabandas"},
 };
 
 struct BehaviourRow {
@@ -175,6 +176,45 @@ std::vector<Arrangement> arrangementsFor(BarMaterialIcon icon, ShapeKind shape) 
                 Arrangement::DoubleIGeneric};
     default: return {Arrangement::Simple};
     }
+}
+
+const char* pieceMetTypeNameEs(PieceMetType type) {
+    switch (type) {
+    case PieceMetType::Simple: return "Perfil simple";
+    case PieceMetType::SimpleWithHaunches: return "Simple con cartelas";
+    case PieceMetType::WithConcreteSlab: return "Con losa de hormigón";
+    case PieceMetType::MetalTube: return "Tubo metálico";
+    default: return "";
+    }
+}
+
+std::optional<Arrangement> arrangementOfPieceMet(PieceMetType type) {
+    switch (type) {
+    case PieceMetType::Simple: return Arrangement::Simple;
+    case PieceMetType::SimpleWithHaunches: return Arrangement::SimpleWithHaunches;
+    case PieceMetType::WithConcreteSlab: return Arrangement::WithConcreteSlab;
+    default: return std::nullopt;
+    }
+}
+
+std::vector<Arrangement> arrangementsForElement(ElementType type, ShapeKind shape) {
+    switch (type) {
+    case ElementType::Generic: return arrangementsFor(BarMaterialIcon::RolledSteel, shape);
+    case ElementType::Pillar:
+        if (isIShape(shape))
+            return {Arrangement::Simple,          Arrangement::WithConcreteSlab,  Arrangement::DoubleBoxWelded, Arrangement::DoubleBoxBattened,
+                    Arrangement::DoubleBoxGeneric, Arrangement::HalfProfile,       Arrangement::SideFlatPlates,  Arrangement::Boyd};
+        return {Arrangement::Simple};  // TODO(medir): other shapes of the pillar
+    case ElementType::Beam:
+        if (isIShape(shape))
+            return {Arrangement::Simple,     Arrangement::DoubleBoxWelded, Arrangement::DoubleBoxBattened, Arrangement::DoubleBoxGeneric,
+                    Arrangement::HalfProfile, Arrangement::SideFlatPlates,  Arrangement::Boyd};
+        if (shape == ShapeKind::Channel)
+            return {Arrangement::Simple,         Arrangement::DoubleBoxWelded, Arrangement::DoubleBoxFlatPlates, Arrangement::DoubleBoxBattened,
+                    Arrangement::DoubleBoxGeneric, Arrangement::DoubleIWelded,  Arrangement::DoubleIBattened,    Arrangement::DoubleIGeneric};
+        return {Arrangement::Simple};  // TODO(medir): other shapes of the beam
+    }
+    return {Arrangement::Simple};
 }
 
 bool stiffenersAllowed(BarMaterialIcon icon, Arrangement arrangement) {
@@ -553,6 +593,11 @@ std::string barLabelText(const BarDescription& description) {
         std::snprintf(buffer, sizeof buffer, "Gen.(%.1f kg/m)", d.generic.areaM2 * d.material.densityKnM3 * 1000.0 / g);
         return buffer;
     }
+    // Circular concrete pillar (measured, describir_barras.md section 24.4): "Diámetro 30" (diameter in centimetres, no unit).
+    // TODO(medir): the label of the rectangular concrete pillar (the "30 cm x 30 cm" below was measured on a beam).
+    if (d.materialIcon == BarMaterialIcon::Concrete && d.inlineSection && d.inlineSection->kind == ShapeKind::ConcreteCircular &&
+        d.inlineSection->dims.size() == 1)
+        return "Diámetro " + compactNumber(d.inlineSection->dims[0] * 100.0);
     if (d.materialIcon == BarMaterialIcon::Concrete && d.inlineSection && d.inlineSection->kind == ShapeKind::ConcreteRectangular &&
         d.inlineSection->dims.size() == 2)
         return compactNumber(d.inlineSection->dims[0] * 100.0) + " cm x " + compactNumber(d.inlineSection->dims[1] * 100.0) + " cm";
@@ -561,8 +606,3 @@ std::string barLabelText(const BarDescription& description) {
 }
 
 }  // namespace cc::core
-    // Circular concrete pillar (measured, describir_barras.md section 24.4): "Diámetro 30" (diameter in centimetres, no unit).
-    // TODO(medir): the label of the rectangular concrete pillar (the "30 cm x 30 cm" below was measured on a beam).
-    if (d.materialIcon == BarMaterialIcon::Concrete && d.inlineSection && d.inlineSection->kind == ShapeKind::ConcreteCircular &&
-        d.inlineSection->dims.size() == 1)
-        return "Diámetro " + compactNumber(d.inlineSection->dims[0] * 100.0);

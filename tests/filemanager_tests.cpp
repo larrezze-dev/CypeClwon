@@ -10,6 +10,10 @@
 #include <QToolButton>
 
 #include <QCheckBox>
+#include <QComboBox>
+#include <QFileInfo>
+#include <QTimer>
+#include <QTreeWidget>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -142,7 +146,7 @@ TEST(FileOpsDialogs, RecentFilesDialogChoosesTheSelectedEntry) {
     EXPECT_EQ(dialog.chosenFile(), "C:/a/two.ed3");
 }
 
-TEST(FileManagerDialog, BuscarNeedsMoreThanOneProjectAndSelectsTheMatch) {
+TEST(FileManagerDialog, BuscarNeedsMoreThanOneProject) {
     ensureApp();
     QTemporaryDir dir;
     touch(dir.filePath("alpha.ed3"));
@@ -154,14 +158,80 @@ TEST(FileManagerDialog, BuscarNeedsMoreThanOneProjectAndSelectsTheMatch) {
     EXPECT_TRUE(barButton(&dialog, "Buscar")->isEnabled());
     EXPECT_FALSE(barButton(&dialog, "Compartir")->isEnabled());
     EXPECT_FALSE(barButton(&dialog, "Compartir")->toolTip().isEmpty());
-    SearchProjectDialog search({{"alpha", ""}, {"beta", "Cimentación profunda"}});
-    EXPECT_EQ(search.list()->count(), 2);
-    search.queryEdit()->setText("CIMENTACION");
-    ASSERT_EQ(search.list()->count(), 1);
-    search.acceptButton()->click();
-    EXPECT_EQ(search.chosenIndex(), 1);
-    EXPECT_TRUE(SearchProjectDialog::matches("profunda cimentacion", {"beta", "Cimentación profunda"}));
-    EXPECT_FALSE(SearchProjectDialog::matches("losa", {"beta", "Cimentación profunda"}));
+}
+
+TEST(ThesaurusDialog, WordsAreFileNamesAndDescriptionWordsInLowerCaseSorted) {
+    ensureApp();
+    // Measured in the original (dialogs_gestion_archivos.md, 2026-11-06).
+    const QList<SearchEntry> entries = {{"alfa_puente", "Puente metalico de prueba", "C:/o/alfa_puente.ed3"},
+                                        {"beta_cubierta", "Cubierta de madera - prueba piloto", "C:/o/beta_cubierta.ed3"}};
+    EXPECT_EQ(ProjectThesaurusDialog::thesaurusWords(entries),
+              (QStringList{"-", "alfa_puente", "beta_cubierta", "cubierta", "de", "madera", "metalico", "piloto", "prueba", "puente"}));
+    ProjectThesaurusDialog dialog(entries);
+    EXPECT_EQ(dialog.windowTitle(), "Localización de obra por tesauro");
+    EXPECT_TRUE(dialog.combo()->isEditable());
+    EXPECT_EQ(dialog.combo()->currentText(), "");
+    EXPECT_EQ(dialog.wordList()->count(), 10);
+    EXPECT_EQ(dialog.projectList()->headerItem()->text(0), "Obra");
+    EXPECT_EQ(dialog.projectList()->headerItem()->text(1), "Descripción");
+    EXPECT_EQ(dialog.previewPanel()->findChildren<QWidget*>().size(), 0);  // no preview data: empty panel
+}
+
+TEST(ThesaurusDialog, WordFiltersProjectsAndTypingIgnoresCase) {
+    ensureApp();
+    const QList<SearchEntry> entries = {{"alfa_puente", "Puente metalico de prueba", "C:/o/alfa_puente.ed3"},
+                                        {"beta_cubierta", "Cubierta de madera - prueba piloto", "C:/o/beta_cubierta.ed3"}};
+    ProjectThesaurusDialog dialog(entries);
+    dialog.wordList()->setCurrentRow(dialog.wordList()->row(dialog.wordList()->findItems("metalico", Qt::MatchExactly).first()));
+    ASSERT_EQ(dialog.projectList()->topLevelItemCount(), 1);
+    EXPECT_EQ(dialog.projectList()->topLevelItem(0)->text(0), "alfa_puente");
+    EXPECT_EQ(dialog.combo()->currentText(), "metalico");  // the combo follows the chosen word
+    dialog.combo()->setEditText("Prueba");  // typed with a capital: selects "prueba"
+    EXPECT_EQ(dialog.wordList()->currentItem()->text(), "prueba");
+    EXPECT_EQ(dialog.projectList()->topLevelItemCount(), 2);
+    dialog.combo()->setEditText("-");
+    ASSERT_EQ(dialog.projectList()->topLevelItemCount(), 1);
+    EXPECT_EQ(dialog.projectList()->topLevelItem(0)->text(0), "beta_cubierta");
+    dialog.combo()->setEditText("zzz");
+    EXPECT_EQ(dialog.projectList()->topLevelItemCount(), 0);
+    EXPECT_FALSE(dialog.acceptButton()->isEnabled());
+}
+
+TEST(ThesaurusDialog, AcceptChoosesTheProjectOfTheSelectedRow) {
+    ensureApp();
+    const QList<SearchEntry> entries = {{"alfa_puente", "Puente metalico de prueba", "C:/o/alfa_puente.ed3"},
+                                        {"beta_cubierta", "Cubierta de madera - prueba piloto", "C:/o/beta_cubierta.ed3"}};
+    ProjectThesaurusDialog dialog(entries);
+    dialog.combo()->setEditText("prueba");
+    dialog.projectList()->setCurrentItem(dialog.projectList()->topLevelItem(1));
+    dialog.acceptButton()->click();
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+    EXPECT_EQ(dialog.chosenIndex(), 1);
+}
+
+TEST(FileManagerDialog, ThesaurusAcceptOpensTheProject) {
+    ensureApp();
+    QTemporaryDir dir;
+    touch(dir.filePath("alpha.ed3"));
+    cc::core::ProjectDocument doc = cc::core::makeDocument(cc::core::Project{}, "Cimentación profunda");
+    ASSERT_TRUE(cc::core::saveProjectFile(std::filesystem::path(dir.filePath("beta.ed3").toStdWString()), doc).ok);
+    FileManagerDialog dialog(dir.path());
+    QString opened;
+    QObject::connect(&dialog, &FileManagerDialog::openRequested, [&](const QString& path) { opened = path; });
+    QTimer::singleShot(50, [] {
+        for (QWidget* w : QApplication::topLevelWidgets())
+            if (auto* d = qobject_cast<ProjectThesaurusDialog*>(w)) {
+                d->combo()->setEditText("cimentación");
+                d->acceptButton()->click();
+                return;
+            }
+    });
+    QTimer::singleShot(5000, [] {  // failsafe: never hang the suite
+        for (QWidget* w : QApplication::topLevelWidgets())
+            if (auto* d = qobject_cast<ProjectThesaurusDialog*>(w)) d->reject();
+    });
+    barButton(&dialog, "Buscar")->click();
+    EXPECT_EQ(QFileInfo(opened).fileName(), "beta.ed3");
 }
 
 TEST(FileManagerDialog, CompressionMessagesUseTheOriginalTexts) {

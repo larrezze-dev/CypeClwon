@@ -352,6 +352,16 @@ TEST(SectionProperties, ExtraRolledSeriesOfTheOriginalAreTabulated) {
     EXPECT_NEAR(*find("IPE V", "IPE V 600").tabulated.area, 233.8 * kCm2, 1e-12);
 }
 
+TEST(SectionProperties, UbSeriesDimensionsMeasuredInTheOriginal) {
+    // describir_barras.md 24.1: "Canto total" / "Anchura del ala" shown by the original.
+    const Section small = find("UB", "UB 127 x 76 x 13");
+    EXPECT_NEAR(small.dims[0], 0.127, 1e-9);  // h
+    EXPECT_NEAR(small.dims[1], 0.076, 1e-9);  // b
+    const Section big = find("UB", "UB 920 x 420 x 1194");
+    EXPECT_NEAR(big.dims[0], 1.081, 1e-9);
+    EXPECT_NEAR(big.dims[1], 0.457, 1e-9);
+}
+
 TEST(SectionProperties, GenericSectionNeedsTabulatedValues) {
     Section g;
     g.reference = "G1";

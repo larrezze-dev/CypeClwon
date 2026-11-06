@@ -193,11 +193,12 @@ void FileManagerDialog::searchProject() {
     if (m_table->rowCount() < 2) return;
     QList<SearchEntry> entries;
     for (int row = 0; row < m_table->rowCount(); ++row)
-        entries.push_back({m_table->item(row, 0)->text(), m_table->item(row, 1)->text()});
-    SearchProjectDialog dialog(entries, this);
+        entries.push_back({m_table->item(row, 0)->text(), m_table->item(row, 1)->text(), m_table->item(row, 0)->data(Qt::UserRole).toString()});
+    ProjectThesaurusDialog dialog(entries, this);
     if (dialog.exec() != QDialog::Accepted || dialog.chosenIndex() < 0) return;
+    // The original opens the chosen project straight away (it does not just select the row): same flow as the Abrir button.
     m_table->selectRow(dialog.chosenIndex());
-    m_table->scrollToItem(m_table->item(dialog.chosenIndex(), 0));
+    emit openRequested(entries[dialog.chosenIndex()].path);
 }
 
 bool FileManagerDialog::requireSelection() {
