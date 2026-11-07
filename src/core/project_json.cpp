@@ -693,6 +693,41 @@ const std::vector<Section>& sections() {
                     p.buckling = std::move(loaded);
                 },
                 [](const Project& p) { return validateBuckling(p.buckling, p.structure).empty(); }},
+        Section{"deflection_groups", "Grupos de flecha",
+                [](const Project& p) {
+                    // Only the groups that differ from "one secant group per bar"; bars that no longer exist are not saved.
+                    json groups = json::array();
+                    for (const DeflectionBarGroup& g : normaliseDeflection(p.deflection, p.structure).groups) {
+                        json limits = json::array();
+                        for (const DeflectionLimitItem& it : g.limits.items)
+                            limits.push_back({{"enabled", it.enabled}, {"absolute_mm", it.absoluteMm}, {"divisor", it.relativeDivisor}});
+                        groups.push_back({{"bars", g.bars}, {"node1", g.node1}, {"xy", static_cast<int>(g.xy)}, {"xz", static_cast<int>(g.xz)}, {"limits", limits}});
+                    }
+                    return json{{"groups", groups}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    DeflectionData loaded;
+                    if (j.contains("groups"))
+                        for (const json& e : j.at("groups")) {
+                            DeflectionBarGroup g;
+                            g.bars = e.value("bars", std::vector<int>{});
+                            g.node1 = e.value("node1", 0);
+                            g.xy = static_cast<DeflectionType>(e.value("xy", 0));
+                            g.xz = static_cast<DeflectionType>(e.value("xz", 0));
+                            if (e.contains("limits")) {
+                                const json& limits = e.at("limits");
+                                for (std::size_t i = 0; i < limits.size() && i < g.limits.items.size(); ++i) {
+                                    g.limits.items[i].enabled = limits[i].value("enabled", false);
+                                    g.limits.items[i].absoluteMm = limits[i].value("absolute_mm", kDefaultAbsoluteDeflectionLimit);
+                                    g.limits.items[i].relativeDivisor = limits[i].value("divisor", kDefaultDeflectionDivisor);
+                                }
+                            }
+                            if (!g.bars.empty()) loaded.groups.push_back(std::move(g));
+                        }
+                    p.deflection = std::move(loaded);
+                },
+                [](const Project& p) { return validateDeflection(p.deflection).empty(); }},
     };
     return all;
 }

@@ -342,6 +342,7 @@ void Viewport3D::setNodes(std::vector<Vec3> nodes) {
 
 void Viewport3D::setStructure(const core::StructuralModel* structure) {
     m_structure = structure;
+    m_deflectionCacheValid = false;
     m_nodes.clear();
     if (structure)
         for (const core::Node& n : structure->nodes) m_nodes.push_back({n.position.x, n.position.y, n.position.z});
@@ -365,6 +366,7 @@ bool Viewport3D::elementExists(const core::ElementRef& e) const {
 }
 
 void Viewport3D::refreshStructure() {
+    m_deflectionCacheValid = false;
     m_nodes.clear();
     if (m_structure)
         for (const core::Node& n : m_structure->nodes) m_nodes.push_back({n.position.x, n.position.y, n.position.z});
@@ -1309,15 +1311,9 @@ void Viewport3D::drawBarEnds(QPainter& painter) const {
     painter.restore();
 }
 
-void Viewport3D::drawBucklingLabels(QPainter& painter) const {
-    // Green (0,128,0) bold text parallel to the bar, above its middle point, no background; bars too short for the text get none
-    // (measured: orig_pandeo_16 / 28, pandeo.md section 9.5). The text has a WORLD size (measured: it grows and shrinks with the zoom, doubles at
-    // "Tamaño de los textos" 200 % and halves at 50 %): the row spacing is 0.0072 of the diagonal of the structure (calibrated on the original at 100 %:
-    // 10 px per row on a 41.5 m wide frame at 33.8 px/m; approximate, pandeo.md 9.7) times the percentage.
-    if (m_bucklingLabels == BucklingLabels::None || !m_buckling || !m_structure || !m_categories.barsDrawn()) return;
-    const core::ScreenMapper map = mapper();
+double Viewport3D::labelRowWorld() const {
     double diagonal = 0.0;
-    {
+    if (m_structure) {
         bool any = false;
         core::Point3 lo{0, 0, 0}, hi{0, 0, 0};
         for (const core::Node& n : m_structure->nodes) {
@@ -1328,7 +1324,116 @@ void Viewport3D::drawBucklingLabels(QPainter& painter) const {
         }
         diagonal = any ? core::geom::length(core::geom::sub(hi, lo)) : 0.0;
     }
-    const double rowWorld = 0.0072 * diagonal * m_textSizePercent / 100.0;
+    return 0.0072 * diagonal * m_textSizePercent / 100.0;
+}
+
+void Viewport3D::setDeflection(const core::DeflectionData* source) {
+    m_deflection = source;
+    m_deflectionCacheValid = false;
+    update();
+}
+
+void Viewport3D::setDeflectionLabelsVisible(bool on) {
+    if (m_deflectionLabels == on) return;
+    m_deflectionLabels = on;
+    update();
+}
+
+const std::vector<core::DeflectionGroupInfo>& Viewport3D::deflectionList() const {
+    if (!m_deflectionCacheValid) {
+        m_deflectionCache = m_deflection && m_structure ? core::deflectionGroups(*m_deflection, *m_structure) : std::vector<core::DeflectionGroupInfo>{};
+        m_deflectionCacheValid = true;
+    }
+    return m_deflectionCache;
+}
+
+void Viewport3D::drawDeflectionLabels(QPainter& painter) const {
+    // Same look as the buckling labels (green bold, parallel to the bar, world size): one label per bar, the groups of several bars repeat it
+    // on every bar (grupos_flecha.md section 6, gf_10b_c / gf_22_edit_dlg).
+    if (!m_deflectionLabels || !m_deflection || !m_structure || !m_categories.barsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    const double rowWorld = labelRowWorld();
+    const std::vector<core::DeflectionGroupInfo>& list = deflectionList();
+    painter.save();
+    painter.setPen(QColor(0, 128, 0));
+    for (const core::DeflectionGroupInfo& group : list) {
+        const QString text = QString::fromStdString(core::deflectionGroupLabel(group));
+        for (int barId : group.bars) {
+            const core::Bar* bar = m_structure->findBar(barId);
+            if (!bar || !m_structure->elementVisible(bar->layerIds)) continue;
+            const core::Node* a = m_structure->findNode(bar->startNode);
+            const core::Node* b = m_structure->findNode(bar->endNode);
+            double ax, ay, bx, by;
+            if (!a || !b || !map.toScreen(a->position, ax, ay) || !map.toScreen(b->position, bx, by)) continue;
+            const core::Vec3 mid{(a->position.x + b->position.x) / 2.0, (a->position.y + b->position.y) / 2.0, (a->position.z + b->position.z) / 2.0};
+            double x, y;
+            if (!visibleAfterClipping({mid.x, mid.y, mid.z}) || !map.toScreen(mid, x, y)) continue;
+            const double worldLength = core::geom::length(core::geom::sub(b->position, a->position));
+            const double screenLength = std::hypot(bx - ax, by - ay);
+            const double kRow = worldLength > 1e-9 ? rowWorld * screenLength / worldLength : 0.0;
+            if (kRow < 3.0) continue;
+            QFont font = painter.font();
+            font.setPixelSize(std::max(1, static_cast<int>(std::lround(kRow * 0.88))));
+            font.setBold(true);
+            painter.setFont(font);
+            const double widest = QFontMetrics(font).horizontalAdvance(text);
+            if (screenLength < widest + 4.0) continue;  // short bars show no label
+            double angle = std::atan2(by - ay, bx - ax) * 180.0 / 3.14159265358979323846;
+            if (angle > 90.0) angle -= 180.0;
+            if (angle < -90.0) angle += 180.0;
+            painter.save();
+            painter.translate(x, y);
+            painter.rotate(angle);
+            painter.drawText(QRectF(-widest / 2.0 - 2.0, -kRow * 0.3 - kRow, widest + 4.0, kRow), Qt::AlignCenter, text);
+            painter.restore();
+        }
+    }
+    painter.restore();
+}
+
+void Viewport3D::drawDeflectionGroup(QPainter& painter, int barId, bool selected) const {
+    // The whole group of the bar in orange and the nodes 1 / 2 its tangent types refer to ("N1" / "N2", orange bold).
+    if (!m_deflectionLabels || !m_structure) return;
+    const std::vector<core::DeflectionGroupInfo>& list = deflectionList();
+    const int index = core::deflectionGroupIndexOfBar(list, barId);
+    if (index < 0) return;
+    const core::DeflectionGroupInfo& group = list[static_cast<std::size_t>(index)];
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(kHighlight, selected ? 3.0 : 2.0));
+    for (int id : group.bars) {
+        if (id == barId) continue;  // drawn by the generic highlight
+        const core::Bar* bar = m_structure->findBar(id);
+        const core::Node* a = bar ? m_structure->findNode(bar->startNode) : nullptr;
+        const core::Node* b = bar ? m_structure->findNode(bar->endNode) : nullptr;
+        double ax, ay, bx, by;
+        if (a && b && map.toScreen(a->position, ax, ay) && map.toScreen(b->position, bx, by)) painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
+    }
+    QFont font = painter.font();
+    font.setPixelSize(12);
+    font.setBold(true);
+    painter.setFont(font);
+    QColor text = kHighlight;
+    text.setAlpha(190);
+    painter.setPen(text);
+    const std::pair<int, const char*> ends[2] = {{group.node1, "N1"}, {group.node2, "N2"}};
+    for (const auto& [nodeId, name] : ends) {
+        const core::Node* n = m_structure->findNode(nodeId);
+        double x, y;
+        if (n && map.toScreen(n->position, x, y)) painter.drawText(QRectF(x - 6.0, y - 24.0, 28.0, 16.0), Qt::AlignLeft | Qt::AlignVCenter, QString::fromLatin1(name));
+    }
+    painter.restore();
+}
+
+void Viewport3D::drawBucklingLabels(QPainter& painter) const {
+    // Green (0,128,0) bold text parallel to the bar, above its middle point, no background; bars too short for the text get none
+    // (measured: orig_pandeo_16 / 28, pandeo.md section 9.5). The text has a WORLD size (measured: it grows and shrinks with the zoom, doubles at
+    // "Tamaño de los textos" 200 % and halves at 50 %): the row spacing is 0.0072 of the diagonal of the structure (calibrated on the original at 100 %:
+    // 10 px per row on a 41.5 m wide frame at 33.8 px/m; approximate, pandeo.md 9.7) times the percentage.
+    if (m_bucklingLabels == BucklingLabels::None || !m_buckling || !m_structure || !m_categories.barsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    const double rowWorld = labelRowWorld();
     painter.save();
     painter.setPen(QColor(0, 128, 0));
     for (const core::Bar& bar : m_structure->bars) {
@@ -1763,12 +1868,19 @@ void Viewport3D::paintGL() {
     drawBarRubber(painter);
     drawBarEnds(painter);
     drawBucklingLabels(painter);
+    drawDeflectionLabels(painter);
     drawNodeTags(painter);
     drawBarTags(painter);
     drawZoomMark(painter);
     if (m_selectionMode) {
-        for (const core::ElementRef& e : m_selection.items()) drawHighlight(painter, e, true);
-        if (m_hover) drawHighlight(painter, *m_hover, false);
+        for (const core::ElementRef& e : m_selection.items()) {
+            drawHighlight(painter, e, true);
+            if (e.kind == core::ElementKind::Bar) drawDeflectionGroup(painter, e.id, true);
+        }
+        if (m_hover) {
+            drawHighlight(painter, *m_hover, false);
+            if (m_hover->kind == core::ElementKind::Bar) drawDeflectionGroup(painter, m_hover->id, false);
+        }
         drawRubberBand(painter);
         drawNodeLabel(painter);
     }

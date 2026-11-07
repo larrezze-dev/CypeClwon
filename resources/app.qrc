@@ -13,6 +13,10 @@
     <file>icons/diaphragm_assign.svg</file>
     <file>icons/diaphragm_generate.svg</file>
     <file>icons/bar_pin.svg</file>
+    <file>icons/bar_deflection.svg</file>
+    <file>icons/deflection_create.svg</file>
+    <file>icons/deflection_edit.svg</file>
+    <file>icons/deflection_limit.svg</file>
     <file>icons/bar_fixity.svg</file>
     <file>icons/undo.svg</file>
     <file>icons/redo.svg</file>

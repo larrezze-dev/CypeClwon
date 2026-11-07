@@ -151,6 +151,11 @@ void PieceDiffCommand::captureBarEnds(const BarEnds& edited) {
     m_endsAfter = edited;
 }
 
+void PieceDiffCommand::captureDeflection(const DeflectionData& edited) {
+    m_deflectionBefore = m_project.deflection;
+    m_deflectionAfter = edited;
+}
+
 void PieceDiffCommand::redo() {
     if (m_error != PieceError::None) return;
     StructuralModel& m = m_project.structure;
@@ -159,6 +164,7 @@ void PieceDiffCommand::redo() {
     m.pieces = m_piecesAfter;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceAfter);
     if (m_endsAfter) m_project.barEnds = *m_endsAfter;
+    if (m_deflectionAfter) m_project.deflection = *m_deflectionAfter;
 }
 
 void PieceDiffCommand::undo() {
@@ -169,6 +175,7 @@ void PieceDiffCommand::undo() {
     m.pieces = m_piecesBefore;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceBefore);  // ids are never reused
     if (m_endsBefore) m_project.barEnds = *m_endsBefore;
+    if (m_deflectionBefore) m_project.deflection = *m_deflectionBefore;
 }
 
 // --- CreatePieceCommand -----------------------------------------------------------------------------------------
@@ -367,6 +374,7 @@ MoveBarEndCommand::MoveBarEndCommand(Project& project, int barId, BarEnd end, in
     }
     tidy(work);
     capture(work);
+    if (!project.deflection.empty()) captureDeflection(normaliseDeflection(project.deflection, work));  // the moved end may break a group
 }
 
 // --- InvertBarAxisCommand ---------------------------------------------------------------------------------------
@@ -392,6 +400,7 @@ InvertBarAxisCommand::InvertBarAxisCommand(Project& project, int barId) : PieceD
     }
     capture(work);
     captureBarEnds(ends);
+    if (!project.deflection.empty()) captureDeflection(invertDeflectionGroups(project.deflection, bars, work));
 }
 
 // --- wrappers ---------------------------------------------------------------------------------------------------

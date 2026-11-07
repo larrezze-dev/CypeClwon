@@ -57,6 +57,7 @@
 #include "DiaphragmTool.h"
 #include "BarEndsTool.h"
 #include "BucklingTool.h"
+#include "DeflectionTool.h"
 #include "UserMessages.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -202,6 +203,7 @@ void MainWindow::createWorkArea() {
             m_diaphragmTool->deactivate();
             m_barEndsTool->deactivate();
             m_bucklingTool->deactivate();
+            m_deflectionTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -241,6 +243,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(BarEndsTool::statusText(m_barEndsTool->mode(), m_barEndsTool->panel() && m_barEndsTool->panel()->multiple()));
         else if (m_bucklingTool->mode() != BucklingTool::Mode::None)
             statusBar()->showMessage(BucklingTool::statusText(m_bucklingTool->mode()));
+        else if (m_deflectionTool->mode() != DeflectionTool::Mode::None)
+            statusBar()->showMessage(DeflectionTool::statusText(m_deflectionTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -387,9 +391,11 @@ void MainWindow::createWorkArea() {
     m_diaphragmTool->setDialogParent(this);
     m_barEndsTool->setDialogParent(this);
     m_bucklingTool->setDialogParent(this);
+    m_deflectionTool->setDialogParent(this);
     connect(m_diaphragmTool, &DiaphragmTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_barEndsTool, &BarEndsTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_bucklingTool, &BucklingTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_deflectionTool, &DeflectionTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
     connect(m_diaphragmTool, &DiaphragmTool::aboutToActivate, this, [this, stopOthers] {
         stopOthers();
         m_generateTool->deactivate();
@@ -398,6 +404,7 @@ void MainWindow::createWorkArea() {
         m_ligatureTool->deactivate();
         m_barEndsTool->deactivate();
         m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
     });
     connect(m_barEndsTool, &BarEndsTool::aboutToActivate, this, [this, stopOthers] {
         stopOthers();
@@ -407,6 +414,7 @@ void MainWindow::createWorkArea() {
         m_ligatureTool->deactivate();
         m_diaphragmTool->deactivate();
         m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
     });
     connect(m_bucklingTool, &BucklingTool::aboutToActivate, this, [this, stopOthers] {
         stopOthers();
@@ -416,40 +424,62 @@ void MainWindow::createWorkArea() {
         m_ligatureTool->deactivate();
         m_diaphragmTool->deactivate();
         m_barEndsTool->deactivate();
+        m_deflectionTool->deactivate();
+    });
+    connect(m_deflectionTool, &DeflectionTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
     });
     connect(m_supportTool, &SupportTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_supportTool, &SupportTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_supportTool, &SupportTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_supportTool, &SupportTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_pieceTool, &PieceTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_pieceTool, &PieceTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_pieceTool, &PieceTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_shellTool, &ShellTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_shellTool, &ShellTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_shellTool, &ShellTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_transformTool, &TransformTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_transformTool, &TransformTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_transformTool, &TransformTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_generateTool, &GenerateTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_generateTool, &GenerateTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_generateTool, &GenerateTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_deflectionTool, &DeflectionTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_ligatureTool, &LigatureTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_supportTool, &SupportTool::deactivate);
@@ -492,6 +522,7 @@ void MainWindow::createWorkArea() {
         m_diaphragmTool->deactivate();
         m_barEndsTool->deactivate();
         m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -536,6 +567,7 @@ void MainWindow::createWorkArea() {
             m_diaphragmTool->structureChanged();
             m_barEndsTool->structureChanged();
             m_bucklingTool->structureChanged();
+            m_deflectionTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -769,6 +801,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_diaphragmTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_barEndsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_bucklingTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_deflectionTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -810,6 +843,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_diaphragmTool->addViewport(viewport);
         m_barEndsTool->addViewport(viewport);
         m_bucklingTool->addViewport(viewport);
+        m_deflectionTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1212,12 +1246,15 @@ void MainWindow::buildGeometryTab() {
     m_bucklingTool = new BucklingTool(this);
     icon(m_bucklingTool->betaAction(), "bar_buckling");
     icon(m_bucklingTool->lateralAction(), "bar_lateral_buckling");
+    m_deflectionTool = new DeflectionTool(this);
     SARibbonPanel* barsPanel = ribbonBar()->categoryPages().at(2)->addPanel(tr("Barras"));
     // Column order of the original (orig_pandeo_05): Pandeo / Pandeo lateral, then Articular / Empotramiento.
     barsPanel->addSmallAction(m_bucklingTool->betaAction());
     barsPanel->addSmallAction(m_bucklingTool->lateralAction());
     barsPanel->addSmallAction(m_barEndsTool->articulateAction());
     barsPanel->addSmallAction(m_barEndsTool->fixityAction());
+    // Third column: the drop-down «Grupos de flecha» (Crear / Editar / Flecha Límite); the buttons of the other tasks follow it.
+    barsPanel->addSmallMenu(m_deflectionTool->menu(), QToolButton::InstantPopup);
 }
 
 void MainWindow::buildObraTab() {

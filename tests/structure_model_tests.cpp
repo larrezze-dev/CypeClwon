@@ -198,17 +198,18 @@ Project projectWithStructure() {
 
 TEST(StructureProject, SectionsAreRegisteredAfterTheExistingOnes) {
     const auto& names = project_json::sectionNames();
-    ASSERT_GE(names.size(), 14u);
-    EXPECT_EQ(names[names.size() - 14], "nodes");
-    EXPECT_EQ(names[names.size() - 9], "pieces");
-    EXPECT_EQ(names[names.size() - 8], "layers");
-    EXPECT_EQ(names[names.size() - 7], "continuous_elements");
-    EXPECT_EQ(names[names.size() - 6], "bar_descriptions");
-    EXPECT_EQ(names[names.size() - 5], "node_supports");
-    EXPECT_EQ(names[names.size() - 4], "node_ties");
-    EXPECT_EQ(names[names.size() - 3], "diaphragms");
-    EXPECT_EQ(names[names.size() - 2], "bar_ends");
-    EXPECT_EQ(names.back(), "buckling");
+    ASSERT_GE(names.size(), 15u);
+    EXPECT_EQ(names[names.size() - 15], "nodes");
+    EXPECT_EQ(names[names.size() - 10], "pieces");
+    EXPECT_EQ(names[names.size() - 9], "layers");
+    EXPECT_EQ(names[names.size() - 8], "continuous_elements");
+    EXPECT_EQ(names[names.size() - 7], "bar_descriptions");
+    EXPECT_EQ(names[names.size() - 6], "node_supports");
+    EXPECT_EQ(names[names.size() - 5], "node_ties");
+    EXPECT_EQ(names[names.size() - 4], "diaphragms");
+    EXPECT_EQ(names[names.size() - 3], "bar_ends");
+    EXPECT_EQ(names[names.size() - 2], "buckling");
+    EXPECT_EQ(names.back(), "deflection_groups");
     EXPECT_EQ(project_json::sectionTitle("cross_sections"), "Secciones");
 }
 

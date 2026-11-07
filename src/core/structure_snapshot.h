@@ -35,6 +35,7 @@ private:
     // diaphragms (vanished nodes leave them).
     BarEnds m_endsBefore, m_endsAfter;
     BucklingData m_bucklingBefore, m_bucklingAfter;
+    DeflectionData m_deflectionBefore, m_deflectionAfter;
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
 };
 

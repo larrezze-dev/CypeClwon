@@ -19,6 +19,7 @@
 #include "core/categories.h"
 #include "core/bar_ends.h"
 #include "core/buckling.h"
+#include "core/deflection_group.h"
 #include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
@@ -133,6 +134,13 @@ public:
     void setBucklingLabels(BucklingLabels labels);
     const core::BucklingData* buckling() const { return m_buckling; }
     BucklingLabels bucklingLabels() const { return m_bucklingLabels; }
+    /// Deflection groups (not owned; T-P6-06): while the labels are on (Propiedades > Barras > Grupos de flecha) every bar carries the green bold
+    /// label of its group "G1(1-2 xy, 1-2 xz)" and a selected (or hovered) bar paints its whole group orange with the nodes "N1" / "N2" the
+    /// tangent types refer to (grupos_flecha.md section 6).
+    void setDeflection(const core::DeflectionData* data);
+    void setDeflectionLabelsVisible(bool on);
+    const core::DeflectionData* deflection() const { return m_deflection; }
+    bool deflectionLabelsVisible() const { return m_deflectionLabels; }
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
     QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
@@ -394,6 +402,10 @@ private:
     void drawBarTags(class QPainter& painter) const;
     void drawBarEnds(class QPainter& painter) const;
     void drawBucklingLabels(class QPainter& painter) const;
+    void drawDeflectionLabels(class QPainter& painter) const;
+    void drawDeflectionGroup(class QPainter& painter, int barId, bool selected) const;
+    double labelRowWorld() const;  ///< world size of one row of the green bar labels (0.0072 of the diagonal times "Tamano de los textos")
+    const std::vector<core::DeflectionGroupInfo>& deflectionList() const;
     void rebuildSnapModel();
     void updateFocusPolicy();
     bool elementExists(const core::ElementRef& e) const;
@@ -420,6 +432,10 @@ private:
     bool m_barAxes = false;
     const core::BucklingData* m_buckling = nullptr;
     BucklingLabels m_bucklingLabels = BucklingLabels::None;
+    const core::DeflectionData* m_deflection = nullptr;
+    bool m_deflectionLabels = false;
+    mutable std::vector<core::DeflectionGroupInfo> m_deflectionCache;
+    mutable bool m_deflectionCacheValid = false;
     std::function<bool(int)> m_nodeExcluded;
     const core::WorkPlanes* m_planes = nullptr;
     bool m_selectionMode = false;

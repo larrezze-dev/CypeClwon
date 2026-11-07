@@ -52,6 +52,8 @@ protected:
     void capture(const StructuralModel& edited);
     /// Also stores a new state of the bar end data (InvertBarAxisCommand swaps origin / end).
     void captureBarEnds(const BarEnds& edited);
+    /// Also stores a new state of the deflection groups (inversion swaps node 1 / node 2; moving an end may break a group).
+    void captureDeflection(const DeflectionData& edited);
     Project& m_project;
     PieceError m_error = PieceError::None;
 
@@ -60,6 +62,7 @@ private:
     std::vector<Piece> m_piecesBefore, m_piecesAfter;
     int m_nextPieceBefore = 1, m_nextPieceAfter = 1;
     std::optional<BarEnds> m_endsBefore, m_endsAfter;
+    std::optional<DeflectionData> m_deflectionBefore, m_deflectionAfter;
 };
 
 /// "Pieza": defines a piece from its start node (start of the first bar) to its end node (end of the last bar).
