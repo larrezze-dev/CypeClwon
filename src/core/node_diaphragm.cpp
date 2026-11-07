@@ -168,7 +168,12 @@ int diaphragmLevelColorId(int i) { return (i < 24 ? 12 : 11) + (i % 24) * 10; }
 
 unsigned idColorToRgb(int idColor) {
     if (idColor == 13) return kDefaultDiaphragmColor;  // measured: idcolor_colorRGB(0xd) = magenta
-    // PLACEHOLDER hue ramp (replace with the measured palette).
+    // Measured in the original (diafragmas.md section 10.2): level i = 1..8 has idColor 12 + 10 i = 22..92.
+    if (idColor >= 22 && idColor <= 92 && (idColor - 12) % 10 == 0) {
+        static constexpr unsigned kMeasured[8] = {0xCC3300, 0xCC6600, 0xCC9900, 0xCCCC00, 0x99CC00, 0x66CC00, 0x33CC00, 0x00CC00};
+        return kMeasured[(idColor - 12) / 10 - 1];
+    }
+    // NOT MEASURED (levels beyond the eighth): provisional hue ramp, to be replaced when the original is measured.
     const double hue = std::fmod(idColor * 15.0, 360.0) / 60.0;
     const double x = 1.0 - std::fabs(std::fmod(hue, 2.0) - 1.0);
     double r = 0, g = 0, b = 0;

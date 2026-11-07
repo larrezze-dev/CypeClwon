@@ -39,6 +39,9 @@ inline constexpr int kPlaneXY = 0, kPlaneXZ = 1, kPlaneYZ = 2;
 
 /// Default rotational stiffness proposed by the dialog (kN.m/rad, measured: 500000.00).
 inline constexpr double kDefaultEndRotationalStiffness = 500000.0;
+/// Accepted range of the rotational stiffness (kN.m/rad, measured: «Debe estar entre 0.00 y 10000000.00.»; 0 is accepted).
+inline constexpr double kMinEndRotationalStiffness = 0.0;
+inline constexpr double kMaxEndRotationalStiffness = 10000000.0;
 
 enum class EndFixityKind { Coefficient, Rotational };
 
@@ -107,11 +110,13 @@ struct EndFixityIssue {
 
 /// "El valor de '' debe estar entre 0.000 y 1.000 ." (measured: the field name comes out empty).
 std::string endFixityRangeMessage();
+/// «El valor de '' debe estar entre 0.00 y 10000000.00.» (measured; empty field name, like the coefficient message).
+std::string endFixityStiffnessRangeMessage();
 /// Question shown when a rotational stiffness equals the default (measured; Sí default / No).
 std::string endFixityDefaultStiffnessQuestion();
 
 /// First error of the edit, in the order end origin / end, planes xy / xz / yz, only for the planes to assign: coefficient outside 0..1
-/// (or not finite), yz coefficient other than 0 / 1 (the original offers a binary popup), stiffness not finite or <= 0 (PROVISIONAL).
+/// (or not finite), yz coefficient other than 0 / 1 (the original offers a binary popup), stiffness not finite or outside 0..1e7 (measured).
 /// nullopt when valid.
 std::optional<EndFixityIssue> checkEndFixityEdit(const EndFixityEdit& edit);
 /// True when some assigned plane uses a rotational stiffness equal to the default: the dialog asks the question before accepting.

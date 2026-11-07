@@ -218,6 +218,29 @@ TEST(Diaphragm, DeletingAndMergingNodesPurges) {
     EXPECT_EQ(p.diaphragms.items[0].nodeIds, (std::vector<int>{1, 2, 3}));
 }
 
+TEST(Diaphragm, MergeKeepsDestinationMembership) {
+    // Measured (diafragmas.md 10.5): the destination survives; the moved node's membership is lost, not transferred.
+    UndoStack stack;
+    Project p = withDiaphragm(stack);
+    assignNodesToDiaphragm(p, stack, p.diaphragms.items[0].id, {1});
+    ASSERT_TRUE(moveNode(p, stack, 1, p.structure.findNode(2)->position));  // assigned onto free
+    EXPECT_EQ(p.structure.findNode(1), nullptr);
+    ASSERT_NE(p.structure.findNode(2), nullptr);
+    EXPECT_TRUE(p.diaphragms.items[0].nodeIds.empty());
+    stack.undo();
+    EXPECT_EQ(p.diaphragms.items[0].nodeIds, (std::vector<int>{1}));
+
+    assignNodesToDiaphragm(p, stack, p.diaphragms.items[0].id, {2});  // N1 and N2 assigned: move free N3 onto N2
+    ASSERT_TRUE(moveNode(p, stack, 3, p.structure.findNode(2)->position));  // free onto assigned
+    EXPECT_EQ(p.diaphragms.items[0].nodeIds, (std::vector<int>{1, 2}));
+}
+
+TEST(Diaphragm, MeasuredLevelPalette) {
+    const unsigned expected[8] = {0xCC3300, 0xCC6600, 0xCC9900, 0xCCCC00, 0x99CC00, 0x66CC00, 0x33CC00, 0x00CC00};
+    for (int i = 1; i <= 8; ++i) EXPECT_EQ(idColorToRgb(diaphragmLevelColorId(i)), expected[i - 1]) << i;
+    EXPECT_EQ(idColorToRgb(13), 0xFF00FFu);
+}
+
 TEST(Diaphragm, RepairOfNodesPurges) {
     // SnapshotCommand: a node merged by the repair leaves its diaphragm.
     Project p;

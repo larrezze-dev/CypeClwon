@@ -109,6 +109,14 @@ TEST(BarEnds, RotationalStiffness) {
     e.assignPlane[kPlaneXZ] = true;
     e.value[kBarOrigin][kPlaneXZ].stiffnessKnMPerRad = -1.0;
     EXPECT_TRUE(checkEndFixityEdit(e).has_value());
+    // Measured range 0.00..10000000.00 (0 accepted, 1e12 refused, literal message).
+    e.value[kBarOrigin][kPlaneXZ].stiffnessKnMPerRad = 0.0;
+    EXPECT_FALSE(checkEndFixityEdit(e).has_value());
+    e.value[kBarOrigin][kPlaneXZ].stiffnessKnMPerRad = 10000000.0;
+    EXPECT_FALSE(checkEndFixityEdit(e).has_value());
+    e.value[kBarOrigin][kPlaneXZ].stiffnessKnMPerRad = 1e12;
+    ASSERT_TRUE(checkEndFixityEdit(e).has_value());
+    EXPECT_EQ(checkEndFixityEdit(e)->text, "El valor de '' debe estar entre 0.00 y 10000000.00.");
 
     Project p = twoBars();
     UndoStack stack;
@@ -309,4 +317,22 @@ TEST(BarEnds, ToggleCommandIsOneUndoableStepWithoutWarnings) {
     EXPECT_FALSE(toggleBarArticulations(p, stack, {99}, ArticulationEnd::Both));
     stack.undo();
     EXPECT_TRUE(p.barEnds.empty());
+}
+
+TEST(BarEnds, ArticulateUndoRedoOneStepPerAction) {
+    // Measured (articulaciones.md 9.4): Individual click, then Multiple RMB; each is one undo step; Ctrl+Y redoes.
+    Project p = twoBars();
+    UndoStack stack;
+    ASSERT_TRUE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::Start));
+    ASSERT_TRUE(articulateBars(p, stack, {1, 2}, {true, true}));
+    EXPECT_EQ(stack.count(), 2u);
+    stack.undo();  // only the Multiple operation
+    EXPECT_TRUE(barEndsOf(p.barEnds, 1).ends[kBarOrigin].pinned);
+    EXPECT_FALSE(barEndsOf(p.barEnds, 1).ends[kBarFinal].pinned);
+    EXPECT_TRUE(p.barEnds.bars.count(2) == 0);
+    stack.undo();  // the Individual click
+    EXPECT_TRUE(p.barEnds.empty());
+    stack.redo();
+    EXPECT_TRUE(barEndsOf(p.barEnds, 1).ends[kBarOrigin].pinned);
+    EXPECT_FALSE(barEndsOf(p.barEnds, 1).ends[kBarFinal].pinned);
 }

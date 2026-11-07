@@ -217,7 +217,8 @@ void EndFixityDialog::commitField(int end, int plane) {
         }
         m_field[e][p]->setText(decimals(m_coefficientValue[e][p], 3));
     } else {
-        if (ok && value > 0.0 && std::isfinite(value)) m_stiffnessValue[e][p] = value;
+        // Out-of-range values are kept so that Aceptar reports them (measured); the field shows 2 decimals (0.001 -> 0.00).
+        if (ok && std::isfinite(value)) m_stiffnessValue[e][p] = std::round(value * 100.0) / 100.0;
         m_field[e][p]->setText(decimals(m_stiffnessValue[e][p], 2));
     }
     m_updating = false;

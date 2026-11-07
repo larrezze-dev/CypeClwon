@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPolygonF>
+#include <QRegularExpression>
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
@@ -1152,10 +1153,10 @@ void Viewport3D::drawBarEnds(QPainter& painter) const {
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing, true);
     QFont font = painter.font();
-    font.setPixelSize(12);
+    font.setPixelSize(13);
     font.setBold(true);
-    painter.setFont(font);
-    const QFontMetrics metrics(font);
+    const QFont constantFont = font;
+    const QFontMetrics constantMetrics(font);
     for (const core::Bar& bar : m_structure->bars) {
         const core::Node* a = m_structure->findNode(bar.startNode);
         const core::Node* b = m_structure->findNode(bar.endNode);
@@ -1171,32 +1172,78 @@ void Viewport3D::drawBarEnds(QPainter& painter) const {
             const QPointF at = end == 0 ? pa : pb;
             const QPointF inward = end == 0 ? along : -along;
             const core::BarEndFixity& fixity = record.ends[static_cast<std::size_t>(end)];
-            if (fixity.pinned) {  // black filled circle, a little inside the bar (measured: orig_artic_11)
+            if (fixity.pinned) {  // navy filled circle (11,11,144) (measured: orig_artic_40, articulaciones.md 9.1)
+                // Diameter = side of the node square (scales with the zoom); its centre lies on the bar axis 0.87 x side inwards.
                 painter.setPen(Qt::NoPen);
-                painter.setBrush(Qt::black);
-                painter.drawEllipse(at + inward * 6.0, 3.5, 3.5);
+                painter.setBrush(QColor(11, 11, 144));
+                painter.drawEllipse(at + inward * (0.87 * nodeSquarePixels()), nodeHalf(), nodeHalf());
             }
-            if (m_endFixityLabels) {  // three green-olive lines "xy: 1.000", rotated along the bar (orig_artic_07 / _08)
-                const QStringList rows = QString::fromStdString(core::endFixityLabel(fixity)).split(QStringLiteral(" "), Qt::SkipEmptyParts);
-                QStringList lines;
-                for (int i = 0; i + 1 < rows.size(); i += 2) lines << rows[i] + QStringLiteral(" ") + rows[i + 1];
-                if (lines.isEmpty()) lines = rows;
-                double angle = std::atan2(inward.y(), inward.x()) * 180.0 / 3.14159265358979323846;
-                if (angle > 90.0) angle -= 180.0;
+            const bool springEnd = std::any_of(fixity.planes.begin(), fixity.planes.end(),
+                                               [](const core::EndPlaneFixity& f) { return f.kind == core::EndFixityKind::Rotational; });
+            if (springEnd) {  // magenta (255,0,255) 1 px outline of a node-sized square (measured: orig_artic_45, articulaciones.md 9.3)
+                // The original shows a hollow square in the plane normal to the bar (a rhombus on a vertical bar in the isometric view),
+                // centred on the bar axis 0.87 x side inwards. PROVISIONAL: the in-plane orientation of the square is not measured.
+                const core::Point3& p3 = end == 0 ? a->position : b->position;
+                const core::Point3& q3 = end == 0 ? b->position : a->position;
+                const core::Point3 axis = core::geom::unit(core::geom::sub(q3, p3));
+                core::Point3 up{0, 0, 1};
+                if (std::abs(axis.z) > 0.999) up = {0, 1, 0};
+                const core::Point3 u = core::geom::unit(core::geom::cross(up, axis));
+                const core::Point3 v = core::geom::cross(axis, u);
+                const double worldLength = core::geom::length(core::geom::sub(b->position, a->position));
+                const double pxPerMetre = worldLength > 1e-9 ? length / worldLength : 0.0;
+                if (pxPerMetre > 0.0) {
+                    const double half = nodeHalf() / pxPerMetre;  // world half side
+                    const double shift = 0.87 * nodeSquarePixels() / pxPerMetre;
+                    QPolygonF square;
+                    const double sx[4] = {-1, 1, 1, -1}, sy[4] = {-1, -1, 1, 1};
+                    bool ok = true;
+                    for (int i = 0; i < 4 && ok; ++i) {
+                        const core::Point3 w{p3.x + axis.x * shift + (u.x * sx[i] + v.x * sy[i]) * half,
+                                             p3.y + axis.y * shift + (u.y * sx[i] + v.y * sy[i]) * half,
+                                             p3.z + axis.z * shift + (u.z * sx[i] + v.z * sy[i]) * half};
+                        double px, py;
+                        ok = map.toScreen(w, px, py);
+                        square << QPointF(px, py);
+                    }
+                    if (ok) {
+                        painter.setPen(QPen(QColor(255, 0, 255), 1));
+                        painter.setBrush(Qt::NoBrush);
+                        painter.drawPolygon(square);
+                    }
+                }
+            }
+            if (m_endFixityLabels) {  // green (0,128,0) bold lines "xy: 1.000", constant screen size (measured: orig_artic_41, 9.2)
+                // One line per plane ("xy: 1.000", "xz: 0.00 kN·m/rad"): split before each plane tag.
+                const QStringList lines = QString::fromStdString(core::endFixityLabel(fixity))
+                                              .split(QRegularExpression(QStringLiteral("\\s(?=(?:xy|xz|yz):)")), Qt::SkipEmptyParts);
+                constexpr double kPi = 3.14159265358979323846;
+                double angle = std::atan2(inward.y(), inward.x()) * 180.0 / kPi;
+                if (angle > 90.0 - 1e-6) angle -= 180.0;  // vertical text reads upwards, as in the original (orig_artic_41)
                 if (angle < -90.0) angle += 180.0;
+                const double rad = angle * kPi / 180.0;
+                const QPointF textX(std::cos(rad), std::sin(rad)), textY(-std::sin(rad), std::cos(rad));
+                // The block starts 0.4 m from the end (world distance, so it scales with the zoom) and sits to the screen-left of the bar.
+                const core::Point3 pa3 = a->position, pb3 = b->position;
+                const double worldLength = core::geom::length(core::geom::sub(pb3, pa3));
+                const double startPx = worldLength > 1e-9 ? 0.4 * length / worldLength : 0.0;
+                QPointF normal(-inward.y(), inward.x());
+                if (normal.x() > 1e-9 || (std::abs(normal.x()) <= 1e-9 && normal.y() > 0)) normal = -normal;  // screen-left
+                const double sideY = QPointF::dotProduct(normal, textY);  // +: the block hangs below the text baseline axis
+                const bool flipped = QPointF::dotProduct(inward, textX) < 0;
+                constexpr double kRow = 15.0;
                 painter.save();
-                painter.translate(at + inward * (end == 0 ? 8.0 : 8.0));
+                painter.translate(at + inward * startPx + normal * 2.0);
                 painter.rotate(angle);
-                painter.setPen(QColor(QStringLiteral("#6B7F1C")));
+                painter.setFont(constantFont);
+                painter.setPen(QColor(0, 128, 0));
                 painter.setBrush(Qt::NoBrush);
-                const double rowHeight = metrics.height();
                 double widest = 0;
-                for (const QString& line : lines) widest = std::max(widest, static_cast<double>(metrics.horizontalAdvance(line)));
-                // Text reading along the bar: the block is placed after the end point (towards the bar), centred on the line.
-                const bool flipped = (inward.x() * std::cos(angle * 3.14159265358979323846 / 180.0) + inward.y() * std::sin(angle * 3.14159265358979323846 / 180.0)) < 0;
-                const double x0 = flipped ? -widest - 4.0 : 4.0;
+                for (const QString& line : lines) widest = std::max(widest, static_cast<double>(constantMetrics.horizontalAdvance(line)));
+                const double x0 = flipped ? -widest : 0.0;
+                const double top = sideY > 0 ? 0.0 : -kRow * lines.size();
                 for (int i = 0; i < lines.size(); ++i)
-                    painter.drawText(QRectF(x0, (i - lines.size()) * rowHeight - 3.0, widest + 2.0, rowHeight), Qt::AlignLeft | Qt::AlignVCenter, lines[i]);  // above the bar
+                    painter.drawText(QRectF(x0, top + i * kRow, widest + 2.0, kRow), Qt::AlignLeft | Qt::AlignVCenter, lines[i]);
                 painter.restore();
             }
         }

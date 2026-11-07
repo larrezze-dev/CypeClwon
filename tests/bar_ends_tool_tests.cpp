@@ -216,6 +216,28 @@ TEST_F(BarEndsToolTest, DefaultStiffnessAsksAndNoKeepsTheDialogOpen) {
     EXPECT_EQ(dialog.result(), QDialog::Accepted);
 }
 
+TEST_F(BarEndsToolTest, StiffnessRangeIsCheckedOnAccept) {
+    EndFixityDialog dialog;
+    dialog.stiffnessRadio(kBarOrigin, kPlaneXY)->setChecked(true);
+    answer = true;
+    dialog.typeField(kBarOrigin, kPlaneXY, QStringLiteral("-1"));
+    EXPECT_TRUE(shown.empty());  // no warning while typing: the original reports on Aceptar
+    dialog.accept();
+    ASSERT_EQ(shown.size(), 1u);
+    EXPECT_EQ(shown[0].kind, messages::Kind::Warning);
+    EXPECT_EQ(shown[0].text, QStringLiteral("El valor de '' debe estar entre 0.00 y 10000000.00."));
+    EXPECT_NE(dialog.result(), QDialog::Accepted);
+    dialog.typeField(kBarOrigin, kPlaneXY, QStringLiteral("1000000000000"));
+    dialog.accept();
+    EXPECT_EQ(shown.size(), 2u);
+    EXPECT_NE(dialog.result(), QDialog::Accepted);
+    dialog.typeField(kBarOrigin, kPlaneXY, QStringLiteral("0.001"));  // rounds to 0.00 and is accepted
+    EXPECT_EQ(dialog.field(kBarOrigin, kPlaneXY)->text(), QStringLiteral("0.00"));
+    dialog.accept();
+    EXPECT_EQ(shown.size(), 2u);
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+}
+
 TEST_F(BarEndsToolTest, EmpotramientoAssignsToTheSelectedBarsAsOneStep) {
     tool->setDialogRunner([](QDialog& dialog) {
         auto& d = static_cast<EndFixityDialog&>(dialog);

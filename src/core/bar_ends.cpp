@@ -52,6 +52,8 @@ std::string endTooltipLine(const BarEndsRecord& record, int endIndex) {
 
 std::string endFixityRangeMessage() { return "El valor de '' debe estar entre 0.000 y 1.000 ."; }
 
+std::string endFixityStiffnessRangeMessage() { return "El valor de '' debe estar entre 0.00 y 10000000.00."; }
+
 std::string endFixityDefaultStiffnessQuestion() {
     return "El valor de la rigidez rotacional introducido coincide con el valor por defecto. Recuerde que debe asignar un valor conforme al "
            "grado de empotramiento que posee la unión en el extremo de la pieza. ¿Desea continuar?";
@@ -67,8 +69,9 @@ std::optional<EndFixityIssue> checkEndFixityEdit(const EndFixityEdit& edit) {
                 if (!std::isfinite(c) || c < 0.0 || c > 1.0) return EndFixityIssue{0, endFixityRangeMessage()};
                 // TODO(medir): the original offers a binary popup 0.000 / 1.000 for the torsion plane.
                 if (pl == kPlaneYZ && c != 0.0 && c != 1.0) return EndFixityIssue{0, endFixityRangeMessage()};
-            } else if (!std::isfinite(f.stiffnessKnMPerRad) || f.stiffnessKnMPerRad <= 0.0) {
-                return EndFixityIssue{0, "El valor de la rigidez rotacional debe ser mayor que cero."};  // TODO(medir): text and range
+            } else if (!std::isfinite(f.stiffnessKnMPerRad) || f.stiffnessKnMPerRad < kMinEndRotationalStiffness ||
+                       f.stiffnessKnMPerRad > kMaxEndRotationalStiffness) {
+                return EndFixityIssue{0, endFixityStiffnessRangeMessage()};
             }
         }
     return std::nullopt;
@@ -98,7 +101,8 @@ std::string validateBarEnds(const BarEnds& ends, const StructuralModel& model) {
         for (const BarEndFixity& e : rec.ends)
             for (const EndPlaneFixity& p : e.planes) {
                 if (!std::isfinite(p.coefficient) || p.coefficient < 0.0 || p.coefficient > 1.0) return "extremos de barra: coeficiente fuera de rango";
-                if (!std::isfinite(p.stiffnessKnMPerRad) || p.stiffnessKnMPerRad <= 0.0) return "extremos de barra: rigidez no válida";
+                if (!std::isfinite(p.stiffnessKnMPerRad) || p.stiffnessKnMPerRad < kMinEndRotationalStiffness || p.stiffnessKnMPerRad > kMaxEndRotationalStiffness)
+                    return "extremos de barra: rigidez no válida";
             }
     }
     return {};
