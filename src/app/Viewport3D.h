@@ -18,6 +18,7 @@
 #include "core/camera.h"
 #include "core/categories.h"
 #include "core/bar_ends.h"
+#include "core/buckling.h"
 #include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
@@ -125,6 +126,13 @@ public:
     const core::BarEnds* barEnds() const { return m_barEnds; }
     bool endFixityLabelsVisible() const { return m_endFixityLabels; }
     bool barAxesVisible() const { return m_barAxes; }
+    /// Buckling data (not owned) and the labels of the tools Propiedades > Barras > Pandeo / Pandeo lateral: green bold texts along the bars
+    /// ("xy: 1.00 / 1.00" ...) and, for Pandeo, the extra lines of the information panel (pandeo.md section 9.5).
+    enum class BucklingLabels { None, Beta, Lateral };
+    void setBuckling(const core::BucklingData* data);
+    void setBucklingLabels(BucklingLabels labels);
+    const core::BucklingData* buckling() const { return m_buckling; }
+    BucklingLabels bucklingLabels() const { return m_bucklingLabels; }
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
     QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
@@ -175,6 +183,9 @@ public:
     /// "Dimensiones de los nudos": the blue/orange node square follows it, constant with the zoom (original: 15 cm ->
     /// ~14 px, 40 cm -> ~35 px, i.e. ~0.9 px per cm; captures op1_node_zoom.png).
     void setNodeSizeCm(double cm);
+    /// "Tamaño de los textos" (%): scales the labels of Pandeo / Pandeo lateral (world-sized text, pandeo.md 9.7).
+    void setTextSizePercent(double percent);
+    double textSizePercent() const { return m_textSizePercent; }
     double nodeSizeCm() const { return m_nodeSizeCm; }
     double nodeSquarePixels() const { return m_nodeSizeCm * 0.9; }
     double nodeHalf() const { return nodeSquarePixels() / 2.0; }
@@ -382,6 +393,7 @@ private:
     void drawNodeTags(class QPainter& painter) const;
     void drawBarTags(class QPainter& painter) const;
     void drawBarEnds(class QPainter& painter) const;
+    void drawBucklingLabels(class QPainter& painter) const;
     void rebuildSnapModel();
     void updateFocusPolicy();
     bool elementExists(const core::ElementRef& e) const;
@@ -406,6 +418,8 @@ private:
     const core::BarEnds* m_barEnds = nullptr;
     bool m_endFixityLabels = false;
     bool m_barAxes = false;
+    const core::BucklingData* m_buckling = nullptr;
+    BucklingLabels m_bucklingLabels = BucklingLabels::None;
     std::function<bool(int)> m_nodeExcluded;
     const core::WorkPlanes* m_planes = nullptr;
     bool m_selectionMode = false;
@@ -423,6 +437,7 @@ private:
     bool m_showElementInfo = true;
     bool m_fillShells = false;
     double m_nodeSizeCm = 15.0;
+    double m_textSizePercent = 100.0;
     bool m_cursorInside = false;
     bool m_coordTooltipEnabled = true;
     bool m_coordTooltipDismissed = false;

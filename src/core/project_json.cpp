@@ -637,6 +637,62 @@ const std::vector<Section>& sections() {
                     p.barEnds = std::move(loaded);
                 },
                 [](const Project& p) { return validateBarEnds(p.barEnds, p.structure).empty(); }},
+        Section{"buckling", "Pandeo de barras y pandeo lateral",
+                [](const Project& p) {
+                    // Bars that no longer exist are not saved. The kind (the radio) is persisted together with beta and the
+                    // lengths: measured, a typed 0 / 0.5 stays "Otros valores" when the dialog is reopened.
+                    auto plane = [](const BucklingPlane& b) {
+                        return json{{"kind", static_cast<int>(b.kind)}, {"beta", b.beta}, {"length", b.lengthM}, {"translational", b.translational}, {"moment", b.momentCoeff}, {"reviewed", b.reviewed}};
+                    };
+                    auto flange = [](const LateralBuckling& f) {
+                        return json{{"kind", static_cast<int>(f.kind)}, {"coeff", f.coeff}, {"spacing", f.spacingM}, {"moment", f.momentCoeff}, {"reviewed", f.reviewed}};
+                    };
+                    json bars = json::array();
+                    for (const auto& [id, r] : p.buckling.bars) {
+                        if (!p.structure.findBar(id)) continue;
+                        bars.push_back({{"bar", id}, {"c1", r.c1}, {"consider", r.considerInAnalysis}, {"updateXY", r.updateXY}, {"updateXZ", r.updateXZ}, {"xy", plane(r.xy)}, {"xz", plane(r.xz)}, {"top", flange(r.top)}, {"bottom", flange(r.bottom)}});
+                    }
+                    return json{{"bars", bars}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    auto plane = [](const json& o) {
+                        BucklingPlane b;
+                        const int kind = o.value("kind", static_cast<int>(BucklingKind::PinnedPinned));
+                        b.kind = static_cast<BucklingKind>(kind);
+                        b.beta = o.value("beta", 1.0);
+                        b.lengthM = o.value("length", 1.0);
+                        b.translational = o.value("translational", false);
+                        b.momentCoeff = o.value("moment", 1.0);
+                        b.reviewed = o.value("reviewed", false);
+                        return b;
+                    };
+                    auto flange = [](const json& o) {
+                        LateralBuckling f;
+                        f.kind = static_cast<LateralKind>(o.value("kind", 0));
+                        f.coeff = o.value("coeff", 1.0);
+                        f.spacingM = o.value("spacing", kDefaultLateralSpacingM);
+                        f.momentCoeff = o.value("moment", 1.0);
+                        f.reviewed = o.value("reviewed", false);
+                        return f;
+                    };
+                    BucklingData loaded;
+                    if (j.contains("bars"))
+                        for (const json& b : j.at("bars")) {
+                            BarBuckling r;
+                            r.c1 = b.value("c1", 1.0);
+                            r.considerInAnalysis = b.value("consider", true);
+                            r.updateXY = b.value("updateXY", false);
+                            r.updateXZ = b.value("updateXZ", false);
+                            if (b.contains("xy")) r.xy = plane(b.at("xy"));
+                            if (b.contains("xz")) r.xz = plane(b.at("xz"));
+                            if (b.contains("top")) r.top = flange(b.at("top"));
+                            if (b.contains("bottom")) r.bottom = flange(b.at("bottom"));
+                            setBuckling(loaded, b.at("bar").get<int>(), r);
+                        }
+                    p.buckling = std::move(loaded);
+                },
+                [](const Project& p) { return validateBuckling(p.buckling, p.structure).empty(); }},
     };
     return all;
 }

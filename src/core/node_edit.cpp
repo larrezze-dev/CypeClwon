@@ -149,6 +149,8 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     m_diaphragmsBefore = project.diaphragms;
     m_barEndsBefore = project.barEnds;
     m_barEndsAfter = project.barEnds;
+    m_bucklingBefore = project.buckling;
+    m_bucklingAfter = project.buckling;
     auto deleted = [&](int id) { return std::binary_search(nodeIds.begin(), nodeIds.end(), id); };
 
     std::vector<int> barIds, shellIds;
@@ -188,6 +190,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
             rec.ends[static_cast<std::size_t>(e)] = endDataAt(node == farFirst ? first : second, node);
         }
         setBarEnds(m_barEndsAfter, merged.id, rec);
+        setBuckling(m_bucklingAfter, merged.id, bucklingOf(project.buckling, first.id));
         m_merged.push_back(merged);
     }
     std::sort(barIds.begin(), barIds.end());
@@ -213,6 +216,7 @@ void DeleteNodesCommand::redo() {
     applyDiaphragmNodesDeleted(m_project.diaphragms, deletedIds);
     for (const Bar& b : m_merged) model.insertBar(b);
     m_project.barEnds = m_barEndsAfter;
+    m_project.buckling = m_bucklingAfter;
 }
 
 void DeleteNodesCommand::undo() {
@@ -224,6 +228,7 @@ void DeleteNodesCommand::undo() {
     m_project.ligatures = m_ligaturesBefore;
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.barEnds = m_barEndsBefore;
+    m_project.buckling = m_bucklingBefore;
     for (const Bar& b : m_bars) model.insertBar(b);
     for (const Shell& s : m_shells) model.insertShell(s);
 }

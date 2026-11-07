@@ -9,6 +9,8 @@ void SnapshotCommand::commit() {
     m_after = std::move(work);
     m_endsBefore = m_project.barEnds;
     m_endsAfter = reconcileBarEnds(m_endsBefore, m_before, m_after);
+    m_bucklingBefore = m_project.buckling;
+    m_bucklingAfter = reconcileBuckling(m_bucklingBefore, m_before, m_after);
     m_diaphragmsBefore = m_project.diaphragms;
     m_diaphragmsAfter = m_diaphragmsBefore;
     for (Diaphragm& d : m_diaphragmsAfter.items)
@@ -20,6 +22,7 @@ void SnapshotCommand::redo() {
     if (!m_committed) return;
     m_project.structure = m_after;
     m_project.barEnds = m_endsAfter;
+    m_project.buckling = m_bucklingAfter;
     const int next = std::max(m_project.diaphragms.nextId, m_diaphragmsAfter.nextId);
     m_project.diaphragms = m_diaphragmsAfter;
     m_project.diaphragms.nextId = next;
@@ -30,6 +33,7 @@ void SnapshotCommand::undo() {
     const StructuralModel current = std::move(m_project.structure);
     m_project.structure = m_before;
     m_project.barEnds = m_endsBefore;
+    m_project.buckling = m_bucklingBefore;
     const int nextDiaphragm = std::max(m_project.diaphragms.nextId, m_diaphragmsBefore.nextId);
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.diaphragms.nextId = nextDiaphragm;

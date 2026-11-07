@@ -150,6 +150,7 @@ void DisplayOptionsPanel::applyTo(Viewport3D& viewport, const cc::core::DisplayO
     viewport.setShowElementInfo(options.showElementInfo);
     viewport.setFillShells(options.fillShells);
     viewport.setNodeSizeCm(options.nodeSizeCm);
+    viewport.setTextSizePercent(options.textSizePercent);
     viewport.setTooltipPosition(options.tooltipPlacement == TooltipPlacement::OnElement ? TooltipPosition::OnElement
                                                                                        : TooltipPosition::TopRightCorner);
 }

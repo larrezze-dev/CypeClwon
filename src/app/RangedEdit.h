@@ -23,6 +23,9 @@ public:
     const QString& label() const { return m_label; }
     /// Unit written after each bound of the warning and the tooltip ("-360.000 grados y 360.000 grados", measured for the angle).
     void setBoundUnit(const QString& unit);
+    /// Text written verbatim after each bound (no separating space added): " " gives the measured "entre 0.000  y 100.000 ." of the
+    /// buckling dialogs (pandeo.md 9.2). Takes precedence over the bound unit.
+    void setBoundSuffix(const QString& suffix);
     /// Strict number reading (vinculaciones.md 5.1): the text is not rewritten ("1,5" is not a number) and an unreadable text says
     /// "La cadena introducida no es un número." instead of the range warning. Off by default.
     void setStrictNumber(bool on) { m_strict = on; }
@@ -40,9 +43,12 @@ signals:
 
 private:
     QString formatted(double value) const;
+    QString boundSuffix() const;
 
     QString m_label;
     QString m_boundUnit;
+    QString m_rawSuffix;
+    bool m_hasRawSuffix = false;
     cc::core::ValueRange m_range;
     int m_decimals;
     double m_value = 0.0;

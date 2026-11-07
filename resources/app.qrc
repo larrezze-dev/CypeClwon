@@ -8,6 +8,8 @@
     <file>icons/support_internal.svg</file>
     <file>icons/support_ligature.svg</file>
     <file>icons/diaphragm_edit.svg</file>
+    <file>icons/bar_buckling.svg</file>
+    <file>icons/bar_lateral_buckling.svg</file>
     <file>icons/diaphragm_assign.svg</file>
     <file>icons/diaphragm_generate.svg</file>
     <file>icons/bar_pin.svg</file>

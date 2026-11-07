@@ -39,6 +39,17 @@ RangedEdit::RangedEdit(const QString& label, const cc::core::ValueRange& range, 
 
 QString RangedEdit::formatted(double value) const { return QString::number(value, 'f', m_decimals); }
 
+QString RangedEdit::boundSuffix() const {
+    if (m_hasRawSuffix) return m_rawSuffix;
+    return m_boundUnit.isEmpty() ? QString() : QLatin1Char(' ') + m_boundUnit;
+}
+
+void RangedEdit::setBoundSuffix(const QString& suffix) {
+    m_rawSuffix = suffix;
+    m_hasRawSuffix = true;
+    setRange(m_range);
+}
+
 void RangedEdit::setBoundUnit(const QString& unit) {
     m_boundUnit = unit;
     setRange(m_range);
@@ -46,7 +57,7 @@ void RangedEdit::setBoundUnit(const QString& unit) {
 
 void RangedEdit::setRange(const cc::core::ValueRange& range) {
     m_range = range;
-    const QString suffix = m_boundUnit.isEmpty() ? QString() : QLatin1Char(' ') + m_boundUnit;
+    const QString suffix = boundSuffix();
     setToolTip(tr("Debe estar entre %1 y %2.").arg(formatted(range.min) + suffix, formatted(range.max) + suffix));
 }
 
@@ -70,7 +81,7 @@ bool RangedEdit::commit() {
         if (changed) emit valueCommitted(m_value);
         return true;
     }
-    const QString suffix = m_boundUnit.isEmpty() ? QString() : QLatin1Char(' ') + m_boundUnit;
+    const QString suffix = boundSuffix();
     m_lastWarning = tr("El valor de '%1' debe estar entre %2 y %3.").arg(m_label, formatted(m_range.min) + suffix, formatted(m_range.max) + suffix);
     if (m_strict && !(ok && std::isfinite(typed))) m_lastWarning = tr("La cadena introducida no es un número.");
     setText(formatted(m_value));  // the field recovers the previous value

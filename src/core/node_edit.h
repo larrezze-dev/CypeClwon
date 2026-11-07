@@ -93,6 +93,7 @@ private:
     std::map<int, InternalLink> m_internalBefore;
     NodeLigatures m_ligaturesBefore;  ///< ties before the deletion (deleted nodes leave them and ties are renumbered; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
+    BucklingData m_bucklingBefore, m_bucklingAfter;  ///< buckling data; the merged bar takes the data of the first (lower id) bar it replaces
     BarEnds m_barEndsBefore, m_barEndsAfter;  ///< end data of the bars; the bar that replaces a deleted node inherits the ends that touch its far nodes
 };
 

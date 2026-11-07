@@ -513,6 +513,12 @@ void Viewport3D::rebuildSnapModel() {
 
 void Viewport3D::updateFocusPolicy() { setFocusPolicy(m_selectionMode || m_snapMode ? Qt::ClickFocus : Qt::NoFocus); }
 
+void Viewport3D::setTextSizePercent(double percent) {
+    if (!(percent > 0.0) || m_textSizePercent == percent) return;
+    m_textSizePercent = percent;
+    update();
+}
+
 void Viewport3D::setNodeSizeCm(double cm) {
     if (!(cm > 0.0) || m_nodeSizeCm == cm) return;
     m_nodeSizeCm = cm;
@@ -843,6 +849,16 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
         lines << tr("Empotramiento en extremos") << QString::fromStdString(core::endTooltipLine(record, core::kBarOrigin))
               << QString::fromStdString(core::endTooltipLine(record, core::kBarFinal));
     }
+    if (id && m_bucklingLabels == BucklingLabels::Beta && m_buckling) {  // Pandeo: the data of the bar (pandeo.md 9.5)
+        const core::Bar* bar = m_structure->findBar(*id);
+        const core::Node* na = bar ? m_structure->findNode(bar->startNode) : nullptr;
+        const core::Node* nb = bar ? m_structure->findNode(bar->endNode) : nullptr;
+        const double barLength = na && nb ? core::geom::length(core::geom::sub(nb->position, na->position)) : 0.0;
+        for (const std::string& line : core::bucklingInfoLines(core::bucklingOf(*m_buckling, *id), barLength)) lines << QString::fromStdString(line);
+    }
+    if (id && m_bucklingLabels == BucklingLabels::Lateral && m_buckling) {  // Pandeo lateral: block only for a bar with lateral data (pandeo.md 9.6)
+        for (const std::string& line : core::lateralInfoLines(core::bucklingOf(*m_buckling, *id))) lines << QString::fromStdString(line);
+    }
     QFont font = painter.font();
     font.setPixelSize(14);
     const QFont bold = [&] { QFont f = font; f.setBold(true); return f; }();
@@ -978,6 +994,17 @@ void Viewport3D::setBarEnds(const core::BarEnds* ends) {
 void Viewport3D::setEndFixityLabelsVisible(bool on) {
     if (m_endFixityLabels == on) return;
     m_endFixityLabels = on;
+    update();
+}
+
+void Viewport3D::setBuckling(const core::BucklingData* data) {
+    m_buckling = data;
+    update();
+}
+
+void Viewport3D::setBucklingLabels(BucklingLabels labels) {
+    if (m_bucklingLabels == labels) return;
+    m_bucklingLabels = labels;
     update();
 }
 
@@ -1278,6 +1305,69 @@ void Viewport3D::drawBarEnds(QPainter& painter) const {
                 }
             }
         }
+    }
+    painter.restore();
+}
+
+void Viewport3D::drawBucklingLabels(QPainter& painter) const {
+    // Green (0,128,0) bold text parallel to the bar, above its middle point, no background; bars too short for the text get none
+    // (measured: orig_pandeo_16 / 28, pandeo.md section 9.5). The text has a WORLD size (measured: it grows and shrinks with the zoom, doubles at
+    // "Tamaño de los textos" 200 % and halves at 50 %): the row spacing is 0.0072 of the diagonal of the structure (calibrated on the original at 100 %:
+    // 10 px per row on a 41.5 m wide frame at 33.8 px/m; approximate, pandeo.md 9.7) times the percentage.
+    if (m_bucklingLabels == BucklingLabels::None || !m_buckling || !m_structure || !m_categories.barsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    double diagonal = 0.0;
+    {
+        bool any = false;
+        core::Point3 lo{0, 0, 0}, hi{0, 0, 0};
+        for (const core::Node& n : m_structure->nodes) {
+            if (!any) lo = hi = {n.position.x, n.position.y, n.position.z};
+            any = true;
+            lo = {std::min(lo.x, n.position.x), std::min(lo.y, n.position.y), std::min(lo.z, n.position.z)};
+            hi = {std::max(hi.x, n.position.x), std::max(hi.y, n.position.y), std::max(hi.z, n.position.z)};
+        }
+        diagonal = any ? core::geom::length(core::geom::sub(hi, lo)) : 0.0;
+    }
+    const double rowWorld = 0.0072 * diagonal * m_textSizePercent / 100.0;
+    painter.save();
+    painter.setPen(QColor(0, 128, 0));
+    for (const core::Bar& bar : m_structure->bars) {
+        if (!m_structure->elementVisible(bar.layerIds)) continue;
+        const core::Node* a = m_structure->findNode(bar.startNode);
+        const core::Node* b = m_structure->findNode(bar.endNode);
+        double ax, ay, bx, by;
+        if (!a || !b || !map.toScreen(a->position, ax, ay) || !map.toScreen(b->position, bx, by)) continue;
+        const core::Vec3 mid{(a->position.x + b->position.x) / 2.0, (a->position.y + b->position.y) / 2.0, (a->position.z + b->position.z) / 2.0};
+        double x, y;
+        if (!visibleAfterClipping({mid.x, mid.y, mid.z}) || !map.toScreen(mid, x, y)) continue;
+        const double worldLength = core::geom::length(core::geom::sub(b->position, a->position));
+        const double screenLength = std::hypot(bx - ax, by - ay);
+        const double kRow = worldLength > 1e-9 ? rowWorld * screenLength / worldLength : 0.0;  // pixels per row at this bar
+        if (kRow < 3.0) continue;                                                              // too small to read: nothing is drawn
+        QFont font = painter.font();
+        font.setPixelSize(std::max(1, static_cast<int>(std::lround(kRow * 0.88))));
+        font.setBold(true);
+        painter.setFont(font);
+        const QFontMetrics metrics(font);
+        const core::BarBuckling record = core::bucklingOf(*m_buckling, bar.id);
+        const std::vector<std::string> raw = m_bucklingLabels == BucklingLabels::Beta ? core::bucklingLabelLines(record, worldLength)
+                                                                                     : core::lateralLabelLines(record, worldLength);
+        QStringList lines;
+        double widest = 0;
+        for (const std::string& line : raw) {
+            lines << QString::fromStdString(line);
+            widest = std::max(widest, static_cast<double>(metrics.horizontalAdvance(lines.back())));
+        }
+        if (screenLength < widest + 4.0) continue;  // short bars show no label
+        double angle = std::atan2(by - ay, bx - ax) * 180.0 / 3.14159265358979323846;
+        if (angle > 90.0) angle -= 180.0;
+        if (angle < -90.0) angle += 180.0;
+        painter.save();
+        painter.translate(x, y);
+        painter.rotate(angle);
+        for (int i = 0; i < lines.size(); ++i)
+            painter.drawText(QRectF(-widest / 2.0 - 2.0, -kRow * 0.3 - (lines.size() - i) * kRow, widest + 4.0, kRow), Qt::AlignCenter, lines[i]);
+        painter.restore();
     }
     painter.restore();
 }
@@ -1672,6 +1762,7 @@ void Viewport3D::paintGL() {
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawBarEnds(painter);
+    drawBucklingLabels(painter);
     drawNodeTags(painter);
     drawBarTags(painter);
     drawZoomMark(painter);

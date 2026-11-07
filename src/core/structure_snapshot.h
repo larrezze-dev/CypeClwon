@@ -34,6 +34,7 @@ private:
     // Data hanging from nodes / bars that the edit may orphan or divide: end data (divided bars hand their end to the last stretch) and
     // diaphragms (vanished nodes leave them).
     BarEnds m_endsBefore, m_endsAfter;
+    BucklingData m_bucklingBefore, m_bucklingAfter;
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
 };
 
