@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <set>
 
 #include "core/project.h"
@@ -144,10 +145,6 @@ std::vector<int> diaphragmSelection(const Project& project, const std::vector<in
 DiaphragmCheck checkDiaphragmAssign(const Project& project, int diaphragmId, const std::vector<int>& nodeIds) {
     const std::vector<int> ids = diaphragmSelection(project, nodeIds);
     if (ids.empty() || !findDiaphragm(project.diaphragms, diaphragmId)) return {DiaphragmStatus::Silent, 0, {}};
-    for (int id : ids)
-        if (isSupported(project.structure, project.nodeSupports, id)) return {DiaphragmStatus::Error, 375640, diaphragmMessage(375640)};
-    for (int id : ids)
-        if (hasLigature(project.ligatures, id)) return {DiaphragmStatus::Error, 404575, diaphragmMessage(404575)};
     return {};
 }
 
@@ -167,20 +164,55 @@ void applyDiaphragmUnassign(Diaphragms& d, const std::vector<int>& nodeIds) {
 
 void applyDiaphragmNodesDeleted(Diaphragms& d, const std::vector<int>& nodeIds) { applyDiaphragmUnassign(d, nodeIds); }
 
+int diaphragmLevelColorId(int i) { return (i < 24 ? 12 : 11) + (i % 24) * 10; }
+
+unsigned idColorToRgb(int idColor) {
+    if (idColor == 13) return kDefaultDiaphragmColor;  // measured: idcolor_colorRGB(0xd) = magenta
+    // PLACEHOLDER hue ramp (replace with the measured palette).
+    const double hue = std::fmod(idColor * 15.0, 360.0) / 60.0;
+    const double x = 1.0 - std::fabs(std::fmod(hue, 2.0) - 1.0);
+    double r = 0, g = 0, b = 0;
+    switch (static_cast<int>(hue)) {
+        case 0: r = 1; g = x; break;
+        case 1: r = x; g = 1; break;
+        case 2: g = 1; b = x; break;
+        case 3: g = x; b = 1; break;
+        case 4: r = x; b = 1; break;
+        default: r = 1; b = x; break;
+    }
+    auto ch = [](double v) { return static_cast<unsigned>(std::lround(v * 255.0)); };
+    return (ch(r) << 16) | (ch(g) << 8) | ch(b);
+}
+
 std::vector<Diaphragm> planDiaphragmsByLevels(const Project& project, int firstId) {
+    // Sort by increasing elevation with tolerance (insertion sort: stable, and safe with a tolerance comparator).
+    std::vector<Level> levels;
+    for (const Level& l : project.workPlanes.levels) {
+        auto pos = levels.end();
+        while (pos != levels.begin() && (pos - 1)->elevation - l.elevation > kDiaphragmSameElevationM) --pos;
+        levels.insert(pos, l);
+    }
     std::vector<Diaphragm> out;
+    std::map<std::string, int> repeats;
     int next = firstId;
-    for (const Level& level : sortedLevels(project.workPlanes.levels)) {
+    const std::size_t n = levels.size();
+    for (std::size_t i = 1; i < n; ++i) {
+        const Level& level = levels[n - i];
         Diaphragm d;
-        for (const Node& n : project.structure.nodes) {
-            if (std::fabs(n.position.z - level.elevation) > kDiaphragmSameElevationM) continue;
-            if (isSupported(project.structure, project.nodeSupports, n.id) || hasLigature(project.ligatures, n.id)) continue;
-            d.nodeIds.push_back(n.id);
-        }
-        if (d.nodeIds.empty()) continue;
-        std::sort(d.nodeIds.begin(), d.nodeIds.end());
         d.id = next++;
-        d.reference = "D" + std::to_string(out.size() + 1);
+        const int k = repeats[level.name]++;
+        d.reference = k == 0 ? level.name : level.name + "_" + std::to_string(k);
+        d.color = idColorToRgb(diaphragmLevelColorId(static_cast<int>(i)));
+        auto atLevel = [&](int nodeId) {
+            const Node* node = project.structure.findNode(nodeId);
+            return node && std::fabs(node->position.z - level.elevation) <= kDiaphragmSameElevationM;
+        };
+        for (const Node& node : project.structure.nodes)
+            if (atLevel(node.id)) d.nodeIds.push_back(node.id);
+        for (const Shell& shell : project.structure.shells)
+            if (!shell.nodeIds.empty() && std::all_of(shell.nodeIds.begin(), shell.nodeIds.end(), atLevel)) d.shellIds.push_back(shell.id);
+        std::sort(d.nodeIds.begin(), d.nodeIds.end());
+        std::sort(d.shellIds.begin(), d.shellIds.end());
         out.push_back(std::move(d));
     }
     return out;

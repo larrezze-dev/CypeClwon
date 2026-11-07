@@ -138,4 +138,28 @@ BarEnds reconcileBarEnds(const BarEnds& ends, const StructuralModel& before, con
     return out;
 }
 
+ArticulationEnd articulationEndForClick(double d0, double d1, double length) {
+    const double third = length / 3.0;
+    if (d1 - third > d0) return ArticulationEnd::Start;
+    if (d0 - third > d1) return ArticulationEnd::End;
+    return ArticulationEnd::Both;
+}
+
+ArticulationEnd articulationEndForParameter(double t) {
+    t = std::clamp(t, 0.0, 1.0);
+    return articulationEndForClick(t, 1.0 - t, 1.0);
+}
+
+void toggleArticulation(BarEndsRecord& record, ArticulationEnd end) {
+    bool& start = record.ends[kBarOrigin].pinned;
+    bool& last = record.ends[kBarFinal].pinned;
+    switch (end) {
+        case ArticulationEnd::Start: start = !start; break;
+        case ArticulationEnd::End: last = !last; break;
+        case ArticulationEnd::Both:
+            if (start == last) start = last = !start;  // both free -> both pinned; both pinned -> both free; mixed: untouched
+            break;
+    }
+}
+
 }  // namespace cc::core

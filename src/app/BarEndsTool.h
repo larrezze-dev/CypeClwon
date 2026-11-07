@@ -85,7 +85,8 @@ private:
 
 /// Propiedades > Barras > Articular and Empotramiento (T-P6-05, GUI part; data and undoable commands in core/bar_ends*.h).
 ///  - Articular: panel "Tipo de selección"; Múltiple: window selection + RMB marks both ends of the selected bars as pinned (black circles);
-///    Individual: a click on a bar pins the END NEAREST to the click (PROVISIONAL: not measured which end the original takes).
+///    Individual: a click on a bar articulates the end chosen by the REA rule of thirds (first third = start, last third = end, centre = both).
+///    Articular toggles (re-applying removes the articulation); in Múltiple both ends: both pinned -> free, none -> pinned, mixed -> unchanged.
 ///  - Empotramiento: window selection of bars + RMB opens the dialog; Aceptar assigns the fixity of the planes ticked as one undoable step.
 class BarEndsTool : public QObject {
     Q_OBJECT
@@ -111,9 +112,9 @@ public:
     /// los elementos seleccionados." (Múltiple, Empotramiento).
     static QString statusText(Mode mode, bool multiple);
 
-    /// Múltiple: pins both ends of the bars. True when something changed.
+    /// Múltiple: toggles both ends of the bars (REA). True when something changed.
     bool articulate(const std::vector<int>& barIds);
-    /// Individual: pins the end of `barId` nearest to the screen point `at` (needs a viewport). True when something changed.
+    /// Individual: toggles the end(s) of `barId` chosen by the click at screen point `at` (rule of thirds). True when something changed.
     bool articulateNearest(Viewport3D& viewport, int barId, const QPointF& at);
     /// Empotramiento on the bars: opens the dialog (initial state: the defaults) and applies it when accepted. True when something changed.
     bool editFixity(const std::vector<int>& barIds);

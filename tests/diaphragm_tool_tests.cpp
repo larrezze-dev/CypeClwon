@@ -276,20 +276,16 @@ TEST_F(DiaphragmToolTest, RightClickAssignsAndEliminarRemoves) {
     EXPECT_EQ(undo.count(), count);
 }
 
-TEST_F(DiaphragmToolTest, AssigningARestrainedNodeShowsTheErrorAndKeepsTheSelection) {
+TEST_F(DiaphragmToolTest, AssigningARestrainedNodeIsAcceptedWithoutAMessage) {
+    // REA diafragmas.md sec. 9.4: the restraint is only reported by the calculation check.
     defineD1();
     ExternalSupport support;
     support.type = ExternalSupportType::Fixed;
     ASSERT_EQ(assignExternalSupport(project, undo, {1}, support), 1);
     tool->assignAction()->trigger();
-    EXPECT_FALSE(tool->execute({1}));
-    ASSERT_EQ(shown.size(), 1u);
-    EXPECT_EQ(shown[0].kind, messages::Kind::Error);
-    EXPECT_EQ(shown[0].text, QStringLiteral("No es posible asignar un nudo con vinculación exterior a un diafragma."));
-    selectWindow(1, 1);
-    click(*view, QPointF(400, 500), Qt::RightButton);
-    EXPECT_EQ(shown.size(), 2u);
-    EXPECT_EQ(view->selection().size(), 1u);
+    EXPECT_TRUE(tool->execute({1}));
+    EXPECT_TRUE(shown.empty());
+    EXPECT_TRUE(isNodeInDiaphragm(project.diaphragms, 1));
 }
 
 TEST_F(DiaphragmToolTest, GenerateByLevelsMessages) {
@@ -301,17 +297,17 @@ TEST_F(DiaphragmToolTest, GenerateByLevelsMessages) {
     EXPECT_EQ(shown[0].text, QStringLiteral("No se ha definido ningún nivel"));
     shown.clear();
     // With levels and diaphragms already there: the question, then the replacement (provisional algorithm of the core).
-    project.workPlanes.levels = {{"Planta 1", 0.0}};
+    project.workPlanes.levels = {{"Base", -10.0}, {"Planta 1", 0.0}};
     answer = false;
     EXPECT_FALSE(tool->generate());
     ASSERT_EQ(shown.size(), 1u);
-    EXPECT_EQ(shown[0].kind, messages::Kind::Question);
+    EXPECT_EQ(shown[0].kind, messages::Kind::QuestionDefaultNo);
     EXPECT_EQ(shown[0].text, QStringLiteral("Se borrarán los diafragmas previamente definidos. ¿Desea continuar?"));
     shown.clear();
     answer = true;
     EXPECT_TRUE(tool->generate());
     ASSERT_EQ(shown.size(), 2u);
-    EXPECT_EQ(shown[0].kind, messages::Kind::Question);
+    EXPECT_EQ(shown[0].kind, messages::Kind::QuestionDefaultNo);
     EXPECT_EQ(shown[1].kind, messages::Kind::Information);
     EXPECT_EQ(shown[1].text, QStringLiteral("Se ha generado un diafragma"));
 }

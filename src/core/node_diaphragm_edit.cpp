@@ -6,7 +6,12 @@
 namespace cc::core {
 
 DiaphragmCommand::DiaphragmCommand(Project& project, Diaphragms after, std::string text)
-    : m_project(project), m_before(project.diaphragms), m_after(std::move(after)), m_text(std::move(text)) {}
+    : m_project(project), m_before(project.diaphragms), m_after(std::move(after)), m_ligBefore(project.ligatures), m_ligAfter(project.ligatures),
+      m_text(std::move(text)) {}
+
+DiaphragmCommand::DiaphragmCommand(Project& project, Diaphragms after, NodeLigatures ligaturesAfter, std::string text)
+    : m_project(project), m_before(project.diaphragms), m_after(std::move(after)), m_ligBefore(project.ligatures),
+      m_ligAfter(std::move(ligaturesAfter)), m_text(std::move(text)) {}
 
 namespace {
 
@@ -40,9 +45,15 @@ std::optional<DiaphragmIssue> editDiaphragms(Project& project, UndoStack& stack,
 DiaphragmCheck assignNodesToDiaphragm(Project& project, UndoStack& stack, int diaphragmId, const std::vector<int>& nodeIds) {
     const DiaphragmCheck check = checkDiaphragmAssign(project, diaphragmId, nodeIds);
     if (check.status != DiaphragmStatus::Ok) return check;
+    const std::vector<int> ids = diaphragmSelection(project, nodeIds);
     Diaphragms after = project.diaphragms;
-    applyDiaphragmAssign(after, diaphragmId, diaphragmSelection(project, nodeIds));
-    push(project, stack, std::move(after), "Asignar nudos a diafragma");
+    applyDiaphragmAssign(after, diaphragmId, ids);
+    // INFERRED (REA FUN_1801bdd20 removes the nodes from the three node-group collections at datos+0x48/+0x50/+0x58, taken to be
+    // ligaduras_dx/dy/dz by field order; TO VERIFY in the original): assigning a node to a diaphragm strips its ties, without a message.
+    NodeLigatures ligatures = project.ligatures;
+    applyLigatureNodesDeleted(ligatures, ids);
+    auto cmd = std::make_unique<DiaphragmCommand>(project, std::move(after), std::move(ligatures), "Asignar nudos a diafragma");
+    if (cmd->valid()) stack.push(std::move(cmd));
     return check;
 }
 
@@ -58,6 +69,7 @@ DiaphragmGeneration generateDiaphragmsByLevels(Project& project, UndoStack& stac
     DiaphragmGeneration out;
     if (project.workPlanes.levels.empty()) {
         out.status = DiaphragmGenerationStatus::NoLevels;
+        out.messageId = 25932;
         out.text = diaphragmNoLevelsMessage();
         return out;
     }

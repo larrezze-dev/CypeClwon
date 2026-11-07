@@ -10,7 +10,7 @@ namespace cc::app::messages {
 /// Message windows of the original: «Información» (blue "i"), «Aviso» (yellow triangle), «Error» (red) with the single button "Aceptar", and
 /// «Pregunta» with "Sí" (default) / "No". Everything that the diaphragm and bar-end tools say goes through here so that tests can replace
 /// the handler (nothing blocks offscreen). The handler returns true for "Sí" / "Aceptar".
-enum class Kind { Information, Warning, Error, Question };
+enum class Kind { Information, Warning, Error, Question, QuestionDefaultNo };
 using Handler = std::function<bool(QWidget* parent, Kind kind, const QString& text)>;
 
 inline Handler& handler() {
@@ -44,6 +44,15 @@ inline bool show(QWidget* parent, Kind kind, const QString& text) {
             QPushButton* yes = box.addButton(QObject::tr("Sí"), QMessageBox::YesRole);
             box.addButton(QObject::tr("No"), QMessageBox::NoRole);
             box.setDefaultButton(yes);
+            box.exec();
+            return box.clickedButton() == yes;
+        }
+        case Kind::QuestionDefaultNo: {  // dlgavis_preguntar_no_por_defecto
+            box.setIcon(QMessageBox::Question);
+            box.setWindowTitle(QObject::tr("Pregunta"));
+            QPushButton* yes = box.addButton(QObject::tr("Sí"), QMessageBox::YesRole);
+            QPushButton* no = box.addButton(QObject::tr("No"), QMessageBox::NoRole);
+            box.setDefaultButton(no);
             box.exec();
             return box.clickedButton() == yes;
         }

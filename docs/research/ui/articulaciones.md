@@ -41,3 +41,32 @@ Interacción con vinculación interior (#65468-65472): «Nudo empotrado con coef
 - **Tooltip del botón Empotramiento** (`hover` sobre 495,98): título «Empotramiento en extremos»; cuerpo = #64631 con '%s' = '0' y '1': «Permite definir las condiciones de empotramiento en los extremos de una pieza mediante coeficientes que pueden tomar valores comprendidos entre '0' (totalmente articulado) y '1' (totalmente empotrado), o bien mediante rigideces rotacionales (vinculación interna elástica).» + #64632 «Por defecto, el programa asigna a cada barra coeficientes de empotramiento unidad.» + pie «Pulse 'F1' alternativamente para mostrar u ocultar los textos de ayuda.» (icono «i»). Los botones Articular, Editar, Diafragma y Generar por niveles NO mostraron tooltip en 5 intentos con el mismo método (hover con 3 movimientos y 5 s de espera) [NV: puede requerir otro gesto; texto no presente en el TSV extraído de ed3dlib, probablemente en otro módulo; ticket].
 - **Articular Individual** (`orig_artic_30..34`): con el cursor sobre la barra N1/N2 se resalta en cian (hover). Tras clics cerca del origen, del extremo, en el medio y otra vez cerca del origen no se vio símbolo en el momento; tras Ctrl+Z (y perdida del hover) aparece un círculo negro relleno pequeño (~8 px) **en el extremo origen (N1) de la barra** (extremo más cercano al primer clic). Con este método de captura no se puede asegurar si el círculo lo pone el 1.er clic (redibujo diferido) o el 4.º, ni si Ctrl+Z lo deshace: [NV; repetir con captura tras mover el ratón fuera de la barra]. Quitar articulación y aviso de extremo ya articulado: [NV].
 - **Rigidez rotacional**: no abre ninguna pantalla aparte; solo sustituye el campo del extremo por «500000.00 kN·m/rad» (ver §6). El diagrama momento-curvatura de uniones (`FUN_18051d9c0`) solo existe con rigideces calculadas por uniones (BIM/uniones) [REA]; rango de K [NV].
+
+
+## 8. Resolución por REA (TK-090, 2026-11-07, solo código; sin lanzar el original) [REA]
+Fuente: `ed3dlib.dll` (Ghidra vía MCP rea). Direcciones VA.
+
+**8.1 Datos reales de Articular: bandera booleana por extremo, independiente de los coeficientes.** En la barra (`ed3barra.c`), offset +0x2E = extremo inicial articulado, +0x30 = extremo final articulado (`short` 0/1). Operación `FUN_1800c03c0(barra, modo)`, modo 0 = inicio, 1 = final, 2 = ambos:
+- modo 0: conmuta (toggle) la bandera de inicio; modo 1: conmuta la de final.
+- modo 2: si ambos extremos están articulados, ambos pasan a no articulados; si ninguno lo está, ambos pasan a articulados; **si solo uno lo está (estado mixto) no hace nada**.
+Confirma [CAP sec. 6] que Articular no toca los coeficientes xy/xz/yz y resuelve «quitar articulación»: **se vuelve a aplicar Articular al mismo extremo (conmuta)**; no hay aviso de «extremo ya articulado» (no existe en el código de la operación).
+
+**8.2 Receptor (`ed3rcba3.c`; datos = `i_tipo_seleccion_t`: 0 Individual, 1 Múltiple)**. Panel «Tipo de selección» = grupo de radios (`FUN_180875390`), Individual (por defecto) / Múltiple. Tipo de captura: Individual 10; Múltiple 0x11 (ventana).
+- **Individual (LMB sobre la barra)**: marca el objeto capturado, calcula el extremo con la posición del clic y aplica el modo resultante (`FUN_180875660` -> `FUN_180875810`); el RMB no hace nada (`FUN_180875560` devuelve 0).
+- **Múltiple**: LMB solo selecciona; **RMB aplica modo 2 (ambos extremos) a cada barra seleccionada** (`FUN_1808759a0` -> `FUN_180875170` con modo 2) y vuelve al estado de selección. Por 8.1: barras con ambos extremos articulados se liberan; barras mixtas no cambian; barras libres pasan a articuladas en ambos.
+- Cambiar Individual/Múltiple reinicia el estado de captura (`FUN_180875780`).
+
+**8.3 Extremo según clic (Individual)** (`FUN_1800cf4b0`): L = longitud de la barra (extremos con sus offsets), d0 = distancia 3D del clic al extremo inicial, d1 = al final: **inicio si `d1 - L/3 > d0`; final si `d0 - L/3 > d1`; en otro caso ambos (modo 2)**. En barra recta: tercio inicial -> inicio; tercio final -> final; tercio central -> ambos. Explica la medición [CAP sec. 7]: clics (origen, extremo, medio, origen) = conmutar inicio, conmutar final, conmutar ambos (ambos articulados -> ambos libres), conmutar inicio => queda solo el círculo en el origen (N1), tal como se observó.
+
+**8.4 Textos del ribbon**: «Articular» = #392569 (título del botón, `ed3mnubar.msg`), nombre largo #64373 «Articular extremos» (título de tooltip), **cuerpo de tooltip = ninguno** (el constructor `Barra_Articular` pasa 0; por eso no aparece tooltip; `Barra_Empotramiento_Extremos_Pieza` sí lleva cuerpo). «Empotramiento» = #392570. Tecla rápida del botón Articular: código 0x65 (`teclarap_crea(0x65,0,1,0)`; equivalencia con tecla concreta no verificada). Parejas = #392568 (`Barra_EmparejarArriostramientos`, otra condición de habilitado `FUN_1803c82c0`).
+
+**8.5 Símbolo y capa**: capa de dibujo `ED3CPDXF_CAPA_DIBUJO_ARTICULACION_BARRA` (#64269 «Articulaciones en extremos»); en la exportación DXF color ACI 7 (negro/blanco), coherente con los círculos negros en pantalla. La capa de empotramiento (`..._EMPOTRAMIENTO_EN_EXTREMOS`, texto #64367) usa ACI 2 (amarillo) en DXF. Diámetro, posición y color en pantalla de los rótulos xy/xz/yz y del círculo: NO localizados (la rutina de pintado no se identificó).
+
+**8.6 Rigidez rotacional**: avisos de comprobación #64391 «Hay piezas a las que se ha asignado un valor inadecuado de rigidez rotacional.» y #64984 «Se ha definido la rigidez rotacional en el plano %s sólo para uno de los extremos de la pieza.» (cálculo/comprobación). El límite numérico de K no se halló en el código del diálogo.
+
+## 8.7 Lo que REA no responde (medir en el original)
+1. Diámetro (px), color y posición del círculo de articulación; tamaño/posición/color de los rótulos «xy: 1.000 / xz: 1.000 / yz: 1.000» respecto a cada extremo: capturas con zoom conocido sobre barra horizontal y vertical.
+2. Rango admisible de K (rigidez rotacional): en Empotramiento > Rigidez rotacional probar 0, -1, 0.001, 1e12 y anotar avisos (puede que solo avise #64391 al Calcular).
+3. Modo mixto: Individual en el tercio inicial y luego Múltiple (ventana + RMB) sobre esa barra: según código no cambia; comprobar.
+4. Si Ctrl+Z deshace Articular (la operación se registra con deshacer de tipo 2) y comportamiento con perfil asignado.
+5. Efecto de Articular en el solver (momento nulo en el extremo): comparar un cálculo de viga biempotrada con articulada.

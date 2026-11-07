@@ -572,7 +572,7 @@ bool DiaphragmTool::generate() {
     bool generated = false;
     DiaphragmGeneration result = generateDiaphragmsByLevels(*m_project, *m_undo, false);
     if (result.status == DiaphragmGenerationStatus::NeedsConfirmation) {
-        if (messages::show(m_dialogParent, messages::Kind::Question, QString::fromStdString(result.text)))
+        if (messages::show(m_dialogParent, messages::Kind::QuestionDefaultNo, QString::fromStdString(result.text)))
             result = generateDiaphragmsByLevels(*m_project, *m_undo, true);
         else
             result.status = DiaphragmGenerationStatus::NeedsConfirmation;  // declined: nothing else to say

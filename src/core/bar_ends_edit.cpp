@@ -59,6 +59,21 @@ bool articulateBars(Project& project, UndoStack& stack, const std::vector<int>& 
     return push(project, stack, BarEndsCommand::Mode::Articulate, barIds, {}, ends);
 }
 
+bool toggleBarArticulations(Project& project, UndoStack& stack, const std::vector<int>& barIds, ArticulationEnd end) {
+    const std::vector<int> ids = existingBars(project, barIds);
+    if (ids.empty()) return false;
+    BarEnds after = project.barEnds;
+    for (int id : ids) {
+        BarEndsRecord rec = barEndsOf(after, id);
+        toggleArticulation(rec, end);
+        setBarEnds(after, id, rec);
+    }
+    auto cmd = std::make_unique<BarEndsCommand>(project, std::move(after), "Articular extremos");
+    if (!cmd->valid()) return false;
+    stack.push(std::move(cmd));
+    return true;
+}
+
 bool removeArticulations(Project& project, UndoStack& stack, const std::vector<int>& barIds, const std::array<bool, 2>& ends) {
     return push(project, stack, BarEndsCommand::Mode::RemoveArticulation, barIds, {}, ends);
 }

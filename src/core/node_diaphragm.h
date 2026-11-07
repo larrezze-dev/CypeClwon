@@ -49,6 +49,7 @@ struct Diaphragm {
     std::string reference;           ///< "Referencia"; empty only while it is being edited
     unsigned color = kDefaultDiaphragmColor;
     std::vector<int> nodeIds;        ///< sorted ascending, no repeats
+    std::vector<int> shellIds;       ///< shells (ids_laminas_ef) with all their nodes in the diaphragm; set by "Generar por niveles" (sorted)
     std::vector<DiaphragmLoad> loads;  ///< "Cargas introducidas"
     bool operator==(const Diaphragm&) const = default;
 };
@@ -118,8 +119,9 @@ struct DiaphragmCheck {
 
 /// Selection as the tool captures it: existing nodes, duplicates dropped keeping the first occurrence.
 std::vector<int> diaphragmSelection(const Project& project, const std::vector<int>& nodeIds);
-/// Checks of the assignment: no node or unknown diaphragm -> Silent; a node with an external restraint (any blocked DOF) -> #375640; a node with
-/// ties in any direction -> #404575 (checked after the restraint, TODO(medir) order). Nodes at different elevations are accepted (measured).
+/// Checks of the assignment: no node or unknown diaphragm -> Silent, otherwise Ok. REA (diafragmas.md sec. 9.4): #375640 (external restraint),
+/// #375642 (different elevations) and #404575 (ties) are NOT assignment dialogs but errors of the calculation check; the assignment itself
+/// accepts the node (and strips its ties: assignNodesToDiaphragm). Nodes at different elevations are accepted (measured).
 DiaphragmCheck checkDiaphragmAssign(const Project& project, int diaphragmId, const std::vector<int>& nodeIds);
 
 // --- pure edits on the data (used by the commands; exposed for tests) ---
@@ -133,10 +135,16 @@ void applyDiaphragmNodesDeleted(Diaphragms& d, const std::vector<int>& nodeIds);
 
 // --- generation by levels ---
 
-/// PROVISIONAL algorithm (the REA of "Generar por niveles" was not decoded): one diaphragm per level of the work (Planos > Niveles, by
-/// increasing elevation) that has at least one eligible node at its elevation (|Z - elevation| <= kDiaphragmSameElevationM); eligible = no
-/// external restraint and no tie. Reference "D1", "D2", ... in that order, default colour, no loads. Ids are assigned from `firstId`.
+/// Real algorithm (REA FUN_18017e240, diafragmas.md sec. 9.2). Levels sorted by increasing elevation (tolerance 0.001); one diaphragm per level
+/// EXCEPT the lowest, starting from the highest (i = 1 is the highest level). Reference = level name; a repeated name gets "_1", "_2", ... (the
+/// first processed keeps the plain name). Nodes: every node whose Z equals the level (0.001). Shells: those with ALL their nodes there. No
+/// filter by restraints or ties. Colour: idColor = (i < 24 ? 12 : 11) + (i % 24) * 10 -> idColorToRgb. Ids are assigned from `firstId`.
 std::vector<Diaphragm> planDiaphragmsByLevels(const Project& project, int firstId = 1);
+/// idcolor index used by "Generar por niveles" for the i-th diaphragm (i >= 1, 1 = highest level).
+int diaphragmLevelColorId(int i);
+/// SINGLE SUBSTITUTION POINT: RGB (0xRRGGBB) of the original's palette entry `idcolor_colorRGB(id)`. PROVISIONAL (TODO(medir): the RGB table is
+/// not decoded, diafragmas.md sec. 9.7.1): 13 is the measured magenta; the rest is a placeholder hue ramp.
+unsigned idColorToRgb(int idColor);
 
 /// Validation of the stored data: ids unique and < nextId, node in one diaphragm only (nodes that no longer exist are tolerated: not saved). Empty when valid.
 std::string validateDiaphragms(const Diaphragms& d, const StructuralModel& model);

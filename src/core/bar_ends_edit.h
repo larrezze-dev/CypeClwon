@@ -39,6 +39,9 @@ std::optional<EndFixityIssue> assignEndFixity(Project& project, UndoStack& stack
 /// "Articular" (Múltiple: RMB on the selected bars): marks the given ends (both by default, as measured) as pinned. The coefficients are
 /// NOT changed (measured). Returns true when something changed.
 bool articulateBars(Project& project, UndoStack& stack, const std::vector<int>& barIds, const std::array<bool, 2>& ends = {true, true});
+/// "Articular" with the REA toggle semantics (toggleArticulation) applied to every existing bar, as ONE undoable step. Individual: one bar and
+/// the end given by articulationEndForClick; Múltiple: all selected bars with ArticulationEnd::Both. Returns true when something changed.
+bool toggleBarArticulations(Project& project, UndoStack& stack, const std::vector<int>& barIds, ArticulationEnd end);
 /// Removes the articulation of the given ends. (How the original removes an articulation is NOT measured; this is the inverse operation.)
 bool removeArticulations(Project& project, UndoStack& stack, const std::vector<int>& barIds, const std::array<bool, 2>& ends = {true, true});
 

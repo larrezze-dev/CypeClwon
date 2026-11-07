@@ -74,6 +74,19 @@ void setBarEnds(BarEnds& ends, int barId, const BarEndsRecord& record);
 /// Swaps origin and end (the bar axis is inverted: the physical structure must not change, #64641).
 BarEndsRecord swappedEnds(const BarEndsRecord& record);
 
+/// Which end(s) an Articular action reaches (REA ed3barra.c FUN_1800c03c0 modes 0 / 1 / 2, articulaciones.md sec. 8.1).
+enum class ArticulationEnd { Start, End, Both };
+
+/// Individual mode, end chosen by the click (REA FUN_1800cf4b0, sec. 8.3): d0 / d1 = distance of the click to the start / end, length = L:
+/// Start if `d1 - L/3 > d0`; End if `d0 - L/3 > d1`; otherwise Both.
+ArticulationEnd articulationEndForClick(double distanceToStart, double distanceToEnd, double length);
+/// Same rule for a click at parameter t in [0, 1] along a straight bar (d0 = t L, d1 = (1 - t) L): first third -> Start, last third -> End,
+/// central third -> Both.
+ArticulationEnd articulationEndForParameter(double t);
+/// Toggle of the articulation flags (REA, sec. 8.1). Start / End: flips that flag. Both: both pinned -> both free; none pinned -> both pinned;
+/// exactly one pinned (mixed) -> no change. Removing an articulation is applying Articular again; there is no "already articulated" warning.
+void toggleArticulation(BarEndsRecord& record, ArticulationEnd end);
+
 /// "xy: 1.000 xz: 1.000 yz: 1.000" (3 decimals; a rotational plane shows its stiffness with 2 decimals and the unit, TODO(medir)).
 std::string endFixityLabel(const BarEndFixity& end);
 /// Line of the tooltip of the Empotramiento tool: "Origen : xy: 1.000 xz: 1.000 yz: 1.000" / "Extremo : ...".

@@ -256,3 +256,25 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+TEST_F(BarEndsToolTest, IndividualUsesTheRuleOfThirdsAndTogglesAndRmbDoesNothing) {
+    tool->articulateAction()->trigger();
+    const QPointF a = screenOf(1), b = screenOf(2);
+    click(*view, a + (b - a) * 0.5);  // central third: both ends
+    EXPECT_TRUE(barEndsOf(project.barEnds, 1).ends[kBarOrigin].pinned);
+    EXPECT_TRUE(barEndsOf(project.barEnds, 1).ends[kBarFinal].pinned);
+    click(*view, a + (b - a) * 0.5);  // again: both free
+    EXPECT_TRUE(project.barEnds.empty());
+    click(*view, a + (b - a) * 0.9);  // last third: end only
+    EXPECT_FALSE(barEndsOf(project.barEnds, 1).ends[kBarOrigin].pinned);
+    EXPECT_TRUE(barEndsOf(project.barEnds, 1).ends[kBarFinal].pinned);
+    click(*view, a + (b - a) * 0.5);  // mixed bar: "both" leaves it unchanged, no warning
+    EXPECT_TRUE(barEndsOf(project.barEnds, 1).ends[kBarFinal].pinned);
+    EXPECT_FALSE(barEndsOf(project.barEnds, 1).ends[kBarOrigin].pinned);
+    click(*view, a + (b - a) * 0.9);  // re-applying removes the articulation
+    EXPECT_TRUE(project.barEnds.empty());
+    EXPECT_TRUE(shown.empty());
+    const std::size_t count = undo.count();
+    click(*view, QPointF(400, 500), Qt::RightButton);
+    EXPECT_EQ(undo.count(), count) << "RMB has no effect in Individual";
+}

@@ -15,10 +15,12 @@ namespace cc::core {
 class DiaphragmCommand : public UndoCommand {
 public:
     DiaphragmCommand(Project& project, Diaphragms after, std::string text);
+    /// Variant that also replaces the node ties (assigning a node to a diaphragm strips its ties).
+    DiaphragmCommand(Project& project, Diaphragms after, NodeLigatures ligaturesAfter, std::string text);
     /// False when the operation changes nothing.
-    bool valid() const { return m_before != m_after; }
-    void redo() override { restore(m_after); }
-    void undo() override { restore(m_before); }
+    bool valid() const { return m_before != m_after || m_ligBefore != m_ligAfter; }
+    void redo() override { restore(m_after); m_project.ligatures = m_ligAfter; }
+    void undo() override { restore(m_before); m_project.ligatures = m_ligBefore; }
     std::string text() const override { return m_text; }
 
 private:
@@ -29,6 +31,7 @@ private:
     }
     Project& m_project;
     Diaphragms m_before, m_after;
+    NodeLigatures m_ligBefore, m_ligAfter;
     std::string m_text;
 };
 
@@ -51,12 +54,12 @@ enum class DiaphragmGenerationStatus {
 struct DiaphragmGeneration {
     DiaphragmGenerationStatus status = DiaphragmGenerationStatus::NoLevels;
     int count = 0;       ///< diaphragms generated
-    int messageId = 0;   ///< 375635 / 375636 / 375637 / 375638 (0 for NoLevels)
+    int messageId = 0;   ///< 375635 / 375636 / 375637 / 375638 (25932 for NoLevels)
     std::string text;    ///< literal text to show
 };
 
-/// "Generar por niveles". The previous diaphragms are replaced (after the question #375635). The algorithm is PROVISIONAL (see
-/// planDiaphragmsByLevels). One undoable command.
+/// "Generar por niveles". The previous diaphragms are replaced (after the question #375635); algorithm in planDiaphragmsByLevels (REA). One
+/// undoable command.
 DiaphragmGeneration generateDiaphragmsByLevels(Project& project, UndoStack& stack, bool confirmedReplace);
 
 }  // namespace cc::core

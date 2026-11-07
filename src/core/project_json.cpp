@@ -562,7 +562,7 @@ const std::vector<Section>& sections() {
                         json loads = json::array();
                         for (const DiaphragmLoad& l : d.loads)
                             loads.push_back({{"load_case", l.loadCaseId}, {"fx", l.fxKn}, {"fy", l.fyKn}, {"x", l.xM}, {"y", l.yM}});
-                        items.push_back({{"id", d.id}, {"reference", d.reference}, {"color", d.color}, {"nodes", nodes}, {"loads", loads}});
+                        items.push_back({{"id", d.id}, {"reference", d.reference}, {"color", d.color}, {"nodes", nodes}, {"shells", d.shellIds}, {"loads", loads}});
                     }
                     return json{{"next", p.diaphragms.nextId}, {"items", items}}.dump(2);
                 },
@@ -578,6 +578,8 @@ const std::vector<Section>& sections() {
                             d.color = e.value("color", kDefaultDiaphragmColor);
                             d.nodeIds = e.value("nodes", std::vector<int>{});
                             std::sort(d.nodeIds.begin(), d.nodeIds.end());
+                            d.shellIds = e.value("shells", std::vector<int>{});
+                            std::sort(d.shellIds.begin(), d.shellIds.end());
                             if (e.contains("loads"))
                                 for (const json& l : e.at("loads")) {
                                     DiaphragmLoad load;

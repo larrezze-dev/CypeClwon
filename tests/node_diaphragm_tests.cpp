@@ -153,24 +153,41 @@ TEST(Diaphragm, UnassignKeepsTheOthersAndTheDiaphragm) {
     EXPECT_TRUE(isNodeInDiaphragm(p.diaphragms, 3));
 }
 
-TEST(Diaphragm, AssignRejectsRestrainedAndTiedNodes) {
+TEST(Diaphragm, AssignAcceptsRestrainedNodesWithoutAMessage) {
+    // REA sec. 9.4: #375640 is an error of the calculation check, not an assignment dialog.
     UndoStack stack;
     Project p = withDiaphragm(stack);
     const int d1 = p.diaphragms.items[0].id;
     ExternalSupport fixed;
     fixed.type = ExternalSupportType::Fixed;
     ASSERT_GT(assignExternalSupport(p, stack, {1}, fixed), 0);
-    auto check = assignNodesToDiaphragm(p, stack, d1, {2, 1});
-    EXPECT_EQ(check.status, DiaphragmStatus::Error);
-    EXPECT_EQ(check.messageId, 375640);
-    EXPECT_EQ(check.text, "No es posible asignar un nudo con vinculación exterior a un diafragma.");
-    EXPECT_FALSE(isNodeInDiaphragm(p.diaphragms, 2));  // nothing was assigned
+    const auto check = assignNodesToDiaphragm(p, stack, d1, {2, 1});
+    EXPECT_EQ(check.status, DiaphragmStatus::Ok);
+    EXPECT_TRUE(isNodeInDiaphragm(p.diaphragms, 1));
+    EXPECT_TRUE(isNodeInDiaphragm(p.diaphragms, 2));
+}
 
-    ASSERT_EQ(assignLigatures(p, stack, {5, 6}, {true, false, false}).status, LigatureStatus::Ok);
-    check = assignNodesToDiaphragm(p, stack, d1, {5});
-    EXPECT_EQ(check.messageId, 404575);
-    EXPECT_EQ(check.text, "No es posible asignar a un diafragma un nudo con ligaduras en alguno de sus grados de libertad.");
-    EXPECT_EQ(assignNodesToDiaphragm(p, stack, d1, {3}).status, DiaphragmStatus::Ok);
+TEST(Diaphragm, AssignStripsTheTiesOfTheNodesAndUndoRestoresThem) {
+    // INFERRED from REA FUN_1801bdd20 (to verify in the original).
+    UndoStack stack;
+    Project p = withDiaphragm(stack);
+    const int d1 = p.diaphragms.items[0].id;
+    ASSERT_EQ(assignLigatures(p, stack, {5, 6, 4}, {true, false, true}).status, LigatureStatus::Ok);
+    ASSERT_TRUE(hasLigature(p.ligatures, 5));
+    const NodeLigatures before = p.ligatures;
+    EXPECT_EQ(assignNodesToDiaphragm(p, stack, d1, {5}).status, DiaphragmStatus::Ok);
+    EXPECT_TRUE(isNodeInDiaphragm(p.diaphragms, 5));
+    EXPECT_FALSE(hasLigature(p.ligatures, 5));  // no dx / dz tie any more
+    EXPECT_TRUE(hasLigature(p.ligatures, 6));   // the others are kept (ties of one node dissolve: 6 and 4 remain tied)
+    stack.undo();
+    EXPECT_FALSE(isNodeInDiaphragm(p.diaphragms, 5));
+    EXPECT_EQ(p.ligatures, before);
+    stack.redo();
+    EXPECT_FALSE(hasLigature(p.ligatures, 5));
+    // "Eliminar asignación" only leaves the diaphragm: ties are not recreated and nothing else changes.
+    const NodeLigatures mid = p.ligatures;
+    EXPECT_TRUE(removeNodesFromDiaphragm(p, stack, {5}));
+    EXPECT_EQ(p.ligatures, mid);
 }
 
 TEST(Diaphragm, LigaturesAreRefusedOnDiaphragmNodes) {
@@ -241,39 +258,117 @@ TEST(Diaphragm, ElevationAndSameElevation) {
     EXPECT_FALSE(diaphragmAbove(elev, 8.0).has_value());
 }
 
-TEST(Diaphragm, GenerateByLevels) {
+TEST(Diaphragm, GenerateByLevelsMessagesAndReplacement) {
     UndoStack stack;
     Project p = sixNodes();
     // No levels: the message and nothing else.
     DiaphragmGeneration g = generateDiaphragmsByLevels(p, stack, false);
     EXPECT_EQ(g.status, DiaphragmGenerationStatus::NoLevels);
     EXPECT_EQ(g.text, "No se ha definido ningún nivel");
+    EXPECT_EQ(g.messageId, 25932);
+
+    // One level: the lowest is skipped, so nothing is generated (#375636).
+    p.workPlanes.levels = {{"Cimentación", 0.0}};
+    g = generateDiaphragmsByLevels(p, stack, false);
+    EXPECT_EQ(g.count, 0);
+    EXPECT_EQ(g.messageId, 375636);
+    EXPECT_TRUE(p.diaphragms.items.empty());
 
     p.workPlanes.levels = {{"Planta 1", 4.0}, {"Cimentación", 0.0}, {"Cubierta", 8.0}};
-    ExternalSupport fixed;
-    fixed.type = ExternalSupportType::Fixed;
-    assignExternalSupport(p, stack, {1}, fixed);
     g = generateDiaphragmsByLevels(p, stack, false);
     EXPECT_EQ(g.status, DiaphragmGenerationStatus::Generated);
-    EXPECT_EQ(g.count, 2);  // the level at 8 m has no node
+    EXPECT_EQ(g.count, 2);  // lowest level skipped
     EXPECT_EQ(g.messageId, 375638);
     EXPECT_EQ(g.text, "Se han generado 2 diafragmas");
-    ASSERT_EQ(p.diaphragms.items.size(), 2u);
-    EXPECT_EQ(p.diaphragms.items[0].nodeIds, (std::vector<int>{2, 3}));  // N1 is restrained: not eligible
-    EXPECT_EQ(p.diaphragms.items[1].nodeIds, (std::vector<int>{4, 5, 6}));
 
-    // Already defined: ask first; confirm replaces them (ids keep growing).
+    // Already defined: ask first (No by default in the GUI); confirm replaces them (ids keep growing).
     g = generateDiaphragmsByLevels(p, stack, false);
     EXPECT_EQ(g.status, DiaphragmGenerationStatus::NeedsConfirmation);
+    EXPECT_EQ(g.messageId, 375635);
     EXPECT_EQ(g.text, "Se borrarán los diafragmas previamente definidos. ¿Desea continuar?");
+    ASSERT_EQ(p.diaphragms.items.size(), 2u);
     g = generateDiaphragmsByLevels(p, stack, true);
     EXPECT_EQ(g.count, 2);
+    ASSERT_EQ(p.diaphragms.items.size(), 2u) << "the new collection replaces the old one";
     EXPECT_GE(p.diaphragms.items[0].id, 3);
     stack.undo();
     EXPECT_EQ(p.diaphragms.items[0].id, 1);
 
-    EXPECT_EQ(diaphragmMessage(375636), "No se ha generado ningún diafragma");
     EXPECT_EQ(diaphragmMessage(375637), "Se ha generado un diafragma");
+}
+
+TEST(Diaphragm, GenerateByLevelsOrderNodesAndNames) {
+    UndoStack stack;
+    Project p = sixNodes();  // N1..N3 at z 0, N4..N6 at z 4
+    p.structure.addNode({0, 0, 4.0005});  // N7 within the 0.001 tolerance of the 4 m level
+    p.structure.addNode({0, 0, 8.0});     // N8
+    p.workPlanes.levels = {{"A", 4.0}, {"Base", 0.0}, {"Top", 8.0}};
+    ExternalSupport fixed;
+    fixed.type = ExternalSupportType::Fixed;
+    ASSERT_GT(assignExternalSupport(p, stack, {4}, fixed), 0);  // restrained nodes are NOT filtered out
+    ASSERT_EQ(assignLigatures(p, stack, {5, 6}, {true, false, false}).status, LigatureStatus::Ok);  // nor tied ones
+    const auto plan = planDiaphragmsByLevels(p, 10);
+    ASSERT_EQ(plan.size(), 2u);  // lowest (Base) skipped; highest first
+    EXPECT_EQ(plan[0].id, 10);
+    EXPECT_EQ(plan[0].reference, "Top");
+    EXPECT_EQ(plan[0].nodeIds, (std::vector<int>{8}));
+    EXPECT_EQ(plan[1].id, 11);
+    EXPECT_EQ(plan[1].reference, "A");
+    EXPECT_EQ(plan[1].nodeIds, (std::vector<int>{4, 5, 6, 7}));
+    EXPECT_TRUE(plan[0].loads.empty());
+
+    // Repeated names: the first processed (highest) keeps the name, the next ones get _1, _2.
+    p.workPlanes.levels = {{"P", 3.0}, {"P", 6.0}, {"P", 9.0}, {"P", 0.0}};
+    const auto rep = planDiaphragmsByLevels(p, 1);
+    ASSERT_EQ(rep.size(), 3u);
+    EXPECT_EQ(rep[0].reference, "P");
+    EXPECT_EQ(rep[1].reference, "P_1");
+    EXPECT_EQ(rep[2].reference, "P_2");
+
+    // Levels closer than the tolerance keep entry order (stable) and a lone level generates nothing.
+    p.workPlanes.levels = {{"Only", 4.0}};
+    EXPECT_TRUE(planDiaphragmsByLevels(p, 1).empty());
+}
+
+TEST(Diaphragm, GenerateByLevelsColourFormulaAndSubstitutionPoint) {
+    EXPECT_EQ(diaphragmLevelColorId(1), 22);   // 12 + 1 * 10
+    EXPECT_EQ(diaphragmLevelColorId(2), 32);
+    EXPECT_EQ(diaphragmLevelColorId(23), 12 + 23 * 10);
+    EXPECT_EQ(diaphragmLevelColorId(24), 11);  // i >= 24: base 11, (24 mod 24) = 0
+    EXPECT_EQ(diaphragmLevelColorId(25), 21);
+    EXPECT_EQ(idColorToRgb(13), kDefaultDiaphragmColor);
+    UndoStack stack;
+    Project p = sixNodes();
+    p.workPlanes.levels = {{"A", 0.0}, {"B", 4.0}, {"C", 8.0}};
+    const auto plan = planDiaphragmsByLevels(p, 1);
+    ASSERT_EQ(plan.size(), 2u);
+    EXPECT_EQ(plan[0].color, idColorToRgb(diaphragmLevelColorId(1)));
+    EXPECT_EQ(plan[1].color, idColorToRgb(diaphragmLevelColorId(2)));
+}
+
+TEST(Diaphragm, GenerateByLevelsTakesShellsWithAllNodesInTheLevel) {
+    Project p = sixNodes();
+    Shell inLevel;
+    inLevel.id = 1;
+    inLevel.nodeIds = {4, 5, 6};  // all at z = 4
+    Shell mixed;
+    mixed.id = 2;
+    mixed.nodeIds = {3, 4, 5};
+    Shell empty;
+    empty.id = 3;
+    p.structure.shells = {inLevel, mixed, empty};
+    p.workPlanes.levels = {{"Base", 0.0}, {"P1", 4.0}};
+    const auto plan = planDiaphragmsByLevels(p, 1);
+    ASSERT_EQ(plan.size(), 1u);
+    EXPECT_EQ(plan[0].shellIds, (std::vector<int>{1}));
+    // Persistence of the shell list.
+    Project q = p;
+    q.diaphragms.items = plan;
+    q.diaphragms.nextId = 2;
+    Project loaded;
+    project_json::loadSection(loaded, "diaphragms", project_json::dumpSection(q, "diaphragms"));
+    ASSERT_EQ(loaded.diaphragms.items.size(), 1u);
+    EXPECT_EQ(loaded.diaphragms.items[0].shellIds, (std::vector<int>{1}));
 }
 
 TEST(Diaphragm, JsonRoundTripAndOldFiles) {

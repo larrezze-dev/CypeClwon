@@ -397,25 +397,24 @@ void BarEndsTool::configureViewports() {
 
 bool BarEndsTool::articulate(const std::vector<int>& barIds) {
     if (!m_project || !m_undo) return false;
-    return articulateBars(*m_project, *m_undo, existingBars(*m_project, barIds));
+    return toggleBarArticulations(*m_project, *m_undo, barIds, ArticulationEnd::Both);
 }
 
 bool BarEndsTool::articulateNearest(Viewport3D& viewport, int barId, const QPointF& at) {
     if (!m_project || !m_undo) return false;
     const Bar* bar = m_project->structure.findBar(barId);
     if (!bar) return false;
-    const Node* nodes[2] = {m_project->structure.findNode(bar->startNode), m_project->structure.findNode(bar->endNode)};
-    double best = 1e300;
-    int end = kBarOrigin;
-    for (int i = 0; i < 2; ++i) {
-        QPointF screen;
-        if (!nodes[i] || !viewport.worldToScreen({nodes[i]->position.x, nodes[i]->position.y, nodes[i]->position.z}, screen)) continue;
-        const double d = std::hypot(screen.x() - at.x(), screen.y() - at.y());
-        if (d < best) { best = d; end = i; }
-    }
-    std::array<bool, 2> ends{false, false};
-    ends[static_cast<std::size_t>(end)] = true;
-    return articulateBars(*m_project, *m_undo, {barId}, ends);
+    const Node* n0 = m_project->structure.findNode(bar->startNode);
+    const Node* n1 = m_project->structure.findNode(bar->endNode);
+    QPointF s0, s1;
+    if (!n0 || !n1 || !viewport.worldToScreen({n0->position.x, n0->position.y, n0->position.z}, s0) ||
+        !viewport.worldToScreen({n1->position.x, n1->position.y, n1->position.z}, s1))
+        return false;
+    // Parameter of the click along the bar (orthogonal projection on its screen segment); d0 = t L, d1 = (1 - t) L (REA third rule).
+    const QPointF axis = s1 - s0;
+    const double len2 = axis.x() * axis.x() + axis.y() * axis.y();
+    const double t = len2 > 0.0 ? ((at.x() - s0.x()) * axis.x() + (at.y() - s0.y()) * axis.y()) / len2 : 0.5;
+    return toggleBarArticulations(*m_project, *m_undo, {barId}, articulationEndForParameter(t));
 }
 
 bool BarEndsTool::editFixity(const std::vector<int>& barIds) {

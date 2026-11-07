@@ -247,3 +247,66 @@ TEST(BarEnds, JsonRoundTripAndOldFiles) {
     EXPECT_TRUE(barEndsOf(old.barEnds, 1).ends[kBarOrigin].pinned);
     EXPECT_TRUE(isDefaultEnd(barEndsOf(old.barEnds, 1).ends[kBarFinal]));
 }
+
+TEST(BarEnds, ArticulationEndFollowsTheRuleOfThirds) {
+    // d1 - L/3 > d0 -> start; d0 - L/3 > d1 -> end; otherwise both (REA FUN_1800cf4b0).
+    EXPECT_EQ(articulationEndForClick(0.0, 9.0, 9.0), ArticulationEnd::Start);
+    EXPECT_EQ(articulationEndForClick(2.0, 7.0, 9.0), ArticulationEnd::Start);
+    EXPECT_EQ(articulationEndForClick(4.5, 4.5, 9.0), ArticulationEnd::Both);
+    EXPECT_EQ(articulationEndForClick(3.0, 6.0, 9.0), ArticulationEnd::Both);  // exactly L/3: 6 - 3 > 3 is false
+    EXPECT_EQ(articulationEndForClick(7.0, 2.0, 9.0), ArticulationEnd::End);
+    EXPECT_EQ(articulationEndForClick(9.0, 0.0, 9.0), ArticulationEnd::End);
+    EXPECT_EQ(articulationEndForParameter(0.1), ArticulationEnd::Start);
+    EXPECT_EQ(articulationEndForParameter(0.5), ArticulationEnd::Both);
+    EXPECT_EQ(articulationEndForParameter(0.9), ArticulationEnd::End);
+    EXPECT_EQ(articulationEndForParameter(-1.0), ArticulationEnd::Start);  // clamped
+    EXPECT_EQ(articulationEndForParameter(2.0), ArticulationEnd::End);
+}
+
+TEST(BarEnds, ArticulationToggleSemantics) {
+    BarEndsRecord r;
+    toggleArticulation(r, ArticulationEnd::Start);
+    EXPECT_TRUE(r.ends[kBarOrigin].pinned);
+    EXPECT_FALSE(r.ends[kBarFinal].pinned);
+    toggleArticulation(r, ArticulationEnd::Both);  // mixed: no change
+    EXPECT_TRUE(r.ends[kBarOrigin].pinned);
+    EXPECT_FALSE(r.ends[kBarFinal].pinned);
+    toggleArticulation(r, ArticulationEnd::Start);  // re-applying removes it
+    EXPECT_FALSE(r.ends[kBarOrigin].pinned);
+    toggleArticulation(r, ArticulationEnd::Both);  // none -> both pinned
+    EXPECT_TRUE(r.ends[kBarOrigin].pinned);
+    EXPECT_TRUE(r.ends[kBarFinal].pinned);
+    toggleArticulation(r, ArticulationEnd::Both);  // both pinned -> both free
+    EXPECT_FALSE(r.ends[kBarOrigin].pinned);
+    EXPECT_FALSE(r.ends[kBarFinal].pinned);
+    toggleArticulation(r, ArticulationEnd::End);
+    EXPECT_TRUE(r.ends[kBarFinal].pinned);
+    toggleArticulation(r, ArticulationEnd::End);
+    EXPECT_FALSE(r.ends[kBarFinal].pinned);
+}
+
+TEST(BarEnds, ToggleCommandIsOneUndoableStepWithoutWarnings) {
+    Project p = twoBars();
+    UndoStack stack;
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1, 2}, ArticulationEnd::Both));
+    EXPECT_EQ(stack.count(), 1u);
+    EXPECT_TRUE(barEndsOf(p.barEnds, 2).ends[kBarFinal].pinned);
+    // Mixed bar 1 (start toggled off... make it mixed) + free bar 2 wins: sequence of Individual clicks as measured:
+    // origin, end, middle, origin -> only the origin circle remains pinned? (start, end, both -> both free, start)
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1, 2}, ArticulationEnd::Both));  // both pinned -> free
+    EXPECT_TRUE(p.barEnds.empty());
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::Start));
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::End));
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::Both));  // both pinned -> both free
+    EXPECT_TRUE(p.barEnds.empty());
+    EXPECT_TRUE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::Start));
+    EXPECT_TRUE(barEndsOf(p.barEnds, 1).ends[kBarOrigin].pinned);
+    EXPECT_FALSE(barEndsOf(p.barEnds, 1).ends[kBarFinal].pinned);  // only the origin circle (N1), as measured
+    // A mixed bar is left alone by Múltiple: nothing changes, nothing is pushed.
+    const std::size_t count = stack.count();
+    EXPECT_FALSE(toggleBarArticulations(p, stack, {1}, ArticulationEnd::Both));
+    EXPECT_EQ(stack.count(), count);
+    EXPECT_FALSE(toggleBarArticulations(p, stack, {99}, ArticulationEnd::Both));
+    stack.undo();
+    EXPECT_TRUE(p.barEnds.empty());
+}
