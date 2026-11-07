@@ -100,7 +100,7 @@ std::optional<ShellPropIssue> assignShellBands(Project& project, UndoStack& stac
     const std::vector<Point2> firstContour = shellContour2D(project.structure, *project.structure.findShell(ids.front()));
     if (firstContour.empty()) return ShellPropIssue{0, "La lámina no tiene una geometría válida."};
     for (const ShellIntegrationBand& b : normalised)
-        if (auto issue = checkBand(firstContour, b)) return issue;
+        if (auto issue = checkBand(firstContour, b, false)) return issue;
 
     ShellProperties after = project.shellProps;
     int lost = 0;
@@ -109,7 +109,7 @@ std::optional<ShellPropIssue> assignShellBands(Project& project, UndoStack& stac
         const std::vector<Point2> contour = shellContour2D(project.structure, *project.structure.findShell(id));
         rec.bands.clear();
         for (const ShellIntegrationBand& b : normalised) {
-            if (id != ids.front() && (contour.empty() || checkBand(contour, b))) {
+            if (id != ids.front() && (contour.empty() || checkBand(contour, b, false))) {
                 ++lost;
                 continue;
             }

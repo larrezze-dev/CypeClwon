@@ -741,7 +741,7 @@ const std::vector<Section>& sections() {
                     for (const auto& [id, r] : d.shells) {
                         if (!p.structure.findShell(id)) continue;
                         json bands = json::array();
-                        for (const ShellIntegrationBand& b : r.bands) bands.push_back({{"x1", b.x1}, {"y1", b.y1}, {"x2", b.x2}, {"y2", b.y2}, {"width", b.widthM}});
+                        for (const ShellIntegrationBand& b : r.bands) bands.push_back({{"x1", b.x1}, {"y1", b.y1}, {"x2", b.x2}, {"y2", b.y2}, {"width", b.widthM}, {"force_points", b.forcePoints}});
                         json st = json::array();
                         for (int i = 0; i < kStiffnessFactorCount; ++i) st.push_back(r.stiffness.value(i));
                         shells.push_back({{"shell", id}, {"triangle", r.maxTriangleSideM}, {"stiffness", st}, {"bands", bands}, {"buckling", r.bucklingConsidered}, {"modal", r.modalConsidered}});
@@ -772,7 +772,11 @@ const std::vector<Section>& sections() {
                             }
                             if (e.contains("bands"))
                                 for (const json& b : e.at("bands"))
-                                    r.bands.push_back(normaliseBand({b.value("x1", 0.0), b.value("y1", 0.0), b.value("x2", 0.0), b.value("y2", 0.0), b.value("width", kBandWidthDefaultM)}));
+                                {
+                                    ShellIntegrationBand nb{b.value("x1", 0.0), b.value("y1", 0.0), b.value("x2", 0.0), b.value("y2", 0.0), b.value("width", kBandWidthDefaultM)};
+                                    nb.forcePoints = b.value("force_points", kBandForcePointsDefault);  // older files: 10
+                                    r.bands.push_back(normaliseBand(nb));
+                                }
                             r.bucklingConsidered = e.value("buckling", false);
                             r.modalConsidered = e.value("modal", true);
                             setShellRecord(loaded, e.at("shell").get<int>(), r);

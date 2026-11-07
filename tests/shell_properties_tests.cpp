@@ -165,11 +165,48 @@ TEST(ShellBands, NewBandChecks) {
     EXPECT_FALSE(newBand(c, {}, {1, 0.05}, {3, 0.05}, 0.15).ok());
     EXPECT_TRUE(newBand(c, {}, {1, 0.075}, {3, 0.075}, 0.15).ok());  // the edge of the rectangle touches the contour
     // Too short (#64191), bad width.
-    r = newBand(c, {}, {1, 1}, {1.001, 1}, 0.15);
+    r = newBand(c, {}, {1, 1}, {1.1, 1}, 0.15);
     ASSERT_FALSE(r.ok());
     EXPECT_EQ(r.issue->messageId, 64191);
-    EXPECT_EQ(r.issue->text, "La longitud de la banda de integración es inferior a la mínima permitida (0.01 m).");
+    EXPECT_EQ(r.issue->text, "La longitud de la banda de integración es inferior a la mínima permitida (0.16 m).");
     EXPECT_EQ(newBand(c, {}, {1, 1}, {3, 1}, 0.0).issue->text, bandWidthRangeMessage());
+}
+
+TEST(ShellBands, ForcePointsDefaultRangeAndEdit) {
+    const auto c = square();
+    auto r = newBand(c, {}, {1, 1}, {3, 1}, 0.15);
+    ASSERT_TRUE(r.ok());
+    EXPECT_EQ(r.bands[0].forcePoints, 10) << "default measured";
+    EXPECT_FALSE(checkBandForcePoints(3).has_value());
+    EXPECT_FALSE(checkBandForcePoints(1000).has_value());
+    for (int bad : {0, 1, 2, 1001}) {
+        const auto issue = checkBandForcePoints(bad);
+        ASSERT_TRUE(issue.has_value()) << bad;
+        EXPECT_EQ(issue->text, "El valor de '' debe estar entre 3  y 1000 .") << "empty quotes: the original does not interpolate the label";
+    }
+    auto e = editBands(c, r.bands, {0}, 0.3, 25);
+    ASSERT_TRUE(e.ok());
+    EXPECT_EQ(e.bands[0].forcePoints, 25);
+    EXPECT_DOUBLE_EQ(e.bands[0].widthM, 0.3);
+    EXPECT_FALSE(editBands(c, r.bands, {0}, 0.3, 1).ok());
+    EXPECT_EQ(editBands(c, e.bands, {0}, 0.2).bands[0].forcePoints, 25) << "no value given: the points are kept";
+    // Divide / join keep them.
+    EXPECT_EQ(divideBands(c, e.bands, {0}, 2).bands[1].forcePoints, 25);
+}
+
+TEST(ShellBands, MinimumLengthIsProvisionalAndOnlyNewAndGenerateEnforceIt) {
+    const auto c = square();
+    EXPECT_DOUBLE_EQ(kBandMinLengthM, 0.16);
+    EXPECT_FALSE(newBand(c, {}, {1, 1}, {1.15, 1}, 0.15).ok());
+    EXPECT_TRUE(newBand(c, {}, {1, 1}, {1.18, 1}, 0.15).ok());
+    // "Mover extremo" keeps a 6 cm band without a warning; "Incidencias" flags it (checkBand with the length check).
+    auto r = newBand(c, {}, {1, 1}, {3, 1}, 0.15);
+    auto m = moveBandEnd(c, r.bands, 0, 1, {1.06, 1});
+    ASSERT_TRUE(m.ok());
+    EXPECT_NEAR(m.bands[0].length(), 0.06, 1e-9);
+    ASSERT_TRUE(checkBand(c, m.bands[0]).has_value());
+    EXPECT_EQ(checkBand(c, m.bands[0])->messageId, 64191);
+    EXPECT_FALSE(checkBand(c, m.bands[0], false).has_value());
 }
 
 TEST(ShellBands, ConcaveContourRejectsBandCrossingTheNotch) {
@@ -218,6 +255,31 @@ TEST(ShellBands, EditDeleteMove) {
     EXPECT_DOUBLE_EQ(m.bands[0].x2, 3.5);
 }
 
+TEST(ShellBands, JoinMergesParallelBandsIntoOneCentredBetweenThem) {
+    const auto c = square();
+    // Measured (docs 11.1): two horizontal bands 0.61 m apart, lengths 3.05 and 2.44 m, width 0.15 m -> one band centred between them,
+    // length = union of the projections (3.05 m), width = separation + width = 0.76 m.
+    auto r = newBand(c, {}, {0.5, 1.0}, {3.55, 1.0}, 0.15);
+    r = newBand(c, r.bands, {0.8, 1.61}, {3.24, 1.61}, 0.15);
+    auto j = joinBands(c, r.bands, {0, 1});
+    ASSERT_TRUE(j.ok());
+    ASSERT_EQ(j.bands.size(), 1u);
+    EXPECT_NEAR(j.bands[0].x1, 0.5, 1e-9);
+    EXPECT_NEAR(j.bands[0].x2, 3.55, 1e-9);
+    EXPECT_NEAR(j.bands[0].y1, 1.305, 1e-9);
+    EXPECT_NEAR(j.bands[0].y2, 1.305, 1e-9);
+    EXPECT_NEAR(j.bands[0].widthM, 0.76, 1e-9);
+    // The same with vertical bands and a different drawing order.
+    r = newBand(c, {}, {1.61, 0.8}, {1.61, 3.24}, 0.15);
+    r = newBand(c, r.bands, {1.0, 0.5}, {1.0, 3.55}, 0.15);
+    j = joinBands(c, r.bands, {0, 1});
+    ASSERT_TRUE(j.ok());
+    ASSERT_EQ(j.bands.size(), 1u);
+    EXPECT_NEAR(j.bands[0].x1, 1.305, 1e-9);
+    EXPECT_NEAR(j.bands[0].widthM, 0.76, 1e-9);
+    EXPECT_NEAR(j.bands[0].length(), 3.05, 1e-9);
+}
+
 TEST(ShellBands, JoinNeedsParallelBands) {
     const auto c = square();
     auto r = newBand(c, {}, {0.5, 1}, {1.5, 1}, 0.15);
@@ -229,7 +291,7 @@ TEST(ShellBands, JoinNeedsParallelBands) {
     ASSERT_EQ(j.bands.size(), 2u);
     EXPECT_DOUBLE_EQ(j.bands[0].x1, 0.5);
     EXPECT_DOUBLE_EQ(j.bands[0].x2, 3.5);
-    EXPECT_DOUBLE_EQ(j.bands[0].widthM, 0.2);
+    EXPECT_DOUBLE_EQ(j.bands[0].widthM, 0.2) << "collinear bands: no separation, the widest width";
     j = joinBands(c, r.bands, {0, 2});
     ASSERT_FALSE(j.ok());
     EXPECT_EQ(j.issue->messageId, 63999);
@@ -251,7 +313,14 @@ TEST(ShellBands, Divide) {
     EXPECT_DOUBLE_EQ(d.bands[3].widthM, 0.1);
     EXPECT_FALSE(divideBands(c, r.bands, {0}, 1).ok());
     EXPECT_FALSE(divideBands(c, r.bands, {}, 2).ok());
-    EXPECT_FALSE(divideBands(c, r.bands, {1}, 500).ok());  // pieces shorter than the minimum length
+    // Measured (docs 11.2): range 2..10 and the literal warning with the double space.
+    for (int bad : {0, 1, 11, 500}) {
+        const auto e = divideBands(c, r.bands, {0}, bad);
+        ASSERT_FALSE(e.ok()) << bad;
+        EXPECT_EQ(e.issue->text, "El valor de 'Número de divisiones' debe estar entre 2  y 10 .");
+    }
+    EXPECT_TRUE(divideBands(c, r.bands, {0}, 10).ok());
+    EXPECT_EQ(kBandDefaultDivisions, 2);
 }
 
 TEST(ShellBands, GenerateInZoneStacksBandsWithStepEqualToWidth) {
@@ -440,6 +509,7 @@ TEST(ShellPropsJson, RoundTripAndOldFiles) {
     ASSERT_FALSE(assignShellBuckling(pl.p, pl.stack, {pl.shell}, true));
     ASSERT_FALSE(assignShellModal(pl.p, pl.stack, {pl.shell}, false));
     auto bands = newBand(pl.contour(), {}, {3, 1}, {1, 1.5}, 0.2);
+    bands.bands[0].forcePoints = 37;
     ASSERT_FALSE(assignShellBands(pl.p, pl.stack, {pl.shell}, bands.bands));
     EdgeInteriorBond g;
     g.kind = EdgeInteriorKind::Generic;
@@ -462,6 +532,7 @@ TEST(ShellPropsJson, RoundTripAndOldFiles) {
     EXPECT_DOUBLE_EQ(shellRecordOf(q.shellProps, pl.shell).stiffness.fxy, 0.25);
     EXPECT_EQ(shellRecordOf(q.shellProps, pl.shell).bands.size(), 1u);
     EXPECT_DOUBLE_EQ(shellRecordOf(q.shellProps, pl.shell).bands[0].x1, 1.0);  // stored ordered
+    EXPECT_EQ(shellRecordOf(q.shellProps, pl.shell).bands[0].forcePoints, 37);
 
     // Old file: no section / empty section = defaults.
     Project old = pl.p;
@@ -472,6 +543,10 @@ TEST(ShellPropsJson, RoundTripAndOldFiles) {
     EXPECT_DOUBLE_EQ(shellRecordOf(old.shellProps, 1).maxTriangleSideM, 2.5);
     EXPECT_TRUE(shellRecordOf(old.shellProps, 1).modalConsidered);
     EXPECT_DOUBLE_EQ(shellRecordOf(old.shellProps, 1).stiffness.fxx, 1.0);
+    // A band of an old file (no "force_points") loads with the default 10.
+    project_json::loadSection(old, "shell_properties", "{\"shells\":[{\"shell\":1,\"bands\":[{\"x1\":1,\"y1\":1,\"x2\":3,\"y2\":1,\"width\":0.15}]}]}");
+    ASSERT_EQ(shellRecordOf(old.shellProps, 1).bands.size(), 1u);
+    EXPECT_EQ(shellRecordOf(old.shellProps, 1).bands[0].forcePoints, 10);
 }
 
 TEST(ShellPropsJson, EntriesOfDeletedShellsAreNotSaved) {

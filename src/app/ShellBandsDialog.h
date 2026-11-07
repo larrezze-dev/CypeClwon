@@ -21,7 +21,8 @@ using BandZone = std::array<cc::core::Point2, 4>;
 /// 2D viewer of the band editor (propiedades_laminas.md section 3, p7_42 / p7_n_montage): the contour of the first shell in green, magenta dimension
 /// lines of its sides, the local axes at the lower left corner (X red, Y blue), the bands as magenta dotted rectangles with their centre line (orange
 /// when selected) and its own zoom. The mouse logic of the commands lives here so that tests can drive it with model points.
-///  - New: p1, p2 (a dotted rectangle follows the cursor), RMB -> requestNew.
+///  - New: p1, p2 (a dotted rectangle follows the cursor); the band is created at the second click (a second click that would make it shorter
+///    than the minimum length is ignored silently); RMB -> requestWidth (the dialog asks the width again; Cancelar ends the tool).
 ///  - Generate: four corners of the zone, RMB -> requestGenerate.
 ///  - Edit / Delete / Divide / Join: click on a band or window / crossing (two clicks, like the rest of the original), RMB -> requestAct.
 ///  - MoveEnd: click near an end of a band, then click the new position -> requestMoveEnd.
@@ -66,6 +67,7 @@ signals:
     void requestGenerate(cc::app::BandZone zone);
     void requestAct(cc::app::BandViewer::Tool tool, std::vector<int> indices);
     void requestMoveEnd(int index, int end, cc::core::Point2 to);
+    void requestWidth(cc::app::BandViewer::Tool tool);
     void hint(QString text);
 
 protected:
@@ -134,6 +136,7 @@ public:
     void beginNew();
     void beginGenerate();
     void editIntegration();
+    /// Creates the band between two points (silent when it would be shorter than the minimum length).
     void doNew(const cc::core::Point2& a, const cc::core::Point2& b);
     void doGenerate(const std::array<cc::core::Point2, 4>& zone);
     void doAct(BandViewer::Tool tool, const std::vector<int>& indices);
@@ -148,6 +151,7 @@ private:
     int run(QDialog& dialog);
     bool askWidth(const QString& title);
     void refresh();
+    void reopenWidth(BandViewer::Tool tool);
 
     std::vector<std::vector<cc::core::ShellIntegrationBand>> m_history;
     std::size_t m_pos = 0;

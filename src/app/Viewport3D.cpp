@@ -16,6 +16,7 @@
 
 #include "core/geom3.h"
 #include "core/shell_edit.h"
+#include "core/shell_properties.h"
 
 namespace cc::app {
 
@@ -1137,6 +1138,11 @@ void Viewport3D::setBuckling(const core::BucklingData* data) {
     update();
 }
 
+void Viewport3D::setShellBands(const core::ShellProperties* data) {
+    m_shellBands = data;
+    update();
+}
+
 void Viewport3D::setBucklingLabels(BucklingLabels labels) {
     if (m_bucklingLabels == labels) return;
     m_bucklingLabels = labels;
@@ -1555,6 +1561,53 @@ void Viewport3D::drawDeflectionGroup(QPainter& painter, int barId, bool selected
         const core::Node* n = m_structure->findNode(nodeId);
         double x, y;
         if (n && map.toScreen(n->position, x, y)) painter.drawText(QRectF(x - 6.0, y - 24.0, 28.0, 16.0), Qt::AlignLeft | Qt::AlignVCenter, QString::fromLatin1(name));
+    }
+    painter.restore();
+}
+
+void Viewport3D::drawShellBands(QPainter& painter) const {
+    if (!m_shellBands || !m_structure || !m_categories.shellsDrawn()) return;
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    for (const core::Shell& shell : m_structure->shells) {
+        if (!m_structure->elementVisible(shell.layerIds)) continue;
+        const auto record = m_shellBands->shells.find(shell.id);
+        if (record == m_shellBands->shells.end() || record->second.bands.empty()) continue;
+        const std::optional<core::ShellFrame> frame = core::shellFrame(*m_structure, shell);
+        if (!frame) continue;
+        const Vec3 zAxis{frame->axisZ.x, frame->axisZ.y, frame->axisZ.z};
+        for (const core::ShellIntegrationBand& band : record->second.bands) {
+            const core::Point3 a = frame->toWorld({band.x1, band.y1}), b = frame->toWorld({band.x2, band.y2});
+            const Vec3 va{a.x, a.y, a.z}, vb{b.x, b.y, b.z};
+            double ax, ay, bx, by;
+            if (!map.toScreen(va, ax, ay) || !map.toScreen(vb, bx, by)) continue;
+            painter.setPen(QPen(Qt::black, 1.0));
+            painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
+            // Triad at 80 % of the length: X along the band, Z = z of the shell, Y = Z x X.
+            const double length = std::hypot(band.x2 - band.x1, band.y2 - band.y1);
+            if (length < 1e-9) continue;
+            const Vec3 xAxis = (vb - va) * (1.0 / length);
+            const Vec3 yAxis{zAxis.y * xAxis.z - zAxis.z * xAxis.y, zAxis.z * xAxis.x - zAxis.x * xAxis.z, zAxis.x * xAxis.y - zAxis.y * xAxis.x};
+            const Vec3 origin = va + (vb - va) * 0.8;
+            double ox, oy;
+            if (!map.toScreen(origin, ox, oy)) continue;
+            const Vec3 dirs[3] = {xAxis, yAxis, zAxis};
+            const QColor colours[3] = {QColor(220, 30, 30), QColor(30, 170, 30), QColor(30, 60, 220)};
+            for (int i = 0; i < 3; ++i) {
+                double tx, ty;
+                if (!map.toScreen(origin + dirs[i] * 0.1, tx, ty)) continue;
+                const double reach = std::hypot(tx - ox, ty - oy);
+                const double scale = reach > 1e-6 ? 22.0 / reach : 0.0;  // fixed screen size, like the axes of the viewport
+                const QPointF tip(ox + (tx - ox) * scale, oy + (ty - oy) * scale);
+                painter.setPen(QPen(colours[i], 1.2));
+                painter.drawLine(QPointF(ox, oy), tip);
+                if (reach > 1e-6) {
+                    const QPointF u((tip.x() - ox) / 22.0, (tip.y() - oy) / 22.0), n(-u.y(), u.x());
+                    painter.drawLine(tip, tip - u * 5.0 + n * 2.5);
+                    painter.drawLine(tip, tip - u * 5.0 - n * 2.5);
+                }
+            }
+        }
     }
     painter.restore();
 }
@@ -2012,6 +2065,7 @@ void Viewport3D::paintGL() {
     drawWorkPlanes(painter);
     drawStructure(painter);
     drawClipping(painter);
+    drawShellBands(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
     drawMoveRubber(painter);
     drawBarRubber(painter);

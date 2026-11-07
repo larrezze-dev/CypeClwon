@@ -45,8 +45,11 @@ namespace cc::core {
 inline constexpr double kShellTriangleSideMinM = 0.01, kShellTriangleSideMaxM = 100.0, kShellTriangleSideDefaultM = 1.0;  ///< measured (m)
 inline constexpr double kStiffnessFactorMin = 0.0, kStiffnessFactorMax = 100.0, kStiffnessFactorDefault = 1.0;          ///< measured
 inline constexpr double kBandWidthMinM = 0.01, kBandWidthMaxM = 100.0, kBandWidthDefaultM = 0.15;                       ///< 1..10000 cm, def. 15 cm (measured)
-inline constexpr double kBandMinLengthM = 0.01;  ///< TODO(medir): message #64191 gives no value
-inline constexpr int kBandMinDivisions = 2, kBandMaxDivisions = 1000;  ///< TODO(medir): default 2 read from a capture; limits unknown
+/// Provisional minimum length of a band (m): "Nueva" silently rejects shorter ones; measured between 0.16 and 0.17 m (docs 11.3). TODO(medir): the exact
+/// value and the text of #64191 (never shown by the original in the flows tried).
+inline constexpr double kBandMinLengthM = 0.16;
+inline constexpr int kBandMinDivisions = 2, kBandMaxDivisions = 10, kBandDefaultDivisions = 2;  ///< "Numero de divisiones", measured (docs 11.2)
+inline constexpr int kBandForcePointsMin = 3, kBandForcePointsMax = 1000, kBandForcePointsDefault = 10;  ///< "Numero de puntos de esfuerzo" (docs 11.1)
 inline constexpr double kEdgeElasticConstantDefault = 100000.0;  ///< interior bond, kN/m2 (displacements) or kN.m/rad.m (rotations), measured
 inline constexpr double kShellGeomToleranceM = 1e-6;
 
@@ -73,6 +76,7 @@ std::string stiffnessFieldLabel(int dialogIndex);
 struct ShellIntegrationBand {
     double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
     double widthM = kBandWidthDefaultM;
+    int forcePoints = kBandForcePointsDefault;  ///< "Numero de puntos de esfuerzo" (3..1000, default 10)
     double length() const;
     bool operator==(const ShellIntegrationBand&) const = default;
 };
@@ -151,6 +155,12 @@ std::string stiffnessRangeMessage(const std::string& field);
 /// "El valor de 'Anchura' debe estar entre 1.0 y 10000.0." (cm, measured).
 std::string bandWidthRangeMessage();
 
+/// "El valor de '' debe estar entre 3  y 1000 ." (measured literal: the label is NOT interpolated, empty quotes, double space, space before the dot).
+std::string bandForcePointsRangeMessage();
+/// "El valor de 'Número de divisiones' debe estar entre 2  y 10 ." (measured literal: double space after the 2 and a space before the dot).
+std::string bandDivisionsRangeMessage();
+std::optional<ShellPropIssue> checkBandForcePoints(int points);
+
 std::optional<ShellPropIssue> checkTriangleSize(double sideM);
 /// First factor (dialog order) outside [0, 100] or not finite.
 std::optional<ShellPropIssue> checkStiffnessFactors(const ShellStiffnessFactors& factors);
@@ -181,18 +191,22 @@ struct BandResult {
     bool ok() const { return !issue.has_value(); }
 };
 /// #64190 when the rectangle is not completely inside the contour, #64191 when the centre line is shorter than the minimum, width range.
-std::optional<ShellPropIssue> checkBand(const std::vector<Point2>& contour, const ShellIntegrationBand& band);
+/// `checkLength` = false skips #64191: the original keeps shorter bands made with "Mover extremo" and only flags them as incidences.
+std::optional<ShellPropIssue> checkBand(const std::vector<Point2>& contour, const ShellIntegrationBand& band, bool checkLength = true);
 /// "Nueva": band between two points inside the shell with the given width (metres).
 BandResult newBand(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, const Point2& p1, const Point2& p2,
                    double widthM);
-/// "Editar": the listed bands (indices into `current`) take the width. Unknown indices are ignored; no valid index -> issue 0.
+/// "Editar": the listed bands (indices into `current`) take the width and, when given, the number of force points. Unknown indices are ignored;
+/// no valid index -> issue 0.
 BandResult editBands(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, const std::vector<int>& indices,
-                     double widthM);
+                     double widthM, std::optional<int> forcePoints = std::nullopt);
 /// "Borrar".
 BandResult deleteBands(const std::vector<ShellIntegrationBand>& current, const std::vector<int>& indices);
 /// "Mover extremo": end 0 or 1 of the band (after normalisation) goes to `to`.
 BandResult moveBandEnd(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, int index, int end, const Point2& to);
-/// "Unir": #63999 when the selected bands are not parallel; at least two bands.
+/// "Unir": #63999 when the selected bands are not parallel; at least two bands. Parallel bands become ONE band centred between them: length = union of
+/// the projections along the direction, width = outer separation + width (measured: 0.61 + 0.15 = 0.76 m). TODO(medir): unequal widths (here: the
+/// extent of the rectangles across the direction) and the force points (here: those of the first selected band).
 BandResult joinBands(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, const std::vector<int>& indices);
 /// "Dividir": each selected band is cut into `parts` (>= 2) equal stretches of the same width.
 BandResult divideBands(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, const std::vector<int>& indices,

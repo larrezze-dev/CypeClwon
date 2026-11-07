@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "RangedEdit.h"
+#include "SupportDialogs.h"
 #include "UserMessages.h"
 
 namespace cc::app {
@@ -49,7 +50,7 @@ QWidget* labelledEdit(QWidget* parent, const QString& label, RangedEdit* edit, c
 // ---- Discretización -----------------------------------------------------------------------------------------------------------
 
 ShellDiscretisationDialog::ShellDiscretisationDialog(double maxSideM, const QString& unit, QWidget* parent) : CypeDialog(tr("Discretización"), parent) {
-    setFixedWidth(634);
+    setFixedSize(634, 214);  // measured window (docs 11.8)
     auto* body = new QWidget(this);
     auto* column = new QVBoxLayout(body);
     column->setContentsMargins(0, 0, 0, 0);
@@ -250,6 +251,15 @@ void EdgeInteriorDialog::accept() {
         messages::show(this, messages::Kind::Warning, QString::fromStdString(issue->text));
         return;
     }
+    // #65010 (measured, docs 11.5): an elastic K equal to the default asks for confirmation; the text speaks of the exterior bond, as in the original.
+    if (m_kind == EdgeInteriorKind::Generic) {
+        const EdgeInteriorBond now = bond();
+        for (std::size_t i = 0; i < 6; ++i)
+            if (now.dof[i] == DofMode::Elastic && now.k[i] == kEdgeElasticConstantDefault) {
+                if (!ExternalSupportDialog::ask(this, QString::fromStdString(elasticDefaultQuestion("K")))) return;
+                break;
+            }
+    }
     CypeDialog::accept();
 }
 
@@ -327,9 +337,41 @@ void BandWidthDialog::accept() {
     CypeDialog::accept();
 }
 
+BandEditDialog::BandEditDialog(double widthCm, int forcePoints, QWidget* parent) : CypeDialog(tr("Banda de integración"), parent) {
+    setFixedWidth(330);
+    m_width = new RangedEdit(tr("Anchura"), {kBandWidthMinM * 100.0, kBandWidthMaxM * 100.0}, 1, this);
+    m_width->setFixedWidth(62);
+    m_width->setValue(widthCm);
+    // The original does not interpolate the label of this editor: «El valor de '' debe estar entre 3  y 1000 .»
+    m_points = new RangedEdit(QString(), {static_cast<double>(kBandForcePointsMin), static_cast<double>(kBandForcePointsMax)}, 0, this);
+    m_points->setObjectName(QStringLiteral("ranged_points"));
+    m_points->setBoundSuffix(QStringLiteral(" "));
+    m_points->setFixedWidth(52);
+    m_points->setValue(forcePoints);
+    contentLayout()->setContentsMargins(10, 10, 10, 10);
+    contentLayout()->setSpacing(6);
+    contentLayout()->addWidget(labelledEdit(this, tr("Anchura"), m_width, tr("cm"), 190));
+    contentLayout()->addWidget(labelledEdit(this, tr("Número de puntos de esfuerzo"), m_points, QString(), 190));
+    contentLayout()->addStretch(1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+    m_width->setFocus();
+    m_width->selectAll();
+}
+
+double BandEditDialog::widthM() const { return m_width->value() / 100.0; }
+
+int BandEditDialog::forcePoints() const { return static_cast<int>(m_points->value()); }
+
+void BandEditDialog::accept() {
+    if (!m_width->commit() || !m_points->commit()) return;
+    CypeDialog::accept();
+}
+
 BandDivisionsDialog::BandDivisionsDialog(int parts, QWidget* parent) : CypeDialog(tr("Dividir"), parent) {
     setFixedWidth(260);
     m_edit = new RangedEdit(tr("Número de divisiones"), {static_cast<double>(kBandMinDivisions), static_cast<double>(kBandMaxDivisions)}, 0, this);
+    m_edit->setBoundSuffix(QStringLiteral(" "));  // measured: «entre 2  y 10 .»
+    m_edit->setMaxLength(2);                      // measured: the editor cuts what is typed to two digits (100000 -> 10)
     m_edit->setFixedWidth(52);
     m_edit->setValue(parts);
     contentLayout()->setContentsMargins(10, 10, 10, 10);

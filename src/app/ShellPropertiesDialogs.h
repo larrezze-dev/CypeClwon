@@ -115,11 +115,29 @@ private:
     RangedEdit* m_edit = nullptr;
 };
 
-/// Dialog «Dividir» of the band editor: «Número de divisiones» (default 2).
+/// Dialog «Banda de integración» of «Editar» (measured, docs 11.1): «Anchura» (cm) and «Número de puntos de esfuerzo» (3..1000, default 10; the
+/// warning writes empty quotes: «El valor de '' debe estar entre 3  y 1000 .»).
+class BandEditDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    explicit BandEditDialog(double widthCm = cc::core::kBandWidthDefaultM * 100.0, int forcePoints = cc::core::kBandForcePointsDefault,
+                            QWidget* parent = nullptr);
+    double widthM() const;
+    int forcePoints() const;
+    RangedEdit* widthEdit() const { return m_width; }
+    RangedEdit* pointsEdit() const { return m_points; }
+    void accept() override;
+
+private:
+    RangedEdit* m_width = nullptr;
+    RangedEdit* m_points = nullptr;
+};
+
+/// Dialog «Dividir» of the band editor: «Número de divisiones» (default 2, 2..10, measured).
 class BandDivisionsDialog : public CypeDialog {
     Q_OBJECT
 public:
-    explicit BandDivisionsDialog(int parts = cc::core::kBandMinDivisions, QWidget* parent = nullptr);
+    explicit BandDivisionsDialog(int parts = cc::core::kBandDefaultDivisions, QWidget* parent = nullptr);
     int parts() const;
     RangedEdit* edit() const { return m_edit; }
     void accept() override;

@@ -182,6 +182,9 @@ public:
     /// the last selected shell or edge when nothing is under the cursor.
     using ShellInfoProvider = std::function<QStringList(int shellId, const std::optional<core::ShellEdgeKey>& edge)>;
     void setShellInfoProvider(ShellInfoProvider provider);
+    /// T-P6-07 (Propiedades > Laminas > Bandas de integracion), measured: while the command is active every band is a thin black line (its centre line) on
+    /// its shell with a triad of local axes (X red along the band, Y green, Z blue) at 80 % of its length. nullptr = nothing drawn.
+    void setShellBands(const core::ShellProperties* data);
     /// Element under the cursor in selection mode.
     const std::optional<core::ElementRef>& hovered() const { return m_hover; }
     /// True between the first and the second click of a window.
@@ -417,6 +420,7 @@ private:
     void drawBarTags(class QPainter& painter) const;
     void drawBarEnds(class QPainter& painter) const;
     void drawBucklingLabels(class QPainter& painter) const;
+    void drawShellBands(class QPainter& painter) const;
     void drawDeflectionLabels(class QPainter& painter) const;
     void drawShellEdges(class QPainter& painter) const;  ///< selected / hovered edges (T-P6-07)
     void edgePress(class QMouseEvent* event);
@@ -465,6 +469,7 @@ private:
     std::vector<core::ShellEdgeKey> m_edgeSelection;
     std::optional<core::ShellEdgeKey> m_edgeHover;
     ShellInfoProvider m_shellInfoProvider;
+    const core::ShellProperties* m_shellBands = nullptr;
     const core::ProfileSettings* m_profiles = nullptr;
     std::optional<QPointF> m_windowStart;
     QPointF m_cursor;

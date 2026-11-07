@@ -32,14 +32,14 @@ ShellPropertiesTool::ShellPropertiesTool(QObject* parent) : QObject(parent) {
         });
         m_actions[idx(mode)] = action;
     };
-    // Help texts of the original: #64714, #374986, #64728, #64719, #64722. Pandeo / Análisis modal: the id of the help text was not found (clone wording).
+    // Help texts of the original: #64714, #374986, #64728, #64719, #64722. Pandeo / Análisis modal: no help text exists (docs 11.7).
     make(Mode::Discretisation, tr("Edición de los parámetros para configurar la discretización de un grupo de láminas."));
     make(Mode::Stiffness, tr("Permite editar los factores de rigidez de un grupo de láminas."));
     make(Mode::Bands, tr("Permite editar las bandas de integración de esfuerzos de varias láminas."));
     make(Mode::InteriorEdge, tr("Permite editar la vinculación interior de un grupo de aristas."));
     make(Mode::ExteriorEdge, tr("Permite editar la vinculación exterior de un grupo de aristas."));
-    make(Mode::Buckling, tr("Permite indicar si un grupo de láminas se considera en el análisis de pandeo."));
-    make(Mode::Modal, tr("Permite indicar si un grupo de láminas se considera en el análisis modal."));
+    make(Mode::Buckling, tr("Pandeo"));  // measured (docs 11.7): the tooltip of Pandeo / Análisis modal is only the name
+    make(Mode::Modal, tr("Análisis modal"));
 }
 
 QString ShellPropertiesTool::commandName(Mode mode) {
@@ -123,9 +123,11 @@ void ShellPropertiesTool::configureViewports() {
         viewport->setEdgeSelectionMode(false);
         viewport->setShellContourPick(false);
         viewport->setShellInfoProvider({});
+        viewport->setShellBands(nullptr);
         if (!on) continue;
         viewport->setSelectionFilter(SelectionFilter::only(ElementKind::Shell));
         viewport->setShellContourPick(!edges);  // the original selects a shell by its outline; the centre does not select it
+        if (m_mode == Mode::Bands && m_project) viewport->setShellBands(&m_project->shellProps);
         viewport->setShellInfoProvider([this](int shellId, const std::optional<ShellEdgeKey>& edge) { return infoLines(shellId, edge); });
         viewport->setSelectionMode(true);
         viewport->setEdgeSelectionMode(edges);

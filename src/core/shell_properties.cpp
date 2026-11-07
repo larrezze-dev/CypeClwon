@@ -228,6 +228,15 @@ std::string stiffnessRangeMessage(const std::string& field) {
 
 std::string bandWidthRangeMessage() { return "El valor de 'Anchura' debe estar entre 1.0 y 10000.0."; }
 
+std::string bandForcePointsRangeMessage() { return "El valor de '' debe estar entre 3  y 1000 ."; }
+
+std::string bandDivisionsRangeMessage() { return "El valor de 'Número de divisiones' debe estar entre 2  y 10 ."; }
+
+std::optional<ShellPropIssue> checkBandForcePoints(int points) {
+    if (points < kBandForcePointsMin || points > kBandForcePointsMax) return issue(0, bandForcePointsRangeMessage());
+    return std::nullopt;
+}
+
 std::optional<ShellPropIssue> checkTriangleSize(double sideM) {
     // 0.005 mm of slack so that a value typed at the two decimals of the dialog never fails by rounding.
     if (!std::isfinite(sideM) || sideM < kShellTriangleSideMinM - 5e-6 || sideM > kShellTriangleSideMaxM + 5e-6) return issue(0, triangleSizeRangeMessage());
@@ -251,7 +260,7 @@ std::optional<ShellPropIssue> checkEdgeInterior(const EdgeInteriorBond& bond) {
     if (bond.kind != EdgeInteriorKind::Generic) return std::nullopt;
     for (std::size_t i = 0; i < 6; ++i)
         if (bond.dof[i] == DofMode::Elastic && !finiteIn(bond.k[i], kMinElasticConstant, kMaxElasticConstant))
-            return issue(0, "El valor de 'K' debe estar entre 1 y 10000000.");  // TODO(medir): wording / range on edges
+            return issue(0, "El valor de 'K' debe estar entre 1 y 10000000.");  // measured (docs 11.5)
     return std::nullopt;
 }
 
@@ -350,11 +359,11 @@ BandResult done(std::vector<ShellIntegrationBand> bands) {
 
 }  // namespace
 
-std::optional<ShellPropIssue> checkBand(const std::vector<Point2>& contour, const ShellIntegrationBand& b) {
+std::optional<ShellPropIssue> checkBand(const std::vector<Point2>& contour, const ShellIntegrationBand& b, bool checkLength) {
     if (auto w = checkBandWidth(b.widthM)) return w;
     if (!std::isfinite(b.x1) || !std::isfinite(b.y1) || !std::isfinite(b.x2) || !std::isfinite(b.y2))
         return issue(64190, "La banda de integración no está completamente contenida en la lámina.");
-    if (b.length() < kBandMinLengthM - 1e-9)
+    if (checkLength && b.length() < kBandMinLengthM - 1e-9)
         return issue(64191, "La longitud de la banda de integración es inferior a la mínima permitida (" + fmt("%.2f", kBandMinLengthM) + " m).");
     if (!rectInside(contour, bandCorners(b))) return issue(64190, "La banda de integración no está completamente contenida en la lámina.");
     return std::nullopt;
@@ -370,14 +379,17 @@ BandResult newBand(const std::vector<Point2>& contour, const std::vector<ShellIn
 }
 
 BandResult editBands(const std::vector<Point2>& contour, const std::vector<ShellIntegrationBand>& current, const std::vector<int>& indices,
-                     double widthM) {
+                     double widthM, std::optional<int> forcePoints) {
     const std::vector<int> ids = validIndices(indices, current.size());
     if (ids.empty()) return fail(issue(0, "No hay bandas de integración seleccionadas."));
     if (auto w = checkBandWidth(widthM)) return fail(w);
+    if (forcePoints)
+        if (auto p = checkBandForcePoints(*forcePoints)) return fail(p);
     std::vector<ShellIntegrationBand> out = current;
     for (int i : ids) {
         out[static_cast<std::size_t>(i)].widthM = widthM;
-        if (auto why = checkBand(contour, out[static_cast<std::size_t>(i)])) return fail(why);
+        if (forcePoints) out[static_cast<std::size_t>(i)].forcePoints = *forcePoints;
+        if (auto why = checkBand(contour, out[static_cast<std::size_t>(i)], false)) return fail(why);
     }
     return done(std::move(out));
 }
@@ -402,7 +414,7 @@ BandResult moveBandEnd(const std::vector<Point2>& contour, const std::vector<She
         b.y2 = to.y;
     }
     b = normaliseBand(b);
-    if (auto why = checkBand(contour, b)) return fail(why);
+    if (auto why = checkBand(contour, b, false)) return fail(why);  // a short band is kept (flagged as an incidence)
     std::vector<ShellIntegrationBand> out = current;
     out[static_cast<std::size_t>(index)] = b;
     return done(std::move(out));
@@ -414,21 +426,29 @@ BandResult joinBands(const std::vector<Point2>& contour, const std::vector<Shell
     const ShellIntegrationBand first = normaliseBand(current[static_cast<std::size_t>(ids.front())]);
     const Point2 o{first.x1, first.y1};
     const Point2 d = unit2(Point2{first.x2, first.y2} - o);
-    double tMin = 0.0, tMax = 0.0, width = 0.0;
+    const Point2 n{-d.y, d.x};
+    double tMin = 0.0, tMax = 0.0, sMin = 0.0, sMax = 0.0;
+    bool started = false;
     for (int i : ids) {
         const ShellIntegrationBand b = normaliseBand(current[static_cast<std::size_t>(i)]);
         const Point2 p1{b.x1, b.y1}, p2{b.x2, b.y2};
         if (std::fabs(cross2(d, unit2(p2 - p1))) > 1e-6) return fail(issue(63999, "Las bandas de integración seleccionadas deben ser paralelas."));
+        const double s = dot2(p1 - o, n), half = b.widthM * 0.5;  // offset of the centre line across the direction
         for (const Point2& p : {p1, p2}) {
             const double t = dot2(p - o, d);
-            tMin = std::min(tMin, t);
-            tMax = std::max(tMax, t);
+            tMin = started ? std::min(tMin, t) : t;
+            tMax = started ? std::max(tMax, t) : t;
+            started = true;
         }
-        width = std::max(width, b.widthM);
+        sMin = (i == ids.front()) ? s - half : std::min(sMin, s - half);
+        sMax = (i == ids.front()) ? s + half : std::max(sMax, s + half);
     }
-    const Point2 a = o + d * tMin, c = o + d * tMax;
-    const ShellIntegrationBand joined = normaliseBand({a.x, a.y, c.x, c.y, width});
-    if (auto why = checkBand(contour, joined)) return fail(why);
+    // One band centred between them, as wide as the whole group (outer separation + width).
+    const double centre = (sMin + sMax) * 0.5;
+    const Point2 a = o + d * tMin + n * centre, c = o + d * tMax + n * centre;
+    ShellIntegrationBand joined = normaliseBand({a.x, a.y, c.x, c.y, sMax - sMin});
+    joined.forcePoints = first.forcePoints;
+    if (auto why = checkBand(contour, joined, false)) return fail(why);
     std::vector<ShellIntegrationBand> out;
     for (std::size_t i = 0; i < current.size(); ++i) {
         if (static_cast<int>(i) == ids.front()) out.push_back(joined);
@@ -442,7 +462,7 @@ BandResult divideBands(const std::vector<Point2>& contour, const std::vector<She
     const std::vector<int> ids = validIndices(indices, current.size());
     if (ids.empty()) return fail(issue(0, "No hay bandas de integración seleccionadas."));
     if (parts < kBandMinDivisions || parts > kBandMaxDivisions)
-        return fail(issue(0, shellRangeMessage("Número de divisiones", std::to_string(kBandMinDivisions), std::to_string(kBandMaxDivisions))));
+        return fail(issue(0, bandDivisionsRangeMessage()));
     std::vector<ShellIntegrationBand> out;
     for (std::size_t i = 0; i < current.size(); ++i) {
         if (!std::binary_search(ids.begin(), ids.end(), static_cast<int>(i))) {
@@ -453,8 +473,9 @@ BandResult divideBands(const std::vector<Point2>& contour, const std::vector<She
         const Point2 p1{b.x1, b.y1}, step = (Point2{b.x2, b.y2} - p1) * (1.0 / parts);
         for (int k = 0; k < parts; ++k) {
             const Point2 a = p1 + step * k, c = (k + 1 == parts) ? Point2{b.x2, b.y2} : p1 + step * (k + 1);
-            const ShellIntegrationBand piece{a.x, a.y, c.x, c.y, b.widthM};
-            if (auto why = checkBand(contour, piece)) return fail(why);
+            ShellIntegrationBand piece{a.x, a.y, c.x, c.y, b.widthM};
+            piece.forcePoints = b.forcePoints;
+            if (auto why = checkBand(contour, piece, false)) return fail(why);
             out.push_back(piece);
         }
     }
@@ -553,6 +574,7 @@ std::string validateShellProperties(const ShellProperties& data) {
         if (checkStiffnessFactors(r.stiffness)) return "láminas: factor de rigidez fuera de rango";
         for (const ShellIntegrationBand& b : r.bands) {
             if (checkBandWidth(b.widthM)) return "láminas: ancho de banda fuera de rango";
+            if (checkBandForcePoints(b.forcePoints)) return "láminas: número de puntos de esfuerzo fuera de rango";
             if (!(b.length() > 0.0)) return "láminas: banda de longitud nula";
             if (!lexLessOrEqual({b.x1, b.y1}, {b.x2, b.y2})) return "láminas: extremos de banda sin ordenar";
         }
@@ -645,9 +667,13 @@ ShellProperties reconcileShellProperties(const ShellProperties& data, const Stru
                 if (!identity) {
                     const Point2 p1 = dstFrame->toLocal(srcFrame->toWorld({b.x1, b.y1}));
                     const Point2 p2 = dstFrame->toLocal(srcFrame->toWorld({b.x2, b.y2}));
-                    nb = normaliseBand({p1.x, p1.y, p2.x, p2.y, b.widthM});
+                    nb.x1 = p1.x;
+                    nb.y1 = p1.y;
+                    nb.x2 = p2.x;
+                    nb.y2 = p2.y;
+                    nb = normaliseBand(nb);
                 }
-                if (checkBand(dstContour, nb)) continue;  // no longer fits
+                if (checkBand(dstContour, nb, false)) continue;  // no longer fits
                 if (std::find(bands.begin(), bands.end(), nb) == bands.end()) bands.push_back(nb);
             }
         }

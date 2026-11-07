@@ -186,6 +186,83 @@ TEST_F(ShellPropertiesToolTest, ConsiderAndBandForceDialogs) {
     EXPECT_DOUBLE_EQ(width.widthM(), 0.2);
     BandDivisionsDialog divisions;
     EXPECT_EQ(divisions.edit()->text(), QStringLiteral("2"));
+    for (const char* bad : {"1", "0"}) {
+        divisions.edit()->setText(QString::fromLatin1(bad));
+        EXPECT_FALSE(divisions.edit()->commit());
+        EXPECT_EQ(warnings.back(), QStringLiteral("El valor de 'Número de divisiones' debe estar entre 2  y 10 ."));
+    }
+    divisions.edit()->setText(QStringLiteral("100000"));
+    EXPECT_EQ(divisions.edit()->text(), QStringLiteral("10")) << "the editor keeps two digits at most (measured: 100000 -> 10)";
+    EXPECT_TRUE(divisions.edit()->commit());
+    EXPECT_EQ(divisions.edit()->value(), 10.0);
+}
+
+TEST_F(ShellPropertiesToolTest, BandEditDialogHasWidthAndForcePoints) {
+    BandEditDialog dialog(15.0, 10);
+    EXPECT_EQ(dialog.windowTitle(), QStringLiteral("Banda de integración"));
+    EXPECT_EQ(dialog.widthEdit()->text(), QStringLiteral("15.0"));
+    EXPECT_EQ(dialog.pointsEdit()->text(), QStringLiteral("10"));
+    for (const char* bad : {"1", "0", "1001"}) {
+        dialog.pointsEdit()->setText(QString::fromLatin1(bad));
+        EXPECT_FALSE(dialog.pointsEdit()->commit());
+        EXPECT_EQ(warnings.back(), QStringLiteral("El valor de '' debe estar entre 3  y 1000 ."));
+    }
+    EXPECT_EQ(dialog.pointsEdit()->text(), QStringLiteral("10"));
+    dialog.pointsEdit()->setText(QStringLiteral("999"));
+    dialog.accept();
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+    EXPECT_EQ(dialog.forcePoints(), 999);
+}
+
+TEST_F(ShellPropertiesToolTest, DiscretisationWindowIsMeasuredSize) {
+    ShellDiscretisationDialog dialog(1.0);
+    EXPECT_EQ(dialog.size(), QSize(634, 214));
+}
+
+TEST_F(ShellPropertiesToolTest, BucklingAndModalTooltipsAreOnlyTheName) {
+    EXPECT_EQ(tool->bucklingAction()->toolTip(), QStringLiteral("Pandeo"));
+    EXPECT_EQ(tool->modalAction()->toolTip(), QStringLiteral("Análisis modal"));
+}
+
+TEST_F(ShellPropertiesToolTest, EdgeInteriorElasticKAsksQuestion65010) {
+    QStringList questions;
+    bool answer = false;
+    ExternalSupportDialog::setQuestionHandler([&](QWidget*, const QString& text) {
+        questions << text;
+        return answer;
+    });
+    EdgeInteriorDialog dialog;
+    dialog.selectKind(EdgeInteriorKind::Generic);
+    dialog.modeRadio(3, DofMode::Elastic)->setChecked(true);
+    EXPECT_EQ(dialog.kEdit(3)->text(), QStringLiteral("100000"));
+    dialog.accept();  // K = 100000 (the default): the question, answered No
+    ASSERT_EQ(questions.size(), 1);
+    EXPECT_EQ(questions[0],
+              QStringLiteral("El valor introducido para la constante de apoyo elástico (K) coincide con el valor por defecto. Recuerde que debe asignar un "
+                             "valor conforme al grado de empotramiento que posee la vinculación exterior en el nudo. ¿Desea continuar?"));
+    EXPECT_NE(dialog.result(), QDialog::Accepted);
+    answer = true;
+    dialog.accept();
+    EXPECT_EQ(questions.size(), 2);
+    EXPECT_EQ(dialog.result(), QDialog::Accepted);
+    // Another K: no question; out of range: the measured warning.
+    EdgeInteriorDialog other;
+    other.selectKind(EdgeInteriorKind::Generic);
+    other.modeRadio(0, DofMode::Elastic)->setChecked(true);
+    other.kEdit(0)->setText(QStringLiteral("5000"));
+    EXPECT_TRUE(other.kEdit(0)->commit());  // the dialog is not shown here: accept() only commits visible editors
+    other.accept();
+    EXPECT_EQ(questions.size(), 2);
+    EXPECT_EQ(other.result(), QDialog::Accepted);
+    EdgeInteriorDialog bad;
+    bad.selectKind(EdgeInteriorKind::Generic);
+    bad.modeRadio(0, DofMode::Elastic)->setChecked(true);
+    for (const char* text : {"0", "-5", "99999999999"}) {
+        bad.kEdit(0)->setText(QString::fromLatin1(text));
+        EXPECT_FALSE(bad.kEdit(0)->commit());
+        EXPECT_EQ(warnings.back(), QStringLiteral("El valor de 'K' debe estar entre 1 y 10000000."));
+    }
+    ExternalSupportDialog::setQuestionHandler(nullptr);
 }
 
 // ---- tool ---------------------------------------------------------------------------------------------------------------------
@@ -323,11 +400,18 @@ TEST_F(ShellPropertiesToolTest, BandsDialogNewGenerateEditDivideJoinDeleteAndHis
     const BandsFixture fx;
     ShellBandsDialog dialog(fx.contour, {}, BandForceOptions{});
     int widthDialogs = 0;
+    bool cancelWidth = false;
     ShellBandsDialog::setDialogRunner([&](QDialog& d) {
         if (auto* w = dynamic_cast<BandWidthDialog*>(&d)) {
             ++widthDialogs;
-            if (d.windowTitle() != QStringLiteral("Editar")) w->edit()->setText(QStringLiteral("20"));
-            else w->edit()->setText(QStringLiteral("30"));
+            if (cancelWidth) return static_cast<int>(QDialog::Rejected);
+            w->edit()->setText(QStringLiteral("20"));
+            d.accept();
+            return static_cast<int>(QDialog::Accepted);
+        }
+        if (auto* e = dynamic_cast<BandEditDialog*>(&d)) {
+            e->widthEdit()->setText(QStringLiteral("30"));
+            e->pointsEdit()->setText(QStringLiteral("25"));
             d.accept();
             return static_cast<int>(QDialog::Accepted);
         }
@@ -344,28 +428,55 @@ TEST_F(ShellPropertiesToolTest, BandsDialogNewGenerateEditDivideJoinDeleteAndHis
     EXPECT_FALSE(dialog.button(QStringLiteral("undo"))->isEnabled());
     EXPECT_EQ(dialog.button(QStringLiteral("undo"))->toolTip(), QStringLiteral("Deshacer (Ctrl+Z)"));
 
-    // Nueva: the width dialog first, two points, RMB creates and asks again.
+    // Incidencias is active by default; without bands the tools that act on bands are dimmed.
+    EXPECT_TRUE(dialog.button(QStringLiteral("incidences"))->isChecked());
+    EXPECT_FALSE(dialog.button(QStringLiteral("edit"))->isEnabled());
+    EXPECT_FALSE(dialog.button(QStringLiteral("join"))->isEnabled());
+    EXPECT_TRUE(dialog.button(QStringLiteral("new"))->isEnabled());
+
+    // Nueva: the width dialog first, the band is created at the SECOND click (no RMB needed); RMB asks the width again.
     dialog.button(QStringLiteral("new"))->click();
     EXPECT_EQ(widthDialogs, 1);
     EXPECT_EQ(dialog.viewer()->tool(), BandViewer::Tool::New);
     dialog.viewer()->click({1, 2});
+    EXPECT_TRUE(dialog.bands().empty());
     dialog.viewer()->click({3, 2});
-    dialog.viewer()->rightClick();
     ASSERT_EQ(dialog.bands().size(), 1u);
     EXPECT_DOUBLE_EQ(dialog.bands()[0].widthM, 0.2);
-    EXPECT_EQ(widthDialogs, 2) << "the right button opens «Nueva» again";
+    EXPECT_EQ(widthDialogs, 1) << "no dialog after the second click";
     EXPECT_TRUE(dialog.button(QStringLiteral("undo"))->isEnabled());
+    EXPECT_TRUE(dialog.button(QStringLiteral("edit"))->isEnabled());
+    dialog.viewer()->click({1, 3});  // the next click starts another band with the same width
+    dialog.viewer()->click({3, 3});
+    EXPECT_EQ(dialog.bands().size(), 2u);
+    dialog.undo();
+    EXPECT_EQ(dialog.bands().size(), 1u);
+    dialog.viewer()->rightClick();
+    EXPECT_EQ(widthDialogs, 2) << "the right button opens «Nueva» again";
+    EXPECT_EQ(dialog.viewer()->tool(), BandViewer::Tool::New);
+
+    // A second click that would make the band too short is rejected without a message and the first point stays.
+    const std::size_t noticesBefore = static_cast<std::size_t>(notices.size());
+    dialog.viewer()->click({1, 1});
+    dialog.viewer()->click({1.1, 1});
+    EXPECT_EQ(dialog.bands().size(), 1u);
+    EXPECT_EQ(static_cast<std::size_t>(notices.size()), noticesBefore);
+    EXPECT_EQ(dialog.viewer()->points().size(), 1u);
+    dialog.viewer()->click({1.5, 1});
+    EXPECT_EQ(dialog.bands().size(), 2u);
+    dialog.undo();
 
     // A point outside the shell is not taken.
     dialog.viewer()->click({9, 9});
     EXPECT_TRUE(dialog.viewer()->points().empty());
 
-    // Editar: select by click, RMB, dialog «Editar» (30 cm).
+    // Editar: select by click, RMB, dialog «Banda de integración» (30 cm).
     dialog.button(QStringLiteral("edit"))->click();
     dialog.viewer()->click({2, 2});
     ASSERT_EQ(dialog.viewer()->selected().size(), 1u);
     dialog.viewer()->rightClick();
     EXPECT_DOUBLE_EQ(dialog.bands()[0].widthM, 0.3);
+    EXPECT_EQ(dialog.bands()[0].forcePoints, 25);
 
     // Dividir: 3 parts.
     dialog.button(QStringLiteral("divide"))->click();
@@ -381,12 +492,54 @@ TEST_F(ShellPropertiesToolTest, BandsDialogNewGenerateEditDivideJoinDeleteAndHis
     dialog.viewer()->rightClick();
     EXPECT_EQ(dialog.bands().size(), 1u);
 
+    // Unir with non-parallel bands: the «Error» window with #63999 and nothing changes.
+    ShellBandsDialog bad(fx.contour, {}, BandForceOptions{});
+    bad.button(QStringLiteral("new"))->click();
+    bad.viewer()->click({1, 1});
+    bad.viewer()->click({3, 1});
+    bad.viewer()->click({1, 2});
+    bad.viewer()->click({1, 3.5});
+    ASSERT_EQ(bad.bands().size(), 2u);
+    messages::Kind lastKind = messages::Kind::Information;
+    messages::handler() = [&](QWidget*, messages::Kind kind, const QString& text) {
+        lastKind = kind;
+        notices.push_back(text);
+        return true;
+    };
+    bad.button(QStringLiteral("join"))->click();
+    bad.viewer()->click({0.5, 0.5});
+    bad.viewer()->click({3.5, 3.9});
+    ASSERT_EQ(bad.viewer()->selected().size(), 2u);
+    bad.viewer()->rightClick();
+    EXPECT_EQ(lastKind, messages::Kind::Error);
+    EXPECT_EQ(notices.last(), QStringLiteral("Las bandas de integración seleccionadas deben ser paralelas."));
+    EXPECT_EQ(bad.bands().size(), 2u);
+
+    // Cancelar in the width dialog ends «Nueva».
+    cancelWidth = true;
+    dialog.button(QStringLiteral("new"))->click();
+    EXPECT_EQ(dialog.viewer()->tool(), BandViewer::Tool::None);
+    cancelWidth = false;
+    dialog.button(QStringLiteral("new"))->click();
+    cancelWidth = true;
+    dialog.viewer()->rightClick();
+    EXPECT_EQ(dialog.viewer()->tool(), BandViewer::Tool::None) << "Cancelar on the dialog opened by the right button ends the tool";
+    cancelWidth = false;
+
     // Mover extremo: click the end, then the new place.
     dialog.button(QStringLiteral("move"))->click();
     const ShellIntegrationBand b = dialog.bands()[0];
     dialog.viewer()->click({b.x2, b.y2});
     dialog.viewer()->click({3, 3});
     EXPECT_NEAR(dialog.bands()[0].y2, 3.0, 1e-9);
+    // A band left shorter than the minimum is kept without any warning.
+    const qsizetype noticesNow = notices.size();
+    const ShellIntegrationBand moved = dialog.bands()[0];
+    dialog.viewer()->click({moved.x2, moved.y2});
+    dialog.viewer()->click({moved.x1 + 0.04, moved.y1 + 0.04});
+    EXPECT_EQ(notices.size(), noticesNow);
+    EXPECT_LT(dialog.bands()[0].length(), kBandMinLengthM);
+    dialog.undo();
 
     // Borrar.
     dialog.button(QStringLiteral("delete"))->click();
@@ -417,8 +570,7 @@ TEST_F(ShellPropertiesToolTest, BandsDialogErrorsShowTheOriginalText) {
     ShellBandsDialog::setDialogRunner([](QDialog& d) { d.accept(); return static_cast<int>(QDialog::Accepted); });
     dialog.button(QStringLiteral("new"))->click();
     dialog.viewer()->click({1, 0.05});
-    dialog.viewer()->click({3, 0.05});
-    dialog.viewer()->rightClick();  // 15 cm wide strip crossing the edge: not completely contained
+    dialog.viewer()->click({3, 0.05});  // 15 cm wide strip crossing the edge: not completely contained
     EXPECT_TRUE(dialog.bands().empty());
     ASSERT_FALSE(notices.isEmpty());
     EXPECT_EQ(notices.last(), QStringLiteral("La banda de integración no está completamente contenida en la lámina."));
@@ -432,7 +584,6 @@ TEST_F(ShellPropertiesToolTest, BandsCommandAssignsBandsAndMethodAsOneStep) {
         dialog.button(QStringLiteral("new"))->click();
         dialog.viewer()->click({1, 2});
         dialog.viewer()->click({3, 2});
-        dialog.viewer()->rightClick();
         dialog.button(QStringLiteral("new"))->click();  // leave the command
         d.accept();
         return static_cast<int>(QDialog::Accepted);

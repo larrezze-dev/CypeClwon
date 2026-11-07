@@ -252,8 +252,15 @@ void BandViewer::click(const Point2& p, Qt::KeyboardModifiers modifiers) {
     switch (m_tool) {
         case Tool::None: return;
         case Tool::New:
-            if (m_points.size() >= 2) m_points.clear();
-            if (pointInPolygon2D(p, m_contour)) m_points.push_back(p);  // "dos puntos dentro de la lámina"
+            if (!pointInPolygon2D(p, m_contour)) break;  // "dos puntos dentro de la lámina"
+            if (m_points.empty()) {
+                m_points.push_back(p);
+            } else {
+                const Point2 a = m_points.front();
+                if (std::hypot(p.x - a.x, p.y - a.y) < kBandMinLengthM) break;  // measured: rejected without a message, the first point stays
+                m_points.clear();
+                emit requestNew(a, p);  // the band is created at the second click (docs 11.1)
+            }
             break;
         case Tool::Generate:
             if (m_points.size() >= 4) m_points.clear();
@@ -300,13 +307,8 @@ void BandViewer::rightClick() {
     switch (m_tool) {
         case Tool::None: return;
         case Tool::New:
-            if (m_points.size() == 2) {
-                const Point2 a = m_points[0], b = m_points[1];
-                m_points.clear();
-                emit requestNew(a, b);
-            } else {
-                m_points.clear();
-            }
+            m_points.clear();
+            emit requestWidth(Tool::New);  // RMB opens «Nueva» again to change the width of the next bands
             break;
         case Tool::Generate:
             if (m_points.size() == 4) {
@@ -451,7 +453,7 @@ void BandViewer::paintEvent(QPaintEvent*) {
         const ShellIntegrationBand& b = m_bands[static_cast<std::size_t>(i)];
         const bool selected = std::find(m_selected.begin(), m_selected.end(), i) != m_selected.end();
         const bool incident = m_incidences && checkBand(m_contour, b).has_value();
-        const QColor colour = selected ? kOrange : (incident ? QColor(214, 32, 32) : kMagenta);
+        const QColor colour = selected ? kOrange : kMagenta;  // an incidence is a thick magenta stroke (docs 11.3)
         QPolygonF quad;
         for (const Point2& p : cornersOf(b)) quad << toScreen(p);
         QPen dotted(colour, selected ? 2.0 : 1.2);
@@ -459,12 +461,23 @@ void BandViewer::paintEvent(QPaintEvent*) {
         painter.setPen(dotted);
         painter.setBrush(Qt::NoBrush);
         painter.drawPolygon(quad);
-        painter.setPen(QPen(colour, selected ? 2.0 : 1.2));
+        painter.setPen(QPen(colour, incident ? 3.5 : (selected ? 2.0 : 1.2)));
         painter.drawLine(toScreen({b.x1, b.y1}), toScreen({b.x2, b.y2}));
         if (m_references) {
-            painter.setPen(colour);
-            const QPointF mid = toScreen({(b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2});
-            painter.drawText(mid + QPointF(4, -4), QStringLiteral("B%1").arg(i + 1));  // TODO(medir): text of the references of the bands
+            // «B<n>» (n = 1-based creation order) in light magenta, about 8 px, on the upper edge of the band at 0.4 m from its first end (docs 11.6).
+            const double len = std::hypot(b.x2 - b.x1, b.y2 - b.y1);
+            if (len > 1e-9) {
+                const Point2 d{(b.x2 - b.x1) / len, (b.y2 - b.y1) / len};
+                Point2 n{-d.y, d.x};
+                if (n.y < 0 || (n.y == 0 && n.x < 0)) n = {-n.x, -n.y};
+                const double along = std::min(0.4, len), across = b.widthM * 0.5;
+                const QPointF at = toScreen({b.x1 + d.x * along + n.x * across, b.y1 + d.y * along + n.y * across});
+                QFont font = painter.font();
+                font.setPixelSize(9);
+                painter.setFont(font);
+                painter.setPen(QColor(255, 140, 255));
+                painter.drawText(QRectF(at.x(), at.y() - 6, 24, 12), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("B%1").arg(i + 1));
+            }
         }
     }
 
@@ -585,7 +598,9 @@ ShellBandsDialog::ShellBandsDialog(const std::vector<Point2>& contour, std::vect
          true);
     separator();
     make(QStringLiteral("incidences"), QStringLiteral("band_incidences"),
-         tr("Mostrar/Ocultar incidencias: si se activa esta opción se resaltarán los elementos en los que existan incidencias."), true);
+         tr("<p><b>Incidencias</b></p><p>Mostrar/Ocultar incidencias</p><p>Si activa esta opción, se resaltarán los elementos en los que se haya producido algún error. "
+            "Si posiciona el cursor sobre dichos elementos, se visualizará el mensaje descriptivo de dicho error.</p>"),
+         true);
     bar->addStretch(1);
     make(QStringLiteral("search"), QStringLiteral("view_search"), tr("Búsqueda y activación de comandos (Ctrl+F)"), false);
     separator();
@@ -629,6 +644,7 @@ ShellBandsDialog::ShellBandsDialog(const std::vector<Point2>& contour, std::vect
     connect(m_viewer, &BandViewer::requestGenerate, this, [this](BandZone z) { doGenerate(z); });
     connect(m_viewer, &BandViewer::requestAct, this, [this](BandViewer::Tool t, std::vector<int> i) { doAct(t, i); });
     connect(m_viewer, &BandViewer::requestMoveEnd, this, [this](int i, int e, Point2 p) { doMoveEnd(i, e, p); });
+    connect(m_viewer, &BandViewer::requestWidth, this, [this](BandViewer::Tool t) { reopenWidth(t); });
     connect(m_undoButton, &QToolButton::clicked, this, &ShellBandsDialog::undo);
     connect(m_redoButton, &QToolButton::clicked, this, &ShellBandsDialog::redo);
     connect(button(QStringLiteral("integration")), &QToolButton::clicked, this, &ShellBandsDialog::editIntegration);
@@ -648,6 +664,7 @@ ShellBandsDialog::ShellBandsDialog(const std::vector<Point2>& contour, std::vect
         });
     }
     connect(button(QStringLiteral("incidences")), &QToolButton::toggled, m_viewer, &BandViewer::setShowIncidences);
+    button(QStringLiteral("incidences"))->setChecked(true);  // measured: «Incidencias» is active by default (docs 11.4)
     connect(button(QStringLiteral("viewPrev")), &QToolButton::clicked, m_viewer, &BandViewer::previousView);
     connect(button(QStringLiteral("viewAll")), &QToolButton::clicked, m_viewer, &BandViewer::fitAll);
     connect(button(QStringLiteral("zoom2")), &QToolButton::clicked, m_viewer, [this] { m_viewer->zoomBy(2.0); });
@@ -681,6 +698,17 @@ void ShellBandsDialog::refresh() {
     m_viewer->setBands(bands());
     m_undoButton->setEnabled(canUndo());
     m_redoButton->setEnabled(canRedo());
+    // Measured (docs 11.1): without bands the tools that act on bands are dimmed.
+    const bool any = !bands().empty();
+    for (const QString& name : {QStringLiteral("edit"), QStringLiteral("delete"), QStringLiteral("move"), QStringLiteral("join"), QStringLiteral("divide")}) {
+        QToolButton* b = button(name);
+        if (!b) continue;
+        b->setEnabled(any);
+        if (!any && b->isChecked()) {
+            b->setChecked(false);
+            m_viewer->setTool(BandViewer::Tool::None);
+        }
+    }
     m_viewer->update();
 }
 
@@ -703,7 +731,9 @@ void ShellBandsDialog::setWidth(double widthM) {
 
 void ShellBandsDialog::apply(const BandResult& result) {
     if (!result.ok()) {
-        if (!result.issue->text.empty()) messages::show(this, messages::Kind::Warning, QString::fromStdString(result.issue->text));
+        // #63999 («Las bandas ... deben ser paralelas») is an «Error» window in the original; the rest are «Aviso».
+        if (!result.issue->text.empty())
+            messages::show(this, result.issue->messageId == 63999 ? messages::Kind::Error : messages::Kind::Warning, QString::fromStdString(result.issue->text));
         return;
     }
     if (result.bands == bands()) return;
@@ -751,8 +781,14 @@ void ShellBandsDialog::editIntegration() {
 }
 
 void ShellBandsDialog::doNew(const Point2& a, const Point2& b) {
-    apply(newBand(m_contour, bands(), a, b, m_width));
-    beginNew();  // the right button opens «Nueva» again for the next band
+    const BandResult result = newBand(m_contour, bands(), a, b, m_width);
+    if (!result.ok() && result.issue->messageId == 64191) return;  // too short: rejected without a message (TODO(medir): text #64191)
+    apply(result);
+}
+
+void ShellBandsDialog::reopenWidth(BandViewer::Tool tool) {
+    if (tool == BandViewer::Tool::New) beginNew();
+    else if (tool == BandViewer::Tool::Generate) beginGenerate();
 }
 
 void ShellBandsDialog::doGenerate(const std::array<Point2, 4>& zone) {
@@ -764,16 +800,20 @@ void ShellBandsDialog::doAct(BandViewer::Tool tool, const std::vector<int>& indi
     switch (tool) {
         case BandViewer::Tool::Edit: {
             double current = m_width;
-            if (!indices.empty() && indices.front() >= 0 && indices.front() < static_cast<int>(bands().size())) current = bands()[static_cast<std::size_t>(indices.front())].widthM;
-            BandWidthDialog dialog(tr("Editar"), current * 100.0, this);
+            int points = kBandForcePointsDefault;
+            if (!indices.empty() && indices.front() >= 0 && indices.front() < static_cast<int>(bands().size())) {
+                current = bands()[static_cast<std::size_t>(indices.front())].widthM;
+                points = bands()[static_cast<std::size_t>(indices.front())].forcePoints;
+            }
+            BandEditDialog dialog(current * 100.0, points, this);
             if (run(dialog) != QDialog::Accepted) return;
-            apply(editBands(m_contour, bands(), indices, dialog.widthM()));
+            apply(editBands(m_contour, bands(), indices, dialog.widthM(), dialog.forcePoints()));
             break;
         }
         case BandViewer::Tool::Delete: apply(deleteBands(bands(), indices)); break;
         case BandViewer::Tool::Join: apply(joinBands(m_contour, bands(), indices)); break;
         case BandViewer::Tool::Divide: {
-            BandDivisionsDialog dialog(kBandMinDivisions, this);
+            BandDivisionsDialog dialog(kBandDefaultDivisions, this);
             if (run(dialog) != QDialog::Accepted) return;
             apply(divideBands(m_contour, bands(), indices, dialog.parts()));
             break;
