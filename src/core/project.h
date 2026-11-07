@@ -15,6 +15,7 @@
 #include "core/node_support.h"
 #include "core/options_settings.h"
 #include "core/profile_series.h"
+#include "core/shell_properties.h"
 #include "core/project_settings.h"
 #include "core/standards.h"
 #include "core/structure_model.h"
@@ -49,6 +50,7 @@ struct Project {
     BarEnds barEnds;  ///< articulations and partial fixity at the ends of bars (section bar_ends); empty in older files
     BucklingData buckling;  ///< member buckling coefficients and lateral buckling per bar (section buckling); empty in older files
     DeflectionData deflection;  ///< deflection groups that differ from "one secant group per bar" (section deflection_groups); empty in older files
+    ShellProperties shellProps;  ///< shell properties: discretisation, stiffness factors, integration bands, edge bonds, buckling, modal (section shell_properties); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };
 

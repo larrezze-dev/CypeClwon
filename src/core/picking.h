@@ -4,6 +4,7 @@
 
 #include "camera.h"
 #include "selection.h"
+#include "shell_properties.h"
 #include "structure_model.h"
 
 namespace cc::core {
@@ -21,6 +22,8 @@ struct ScreenMapper {
 struct PickOptions {
     double nodeRadiusPx = 7.0;  ///< half of the on-screen node square
     double barTolerancePx = 5.0;
+    /// T-P6-07 (Propiedades > Laminas): the original selects a shell by pressing on its outline, the centre does not select it.
+    bool shellContourOnly = false;
 };
 
 /// Direct click: the nearest node within the node radius, else the nearest bar within the tolerance, else the shell
@@ -35,5 +38,11 @@ RectMode rectModeFor(double x1, double x2);
 
 std::vector<ElementRef> pickRect(const StructuralModel& model, const ScreenMapper& map, const SelectionFilter& filter,
                                  double x1, double y1, double x2, double y2);
+
+/// Edge of a visible shell nearest to the cursor within `tolerancePx` (T-P6-07, vinculaciones de aristas).
+std::optional<ShellEdgeKey> pickShellEdgeAt(const StructuralModel& model, const ScreenMapper& map, double x, double y, double tolerancePx = 5.0);
+
+/// Edges of the visible shells selected by a rectangle: window = both ends inside, crossing = the segment touches the rectangle.
+std::vector<ShellEdgeKey> pickShellEdgesRect(const StructuralModel& model, const ScreenMapper& map, double x1, double y1, double x2, double y2);
 
 }  // namespace cc::core

@@ -27,6 +27,7 @@
 #include "core/picking.h"
 #include "core/project_settings.h"
 #include "core/selection.h"
+#include "core/shell_properties.h"
 #include "core/snap.h"
 #include "core/structure_model.h"
 #include "core/work_planes.h"
@@ -167,6 +168,20 @@ public:
     void clearSelection();
     /// Replaces the selection with the given elements (used by "Buscar" to show what it found).
     void setSelectionItems(const std::vector<core::ElementRef>& items);
+    /// T-P6-07 (Propiedades > Laminas): a shell is picked by pressing on its outline (the centre does not select it).
+    void setShellContourPick(bool on);
+    bool shellContourPick() const { return m_shellContourPick; }
+    /// Edge selection surface (Vinculacion interior / exterior of shells): LMB on an edge selects it (Ctrl adds, Shift removes), a click on empty
+    /// space starts a window (window / crossing); RMB emits actOnSelection(). Requires the selection mode. Edge selection replaces the element selection.
+    void setEdgeSelectionMode(bool on);
+    bool edgeSelectionMode() const { return m_edgeMode; }
+    const std::vector<core::ShellEdgeKey>& edgeSelection() const { return m_edgeSelection; }
+    const std::optional<core::ShellEdgeKey>& edgeHovered() const { return m_edgeHover; }
+    void setEdgeSelection(const std::vector<core::ShellEdgeKey>& edges);
+    /// Rows of the information box of a shell / an edge (empty: the default box of Geometria > Laminas). While a provider is set the box also shows
+    /// the last selected shell or edge when nothing is under the cursor.
+    using ShellInfoProvider = std::function<QStringList(int shellId, const std::optional<core::ShellEdgeKey>& edge)>;
+    void setShellInfoProvider(ShellInfoProvider provider);
     /// Element under the cursor in selection mode.
     const std::optional<core::ElementRef>& hovered() const { return m_hover; }
     /// True between the first and the second click of a window.
@@ -403,6 +418,8 @@ private:
     void drawBarEnds(class QPainter& painter) const;
     void drawBucklingLabels(class QPainter& painter) const;
     void drawDeflectionLabels(class QPainter& painter) const;
+    void drawShellEdges(class QPainter& painter) const;  ///< selected / hovered edges (T-P6-07)
+    void edgePress(class QMouseEvent* event);
     void drawDeflectionGroup(class QPainter& painter, int barId, bool selected) const;
     double labelRowWorld() const;  ///< world size of one row of the green bar labels (0.0072 of the diagonal times "Tamano de los textos")
     const std::vector<core::DeflectionGroupInfo>& deflectionList() const;
@@ -443,6 +460,11 @@ private:
     core::CategorySettings m_categories;
     core::Selection m_selection;
     std::optional<core::ElementRef> m_hover;
+    bool m_shellContourPick = false;
+    bool m_edgeMode = false;
+    std::vector<core::ShellEdgeKey> m_edgeSelection;
+    std::optional<core::ShellEdgeKey> m_edgeHover;
+    ShellInfoProvider m_shellInfoProvider;
     const core::ProfileSettings* m_profiles = nullptr;
     std::optional<QPointF> m_windowStart;
     QPointF m_cursor;

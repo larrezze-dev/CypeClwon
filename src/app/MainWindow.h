@@ -24,6 +24,7 @@ class DiaphragmTool;
 class BarEndsTool;
 class BucklingTool;
 class DeflectionTool;
+class ShellPropertiesTool;
 class BarTool;
 class PieceTool;
 class BarDescribeTool;
@@ -133,6 +134,7 @@ private:
     NodeTool* m_nodeTool = nullptr;  ///< Geometria > Nudos (Nuevo / Borrar / Mover)
     LigatureTool* m_ligatureTool = nullptr;  ///< Propiedades > Nudos > Ligaduras (T-P6-02)
     DiaphragmTool* m_diaphragmTool = nullptr;  ///< Propiedades > Diafragmas (T-P6-03)
+    ShellPropertiesTool* m_shellPropsTool = nullptr;  ///< Propiedades > Laminas (T-P6-07)
     DeflectionTool* m_deflectionTool = nullptr;  ///< Propiedades > Barras > Grupos de flecha (T-P6-06)
     BucklingTool* m_bucklingTool = nullptr;  ///< Propiedades > Barras > Pandeo / Pandeo lateral (T-P6-04)
     BarEndsTool* m_barEndsTool = nullptr;  ///< Propiedades > Barras > Articular / Empotramiento (T-P6-05)

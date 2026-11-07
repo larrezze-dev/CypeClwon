@@ -376,6 +376,17 @@ void Viewport3D::refreshStructure() {
         if (!elementExists(e)) stale.push_back(e);
     if (!stale.empty() && m_selection.apply(stale, core::SelectMode::Remove)) emit selectionChanged();
     if (m_movingNode && !(m_structure && m_structure->findNode(*m_movingNode))) m_movingNode.reset();
+    if (!m_edgeSelection.empty() || m_edgeHover) {
+        const auto stale = [this](const core::ShellEdgeKey& k) {
+            if (!m_structure) return true;
+            const std::vector<core::ShellEdgeKey> edges = core::shellEdges(*m_structure, k.shellId);
+            return std::find(edges.begin(), edges.end(), k) == edges.end();
+        };
+        if (m_edgeHover && stale(*m_edgeHover)) m_edgeHover.reset();
+        const std::size_t count = m_edgeSelection.size();
+        std::erase_if(m_edgeSelection, stale);
+        if (count != m_edgeSelection.size()) emit selectionChanged();
+    }
     rebuildSnapModel();
     m_snap = {};
     update();
@@ -591,9 +602,43 @@ core::SelectionFilter Viewport3D::effectiveFilter() const {
 }
 
 void Viewport3D::clearSelection() {
-    if (m_selection.empty()) return;
+    if (m_selection.empty() && m_edgeSelection.empty()) return;
     m_selection.clear();
+    m_edgeSelection.clear();
     emit selectionChanged();
+    update();
+}
+
+void Viewport3D::setShellContourPick(bool on) {
+    if (m_shellContourPick == on) return;
+    m_shellContourPick = on;
+    m_hover.reset();
+    update();
+}
+
+void Viewport3D::setEdgeSelectionMode(bool on) {
+    if (m_edgeMode == on) return;
+    m_edgeMode = on;
+    m_edgeHover.reset();
+    m_hover.reset();
+    m_windowStart.reset();
+    if (!m_edgeSelection.empty()) {
+        m_edgeSelection.clear();
+        emit selectionChanged();
+    }
+    update();
+}
+
+void Viewport3D::setEdgeSelection(const std::vector<core::ShellEdgeKey>& edges) {
+    m_edgeSelection.clear();
+    for (const core::ShellEdgeKey& e : edges)
+        if (std::find(m_edgeSelection.begin(), m_edgeSelection.end(), e) == m_edgeSelection.end()) m_edgeSelection.push_back(e);
+    emit selectionChanged();
+    update();
+}
+
+void Viewport3D::setShellInfoProvider(ShellInfoProvider provider) {
+    m_shellInfoProvider = std::move(provider);
     update();
 }
 
@@ -611,8 +656,19 @@ void Viewport3D::cancelWindow() {
 }
 
 void Viewport3D::updateHover(const QPointF& pos) {
+    if (m_edgeMode) {
+        std::optional<core::ShellEdgeKey> edge;
+        if (m_structure && !m_windowStart) edge = core::pickShellEdgeAt(*m_structure, mapper(), pos.x(), pos.y());
+        if (edge != m_edgeHover || m_windowStart) {
+            m_edgeHover = edge;
+            update();
+        }
+        return;
+    }
     std::optional<core::ElementRef> hover;
-    if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y());
+    core::PickOptions options;
+    options.shellContourOnly = m_shellContourPick;
+    if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), options);
     if (hover && m_nodeExcluded && hover->kind == core::ElementKind::Node && m_nodeExcluded(hover->id)) hover.reset();
     if (hover != m_hover || m_windowStart) {
         m_hover = hover;
@@ -627,8 +683,14 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
         return;
     }
     if (!m_structure) return;
+    if (m_edgeMode) {
+        edgePress(event);
+        return;
+    }
     const QPointF pos = event->position();
     m_cursor = pos;
+    core::PickOptions pickOptions;
+    pickOptions.shellContourOnly = m_shellContourPick;
     const core::SelectMode mode = event->modifiers().testFlag(Qt::ControlModifier) ? core::SelectMode::Add
                                   : event->modifiers().testFlag(Qt::ShiftModifier) ? core::SelectMode::Remove
                                                                                     : core::SelectMode::Replace;
@@ -640,7 +702,7 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
         if (m_nodeExcluded)
             std::erase_if(hits, [this](const core::ElementRef& e) { return e.kind == core::ElementKind::Node && m_nodeExcluded(e.id); });
         changed = m_selection.apply(hits, mode);
-    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y());
+    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), pickOptions);
                hit && m_nodeExcluded && hit->kind == core::ElementKind::Node && m_nodeExcluded(hit->id)) {
         // a node the tool cannot capture: the click does nothing (no window starts either)
     } else if (hit) {
@@ -651,6 +713,36 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
     }
     m_hover.reset();
     if (changed) emit selectionChanged();
+    update();
+}
+
+void Viewport3D::edgePress(QMouseEvent* event) {
+    const QPointF pos = event->position();
+    m_cursor = pos;
+    const core::SelectMode mode = event->modifiers().testFlag(Qt::ControlModifier) ? core::SelectMode::Add
+                                  : event->modifiers().testFlag(Qt::ShiftModifier) ? core::SelectMode::Remove
+                                                                                    : core::SelectMode::Replace;
+    std::vector<core::ShellEdgeKey> hits;
+    if (m_windowStart) {
+        const QPointF a = *m_windowStart;
+        m_windowStart.reset();
+        hits = core::pickShellEdgesRect(*m_structure, mapper(), a.x(), a.y(), pos.x(), pos.y());
+    } else if (const auto hit = core::pickShellEdgeAt(*m_structure, mapper(), pos.x(), pos.y())) {
+        hits.push_back(*hit);
+    } else {
+        m_windowStart = pos;
+        update();
+        return;
+    }
+    const std::vector<core::ShellEdgeKey> before = m_edgeSelection;
+    const auto has = [this](const core::ShellEdgeKey& k) { return std::find(m_edgeSelection.begin(), m_edgeSelection.end(), k) != m_edgeSelection.end(); };
+    if (mode == core::SelectMode::Replace) m_edgeSelection.clear();
+    for (const core::ShellEdgeKey& k : hits) {
+        if (mode == core::SelectMode::Remove) std::erase(m_edgeSelection, k);
+        else if (!has(k)) m_edgeSelection.push_back(k);
+    }
+    m_edgeHover.reset();
+    if (before != m_edgeSelection) emit selectionChanged();
     update();
 }
 
@@ -725,7 +817,17 @@ std::optional<int> Viewport3D::infoBarId() const {
 
 std::optional<int> Viewport3D::infoShellId() const {
     if (!m_showElementInfo || !m_structure || !m_selectionMode) return std::nullopt;
+    if (m_edgeMode) {
+        if (m_edgeHover) return m_edgeHover->shellId;
+        if (m_shellInfoProvider && !m_edgeSelection.empty()) return m_edgeSelection.back().shellId;
+        return std::nullopt;
+    }
     if (m_hover && m_hover->kind == core::ElementKind::Shell) return m_hover->id;
+    if (m_shellInfoProvider && !m_hover) {  // nothing under the cursor: the last selected shell keeps its box
+        const auto& items = m_selection.items();
+        for (auto it = items.rbegin(); it != items.rend(); ++it)
+            if (it->kind == core::ElementKind::Shell) return it->id;
+    }
     return std::nullopt;
 }
 
@@ -844,7 +946,11 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     const std::optional<int> shellId = id ? std::nullopt : infoShellId();
     if (!id && !shellId) return;
     const core::ProfileSettings noProfiles;
-    QStringList lines = id ? barInfoLines(*m_structure, *id) : shellInfoLines(*m_structure, *shellId, m_profiles ? *m_profiles : noProfiles);
+    std::optional<core::ShellEdgeKey> infoEdge;
+    if (m_edgeMode) infoEdge = m_edgeHover ? m_edgeHover : (m_edgeSelection.empty() ? std::nullopt : std::optional<core::ShellEdgeKey>(m_edgeSelection.back()));
+    QStringList lines = id ? barInfoLines(*m_structure, *id)
+                           : (m_shellInfoProvider ? m_shellInfoProvider(*shellId, infoEdge)
+                                                  : shellInfoLines(*m_structure, *shellId, m_profiles ? *m_profiles : noProfiles));
     if (lines.isEmpty()) return;
     if (id && m_endFixityLabels && m_barEnds) {  // Empotramiento: the fixity of both ends (articulaciones.md section 3)
         const core::BarEndsRecord record = core::barEndsOf(*m_barEnds, *id);
@@ -861,13 +967,29 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
     if (id && m_bucklingLabels == BucklingLabels::Lateral && m_buckling) {  // Pandeo lateral: block only for a bar with lateral data (pandeo.md 9.6)
         for (const std::string& line : core::lateralInfoLines(core::bucklingOf(*m_buckling, *id))) lines << QString::fromStdString(line);
     }
+    // Row kinds: a leading '\x01' is a compact row (the factor block of the shell "ficha"), '\x02' a grey header row.
+    enum class RowKind { Normal, Compact, Header };
+    std::vector<RowKind> kinds;
+    for (QString& line : lines) {
+        RowKind kind = RowKind::Normal;
+        if (line.startsWith(QLatin1Char('\x01'))) kind = RowKind::Compact;
+        else if (line.startsWith(QLatin1Char('\x02'))) kind = RowKind::Header;
+        if (kind != RowKind::Normal) line.remove(0, 1);
+        kinds.push_back(kind);
+    }
     QFont font = painter.font();
     font.setPixelSize(14);
     const QFont bold = [&] { QFont f = font; f.setBold(true); return f; }();
-    constexpr double kRow = 26.0, kPad = 6.0;
-    double w = 0;
-    for (int i = 0; i < lines.size(); ++i) w = std::max(w, static_cast<double>(QFontMetrics(i == 0 ? bold : font).horizontalAdvance(lines[i])));
-    const QSizeF size(w + 2 * kPad, kRow * lines.size());
+    constexpr double kRow = 26.0, kCompact = 18.0, kPad = 6.0, kBlockPad = 5.0;
+    const auto heightOf = [&](int i) { return kinds[static_cast<std::size_t>(i)] == RowKind::Compact ? kCompact : kRow; };
+    double w = 0, total = 0;
+    for (int i = 0; i < lines.size(); ++i) {
+        w = std::max(w, static_cast<double>(QFontMetrics(i == 0 ? bold : font).horizontalAdvance(lines[i])));
+        total += heightOf(i);
+        const bool first = kinds[static_cast<std::size_t>(i)] == RowKind::Compact && (i == 0 || kinds[static_cast<std::size_t>(i - 1)] != RowKind::Compact);
+        if (first) total += kBlockPad * 2;  // padding above and below a block of compact rows
+    }
+    const QSizeF size(w + 2 * kPad, total);
     const QRectF box = anchoredRect(size, QSizeF(width(), height()), m_tooltipPosition, infoAnchor(id));
     painter.setBrush(Qt::white);
     painter.setPen(QPen(QColor(190, 190, 190), 1));  // original: white table, one grey-ruled row per line
@@ -881,13 +1003,24 @@ void Viewport3D::drawInfoBox(QPainter& painter) const {
         painter.setBrush(Qt::white);
         painter.drawPolygon(tail, 3);
     }
+    double y = box.top();
     for (int i = 0; i < lines.size(); ++i) {
-        const QRectF row(box.left(), box.top() + i * kRow, box.width(), kRow);
-        if (i > 0) painter.drawLine(row.topLeft(), row.topRight());
+        const RowKind kind = kinds[static_cast<std::size_t>(i)];
+        const bool prevCompact = i > 0 && kinds[static_cast<std::size_t>(i - 1)] == RowKind::Compact;
+        if (kind == RowKind::Compact && !prevCompact) {  // block start: rule above and padding
+            if (i > 0) { painter.setPen(QPen(QColor(190, 190, 190), 1)); painter.drawLine(QPointF(box.left(), y), QPointF(box.right(), y)); }
+            y += kBlockPad;
+        } else if (kind != RowKind::Compact && i > 0) {
+            if (prevCompact) y += kBlockPad;
+            painter.setPen(QPen(QColor(190, 190, 190), 1));
+            painter.drawLine(QPointF(box.left(), y), QPointF(box.right(), y));
+        }
+        const QRectF row(box.left(), y, box.width(), heightOf(i));
+        if (kind == RowKind::Header) painter.fillRect(row.adjusted(1, 1, -1, 0), QColor(238, 238, 238));
         painter.setFont(i == 0 ? bold : font);
         painter.setPen(QColor(20, 20, 20));
         painter.drawText(row.adjusted(kPad, 0, -kPad, 0), Qt::AlignVCenter | Qt::AlignLeft, lines[i]);
-        painter.setPen(QPen(QColor(190, 190, 190), 1));
+        y += heightOf(i);
     }
 }
 
@@ -1548,6 +1681,22 @@ void Viewport3D::drawHighlight(QPainter& painter, const core::ElementRef& e, boo
     }
 }
 
+void Viewport3D::drawShellEdges(QPainter& painter) const {
+    if (!m_edgeMode || !m_structure) return;
+    const core::ScreenMapper map = mapper();
+    const auto draw = [&](const core::ShellEdgeKey& key, const QPen& pen) {
+        const core::Node* a = m_structure->findNode(key.nodeA);
+        const core::Node* b = m_structure->findNode(key.nodeB);
+        double ax, ay, bx, by;
+        if (!a || !b || !map.toScreen(a->position, ax, ay) || !map.toScreen(b->position, bx, by)) return;
+        painter.setPen(pen);
+        painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
+    };
+    for (const core::ShellEdgeKey& key : m_edgeSelection) draw(key, QPen(kHighlight, 3.0));  // measured: orange when selected
+    if (m_edgeHover && std::find(m_edgeSelection.begin(), m_edgeSelection.end(), *m_edgeHover) == m_edgeSelection.end())
+        draw(*m_edgeHover, QPen(QColor(QStringLiteral("#C8B68E")), 3.0));  // beige under the cursor
+}
+
 void Viewport3D::drawRubberBand(QPainter& painter) const {
     if (!m_windowStart) return;
     const QRectF r = QRectF(*m_windowStart, m_cursor).normalized();
@@ -1881,6 +2030,7 @@ void Viewport3D::paintGL() {
             drawHighlight(painter, *m_hover, false);
             if (m_hover->kind == core::ElementKind::Bar) drawDeflectionGroup(painter, m_hover->id, false);
         }
+        drawShellEdges(painter);
         drawRubberBand(painter);
         drawNodeLabel(painter);
     }

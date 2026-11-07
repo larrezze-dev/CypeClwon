@@ -58,6 +58,7 @@
 #include "BarEndsTool.h"
 #include "BucklingTool.h"
 #include "DeflectionTool.h"
+#include "ShellPropertiesTool.h"
 #include "UserMessages.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -204,6 +205,7 @@ void MainWindow::createWorkArea() {
             m_barEndsTool->deactivate();
             m_bucklingTool->deactivate();
             m_deflectionTool->deactivate();
+            m_shellPropsTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -245,6 +247,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(BucklingTool::statusText(m_bucklingTool->mode()));
         else if (m_deflectionTool->mode() != DeflectionTool::Mode::None)
             statusBar()->showMessage(DeflectionTool::statusText(m_deflectionTool->mode()));
+        else if (m_shellPropsTool->mode() != ShellPropertiesTool::Mode::None)
+            statusBar()->showMessage(ShellPropertiesTool::statusText(m_shellPropsTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -436,6 +440,35 @@ void MainWindow::createWorkArea() {
         m_barEndsTool->deactivate();
         m_bucklingTool->deactivate();
     });
+    // Propiedades > Laminas (T-P6-07): same rules; every other viewport tool stops it and it stops them.
+    m_shellPropsTool->setDialogParent(this);
+    connect(m_shellPropsTool, &ShellPropertiesTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_shellPropsTool, &ShellPropertiesTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
+    });
+    connect(m_nodeTool, &NodeTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_barTool, &BarTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_pieceTool, &PieceTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_describeTool, &BarDescribeTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_continuousTool, &ContinuousTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_shellTool, &ShellTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_transformTool, &TransformTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_generateTool, &GenerateTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_referenceTool, &ReferenceTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_supportTool, &SupportTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_ligatureTool, &LigatureTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_diaphragmTool, &DiaphragmTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_barEndsTool, &BarEndsTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_bucklingTool, &BucklingTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
+    connect(m_deflectionTool, &DeflectionTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
     connect(m_supportTool, &SupportTool::aboutToActivate, m_diaphragmTool, &DiaphragmTool::deactivate);
     connect(m_supportTool, &SupportTool::aboutToActivate, m_barEndsTool, &BarEndsTool::deactivate);
     connect(m_supportTool, &SupportTool::aboutToActivate, m_bucklingTool, &BucklingTool::deactivate);
@@ -523,6 +556,7 @@ void MainWindow::createWorkArea() {
         m_barEndsTool->deactivate();
         m_bucklingTool->deactivate();
         m_deflectionTool->deactivate();
+        m_shellPropsTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -568,6 +602,7 @@ void MainWindow::createWorkArea() {
             m_barEndsTool->structureChanged();
             m_bucklingTool->structureChanged();
             m_deflectionTool->structureChanged();
+            m_shellPropsTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -802,6 +837,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_barEndsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_bucklingTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_deflectionTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_shellPropsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -844,6 +880,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_barEndsTool->addViewport(viewport);
         m_bucklingTool->addViewport(viewport);
         m_deflectionTool->addViewport(viewport);
+        m_shellPropsTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1247,6 +1284,14 @@ void MainWindow::buildGeometryTab() {
     icon(m_bucklingTool->betaAction(), "bar_buckling");
     icon(m_bucklingTool->lateralAction(), "bar_lateral_buckling");
     m_deflectionTool = new DeflectionTool(this);
+    m_shellPropsTool = new ShellPropertiesTool(this);
+    icon(m_shellPropsTool->interiorAction(), "shell_edge_interior");
+    icon(m_shellPropsTool->exteriorAction(), "shell_edge_exterior");
+    icon(m_shellPropsTool->bandsAction(), "shell_bands");
+    icon(m_shellPropsTool->discretisationAction(), "shell_discretisation");
+    icon(m_shellPropsTool->stiffnessAction(), "shell_stiffness");
+    icon(m_shellPropsTool->bucklingAction(), "shell_buckling");
+    icon(m_shellPropsTool->modalAction(), "shell_modal");
     SARibbonPanel* barsPanel = ribbonBar()->categoryPages().at(2)->addPanel(tr("Barras"));
     // Column order of the original (orig_pandeo_05): Pandeo / Pandeo lateral, then Articular / Empotramiento.
     barsPanel->addSmallAction(m_bucklingTool->betaAction());
@@ -1255,6 +1300,15 @@ void MainWindow::buildGeometryTab() {
     barsPanel->addSmallAction(m_barEndsTool->fixityAction());
     // Third column: the drop-down «Grupos de flecha» (Crear / Editar / Flecha Límite); the buttons of the other tasks follow it.
     barsPanel->addSmallMenu(m_deflectionTool->menu(), QToolButton::InstantPopup);
+    // Propiedades > Laminas (orig_propiedades_ribbon.png, p7_21): three large buttons, a column of three small ones and Analisis modal.
+    SARibbonPanel* shellProps = ribbonBar()->categoryPages().at(2)->addPanel(tr("Láminas"));
+    shellProps->addLargeAction(m_shellPropsTool->interiorAction());
+    shellProps->addLargeAction(m_shellPropsTool->exteriorAction());
+    shellProps->addLargeAction(m_shellPropsTool->bandsAction());
+    shellProps->addSmallAction(m_shellPropsTool->discretisationAction());
+    shellProps->addSmallAction(m_shellPropsTool->stiffnessAction());
+    shellProps->addSmallAction(m_shellPropsTool->bucklingAction());
+    shellProps->addSmallAction(m_shellPropsTool->modalAction());
 }
 
 void MainWindow::buildObraTab() {

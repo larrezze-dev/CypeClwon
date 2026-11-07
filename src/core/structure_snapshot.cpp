@@ -13,6 +13,8 @@ void SnapshotCommand::commit() {
     m_bucklingAfter = reconcileBuckling(m_bucklingBefore, m_before, m_after);
     m_deflectionBefore = m_project.deflection;
     m_deflectionAfter = reconcileDeflection(m_deflectionBefore, m_before, m_after);
+    m_shellPropsBefore = m_project.shellProps;
+    m_shellPropsAfter = reconcileShellProperties(m_shellPropsBefore, m_before, m_after);
     m_diaphragmsBefore = m_project.diaphragms;
     m_diaphragmsAfter = m_diaphragmsBefore;
     for (Diaphragm& d : m_diaphragmsAfter.items)
@@ -26,6 +28,7 @@ void SnapshotCommand::redo() {
     m_project.barEnds = m_endsAfter;
     m_project.buckling = m_bucklingAfter;
     m_project.deflection = m_deflectionAfter;
+    m_project.shellProps = m_shellPropsAfter;
     const int next = std::max(m_project.diaphragms.nextId, m_diaphragmsAfter.nextId);
     m_project.diaphragms = m_diaphragmsAfter;
     m_project.diaphragms.nextId = next;
@@ -38,6 +41,7 @@ void SnapshotCommand::undo() {
     m_project.barEnds = m_endsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;
+    m_project.shellProps = m_shellPropsBefore;
     const int nextDiaphragm = std::max(m_project.diaphragms.nextId, m_diaphragmsBefore.nextId);
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.diaphragms.nextId = nextDiaphragm;

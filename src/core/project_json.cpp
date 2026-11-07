@@ -728,6 +728,76 @@ const std::vector<Section>& sections() {
                     p.deflection = std::move(loaded);
                 },
                 [](const Project& p) { return validateDeflection(p.deflection).empty(); }},
+        Section{"shell_properties", "Propiedades de láminas",
+                [](const Project& p) {
+                    // Shells and edges that no longer exist are not saved.
+                    const ShellProperties& d = p.shellProps;
+                    auto edgeExists = [&](const ShellEdgeKey& k) {
+                        for (const ShellEdgeKey& e : shellEdges(p.structure, k.shellId))
+                            if (e == k) return true;
+                        return false;
+                    };
+                    json shells = json::array();
+                    for (const auto& [id, r] : d.shells) {
+                        if (!p.structure.findShell(id)) continue;
+                        json bands = json::array();
+                        for (const ShellIntegrationBand& b : r.bands) bands.push_back({{"x1", b.x1}, {"y1", b.y1}, {"x2", b.x2}, {"y2", b.y2}, {"width", b.widthM}});
+                        json st = json::array();
+                        for (int i = 0; i < kStiffnessFactorCount; ++i) st.push_back(r.stiffness.value(i));
+                        shells.push_back({{"shell", id}, {"triangle", r.maxTriangleSideM}, {"stiffness", st}, {"bands", bands}, {"buckling", r.bucklingConsidered}, {"modal", r.modalConsidered}});
+                    }
+                    json interior = json::array();
+                    for (const auto& [k, b] : d.interior) {
+                        if (!edgeExists(k)) continue;
+                        json dof = json::array();
+                        for (DofMode m : b.dof) dof.push_back(static_cast<int>(m));
+                        interior.push_back({{"shell", k.shellId}, {"a", k.nodeA}, {"b", k.nodeB}, {"kind", static_cast<int>(b.kind)}, {"dof", dof}, {"k", b.k}});
+                    }
+                    json exterior = json::array();
+                    for (const auto& [k, sup] : d.exterior)
+                        if (edgeExists(k)) exterior.push_back({{"shell", k.shellId}, {"a", k.nodeA}, {"b", k.nodeB}, {"support", sup}});
+                    return json{{"shells", shells}, {"interior", interior}, {"exterior", exterior},
+                                {"band_force", {{"method", static_cast<int>(d.bandForce.method)}, {"smoothed", d.bandForce.smoothedStresses}}}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    ShellProperties loaded;
+                    if (j.contains("shells"))
+                        for (const json& e : j.at("shells")) {
+                            ShellRecord r;
+                            r.maxTriangleSideM = e.value("triangle", kShellTriangleSideDefaultM);
+                            if (e.contains("stiffness")) {
+                                const json& st = e.at("stiffness");
+                                for (std::size_t i = 0; i < st.size() && i < static_cast<std::size_t>(kStiffnessFactorCount); ++i) r.stiffness.set(static_cast<int>(i), st[i].get<double>());
+                            }
+                            if (e.contains("bands"))
+                                for (const json& b : e.at("bands"))
+                                    r.bands.push_back(normaliseBand({b.value("x1", 0.0), b.value("y1", 0.0), b.value("x2", 0.0), b.value("y2", 0.0), b.value("width", kBandWidthDefaultM)}));
+                            r.bucklingConsidered = e.value("buckling", false);
+                            r.modalConsidered = e.value("modal", true);
+                            setShellRecord(loaded, e.at("shell").get<int>(), r);
+                        }
+                    if (j.contains("interior"))
+                        for (const json& e : j.at("interior")) {
+                            EdgeInteriorBond b;
+                            b.kind = static_cast<EdgeInteriorKind>(e.value("kind", static_cast<int>(EdgeInteriorKind::Fixed)));
+                            if (e.contains("dof"))
+                                for (std::size_t i = 0; i < 6 && i < e.at("dof").size(); ++i) b.dof[i] = static_cast<DofMode>(e.at("dof")[i].get<int>());
+                            if (e.contains("k"))
+                                for (std::size_t i = 0; i < 6 && i < e.at("k").size(); ++i) b.k[i] = e.at("k")[i].get<double>();
+                            setEdgeInterior(loaded, makeEdgeKey(e.at("shell").get<int>(), e.at("a").get<int>(), e.at("b").get<int>()), b);
+                        }
+                    if (j.contains("exterior"))
+                        for (const json& e : j.at("exterior"))
+                            setEdgeExterior(loaded, makeEdgeKey(e.at("shell").get<int>(), e.at("a").get<int>(), e.at("b").get<int>()), e.at("support").get<ExternalSupport>());
+                    if (j.contains("band_force")) {
+                        const json& f = j.at("band_force");
+                        loaded.bandForce.method = f.value("method", 0) == 1 ? BandForceMethod::NodalForces : BandForceMethod::InternalStresses;
+                        loaded.bandForce.smoothedStresses = f.value("smoothed", true);
+                    }
+                    p.shellProps = std::move(loaded);
+                },
+                [](const Project& p) { return validateShellProperties(p.shellProps).empty(); }},
     };
     return all;
 }

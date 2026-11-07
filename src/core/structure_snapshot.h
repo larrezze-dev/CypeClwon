@@ -36,6 +36,7 @@ private:
     BarEnds m_endsBefore, m_endsAfter;
     BucklingData m_bucklingBefore, m_bucklingAfter;
     DeflectionData m_deflectionBefore, m_deflectionAfter;
+    ShellProperties m_shellPropsBefore, m_shellPropsAfter;
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
 };
 

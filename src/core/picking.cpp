@@ -118,7 +118,14 @@ std::optional<ElementRef> pickAt(const StructuralModel& model, const ScreenMappe
     if (filter.shells) {
         std::vector<P2> poly;
         for (const Shell& s : model.shells)
-            if (model.elementVisible(s.layerIds) && shellPolygon(model, map, s, poly) && pointInPolygon(cursor, poly)) return ElementRef{ElementKind::Shell, s.id};
+            if (model.elementVisible(s.layerIds) && shellPolygon(model, map, s, poly)) {
+                if (!options.shellContourOnly) {
+                    if (pointInPolygon(cursor, poly)) return ElementRef{ElementKind::Shell, s.id};
+                    continue;
+                }
+                for (std::size_t i = 0; i < poly.size(); ++i)
+                    if (distanceToSegment(cursor, poly[i], poly[(i + 1) % poly.size()]) <= options.barTolerancePx) return ElementRef{ElementKind::Shell, s.id};
+            }
     }
     return std::nullopt;
 }
@@ -156,6 +163,41 @@ std::vector<ElementRef> pickRect(const StructuralModel& model, const ScreenMappe
                 if (!hit) hit = pointInPolygon({r.l, r.t}, poly);  // the rectangle lies inside the shell
             }
             if (hit) hits.push_back({ElementKind::Shell, s.id});
+        }
+    }
+    return hits;
+}
+
+std::optional<ShellEdgeKey> pickShellEdgeAt(const StructuralModel& model, const ScreenMapper& map, double x, double y, double tolerancePx) {
+    const P2 cursor{x, y};
+    double best = tolerancePx;
+    std::optional<ShellEdgeKey> hit;
+    std::vector<P2> poly;
+    for (const Shell& s : model.shells) {
+        if (!model.elementVisible(s.layerIds) || !shellPolygon(model, map, s, poly)) continue;
+        for (std::size_t i = 0; i < poly.size(); ++i) {
+            const std::size_t j = (i + 1) % poly.size();
+            const double d = distanceToSegment(cursor, poly[i], poly[j]);
+            if (d <= best) {
+                best = d;
+                hit = makeEdgeKey(s.id, s.nodeIds[i], s.nodeIds[j]);
+            }
+        }
+    }
+    return hit;
+}
+
+std::vector<ShellEdgeKey> pickShellEdgesRect(const StructuralModel& model, const ScreenMapper& map, double x1, double y1, double x2, double y2) {
+    const bool window = rectModeFor(x1, x2) == RectMode::Window;
+    const Rect r{std::min(x1, x2), std::min(y1, y2), std::max(x1, x2), std::max(y1, y2)};
+    std::vector<ShellEdgeKey> hits;
+    std::vector<P2> poly;
+    for (const Shell& s : model.shells) {
+        if (!model.elementVisible(s.layerIds) || !shellPolygon(model, map, s, poly)) continue;
+        for (std::size_t i = 0; i < poly.size(); ++i) {
+            const std::size_t j = (i + 1) % poly.size();
+            const bool hit = window ? (inside(r, poly[i]) && inside(r, poly[j])) : segmentTouches(r, poly[i], poly[j]);
+            if (hit) hits.push_back(makeEdgeKey(s.id, s.nodeIds[i], s.nodeIds[j]));
         }
     }
     return hits;

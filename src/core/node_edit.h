@@ -68,6 +68,7 @@ private:
     NodeLigatures m_ligaturesBefore;  ///< ties before the merge (the node that goes away leaves them; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the merge (the node that goes away leaves its diaphragm; restored by undo)
     DeflectionData m_deflectionBefore, m_deflectionAfter;  ///< deflection groups, normalised against the model after the move
+    ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties, reconciled against the model after the move
 };
 
 /// "Borrar": deletes nodes together with the bars and shells that use them. Exception: a deleted node that joins exactly
@@ -95,6 +96,7 @@ private:
     NodeLigatures m_ligaturesBefore;  ///< ties before the deletion (deleted nodes leave them and ties are renumbered; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
     BucklingData m_bucklingBefore, m_bucklingAfter;  ///< buckling data; the merged bar takes the data of the first (lower id) bar it replaces
+    ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties; the deleted shells leave
     DeflectionData m_deflectionBefore, m_deflectionAfter;  ///< deflection groups; the merged bar takes the place of the two bars it replaces
     BarEnds m_barEndsBefore, m_barEndsAfter;  ///< end data of the bars; the bar that replaces a deleted node inherits the ends that touch its far nodes
 };

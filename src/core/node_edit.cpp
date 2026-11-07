@@ -61,6 +61,8 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     m_diaphragmsBefore = project.diaphragms;
     m_deflectionBefore = project.deflection;
     m_deflectionAfter = project.deflection;
+    m_shellPropsBefore = project.shellProps;
+    m_shellPropsAfter = project.shellProps;
     if (auto it = project.nodeSupports.external.find(nodeId); it != project.nodeSupports.external.end()) m_externalBefore = it->second;
     if (auto it = project.nodeSupports.internal.find(nodeId); it != project.nodeSupports.internal.end()) m_internalBefore = it->second;
 
@@ -80,10 +82,11 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
             if (!far || distance(far->position, newPosition) < kMinBarLengthM) return;
         }
         m_valid = true;
-        if (!project.deflection.empty()) {
+        if (!project.deflection.empty() || !project.shellProps.empty()) {
             StructuralModel work = model;
             work.findNode(nodeId)->position = newPosition;
-            m_deflectionAfter = normaliseDeflection(project.deflection, work);
+            if (!project.deflection.empty()) m_deflectionAfter = normaliseDeflection(project.deflection, work);
+            m_shellPropsAfter = reconcileShellProperties(project.shellProps, model, work);
         }
         return;
     }
@@ -107,13 +110,15 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
         m_newShells.push_back(moved);
     }
     m_valid = true;
-    if (!project.deflection.empty()) {
+    if (!project.deflection.empty() || !project.shellProps.empty()) {
         StructuralModel work = model;
         for (const Shell& s : m_oldShells) work.removeShell(s.id);
         for (const Bar& b : m_oldBars) work.removeBar(b.id);
         work.removeNode(nodeId);
         for (const Bar& b : m_newBars) work.insertBar(b);
-        m_deflectionAfter = normaliseDeflection(project.deflection, work);
+        if (!project.deflection.empty()) m_deflectionAfter = normaliseDeflection(project.deflection, work);
+        for (const Shell& s : m_newShells) work.insertShell(s);
+        m_shellPropsAfter = reconcileShellProperties(project.shellProps, model, work);
     }
 }
 
@@ -123,6 +128,7 @@ void MoveNodeCommand::redo() {
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_after;
         m_project.deflection = m_deflectionAfter;
+        m_project.shellProps = m_shellPropsAfter;
         return;
     }
     for (const Shell& s : m_oldShells) model.removeShell(s.id);
@@ -135,6 +141,7 @@ void MoveNodeCommand::redo() {
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
     m_project.deflection = m_deflectionAfter;
+    m_project.shellProps = m_shellPropsAfter;
 }
 
 void MoveNodeCommand::undo() {
@@ -143,6 +150,7 @@ void MoveNodeCommand::undo() {
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_before;
         m_project.deflection = m_deflectionBefore;
+        m_project.shellProps = m_shellPropsBefore;
         return;
     }
     for (const Shell& s : m_newShells) model.removeShell(s.id);
@@ -155,6 +163,7 @@ void MoveNodeCommand::undo() {
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
     m_project.deflection = m_deflectionBefore;
+    m_project.shellProps = m_shellPropsBefore;
 }
 
 // --- DeleteNodesCommand -----------------------------------------------------------------------------------------
@@ -173,6 +182,8 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     m_bucklingAfter = project.buckling;
     m_deflectionBefore = project.deflection;
     m_deflectionAfter = project.deflection;
+    m_shellPropsBefore = project.shellProps;
+    m_shellPropsAfter = project.shellProps;
     auto deleted = [&](int id) { return std::binary_search(nodeIds.begin(), nodeIds.end(), id); };
 
     std::vector<int> barIds, shellIds;
@@ -247,6 +258,13 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
         for (const Bar& b : m_merged) after.insertBar(b);
         m_deflectionAfter = normaliseDeflection(work, after);
     }
+    if (!project.shellProps.empty()) {
+        StructuralModel after = model;
+        for (int id : shellIds) after.removeShell(id);
+        for (int id : barIds) after.removeBar(id);
+        for (int id : nodeIds) after.removeNode(id);
+        m_shellPropsAfter = reconcileShellProperties(project.shellProps, model, after);
+    }
 }
 
 void DeleteNodesCommand::redo() {
@@ -266,6 +284,7 @@ void DeleteNodesCommand::redo() {
     m_project.barEnds = m_barEndsAfter;
     m_project.buckling = m_bucklingAfter;
     m_project.deflection = m_deflectionAfter;
+    m_project.shellProps = m_shellPropsAfter;
 }
 
 void DeleteNodesCommand::undo() {
@@ -279,6 +298,7 @@ void DeleteNodesCommand::undo() {
     m_project.barEnds = m_barEndsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;
+    m_project.shellProps = m_shellPropsBefore;
     for (const Bar& b : m_bars) model.insertBar(b);
     for (const Shell& s : m_shells) model.insertShell(s);
 }

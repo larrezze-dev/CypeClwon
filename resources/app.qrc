@@ -94,5 +94,31 @@
     <file>icons/tool_repair.svg</file>
     <file>icons/tool_assign_reference.svg</file>
     <file>icons/tool_find.svg</file>
+    <file>icons/shell_discretisation.svg</file>
+    <file>icons/shell_stiffness.svg</file>
+    <file>icons/shell_bands.svg</file>
+    <file>icons/shell_buckling.svg</file>
+    <file>icons/shell_modal.svg</file>
+    <file>icons/shell_edge_interior.svg</file>
+    <file>icons/shell_edge_exterior.svg</file>
+    <file>icons/band_integration.svg</file>
+    <file>icons/band_generate.svg</file>
+    <file>icons/band_new.svg</file>
+    <file>icons/band_edit.svg</file>
+    <file>icons/band_delete.svg</file>
+    <file>icons/band_move_end.svg</file>
+    <file>icons/band_join.svg</file>
+    <file>icons/band_divide.svg</file>
+    <file>icons/band_incidences.svg</file>
+    <file>icons/view_prev.svg</file>
+    <file>icons/view_all.svg</file>
+    <file>icons/view_zoom2.svg</file>
+    <file>icons/view_redraw.svg</file>
+    <file>icons/view_zoom_window.svg</file>
+    <file>icons/view_pan.svg</file>
+    <file>icons/view_export.svg</file>
+    <file>icons/view_search.svg</file>
+    <file>icons/select_pointer.svg</file>
+    <file>icons/select_window.svg</file>
   </qresource>
 </RCC>
