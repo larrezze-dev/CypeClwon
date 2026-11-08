@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "core/load_case.h"
 #include "core/structure_model.h"
 
 namespace cc::core {
@@ -94,8 +95,9 @@ struct GenericSupportData {
     bool operator==(const GenericSupportData&) const = default;
 };
 
-/// Prescribed displacements / rotations of one load case ("hipótesis"). `loadCaseId` is opaque here: the load cases arrive with T-P7-01.
-/// Values in metres / radians (provisional units, TODO(medir)); only the constrained DOFs are taken into account.
+/// Prescribed displacements / rotations of one load case ("hipótesis"); `loadCaseId` is the id of a LoadCaseSet case (T-P7-01).
+/// Values as typed in the dialog «Desplazamientos prescritos»: Dx, Dy, Dz in mm and Gx, Gy, Gz in mRad (measured, T-P7-02); only the constrained DOFs
+/// are taken into account.
 struct PrescribedDisplacement {
     int loadCaseId = 0;
     std::array<double, 6> values{};
@@ -192,6 +194,8 @@ std::string supportMessage(int messageId);
 /// (#65006 was not reproduced), so the assignment command treats it as "libre".
 /// The question #65010 depends on the entered K text: see elasticConstantIsDefault.
 std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& support);
+/// As above, plus every prescribed set must refer to an existing load case (unknown -> Error without original id, listed first).
+std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& support, const LoadCaseSet& loadCases);
 /// True when the support is elastic and some K equals kDefaultElasticConstant: the dialog then asks #65010 (Sí / No).
 bool elasticConstantIsDefault(const ExternalSupport& support);
 /// Text of #65010 with %s replaced by `constantText`; the original always writes the literal "K" (also for rotations).

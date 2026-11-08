@@ -23,6 +23,7 @@
 #include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
+#include "core/nodal_load.h"
 #include "core/clipping.h"
 #include "core/picking.h"
 #include "core/project_settings.h"
@@ -142,6 +143,21 @@ public:
     void setDeflectionLabelsVisible(bool on);
     const core::DeflectionData* deflection() const { return m_deflection; }
     bool deflectionLabelsVisible() const { return m_deflectionLabels; }
+    /// Nodal loads (not owned; T-P7-02, cargas_nudos.md 2.3): in the Carga tab every load is a thin yellow line ending in a small arrow head at its
+    /// node, drawn from the side the load comes from, with the value (no unit, no sign) in yellow along the line. Only the loads of the load case
+    /// set by setLoadViewCase are drawn (nullopt = "Ver todas"). With setLoadSelectionHighlight the loads of the selected nodes are orange. The
+    /// symbol of a node with prescribed displacements is green while the loads are visible.
+    void setNodalLoads(const core::NodalLoads* loads);
+    void setLoadsVisible(bool on);
+    bool loadsVisible() const { return m_loadsVisible; }
+    void setLoadViewCase(std::optional<int> loadCaseId);
+    const std::optional<int>& loadViewCase() const { return m_loadViewCase; }
+    void setLoadSelectionHighlight(bool on);
+    const core::NodalLoads* nodalLoads() const { return m_nodalLoads; }
+    /// Screen geometry of a load: where its line starts (source side) and the tip at the node; false when the node cannot be seen.
+    bool nodalLoadSegment(const core::NodalLoad& load, QPointF& start, QPointF& tip) const;
+    /// "5", "7.26", "9.81": two decimals without trailing zeros.
+    static QString nodalLoadText(double kn);
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
     QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
@@ -407,6 +423,7 @@ private:
     void drawGuideLine(class QPainter& painter, core::Vec3 a, core::Vec3 b) const;
     void drawStructure(class QPainter& painter) const;
     void drawNodes(class QPainter& painter) const;
+    void drawNodalLoads(class QPainter& painter) const;  ///< Carga > Nudos: yellow lines with the value
     void drawSupports(class QPainter& painter) const;  ///< symbols of the external restraints and internal links
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
     void drawBarRubber(class QPainter& painter) const;  ///< Barras > Barra / Viga: chosen nodes and the elastic line
@@ -444,6 +461,10 @@ private:
 
     const core::StructuralModel* m_structure = nullptr;
     const core::NodeSupports* m_nodeSupports = nullptr;
+    const core::NodalLoads* m_nodalLoads = nullptr;
+    bool m_loadsVisible = false;
+    bool m_loadHighlight = false;
+    std::optional<int> m_loadViewCase;
     const core::NodeLigatures* m_nodeLigatures = nullptr;
     bool m_ligatureLabels = false;
     const core::Diaphragms* m_nodeDiaphragms = nullptr;

@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <string>
 
 #include "core/project.h"
@@ -25,6 +26,8 @@ protected:
     void commit();
 
     StructuralModel work;  ///< edited copy, valid until commit()
+    /// Nodes merged by the edit (gone -> survivor): their nodal loads move to the survivor (set before commit(); not measured).
+    std::map<int, int> nodeRemap;
 
 private:
     Project& m_project;
@@ -38,6 +41,7 @@ private:
     DeflectionData m_deflectionBefore, m_deflectionAfter;
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
+    NodalLoads m_nodalLoadsBefore, m_nodalLoadsAfter;  ///< loads of vanished nodes go with them
 };
 
 }  // namespace cc::core

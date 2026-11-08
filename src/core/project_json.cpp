@@ -783,6 +783,57 @@ const std::vector<Section>& sections() {
                     p.loadCases = std::move(loaded);
                 },
                 [](const Project& p) { return validateLoadCases(p.loadCases).empty(); }},
+        Section{"nodal_loads", "Cargas sobre nudos",
+                [](const Project& p) {
+                    // Versioned. Loads of nodes that no longer exist are not saved.
+                    const NodalLoads& d = p.nodalLoads;
+                    json items = json::array();
+                    for (const NodalLoad& l : d.items) {
+                        if (!p.structure.findNode(l.nodeId)) continue;
+                        json e = {{"id", l.id}, {"node", l.nodeId}, {"load_case", l.loadCaseId}, {"value", l.magnitude},
+                                  {"direction", static_cast<int>(l.direction)}};
+                        if (l.direction == LoadDirection::UserVector) e["vector"] = {l.userVector.x, l.userVector.y, l.userVector.z};
+                        items.push_back(std::move(e));
+                    }
+                    json perCase = json::array();
+                    for (const auto& [id, v] : d.scales.perCase) perCase.push_back({{"load_case", id}, {"scale", v}});
+                    return json{{"version", 1}, {"next", d.nextId}, {"items", items},
+                                {"scales", {{"mode", static_cast<int>(d.scales.mode)}, {"fixed", d.scales.fixedSizeM}, {"per_case", perCase},
+                                            {"per_type", d.scales.perType}}}}
+                        .dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    NodalLoads loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            NodalLoad l;
+                            l.id = e.value("id", 0);
+                            l.nodeId = e.value("node", 0);
+                            if (l.id < 1 || l.nodeId < 1) continue;
+                            l.loadCaseId = e.value("load_case", 0);
+                            l.magnitude = roundLoadValue(e.value("value", 0.0));  // tolerant: two decimals
+                            const int dir = e.value("direction", static_cast<int>(LoadDirection::MinusZ));
+                            l.direction = (dir >= 0 && dir < kLoadDirectionCount) ? static_cast<LoadDirection>(dir) : LoadDirection::MinusZ;
+                            const std::vector<double> v = e.value("vector", std::vector<double>{});
+                            if (v.size() == 3) l.userVector = {v[0], v[1], v[2]};
+                            following = std::max(following, l.id + 1);
+                            loaded.items.push_back(l);
+                        }
+                    loaded.nextId = std::max(following, j.value("next", following));
+                    if (j.contains("scales")) {
+                        const json& s = j.at("scales");
+                        loaded.scales.mode = s.value("mode", 0) == 1 ? LoadScaleMode::Proportional : LoadScaleMode::Fixed;
+                        loaded.scales.fixedSizeM = s.value("fixed", kDefaultLoadDrawSizeM);
+                        if (s.contains("per_case"))
+                            for (const json& c : s.at("per_case")) loaded.scales.perCase[c.value("load_case", 0)] = c.value("scale", kDefaultLoadCaseScale);
+                        if (s.contains("per_type") && s.at("per_type").is_array() && s.at("per_type").size() == loaded.scales.perType.size())
+                            for (std::size_t i = 0; i < loaded.scales.perType.size(); ++i) loaded.scales.perType[i] = s.at("per_type")[i].get<double>();
+                    }
+                    p.nodalLoads = std::move(loaded);
+                },
+                [](const Project& p) { return validateNodalLoads(p.nodalLoads, p.loadCases).empty(); }},
         Section{"shell_properties", "Propiedades de láminas",
                 [](const Project& p) {
                     // Shells and edges that no longer exist are not saved.

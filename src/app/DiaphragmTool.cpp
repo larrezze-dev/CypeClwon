@@ -123,6 +123,15 @@ QString DiaphragmEditDialog::loadCaseName(int loadCaseId) {
 
 void DiaphragmEditDialog::setColourPicker(std::function<bool(QWidget*, unsigned&)> picker) { colourPickerHook() = std::move(picker); }
 
+DiaphragmEditDialog::DiaphragmEditDialog(const std::vector<Diaphragm>& initial, const LoadCaseSet& cases, QWidget* parent)
+    : DiaphragmEditDialog(initial, parent) {
+    m_cases = cases;
+    for (Diaphragm& d : m_rows)
+        for (DiaphragmLoad& load : d.loads)
+            if (!findLoadCase(cases, load.loadCaseId) && !cases.cases.empty()) load.loadCaseId = cases.cases.front().id;
+    refreshRight();
+}
+
 DiaphragmEditDialog::DiaphragmEditDialog(const std::vector<Diaphragm>& initial, QWidget* parent)
     : CypeDialog(tr("Editar"), parent), m_rows(initial) {
     setMaximizable();
@@ -264,7 +273,12 @@ void DiaphragmEditDialog::refreshLoads(int selectRow) {
         for (int r = 0; r < static_cast<int>(loads.size()); ++r) {
             const DiaphragmLoad& load = loads[static_cast<std::size_t>(r)];
             auto* combo = new QComboBox(m_loadTable);  // "hipótesis": a combo in the cell (measured)
-            combo->addItem(loadCaseName(load.loadCaseId), load.loadCaseId);
+            if (m_cases) {
+                for (const LoadCase& c : m_cases->cases) combo->addItem(QString::fromStdString(loadCaseLabel(c)), c.id);
+                combo->setCurrentIndex(std::max(0, combo->findData(load.loadCaseId)));
+            } else {
+                combo->addItem(loadCaseName(load.loadCaseId), load.loadCaseId);
+            }
             connect(combo, &QComboBox::currentIndexChanged, this, [this, combo](int) {
                 for (int rr = 0; rr < m_loadTable->rowCount(); ++rr)
                     if (m_loadTable->cellWidget(rr, 0) == combo) onLoadChanged(rr, 0);
@@ -330,7 +344,7 @@ bool DiaphragmEditDialog::addLoad() {
     const int row = currentRow();
     if (row < 0) return false;
     std::vector<DiaphragmLoad>& loads = m_rows[static_cast<std::size_t>(row)].loads;
-    loads.push_back(defaultDiaphragmLoad(firstLoadCaseId()));
+    loads.push_back(defaultDiaphragmLoad(newLoadCaseId()));
     refreshLoads(static_cast<int>(loads.size()) - 1);
     return true;
 }
@@ -553,7 +567,7 @@ bool DiaphragmTool::edit() {
     if (!m_project || !m_undo) return false;
     emit aboutToActivate();
     emit statusChanged(tr("Diafragmas - Editar"));
-    DiaphragmEditDialog dialog(m_project->diaphragms.items, m_dialogParent);
+    DiaphragmEditDialog dialog(m_project->diaphragms.items, m_project->loadCases, m_dialogParent);
     bool changed = false;
     if (run(dialog) == QDialog::Accepted) {
         const std::size_t before = m_undo->count();

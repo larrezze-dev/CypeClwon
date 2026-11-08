@@ -89,7 +89,7 @@ int push(UndoStack& stack, std::unique_ptr<Command> cmd, std::size_t changed) {
 }  // namespace
 
 int assignExternalSupport(Project& project, UndoStack& stack, const std::vector<int>& nodeIds, const ExternalSupport& support) {
-    if (hasError(checkExternalSupport(support))) return 0;
+    if (hasError(checkExternalSupport(support, project.loadCases))) return 0;
     auto cmd = std::make_unique<ExternalSupportCommand>(project, nodeIds, support);
     const std::size_t n = existingNodes(project, nodeIds).size();
     return push(stack, std::move(cmd), n);

@@ -59,6 +59,7 @@
 #include "BucklingTool.h"
 #include "DeflectionTool.h"
 #include "ShellPropertiesTool.h"
+#include "NodalLoadTool.h"
 #include "UserMessages.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -207,6 +208,7 @@ void MainWindow::createWorkArea() {
             m_bucklingTool->deactivate();
             m_deflectionTool->deactivate();
             m_shellPropsTool->deactivate();
+            m_nodalLoadTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -250,6 +252,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(DeflectionTool::statusText(m_deflectionTool->mode()));
         else if (m_shellPropsTool->mode() != ShellPropertiesTool::Mode::None)
             statusBar()->showMessage(ShellPropertiesTool::statusText(m_shellPropsTool->mode()));
+        else if (m_nodalLoadTool->mode() != NodalLoadTool::Mode::None)
+            statusBar()->showMessage(NodalLoadTool::statusText(m_nodalLoadTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -455,6 +459,42 @@ void MainWindow::createWorkArea() {
         m_bucklingTool->deactivate();
         m_deflectionTool->deactivate();
     });
+    // Carga > Nudos / Visualización (T-P7-02): same rules; every other viewport tool stops it and it stops them.
+    m_nodalLoadTool->setDialogParent(this);
+    connect(m_nodalLoadTool, &NodalLoadTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_nodalLoadTool, &NodalLoadTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
+        m_shellPropsTool->deactivate();
+    });
+    const auto stopLoadsWhen = [this](auto* tool) {
+        connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_nodalLoadTool, &NodalLoadTool::deactivate);
+    };
+    stopLoadsWhen(m_nodeTool);
+    stopLoadsWhen(m_barTool);
+    stopLoadsWhen(m_pieceTool);
+    stopLoadsWhen(m_describeTool);
+    stopLoadsWhen(m_continuousTool);
+    stopLoadsWhen(m_shellTool);
+    stopLoadsWhen(m_transformTool);
+    stopLoadsWhen(m_generateTool);
+    stopLoadsWhen(m_referenceTool);
+    stopLoadsWhen(m_supportTool);
+    stopLoadsWhen(m_ligatureTool);
+    stopLoadsWhen(m_diaphragmTool);
+    stopLoadsWhen(m_barEndsTool);
+    stopLoadsWhen(m_bucklingTool);
+    stopLoadsWhen(m_deflectionTool);
+    stopLoadsWhen(m_shellPropsTool);
+    // The nodal loads are drawn only while the ribbon tab «Carga» is current (cargas_nudos.md 2.3).
+    connect(ribbonBar(), &SARibbonBar::currentRibbonTabChanged, this, [this](int index) { m_nodalLoadTool->setLoadsVisible(index == 3); });
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
     connect(m_barTool, &BarTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
     connect(m_pieceTool, &PieceTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
@@ -558,6 +598,7 @@ void MainWindow::createWorkArea() {
         m_bucklingTool->deactivate();
         m_deflectionTool->deactivate();
         m_shellPropsTool->deactivate();
+        m_nodalLoadTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -604,6 +645,7 @@ void MainWindow::createWorkArea() {
             m_bucklingTool->structureChanged();
             m_deflectionTool->structureChanged();
             m_shellPropsTool->structureChanged();
+            m_nodalLoadTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -839,6 +881,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_bucklingTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_deflectionTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_shellPropsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_nodalLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -882,6 +925,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_bucklingTool->addViewport(viewport);
         m_deflectionTool->addViewport(viewport);
         m_shellPropsTool->addViewport(viewport);
+        m_nodalLoadTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1310,6 +1354,27 @@ void MainWindow::buildGeometryTab() {
     shellProps->addSmallAction(m_shellPropsTool->stiffnessAction());
     shellProps->addSmallAction(m_shellPropsTool->bucklingAction());
     shellProps->addSmallAction(m_shellPropsTool->modalAction());
+
+    // Carga > Visualización and Nudos (cn_c1): Hipótesis vista and Escalas; then Desplazamientos prescritos, Nueva and the column Editar /
+    // Hipótesis / Borrar. The other panels of the tab (Barras, Láminas, Paños, Cargas superficiales) belong to later tasks.
+    m_nodalLoadTool = new NodalLoadTool(this);
+    icon(m_nodalLoadTool->viewAction(), "load_view_case");
+    icon(m_nodalLoadTool->scalesAction(), "load_scales");
+    icon(m_nodalLoadTool->prescribedAction(), "load_prescribed");
+    icon(m_nodalLoadTool->newAction(), "node_load_new");
+    icon(m_nodalLoadTool->editAction(), "node_load_edit");
+    icon(m_nodalLoadTool->caseAction(), "node_load_case");
+    icon(m_nodalLoadTool->deleteAction(), "node_load_delete");
+    SARibbonCategory* loadTab = ribbonBar()->categoryPages().at(3);
+    SARibbonPanel* loadView = loadTab->addPanel(tr("Visualización"));
+    loadView->addLargeAction(m_nodalLoadTool->viewAction());
+    loadView->addLargeAction(m_nodalLoadTool->scalesAction());
+    SARibbonPanel* loadNodes = loadTab->addPanel(tr("Nudos"));
+    loadNodes->addLargeAction(m_nodalLoadTool->prescribedAction());
+    loadNodes->addLargeAction(m_nodalLoadTool->newAction());
+    loadNodes->addSmallAction(m_nodalLoadTool->editAction());
+    loadNodes->addSmallAction(m_nodalLoadTool->caseAction());
+    loadNodes->addSmallAction(m_nodalLoadTool->deleteAction());
 }
 
 void MainWindow::buildObraTab() {

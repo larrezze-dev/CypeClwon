@@ -19,6 +19,12 @@ void SnapshotCommand::commit() {
     m_diaphragmsAfter = m_diaphragmsBefore;
     for (Diaphragm& d : m_diaphragmsAfter.items)
         d.nodeIds.erase(std::remove_if(d.nodeIds.begin(), d.nodeIds.end(), [&](int id) { return !m_after.findNode(id); }), d.nodeIds.end());
+    m_nodalLoadsBefore = m_project.nodalLoads;
+    m_nodalLoadsAfter = m_nodalLoadsBefore;
+    for (const auto& [gone, keep] : nodeRemap) applyNodalLoadsNodesMerged(m_nodalLoadsAfter, gone, keep);
+    m_nodalLoadsAfter.items.erase(std::remove_if(m_nodalLoadsAfter.items.begin(), m_nodalLoadsAfter.items.end(),
+                                                 [&](const NodalLoad& l) { return !m_after.findNode(l.nodeId); }),
+                                  m_nodalLoadsAfter.items.end());
     m_committed = true;
 }
 
@@ -32,6 +38,9 @@ void SnapshotCommand::redo() {
     const int next = std::max(m_project.diaphragms.nextId, m_diaphragmsAfter.nextId);
     m_project.diaphragms = m_diaphragmsAfter;
     m_project.diaphragms.nextId = next;
+    const int nextLoad = std::max(m_project.nodalLoads.nextId, m_nodalLoadsAfter.nextId);
+    m_project.nodalLoads = m_nodalLoadsAfter;
+    m_project.nodalLoads.nextId = nextLoad;
 }
 
 void SnapshotCommand::undo() {
@@ -45,6 +54,9 @@ void SnapshotCommand::undo() {
     const int nextDiaphragm = std::max(m_project.diaphragms.nextId, m_diaphragmsBefore.nextId);
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.diaphragms.nextId = nextDiaphragm;
+    const int nextLoad = std::max(m_project.nodalLoads.nextId, m_nodalLoadsBefore.nextId);
+    m_project.nodalLoads = m_nodalLoadsBefore;
+    m_project.nodalLoads.nextId = nextLoad;
     StructuralModel& s = m_project.structure;
     s.nextNodeId = std::max(s.nextNodeId, current.nextNodeId);
     s.nextBarId = std::max(s.nextBarId, current.nextBarId);

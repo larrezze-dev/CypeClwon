@@ -450,6 +450,7 @@ RepairModelCommand::RepairModelCommand(Project& project, double tol) : SnapshotC
         std::map<int, int> remap;
         for (const Node& n : work.nodes)
             if (root(n.id) != n.id) remap[n.id] = root(n.id);
+        nodeRemap = remap;
         if (!remap.empty()) {
             auto mapped = [&](int id) {
                 const auto it = remap.find(id);

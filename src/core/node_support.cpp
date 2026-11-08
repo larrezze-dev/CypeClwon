@@ -225,9 +225,18 @@ std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& s) {
         }
         if (zero) allZero = true;
     }
-    if (duplicate) out.push_back(issue(65465, IssueSeverity::Error));
+    // Measured order: the all-zero check comes first, then the repeated load case.
     if (allZero) out.push_back(issue(65466, IssueSeverity::Error));
+    if (duplicate) out.push_back(issue(65465, IssueSeverity::Error));
     if (incompatible) out.push_back(issue(65467, IssueSeverity::Warning));
+    return out;
+}
+
+std::vector<SupportIssue> checkExternalSupport(const ExternalSupport& s, const LoadCaseSet& loadCases) {
+    std::vector<SupportIssue> out = checkExternalSupport(s);
+    const bool unknown = std::any_of(s.prescribed.begin(), s.prescribed.end(),
+                                     [&](const PrescribedDisplacement& p) { return findLoadCase(loadCases, p.loadCaseId) == nullptr; });
+    if (unknown) out.insert(out.begin(), {0, IssueSeverity::Error, "La hipótesis de los desplazamientos prescritos no existe."});
     return out;
 }
 

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <numbers>
 #include <utility>
 
 #include "core/geom3.h"
@@ -28,6 +29,8 @@ constexpr double kGuideExtent = 1e5;  // the long guide lines are effectively in
 constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on screen
 const QColor kNodeBlue(QStringLiteral("#0066CC"));
 const QColor kHighlight(QStringLiteral("#DA8735"));
+const QColor kLoadYellow(QStringLiteral("#FFFF00"));      // measured: pure yellow lines and values of the nodal loads
+const QColor kPrescribedGreen(QStringLiteral("#008000"));  // measured (0,128,0): support symbol of a node with prescribed displacements
 
 // Eye-space position of a world point (the camera looks along -z).
 Vec3 toEye(const core::Mat4& view, const Vec3& p) {
@@ -1100,6 +1103,103 @@ void Viewport3D::setNodeSupports(const core::NodeSupports* supports) {
     update();
 }
 
+void Viewport3D::setNodalLoads(const core::NodalLoads* loads) {
+    m_nodalLoads = loads;
+    update();
+}
+
+void Viewport3D::setLoadsVisible(bool on) {
+    m_loadsVisible = on;
+    update();
+}
+
+void Viewport3D::setLoadViewCase(std::optional<int> loadCaseId) {
+    m_loadViewCase = loadCaseId;
+    update();
+}
+
+void Viewport3D::setLoadSelectionHighlight(bool on) {
+    m_loadHighlight = on;
+    update();
+}
+
+QString Viewport3D::nodalLoadText(double kn) {
+    QString text = QString::number(core::roundLoadValue(kn), 'f', 2);
+    while (text.endsWith(QLatin1Char('0'))) text.chop(1);
+    if (text.endsWith(QLatin1Char('.'))) text.chop(1);
+    return text;
+}
+
+bool Viewport3D::nodalLoadSegment(const core::NodalLoad& load, QPointF& start, QPointF& tip) const {
+    if (!m_structure) return false;
+    const core::Node* node = m_structure->findNode(load.nodeId);
+    if (!node) return false;
+    const core::ScreenMapper map = mapper();
+    double x, y;
+    if (!map.toScreen(node->position, x, y)) return false;
+    tip = QPointF(x, y);
+    // Measured (cargas_nudos.md 2.6): the line has a length in METRES (Escalas), drawn from the side the load comes from.
+    const core::Point3 d = core::nodalLoadDirection(load);
+    const double length = core::nodalLoadDrawLengthM(m_nodalLoads ? m_nodalLoads->scales : core::LoadScales{}, load);
+    core::Point3 p = node->position;
+    p.x -= d.x * length;
+    p.y -= d.y * length;
+    p.z -= d.z * length;
+    double x2, y2;
+    if (map.toScreen(p, x2, y2) && std::hypot(x2 - x, y2 - y) > 1e-6) {
+        start = QPointF(x2, y2);
+    } else {
+        start = tip - QPointF(0, 50.0);  // a load seen end-on has no length on screen: a short vertical stub
+    }
+    return true;
+}
+
+void Viewport3D::drawNodalLoads(QPainter& painter) const {
+    if (!m_loadsVisible || !m_nodalLoads || !m_structure || m_nodalLoads->items.empty()) return;
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QFont font = painter.font();
+    for (const core::NodalLoad& load : m_nodalLoads->items) {
+        if (m_loadViewCase && load.loadCaseId != *m_loadViewCase) continue;
+        const core::Node* node = m_structure->findNode(load.nodeId);
+        if (!node || !visibleAfterClipping({node->position.x, node->position.y, node->position.z})) continue;
+        QPointF start, tip;
+        if (!nodalLoadSegment(load, start, tip)) continue;
+        const bool selected = m_loadHighlight && m_selectionMode && m_selection.contains({core::ElementKind::Node, load.nodeId});
+        const QColor colour = selected ? kHighlight : kLoadYellow;
+        painter.setPen(QPen(colour, 1));
+        painter.drawLine(start, tip);
+        const double lengthPx = std::max(1e-9, std::hypot(tip.x() - start.x(), tip.y() - start.y()));
+        const QPointF dir = (tip - start) / lengthPx;
+        const QPointF normal(-dir.y(), dir.x());
+        QPolygonF head;
+        const double headLength = std::max(8.0, 0.1 * lengthPx);  // measured: a small V at the node that grows with the line
+        head << tip << tip - dir * headLength + normal * (0.35 * headLength) << tip - dir * headLength - normal * (0.35 * headLength);
+        painter.setBrush(colour);
+        painter.drawPolygon(head);
+        // The value is written along the line, upright, on the side of the text's "up".
+        double angle = std::atan2(dir.y(), dir.x()) * 180.0 / std::numbers::pi;
+        if (angle > 90.0 - 1e-6) angle -= 180.0;  // a vertical line reads from the bottom to the top (measured)
+        if (angle < -90.0) angle += 180.0;
+        const double rad = angle * std::numbers::pi / 180.0;
+        const QPointF up(std::sin(rad), -std::cos(rad));
+        const QString text = nodalLoadText(load.magnitude);
+        // Measured: the glyph height grows with the line (about 0.44 of its length, i.e. a font of 0.6 of it), the value is centred on the line
+        // and the gap to the line is a tenth of its length.
+        font.setPixelSize(std::clamp(static_cast<int>(std::lround(0.6 * lengthPx * m_textSizePercent / 100.0)), 6, 400));
+        painter.setFont(font);
+        const QFontMetricsF metrics(font);
+        const QPointF anchor = start + (tip - start) * 0.5 + up * (0.1 * lengthPx);
+        painter.setPen(colour);
+        painter.save();
+        painter.translate(anchor);
+        painter.rotate(angle);
+        painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, 0), text);
+        painter.restore();
+    }
+    painter.restore();
+}
+
 void Viewport3D::setNodeLigatures(const core::NodeLigatures* ligatures) {
     m_nodeLigatures = ligatures;
     update();
@@ -1192,7 +1292,9 @@ void Viewport3D::drawSupports(QPainter& painter) const {
             const double len = std::hypot(d.x(), d.y());
             if (len > 1e-6) axes[static_cast<std::size_t>(i)] = d / len;
         }
-        drawExternalSupportSymbol(painter, support, at, axes, colourOf(id));
+        QColor colour = colourOf(id);
+        if (m_loadsVisible && !support.prescribed.empty() && colour == kNodeBlue) colour = kPrescribedGreen;  // measured: green with prescribed displacements
+        drawExternalSupportSymbol(painter, support, at, axes, colour);
     }
     for (const auto& [id, link] : m_nodeSupports->internal) {
         const core::Node* n = m_structure->findNode(id);
@@ -2067,6 +2169,7 @@ void Viewport3D::paintGL() {
     drawClipping(painter);
     drawShellBands(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
+    drawNodalLoads(painter);
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawBarEnds(painter);

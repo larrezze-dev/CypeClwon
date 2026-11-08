@@ -4,9 +4,11 @@
 #include <QPointer>
 #include <QString>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "CypeDialog.h"
+#include "core/load_case.h"
 #include "core/node_diaphragm.h"
 #include "core/project.h"
 #include "core/undo_stack.h"
@@ -31,6 +33,9 @@ class DiaphragmEditDialog : public CypeDialog {
     Q_OBJECT
 public:
     DiaphragmEditDialog(const std::vector<cc::core::Diaphragm>& initial, QWidget* parent = nullptr);
+    /// With the real load cases of the work (T-P7-01, closes the load part of TK-089): the combos of the table "Cargas introducidas" list them
+    /// and a new row takes the first one ("Peso propio"). A row whose case no longer exists is moved to the first case.
+    DiaphragmEditDialog(const std::vector<cc::core::Diaphragm>& initial, const cc::core::LoadCaseSet& cases, QWidget* parent = nullptr);
 
     /// The rows as the user left them (the nodes of existing rows are not touched: the project keeps them).
     const std::vector<cc::core::Diaphragm>& rows() const { return m_rows; }
@@ -59,6 +64,8 @@ public:
     /// Name of a load case ("hipótesis") of the work. PROVISIONAL: the load cases arrive with T-P7-01; until then the only one is the first
     /// of every new work, "Peso propio" (id 1, measured as the default of a new load).
     static QString loadCaseName(int loadCaseId);
+    /// Id of the case a new load row takes: the first of the set when there is one, else the placeholder below.
+    int newLoadCaseId() const { return m_cases && !m_cases->cases.empty() ? m_cases->cases.front().id : firstLoadCaseId(); }
     static int firstLoadCaseId() { return 1; }
 
     /// Colour window "Selección del color". The default is Qt's colour dialog with that title; tests replace it. Returns false on Cancelar.
@@ -74,6 +81,7 @@ private:
     void pickColour(int row);
 
     std::vector<cc::core::Diaphragm> m_rows;
+    std::optional<cc::core::LoadCaseSet> m_cases;
     QTableWidget* m_table = nullptr;
     QLineEdit* m_reference = nullptr;
     QWidget* m_rightPane = nullptr;

@@ -67,6 +67,7 @@ private:
     std::optional<InternalLink> m_internalBefore;
     NodeLigatures m_ligaturesBefore;  ///< ties before the merge (the node that goes away leaves them; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the merge (the node that goes away leaves its diaphragm; restored by undo)
+    NodalLoads m_nodalLoadsBefore;    ///< nodal loads before the merge (those of the node that goes away move to the survivor; restored by undo)
     DeflectionData m_deflectionBefore, m_deflectionAfter;  ///< deflection groups, normalised against the model after the move
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties, reconciled against the model after the move
 };
@@ -95,6 +96,7 @@ private:
     std::map<int, InternalLink> m_internalBefore;
     NodeLigatures m_ligaturesBefore;  ///< ties before the deletion (deleted nodes leave them and ties are renumbered; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
+    NodalLoads m_nodalLoadsBefore;    ///< nodal loads before the deletion (the loads of the deleted nodes go with them; restored by undo)
     BucklingData m_bucklingBefore, m_bucklingAfter;  ///< buckling data; the merged bar takes the data of the first (lower id) bar it replaces
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties; the deleted shells leave
     DeflectionData m_deflectionBefore, m_deflectionAfter;  ///< deflection groups; the merged bar takes the place of the two bars it replaces

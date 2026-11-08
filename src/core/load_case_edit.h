@@ -26,6 +26,22 @@ private:
     std::string m_text;
 };
 
+/// Deleting a case also removes what depends on it, so the command snapshots those collections as well.
+class DeleteLoadCaseCommand : public UndoCommand {
+public:
+    DeleteLoadCaseCommand(Project& project, LoadCaseSet casesAfter, int loadCaseId);
+    void redo() override;
+    void undo() override;
+    std::string text() const override { return "Borrar hipótesis adicional"; }
+
+private:
+    Project& m_project;
+    int m_caseId;
+    LoadCaseSet m_casesBefore, m_casesAfter;
+    NodalLoads m_loadsBefore, m_loadsAfter;
+    NodeSupports m_supportsBefore, m_supportsAfter;
+};
+
 enum class LoadCaseError {
     None,
     BlankReference,      ///< "'Referencia' no puede quedar en blanco."
@@ -56,11 +72,12 @@ LoadCaseError editLoadCase(Project& project, UndoStack& stack, int id, const std
 /// Clicking the "Actúa" cell.
 LoadCaseError toggleLoadCaseActs(Project& project, UndoStack& stack, int id);
 
-/// Dependents of a case in the project. TODO(T-P7-02..05, T-P7-06): collect the loads and the non-linear / buckling combinations that use
-/// it; today there are none, so the list is always empty.
+/// Dependents of a case in the project: nodal loads (T-P7-02) and prescribed displacement sets. TODO(T-P7-03..05, T-P7-06): bar / surface
+/// loads and the non-linear / buckling combinations that use it.
 LoadCaseDependents loadCaseDependents(const Project& project, int id);
-/// "Borrar". Without dependents it is immediate (measured); the dependents are to be deleted with the case (#64905 / #380751 / #380752: the
-/// GUI asks first when loadCaseDependents is not empty). TODO(T-P7-02..06): delete them inside the same command.
+/// "Borrar". Without dependents it is immediate (measured); the dependents are deleted with the case inside the same undoable command
+/// (nodal loads, their scale, prescribed sets; #64905 / #380751 / #380752: the GUI asks first when loadCaseDependents is not empty).
+/// TODO(T-P7-03..06): the remaining dependents.
 LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id);
 
 /// "+" of the arrangements table: appends the next number ("3", "4", ...); `name` receives it.

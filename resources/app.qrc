@@ -8,6 +8,13 @@
     <file>icons/hyp_cross.svg</file>
     <file>icons/hyp_check.svg</file>
     <file>icons/save.svg</file>
+    <file>icons/node_load_new.svg</file>
+    <file>icons/node_load_edit.svg</file>
+    <file>icons/node_load_case.svg</file>
+    <file>icons/node_load_delete.svg</file>
+    <file>icons/load_prescribed.svg</file>
+    <file>icons/load_view_case.svg</file>
+    <file>icons/load_scales.svg</file>
     <file>icons/support_external.svg</file>
     <file>icons/support_internal.svg</file>
     <file>icons/support_ligature.svg</file>

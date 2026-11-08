@@ -59,6 +59,7 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     m_node = *node;
     m_ligaturesBefore = project.ligatures;
     m_diaphragmsBefore = project.diaphragms;
+    m_nodalLoadsBefore = project.nodalLoads;
     m_deflectionBefore = project.deflection;
     m_deflectionAfter = project.deflection;
     m_shellPropsBefore = project.shellProps;
@@ -138,6 +139,7 @@ void MoveNodeCommand::redo() {
     m_project.nodeSupports.internal.erase(m_id);
     applyLigatureNodesDeleted(m_project.ligatures, {m_id});
     applyDiaphragmNodesDeleted(m_project.diaphragms, {m_id});
+    applyNodalLoadsNodesMerged(m_project.nodalLoads, m_id, m_mergeTarget);
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
     m_project.deflection = m_deflectionAfter;
@@ -160,6 +162,7 @@ void MoveNodeCommand::undo() {
     if (m_internalBefore) m_project.nodeSupports.internal[m_id] = *m_internalBefore;
     m_project.ligatures = m_ligaturesBefore;
     m_project.diaphragms = m_diaphragmsBefore;
+    m_project.nodalLoads = m_nodalLoadsBefore;
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
     m_project.deflection = m_deflectionBefore;
@@ -176,6 +179,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
                   nodeIds.end());
     m_ligaturesBefore = project.ligatures;
     m_diaphragmsBefore = project.diaphragms;
+    m_nodalLoadsBefore = project.nodalLoads;
     m_barEndsBefore = project.barEnds;
     m_barEndsAfter = project.barEnds;
     m_bucklingBefore = project.buckling;
@@ -280,6 +284,7 @@ void DeleteNodesCommand::redo() {
     for (const Node& n : m_nodes) deletedIds.push_back(n.id);
     applyLigatureNodesDeleted(m_project.ligatures, deletedIds);
     applyDiaphragmNodesDeleted(m_project.diaphragms, deletedIds);
+    applyNodalLoadsNodesDeleted(m_project.nodalLoads, deletedIds);
     for (const Bar& b : m_merged) model.insertBar(b);
     m_project.barEnds = m_barEndsAfter;
     m_project.buckling = m_bucklingAfter;
@@ -295,6 +300,7 @@ void DeleteNodesCommand::undo() {
     for (const auto& [id, link] : m_internalBefore) m_project.nodeSupports.internal[id] = link;
     m_project.ligatures = m_ligaturesBefore;
     m_project.diaphragms = m_diaphragmsBefore;
+    m_project.nodalLoads = m_nodalLoadsBefore;
     m_project.barEnds = m_barEndsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;
