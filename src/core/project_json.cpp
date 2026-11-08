@@ -728,6 +728,61 @@ const std::vector<Section>& sections() {
                     p.deflection = std::move(loaded);
                 },
                 [](const Project& p) { return validateDeflection(p.deflection).empty(); }},
+        Section{"load_cases", "Hipótesis de carga",
+                [](const Project& p) {
+                    // Versioned. "Peso propio" (id 0) is implicit and not stored.
+                    const LoadCaseSet& d = p.loadCases;
+                    json cases = json::array();
+                    for (const LoadCase& c : d.cases) {
+                        if (c.id == 0) continue;
+                        cases.push_back({{"id", c.id}, {"nature", static_cast<int>(c.nature)}, {"reference", c.reference}, {"description", c.description},
+                                         {"acts", c.acts}, {"arrangements", c.arrangements}, {"compat", static_cast<int>(c.compat)}, {"seismic", static_cast<int>(c.seismic)}});
+                    }
+                    json categories = json::array();
+                    for (const UseCategory& u : d.useCategories)
+                        categories.push_back({{"ref", u.ref}, {"description", u.description}, {"choices", u.choices}});
+                    return json{{"version", 1}, {"cases", cases}, {"created", d.created}, {"nextId", d.nextId},
+                                {"useCategories", categories}, {"seismicSecondOrder", d.seismicSecondOrder}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    LoadCaseSet loaded;  // starts with "Peso propio"
+                    int following = 1;
+                    if (j.contains("cases"))
+                        for (const json& e : j.at("cases")) {
+                            LoadCase c;
+                            c.id = e.value("id", 0);
+                            if (c.id < 1) continue;
+                            const int nature = e.value("nature", 1);
+                            c.nature = (nature >= 1 && nature < kLoadNatureCount) ? static_cast<LoadNature>(nature) : LoadNature::DeadLoad;
+                            c.reference = e.value("reference", std::string());
+                            c.description = e.value("description", std::string());
+                            c.acts = e.value("acts", true);
+                            c.arrangements = e.value("arrangements", std::vector<std::string>{});
+                            const int compat = e.value("compat", 2);
+                            c.compat = (compat >= 0 && compat <= 2) ? static_cast<ArrangementCompat>(compat) : ArrangementCompat::Simultaneous;
+                            c.seismic = e.value("seismic", 0) == 1 ? SeismicType::XY : SeismicType::Simple;
+                            following = std::max(following, c.id + 1);
+                            ++loaded.created[static_cast<std::size_t>(c.nature)];
+                            loaded.cases.push_back(std::move(c));
+                        }
+                    // Stored counters win when they are not below the number of cases found (they never go down when a case is deleted).
+                    const std::vector<int> created = j.value("created", std::vector<int>{});
+                    for (std::size_t i = 0; i < created.size() && i < loaded.created.size(); ++i) loaded.created[i] = std::max(loaded.created[i], created[i]);
+                    loaded.nextId = std::max(following, j.value("nextId", following));
+                    if (j.contains("useCategories"))
+                        for (const json& e : j.at("useCategories")) {
+                            UseCategory u;
+                            u.ref = e.value("ref", std::string());
+                            u.description = e.value("description", std::string());
+                            const std::vector<std::string> choices = e.value("choices", std::vector<std::string>{});
+                            for (std::size_t i = 0; i < choices.size() && i < u.choices.size(); ++i) u.choices[i] = choices[i];
+                            loaded.useCategories.push_back(std::move(u));
+                        }
+                    loaded.seismicSecondOrder = j.value("seismicSecondOrder", false);
+                    p.loadCases = std::move(loaded);
+                },
+                [](const Project& p) { return validateLoadCases(p.loadCases).empty(); }},
         Section{"shell_properties", "Propiedades de láminas",
                 [](const Project& p) {
                     // Shells and edges that no longer exist are not saved.

@@ -501,58 +501,6 @@ FireDialog::FireDialog(SteelFireMode initial, QWidget* parent) : CypeDialog(tr("
 
 SteelFireMode FireDialog::value() const { return static_cast<SteelFireMode>(m_modes->checkedId()); }
 
-// ---------------------------------------------------------------- Hipótesis adicionales
-
-AdditionalLoadsDialog::AdditionalLoadsDialog(QWidget* parent) : CypeDialog(tr("Hipótesis adicionales"), parent) {
-    setFixedSize(280, 443);
-    auto* uses = new QGroupBox(tr("Categorías de uso"), this);
-    auto* usesLayout = new QHBoxLayout(uses);
-    usesLayout->addWidget(new QLabel(tr("No hay categorías de uso definidas"), uses), 1);
-    auto* editUses = new QToolButton(uses);
-    editUses->setText(QStringLiteral("…"));
-    editUses->setEnabled(false);
-    usesLayout->addWidget(editUses);
-    contentLayout()->addWidget(uses);
-
-    auto* actions = new QGroupBox(tr("Acciones"), this);
-    auto* grid = new QGridLayout(actions);
-    grid->addWidget(new QLabel(tr("<b>Automáticas</b>"), actions), 0, 1, Qt::AlignRight);
-    grid->addWidget(new QLabel(tr("<b>Adicionales</b>"), actions), 0, 2, Qt::AlignRight);
-    struct Row {
-        QString name;
-        QString automatic;
-        QString additional;
-    };
-    const Row rows[] = {{tr("Peso propio"), QStringLiteral("1"), QStringLiteral("---")},
-                        {tr("Cargas muertas"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Sobrecarga de uso"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Temperatura"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Retracción"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Viento"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Sismo"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Nieve"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Empujes del terreno"), QStringLiteral("-"), QStringLiteral("0")},
-                        {tr("Accidental"), QStringLiteral("-"), QStringLiteral("0")}};
-    int r = 1;
-    for (const Row& row : rows) {
-        grid->addWidget(new QLabel(row.name, actions), r, 0);
-        grid->addWidget(new QLabel(row.automatic, actions), r, 1, Qt::AlignRight);
-        grid->addWidget(new QLabel(row.additional, actions), r, 2, Qt::AlignRight);
-        if (r > 1) {
-            auto* edit = new QToolButton(actions);
-            edit->setText(QStringLiteral("…"));
-            edit->setEnabled(false);
-            edit->setToolTip(tr("La edición de hipótesis estará disponible con el módulo de cargas."));
-            grid->addWidget(edit, r, 3);
-        }
-        ++r;
-    }
-    grid->setColumnStretch(0, 1);
-    contentLayout()->addWidget(actions);
-    contentLayout()->addStretch(1);
-    setupFooter(tr("Aceptar"), tr("Cancelar"));
-}
-
 // ---------------------------------------------------------------- Cimentación (acciones)
 
 FoundationActionsDialog::FoundationActionsDialog(bool wind, bool seism, QWidget* parent)

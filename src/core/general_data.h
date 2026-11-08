@@ -19,6 +19,7 @@ struct GeneralData {
     PileSettings piles;
     MicropileSettings micropiles;
     OptionsSettings options;
+    LoadCaseSet loadCases;  ///< "Hipótesis adicionales" and use categories (Datos generales > Acciones)
 };
 
 GeneralData generalDataOf(const Project& project);

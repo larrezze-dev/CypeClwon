@@ -8,7 +8,7 @@ namespace cc::core {
 
 GeneralData generalDataOf(const Project& p) {
     return GeneralData{p.standards, p.profiles, p.concrete, p.actions,   p.environment,
-                       p.ground,    p.limitStates, p.piles, p.micropiles, p.options};
+                       p.ground,    p.limitStates, p.piles, p.micropiles, p.options, p.loadCases};
 }
 
 void applyGeneralData(Project& p, const GeneralData& d) {
@@ -22,6 +22,7 @@ void applyGeneralData(Project& p, const GeneralData& d) {
     p.piles = d.piles;
     p.micropiles = d.micropiles;
     p.options = d.options;
+    p.loadCases = d.loadCases;
 }
 
 bool sameGeneralData(const GeneralData& a, const GeneralData& b) {
@@ -29,7 +30,7 @@ bool sameGeneralData(const GeneralData& a, const GeneralData& b) {
     applyGeneralData(pa, a);
     applyGeneralData(pb, b);
     for (const char* name : {"standards", "profiles", "concrete", "actions", "environment", "ground", "limit_states", "piles",
-                             "micropiles", "options"})
+                             "micropiles", "options", "load_cases"})
         if (project_json::dumpSection(pa, name) != project_json::dumpSection(pb, name)) return false;
     return true;
 }

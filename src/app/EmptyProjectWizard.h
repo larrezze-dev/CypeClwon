@@ -39,6 +39,7 @@ public:
     const cc::core::PileSettings& piles() const { return m_piles; }
     const cc::core::MicropileSettings& micropiles() const { return m_micropiles; }
     const cc::core::OptionsSettings& options() const { return m_options; }
+    const cc::core::LoadCaseSet& loadCases() const { return m_loadCases; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -65,6 +66,7 @@ private:
     cc::core::PileSettings m_piles;
     cc::core::MicropileSettings m_micropiles;
     cc::core::OptionsSettings m_options;
+    cc::core::LoadCaseSet m_loadCases;
     QPushButton* m_environmentButton = nullptr;
     QLineEdit* m_persistentEdit = nullptr;
     QLineEdit* m_seismicEdit = nullptr;

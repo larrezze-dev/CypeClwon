@@ -95,6 +95,7 @@ cc::core::Project projectFrom(const EmptyProjectWizard& wizard, const cc::core::
     project.piles = wizard.piles();
     project.micropiles = wizard.micropiles();
     project.options = wizard.options();
+    project.loadCases = wizard.loadCases();
     return project;  // units keep their default (cm / cm / m)
 }
 }  // namespace

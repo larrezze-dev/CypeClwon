@@ -19,6 +19,7 @@
 
 #include "Icons.h"
 #include "LimitStatesDialog.h"
+#include "LoadCaseDialogs.h"
 #include "StandardsDialog.h"
 #include "WizardSubDialogs.h"
 
@@ -71,7 +72,8 @@ EmptyProjectWizard::EmptyProjectWizard(const cc::core::GeneralData& initial, Mod
       m_limitStates(initial.limitStates),
       m_piles(initial.piles),
       m_micropiles(initial.micropiles),
-      m_options(initial.options) {
+      m_options(initial.options),
+      m_loadCases(initial.loadCases) {
     setFixedSize(848, 774);
 
     auto* normsRow = new QHBoxLayout;
@@ -275,7 +277,10 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
         LimitStatesDialog dialog(m_standards, m_limitStates, this);
         if (dialog.exec() == QDialog::Accepted) m_limitStates = dialog.value();
     });
-    connect(addButton(tr("Hipótesis adicionales")), &QPushButton::clicked, this, [this] { AdditionalLoadsDialog(this).exec(); });
+    connect(addButton(tr("Hipótesis adicionales")), &QPushButton::clicked, this, [this] {
+        AdditionalLoadsDialog dialog(m_loadCases, this);
+        if (dialog.exec() == QDialog::Accepted) m_loadCases = dialog.value();
+    });
     connect(addButton(tr("Cimentación")), &QPushButton::clicked, this, [this] {
         FoundationActionsDialog dialog(m_actions.foundationWind, m_actions.foundationSeism, this);
         if (dialog.exec() != QDialog::Accepted) return;

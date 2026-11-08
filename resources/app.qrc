@@ -3,6 +3,10 @@
     <file>icons/app_logo.svg</file>
     <file>icons/check_white.svg</file>
     <file>icons/edit_pencil.svg</file>
+    <file>icons/hyp_new.svg</file>
+    <file>icons/hyp_plus.svg</file>
+    <file>icons/hyp_cross.svg</file>
+    <file>icons/hyp_check.svg</file>
     <file>icons/save.svg</file>
     <file>icons/support_external.svg</file>
     <file>icons/support_internal.svg</file>

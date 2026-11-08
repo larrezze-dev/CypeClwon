@@ -10,6 +10,7 @@
 #include "core/bar_ends.h"
 #include "core/buckling.h"
 #include "core/deflection_group.h"
+#include "core/load_case.h"
 #include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
@@ -50,6 +51,7 @@ struct Project {
     BarEnds barEnds;  ///< articulations and partial fixity at the ends of bars (section bar_ends); empty in older files
     BucklingData buckling;  ///< member buckling coefficients and lateral buckling per bar (section buckling); empty in older files
     DeflectionData deflection;  ///< deflection groups that differ from "one secant group per bar" (section deflection_groups); empty in older files
+    LoadCaseSet loadCases;  ///< load cases "Hipótesis de carga": self weight plus additional cases and use categories (section load_cases); only the self weight in older files
     ShellProperties shellProps;  ///< shell properties: discretisation, stiffness factors, integration bands, edge bonds, buckling, modal (section shell_properties); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)
 };

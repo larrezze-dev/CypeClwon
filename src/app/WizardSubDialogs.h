@@ -154,14 +154,6 @@ private:
     QButtonGroup* m_modes;
 };
 
-/// "Hipótesis adicionales" (280x443): shows the automatic and additional load-case counts per action.
-/// Editing the cases needs the load module (phase 7, ticket TK-013), so the edit buttons are disabled.
-class AdditionalLoadsDialog : public CypeDialog {
-    Q_OBJECT
-public:
-    explicit AdditionalLoadsDialog(QWidget* parent = nullptr);
-};
-
 /// "Cimentación" (253x136): wind and seismic combinations for the foundation.
 class FoundationActionsDialog : public CypeDialog {
     Q_OBJECT
