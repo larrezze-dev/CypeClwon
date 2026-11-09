@@ -118,6 +118,7 @@ void NodalLoadTool::setView(int caseId, bool all) {
     m_viewAll = all;
     applyView();
     configureViewports();  // the nodes that can be captured depend on the loads in view
+    emit viewChanged();
 }
 
 void NodalLoadTool::updateEnabled() {
@@ -156,17 +157,20 @@ void NodalLoadTool::setMode(Mode mode) {
     if (mode != Mode::None) emit aboutToActivate();
     m_mode = mode;
     if (mode == Mode::None || mode == Mode::Prescribed) {
-        if (m_panel) {
-            QPointer<LoadViewPanel> closing = m_panel;
-            m_panel.clear();  // the window deletes itself when it closes
-            closing->close();
-        }
+        closeViewPanel();
     } else {
         showViewPanel();
     }
     configureViewports();
     emit modeChanged(mode);
     emit statusChanged(statusText(mode));  // after the viewports: setSelectionMode announces its own, generic hint
+}
+
+void NodalLoadTool::closeViewPanel() {
+    if (!m_panel) return;
+    QPointer<LoadViewPanel> closing = m_panel;
+    m_panel.clear();  // the window deletes itself when it closes
+    closing->close();
 }
 
 void NodalLoadTool::deactivate() {
@@ -185,6 +189,7 @@ void NodalLoadTool::showViewPanel() {
         m_panel->setAttribute(Qt::WA_DeleteOnClose);
         connect(m_panel, &LoadViewPanel::viewChanged, this, [this](int caseId, bool all) { setView(caseId, all); });
         connect(m_panel, &LoadViewPanel::closed, this, [this] {
+            emit viewPanelClosed();
             if (m_mode != Mode::None && m_mode != Mode::Prescribed) deactivate();  // closing the window ends the command (like the others)
         });
     }
@@ -202,6 +207,8 @@ void NodalLoadTool::showViewPanel() {
 void NodalLoadTool::configureViewports() {
     pruneViewports();
     const bool on = m_mode != Mode::None;
+    if (!on && !m_configured) return;  // idle: the viewports belong to another command (Carga > Barras, ...)
+    m_configured = on;
     const bool onLoads = m_mode == Mode::Edit || m_mode == Mode::Case || m_mode == Mode::Delete;
     const Project* project = m_project;
     const bool all = m_viewAll;

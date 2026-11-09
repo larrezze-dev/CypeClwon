@@ -60,6 +60,7 @@
 #include "DeflectionTool.h"
 #include "ShellPropertiesTool.h"
 #include "NodalLoadTool.h"
+#include "BarLoadTool.h"
 #include "UserMessages.h"
 #include "ViewBar.h"
 #include "ViewIcons.h"
@@ -209,6 +210,7 @@ void MainWindow::createWorkArea() {
             m_deflectionTool->deactivate();
             m_shellPropsTool->deactivate();
             m_nodalLoadTool->deactivate();
+            m_barLoadTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -254,6 +256,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(ShellPropertiesTool::statusText(m_shellPropsTool->mode()));
         else if (m_nodalLoadTool->mode() != NodalLoadTool::Mode::None)
             statusBar()->showMessage(NodalLoadTool::statusText(m_nodalLoadTool->mode()));
+        else if (m_barLoadTool->mode() != BarLoadTool::Mode::None)
+            statusBar()->showMessage(BarLoadTool::statusText(m_barLoadTool->mode()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -473,9 +477,28 @@ void MainWindow::createWorkArea() {
         m_bucklingTool->deactivate();
         m_deflectionTool->deactivate();
         m_shellPropsTool->deactivate();
+        m_barLoadTool->deactivate();
+    });
+    // Carga > Barras (T-P7-03): same rules; it shares the window «Propiedades - Hipótesis vista» with the nodal loads.
+    m_barLoadTool->setHost(m_nodalLoadTool);
+    m_barLoadTool->setDialogParent(this);
+    connect(m_barLoadTool, &BarLoadTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_barLoadTool, &BarLoadTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
+        m_shellPropsTool->deactivate();
+        m_nodalLoadTool->deactivate();
     });
     const auto stopLoadsWhen = [this](auto* tool) {
         connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_nodalLoadTool, &NodalLoadTool::deactivate);
+        connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_barLoadTool, &BarLoadTool::deactivate);
     };
     stopLoadsWhen(m_nodeTool);
     stopLoadsWhen(m_barTool);
@@ -599,6 +622,7 @@ void MainWindow::createWorkArea() {
         m_deflectionTool->deactivate();
         m_shellPropsTool->deactivate();
         m_nodalLoadTool->deactivate();
+        m_barLoadTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -646,6 +670,7 @@ void MainWindow::createWorkArea() {
             m_deflectionTool->structureChanged();
             m_shellPropsTool->structureChanged();
             m_nodalLoadTool->structureChanged();
+            m_barLoadTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -882,6 +907,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_deflectionTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_shellPropsTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_nodalLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_barLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -926,6 +952,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_deflectionTool->addViewport(viewport);
         m_shellPropsTool->addViewport(viewport);
         m_nodalLoadTool->addViewport(viewport);
+        m_barLoadTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1375,6 +1402,20 @@ void MainWindow::buildGeometryTab() {
     loadNodes->addSmallAction(m_nodalLoadTool->editAction());
     loadNodes->addSmallAction(m_nodalLoadTool->caseAction());
     loadNodes->addSmallAction(m_nodalLoadTool->deleteAction());
+
+    // Carga > Barras (cb_b0): Nueva, then the columns Editar / Borrar and Hipótesis / Peso propio (no separator is visible, research 10.1).
+    m_barLoadTool = new BarLoadTool(this);
+    icon(m_barLoadTool->newAction(), "bar_load_new");
+    icon(m_barLoadTool->editAction(), "bar_load_edit");
+    icon(m_barLoadTool->deleteAction(), "bar_load_delete");
+    icon(m_barLoadTool->caseAction(), "bar_load_case");
+    icon(m_barLoadTool->selfWeightAction(), "bar_load_selfweight");
+    SARibbonPanel* loadBars = loadTab->addPanel(tr("Barras"));
+    loadBars->addLargeAction(m_barLoadTool->newAction());
+    loadBars->addMediumAction(m_barLoadTool->editAction());
+    loadBars->addMediumAction(m_barLoadTool->deleteAction());
+    loadBars->addMediumAction(m_barLoadTool->caseAction());
+    loadBars->addMediumAction(m_barLoadTool->selfWeightAction());
 }
 
 void MainWindow::buildObraTab() {

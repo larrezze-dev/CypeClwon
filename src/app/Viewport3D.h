@@ -23,6 +23,7 @@
 #include "core/node_diaphragm.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
+#include "core/bar_load.h"
 #include "core/nodal_load.h"
 #include "core/clipping.h"
 #include "core/picking.h"
@@ -158,6 +159,15 @@ public:
     bool nodalLoadSegment(const core::NodalLoad& load, QPointF& start, QPointF& tip) const;
     /// "5", "7.26", "9.81": two decimals without trailing zeros.
     static QString nodalLoadText(double kn);
+    /// Bar loads (not owned; T-P7-03, cargas_barras.md 10.4 / 12.5): bands, arrows and arcs in yellow with their labels in the Carga tab; the
+    /// scales are the shared ones of the nodal loads. With setLoadSelectionHighlight the loads of the selected bars are orange. The self weight
+    /// ("Peso propio") is drawn as a pale band without label only while setSelfWeightDrawing is on (its command is active).
+    void setBarLoads(const core::BarLoads* loads);
+    const core::BarLoads* barLoads() const { return m_barLoads; }
+    void setSelfWeightDrawing(bool on, int loadCaseId);
+    bool selfWeightDrawn() const { return m_selfWeightDrawn; }
+    /// Bars the selection tool cannot capture (like setNodeExclusion). Empty function: all.
+    void setBarExclusion(std::function<bool(int)> excluded);
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
     QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
@@ -424,6 +434,8 @@ private:
     void drawStructure(class QPainter& painter) const;
     void drawNodes(class QPainter& painter) const;
     void drawNodalLoads(class QPainter& painter) const;  ///< Carga > Nudos: yellow lines with the value
+    void drawBarLoads(class QPainter& painter) const;    ///< Carga > Barras: bands / arrows / arcs with their labels
+    bool elementExcluded(const core::ElementRef& e) const;
     void drawSupports(class QPainter& painter) const;  ///< symbols of the external restraints and internal links
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
     void drawBarRubber(class QPainter& painter) const;  ///< Barras > Barra / Viga: chosen nodes and the elastic line
@@ -462,6 +474,10 @@ private:
     const core::StructuralModel* m_structure = nullptr;
     const core::NodeSupports* m_nodeSupports = nullptr;
     const core::NodalLoads* m_nodalLoads = nullptr;
+    const core::BarLoads* m_barLoads = nullptr;
+    bool m_selfWeightDrawn = false;
+    int m_selfWeightCase = 0;
+    std::function<bool(int)> m_barExcluded;
     bool m_loadsVisible = false;
     bool m_loadHighlight = false;
     std::optional<int> m_loadViewCase;

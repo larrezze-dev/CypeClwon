@@ -673,7 +673,7 @@ void Viewport3D::updateHover(const QPointF& pos) {
     core::PickOptions options;
     options.shellContourOnly = m_shellContourPick;
     if (m_structure && !m_windowStart) hover = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), options);
-    if (hover && m_nodeExcluded && hover->kind == core::ElementKind::Node && m_nodeExcluded(hover->id)) hover.reset();
+    if (hover && elementExcluded(*hover)) hover.reset();
     if (hover != m_hover || m_windowStart) {
         m_hover = hover;
         update();
@@ -703,12 +703,10 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
         const QPointF a = *m_windowStart;
         m_windowStart.reset();
         std::vector<core::ElementRef> hits = core::pickRect(*m_structure, mapper(), effectiveFilter(), a.x(), a.y(), pos.x(), pos.y());
-        if (m_nodeExcluded)
-            std::erase_if(hits, [this](const core::ElementRef& e) { return e.kind == core::ElementKind::Node && m_nodeExcluded(e.id); });
+        if (m_nodeExcluded || m_barExcluded) std::erase_if(hits, [this](const core::ElementRef& e) { return elementExcluded(e); });
         changed = m_selection.apply(hits, mode);
-    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), pickOptions);
-               hit && m_nodeExcluded && hit->kind == core::ElementKind::Node && m_nodeExcluded(hit->id)) {
-        // a node the tool cannot capture: the click does nothing (no window starts either)
+    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), pickOptions); hit && elementExcluded(*hit)) {
+        // an element the tool cannot capture: the click does nothing (no window starts either)
     } else if (hit) {
         changed = m_selection.apply({*hit}, mode);
     } else {
@@ -1200,6 +1198,114 @@ void Viewport3D::drawNodalLoads(QPainter& painter) const {
     painter.restore();
 }
 
+void Viewport3D::setBarLoads(const core::BarLoads* loads) {
+    m_barLoads = loads;
+    update();
+}
+
+void Viewport3D::setSelfWeightDrawing(bool on, int loadCaseId) {
+    m_selfWeightDrawn = on;
+    m_selfWeightCase = loadCaseId;
+    update();
+}
+
+void Viewport3D::drawBarLoads(QPainter& painter) const {
+    if (!m_loadsVisible || !m_structure || !m_barLoads) return;
+    if (m_barLoads->items.empty() && !m_selfWeightDrawn) return;
+    const core::LoadScales scales = m_nodalLoads ? m_nodalLoads->scales : core::LoadScales{};
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QFont font = painter.font();
+    font.setPixelSize(std::clamp(static_cast<int>(std::lround(12.0 * m_textSizePercent / 100.0)), 6, 60));
+    painter.setFont(font);
+    const QFontMetricsF metrics(font);
+    const auto project = [&](const core::Point3& p, QPointF& out) {
+        double x, y;
+        if (!map.toScreen(p, x, y)) return false;
+        out = QPointF(x, y);
+        return true;
+    };
+    const auto drawText = [&](const QPointF& at, double angleDeg, const QString& text, const QColor& colour) {
+        double angle = angleDeg;  // the text stays upright: it reads from left to right or from the bottom to the top
+        if (angle > 90.0 + 1e-6) angle -= 180.0;
+        if (angle < -90.0 + 1e-6) angle += 180.0;
+        painter.save();
+        painter.setPen(colour);
+        painter.translate(at);
+        painter.rotate(angle);
+        painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, -3.0), text);
+        painter.restore();
+    };
+    const auto drawLoad = [&](const core::BarLoadData& data, int barId, bool selected, bool labels, const core::LoadScales& useScales) {
+        const auto frame = core::barLocalAxes(*m_structure, barId);
+        if (!frame || !visibleAfterClipping({frame->origin.x, frame->origin.y, frame->origin.z})) return;
+        const core::BarLoadDrawing drawing = core::barLoadDrawing(data, *frame, useScales);
+        if (!drawing.valid) return;
+        const QColor line = selected ? kHighlight : kLoadYellow;
+        const QColor fill = selected ? QColor(218, 135, 53, 70) : QColor(255, 255, 150, 110);  // measured: pale yellow fill, yellow outline
+        painter.setBrush(fill);
+        painter.setPen(QPen(line, selected ? 2.5 : 1.0));
+        double angle = 0.0;
+        if (drawing.type == core::BarLoadType::Point) {
+            QPointF a, b;
+            if (!project(drawing.arrow.first, a) || !project(drawing.arrow.second, b)) return;
+            if (std::hypot(b.x() - a.x(), b.y() - a.y()) < 1e-6) a = b - QPointF(0, 40.0);  // seen end-on: a short vertical stub
+            painter.drawLine(a, b);
+            const double len = std::max(1e-9, std::hypot(b.x() - a.x(), b.y() - a.y()));
+            const QPointF dir = (b - a) / len, normal(-dir.y(), dir.x());
+            const double headLength = std::max(8.0, 0.1 * len);
+            QPolygonF head;
+            head << b << b - dir * headLength + normal * (0.35 * headLength) << b - dir * headLength - normal * (0.35 * headLength);
+            painter.setBrush(line);
+            painter.drawPolygon(head);
+            angle = std::atan2(dir.y(), dir.x()) * 180.0 / std::numbers::pi;
+        } else if (drawing.type == core::BarLoadType::PointMoment) {
+            QPolygonF arc;
+            for (const core::Point3& p : drawing.arc) {
+                QPointF q;
+                if (!project(p, q)) return;
+                arc << q;
+            }
+            painter.drawPolygon(arc);  // measured: semicircle with a fill
+        } else {
+            QPolygonF outline;
+            for (const core::Point3& p : drawing.outline) {
+                QPointF q;
+                if (!project(p, q)) return;
+                outline << q;
+            }
+            painter.drawPolygon(outline);
+            for (const auto& [from, to] : drawing.ticks) {
+                QPointF a, b;
+                if (project(from, a) && project(to, b)) painter.drawLine(a, b);
+            }
+            if (outline.size() >= 2)
+                angle = std::atan2(outline[1].y() - outline[0].y(), outline[1].x() - outline[0].x()) * 180.0 / std::numbers::pi;
+        }
+        if (!labels) return;
+        for (const core::BarLoadLabel& label : drawing.labels) {
+            QPointF at;
+            if (project(label.anchor, at)) drawText(at, angle, QString::fromStdString(label.text), line);
+        }
+    };
+    for (const core::BarLoad& load : m_barLoads->items) {
+        if (m_loadViewCase && load.loadCaseId != *m_loadViewCase) continue;
+        const bool selected = m_loadHighlight && m_selectionMode && m_selection.contains({core::ElementKind::Bar, load.barId});
+        drawLoad(load, load.barId, selected, true, scales);
+    }
+    if (m_selfWeightDrawn && (!m_loadViewCase || *m_loadViewCase == m_selfWeightCase)) {
+        // Peso propio: pale band without label, only while its command is active (research 12.1). Drawn at the fixed size: the weight per metre
+        // of the profile is not computed here (NOT MEASURED for the proportional mode).
+        core::LoadScales fixedScales = scales;
+        fixedScales.mode = core::LoadScaleMode::Fixed;
+        const core::BarLoadData weight = core::barLoadDefaults(m_selfWeightCase);
+        for (const core::Bar& bar : m_structure->bars)
+            if (core::barSelfWeightActive(*m_barLoads, bar.id)) drawLoad(weight, bar.id, false, false, fixedScales);
+    }
+    painter.restore();
+}
+
 void Viewport3D::setNodeLigatures(const core::NodeLigatures* ligatures) {
     m_nodeLigatures = ligatures;
     update();
@@ -1259,6 +1365,18 @@ void Viewport3D::setNodeExclusion(std::function<bool(int)> excluded) {
     m_nodeExcluded = std::move(excluded);
     m_hover.reset();
     update();
+}
+
+void Viewport3D::setBarExclusion(std::function<bool(int)> excluded) {
+    m_barExcluded = std::move(excluded);
+    m_hover.reset();
+    update();
+}
+
+bool Viewport3D::elementExcluded(const core::ElementRef& e) const {
+    if (e.kind == core::ElementKind::Node) return m_nodeExcluded && m_nodeExcluded(e.id);
+    if (e.kind == core::ElementKind::Bar) return m_barExcluded && m_barExcluded(e.id);
+    return false;
 }
 
 void Viewport3D::drawSupports(QPainter& painter) const {
@@ -2170,6 +2288,7 @@ void Viewport3D::paintGL() {
     drawShellBands(painter);
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
     drawNodalLoads(painter);
+    drawBarLoads(painter);
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawBarEnds(painter);

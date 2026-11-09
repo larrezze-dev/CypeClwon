@@ -77,6 +77,8 @@ public:
     bool editScales();
     /// Shows (or raises) the window «Propiedades - Hipótesis vista».
     void showViewPanel();
+    /// Closes the window (the commands of Carga > Barras share it and close it when they end).
+    void closeViewPanel();
 
     /// Last data of «Introducir cargas sobre nudos» (the dialog remembers value and direction between uses).
     const cc::core::NodalLoadData& lastData() const { return m_last; }
@@ -86,6 +88,10 @@ signals:
     /// A command is about to become active: other viewport tools must stop.
     void aboutToActivate();
     void modeChanged(cc::app::NodalLoadTool::Mode mode);
+    /// The shown hypothesis or «Ver todas» changed (the bar commands refresh what they can capture).
+    void viewChanged();
+    /// The window «Propiedades - Hipótesis vista» was closed (the bar commands end with it).
+    void viewPanelClosed();
 
 private:
     void setMode(Mode mode);
@@ -116,6 +122,7 @@ private:
     int m_viewCase = 0;
     bool m_viewAll = false;
     bool m_loadsVisible = false;
+    bool m_configured = false;  ///< the viewports were last configured for an active command (so that an idle tool leaves them alone)
 };
 
 }  // namespace cc::app
