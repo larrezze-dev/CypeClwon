@@ -20,6 +20,11 @@
     <file>icons/bar_load_case.svg</file>
     <file>icons/bar_load_delete.svg</file>
     <file>icons/bar_load_selfweight.svg</file>
+    <file>icons/shell_load_new.svg</file>
+    <file>icons/shell_load_edit.svg</file>
+    <file>icons/shell_load_delete.svg</file>
+    <file>icons/shell_load_case.svg</file>
+    <file>icons/shell_load_selfweight.svg</file>
     <file>icons/support_external.svg</file>
     <file>icons/support_internal.svg</file>
     <file>icons/support_ligature.svg</file>

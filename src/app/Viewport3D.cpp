@@ -703,9 +703,11 @@ void Viewport3D::selectionPress(QMouseEvent* event) {
         const QPointF a = *m_windowStart;
         m_windowStart.reset();
         std::vector<core::ElementRef> hits = core::pickRect(*m_structure, mapper(), effectiveFilter(), a.x(), a.y(), pos.x(), pos.y());
-        if (m_nodeExcluded || m_barExcluded) std::erase_if(hits, [this](const core::ElementRef& e) { return elementExcluded(e); });
+        if (m_nodeExcluded || m_barExcluded || m_shellExcluded) std::erase_if(hits, [this](const core::ElementRef& e) { return elementExcluded(e); });
         changed = m_selection.apply(hits, mode);
-    } else if (auto hit = core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), pickOptions); hit && elementExcluded(*hit)) {
+    } else if (auto hit = m_windowOnlySelection ? std::optional<core::ElementRef>{}
+                                                : core::pickAt(*m_structure, mapper(), effectiveFilter(), pos.x(), pos.y(), pickOptions);
+               hit && elementExcluded(*hit)) {
         // an element the tool cannot capture: the click does nothing (no window starts either)
     } else if (hit) {
         changed = m_selection.apply({*hit}, mode);
@@ -1306,6 +1308,105 @@ void Viewport3D::drawBarLoads(QPainter& painter) const {
     painter.restore();
 }
 
+void Viewport3D::setShellLoads(const core::ShellLoads* loads) {
+    m_shellLoads = loads;
+    update();
+}
+
+void Viewport3D::setShellSelfWeightDrawing(bool on, int loadCaseId) {
+    m_shellSelfWeightDrawn = on;
+    m_shellSelfWeightCase = loadCaseId;
+    update();
+}
+
+void Viewport3D::drawShellLoads(QPainter& painter) const {
+    if (!m_loadsVisible || !m_structure || !m_shellLoads) return;
+    if (m_shellLoads->items.empty() && !m_shellSelfWeightDrawn) return;
+    const core::LoadScales scales = m_nodalLoads ? m_nodalLoads->scales : core::LoadScales{};
+    const core::ScreenMapper map = mapper();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QFont font = painter.font();
+    font.setPixelSize(std::clamp(static_cast<int>(std::lround(11.0 * m_textSizePercent / 100.0)), 6, 60));
+    painter.setFont(font);
+    const QFontMetricsF metrics(font);
+    const auto project = [&](const core::Point3& p, QPointF& out) {
+        double x, y;
+        if (!map.toScreen(p, x, y)) return false;
+        out = QPointF(x, y);
+        return true;
+    };
+    for (const core::Shell& shell : m_structure->shells) {
+        // The loads of the shell in creation order (the self weight first), as drawable data.
+        std::vector<core::ShellLoadData> datas;
+        std::vector<bool> isSelfWeight;
+        if (m_shellSelfWeightDrawn && (!m_loadViewCase || *m_loadViewCase == m_shellSelfWeightCase) && core::shellSelfWeightActive(*m_shellLoads, shell.id))
+            if (auto weight = core::shellSelfWeightLoad(shell)) {
+                weight->loadCaseId = m_shellSelfWeightCase;
+                datas.push_back(*weight);
+                isSelfWeight.push_back(true);
+            }
+        for (const core::ShellLoad& load : m_shellLoads->items) {
+            if (load.shellId != shell.id || (m_loadViewCase && load.loadCaseId != *m_loadViewCase)) continue;
+            datas.push_back(core::shellLoadToData(load));
+            isSelfWeight.push_back(false);
+        }
+        if (datas.empty()) continue;
+        const auto frame = core::shellLoadFrame(*m_structure, shell.id);
+        if (!frame || !visibleAfterClipping({frame->origin.x, frame->origin.y, frame->origin.z})) continue;
+        const std::vector<double> offsets = core::shellLoadStackOffsets(datas, scales);
+        const bool shellSelected = m_loadHighlight && m_selectionMode && m_selection.contains({core::ElementKind::Shell, shell.id});
+        // Measured (cargas_laminas.md 10.4): one RMB acts on ONE load of the shell, the first created in view, and only that one is orange.
+        std::size_t selectedIndex = datas.size();
+        for (std::size_t i = 0; i < datas.size() && selectedIndex == datas.size(); ++i)
+            if (!isSelfWeight[i]) selectedIndex = i;
+        for (std::size_t i = 0; i < datas.size(); ++i) {
+            const core::ShellLoadDrawing drawing = core::shellLoadDrawing(datas[i], *frame, scales, i < offsets.size() ? offsets[i] : 0.0);
+            if (!drawing.valid) continue;
+            const bool selected = shellSelected && i == selectedIndex;
+            // Measured: pale yellow translucent fill with yellow edges and vertical lines; orange (thicker) when selected.
+            const QColor line = selected ? kHighlight : kLoadYellow;
+            const QColor fill = selected ? QColor(218, 135, 53, 70) : QColor(255, 255, 150, 90);
+            std::vector<QPointF> base(drawing.base.size()), top(drawing.top.size());
+            bool visible = true;
+            for (std::size_t k = 0; k < drawing.base.size() && visible; ++k) visible = project(drawing.base[k], base[k]) && project(drawing.top[k], top[k]);
+            if (!visible) continue;
+            painter.setBrush(fill);
+            painter.setPen(QPen(line, selected ? 2.5 : 1.0));
+            const std::size_t n = base.size();
+            for (std::size_t k = 0; k < n; ++k) {
+                const std::size_t j = (k + 1) % n;
+                painter.drawPolygon(QPolygonF({base[k], base[j], top[j], top[k]}));
+            }
+            painter.drawPolygon(QPolygonF(QList<QPointF>(base.begin(), base.end())));
+            painter.drawPolygon(QPolygonF(QList<QPointF>(top.begin(), top.end())));
+            painter.setPen(QPen(line, 1.0));
+            for (const auto& [from, to] : drawing.ticks) {
+                QPointF a, b;
+                if (project(from, a) && project(to, b)) painter.drawLine(a, b);
+            }
+            if (isSelfWeight[i]) continue;  // the automatic load has no label
+            for (std::size_t k = 0; k < drawing.labels.size() && k < n; ++k) {
+                QPointF at;
+                if (!project(drawing.labels[k].anchor, at)) continue;
+                // The text runs along the vertical edge of its corner and stays upright.
+                double angle = std::atan2(top[k].y() - base[k].y(), top[k].x() - base[k].x()) * 180.0 / std::numbers::pi;
+                if (std::hypot(top[k].x() - base[k].x(), top[k].y() - base[k].y()) < 1.0) angle = 0.0;
+                if (angle > 90.0 + 1e-6) angle -= 180.0;
+                if (angle < -90.0 + 1e-6) angle += 180.0;
+                const QString text = QString::fromStdString(drawing.labels[k].text);
+                painter.save();
+                painter.setPen(line);
+                painter.translate(at);
+                painter.rotate(angle);
+                painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, -3.0), text);
+                painter.restore();
+            }
+        }
+    }
+    painter.restore();
+}
+
 void Viewport3D::setNodeLigatures(const core::NodeLigatures* ligatures) {
     m_nodeLigatures = ligatures;
     update();
@@ -1361,6 +1462,20 @@ void Viewport3D::setBarAxesVisible(bool on) {
     update();
 }
 
+void Viewport3D::setShellExclusion(std::function<bool(int)> excluded) {
+    m_shellExcluded = std::move(excluded);
+    m_hover.reset();
+    update();
+}
+
+void Viewport3D::setWindowOnlySelection(bool on) {
+    if (m_windowOnlySelection == on) return;
+    m_windowOnlySelection = on;
+    m_windowStart.reset();
+    m_hover.reset();
+    update();
+}
+
 void Viewport3D::setNodeExclusion(std::function<bool(int)> excluded) {
     m_nodeExcluded = std::move(excluded);
     m_hover.reset();
@@ -1376,6 +1491,7 @@ void Viewport3D::setBarExclusion(std::function<bool(int)> excluded) {
 bool Viewport3D::elementExcluded(const core::ElementRef& e) const {
     if (e.kind == core::ElementKind::Node) return m_nodeExcluded && m_nodeExcluded(e.id);
     if (e.kind == core::ElementKind::Bar) return m_barExcluded && m_barExcluded(e.id);
+    if (e.kind == core::ElementKind::Shell) return m_shellExcluded && m_shellExcluded(e.id);
     return false;
 }
 
@@ -2289,6 +2405,7 @@ void Viewport3D::paintGL() {
     drawNodes(painter);  // the original always shows the node squares (categorias_panel.md), not only in a command
     drawNodalLoads(painter);
     drawBarLoads(painter);
+    drawShellLoads(painter);
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawBarEnds(painter);

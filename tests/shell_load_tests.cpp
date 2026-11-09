@@ -719,8 +719,8 @@ TEST(ShellLoad, DrawingUniformPrismLiesBelowTheShellForSenseOneAndAboveForSenseT
     }
     EXPECT_DOUBLE_EQ(dr.sizeM, 0.5);
     EXPECT_NEAR(dr.direction.z, 1.0, 1e-12);
-    // 4 edges of 4 m at 0.25 m: 16 ticks each.
-    EXPECT_EQ(dr.ticks.size(), 64u);
+    // 4 edges of 4 m at 0.5 m: 8 ticks each.
+    EXPECT_EQ(dr.ticks.size(), 32u);
     for (const auto& [b, t] : dr.ticks) {
         EXPECT_NEAR(b.z, 0.0, 1e-12);
         EXPECT_NEAR(t.z, -0.5, 1e-12);

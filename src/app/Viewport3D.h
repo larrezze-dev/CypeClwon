@@ -24,6 +24,7 @@
 #include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/bar_load.h"
+#include "core/shell_load.h"
 #include "core/nodal_load.h"
 #include "core/clipping.h"
 #include "core/picking.h"
@@ -166,6 +167,18 @@ public:
     const core::BarLoads* barLoads() const { return m_barLoads; }
     void setSelfWeightDrawing(bool on, int loadCaseId);
     bool selfWeightDrawn() const { return m_selfWeightDrawn; }
+    /// Shell loads (not owned; T-P7-04, cargas_laminas.md 8.5 / 10.2): pale yellow prisms (wedges for the variable loads) standing on the shell with
+    /// yellow edges, vertical lines and labels in the Carga tab; the scales are the shared ones of the nodal loads. With setLoadSelectionHighlight
+    /// the loads of the selected shells are orange. The self weight of the shells is drawn as a pale prism without label while
+    /// setShellSelfWeightDrawing is on (a command of the group is active).
+    void setShellLoads(const core::ShellLoads* loads);
+    const core::ShellLoads* shellLoads() const { return m_shellLoads; }
+    void setShellSelfWeightDrawing(bool on, int loadCaseId);
+    bool shellSelfWeightDrawn() const { return m_shellSelfWeightDrawn; }
+    /// Shells the selection tool cannot capture (like setBarExclusion). Empty function: all.
+    void setShellExclusion(std::function<bool(int)> excluded);
+    /// A plain click does not select: only a window (two clicks) does (Carga > Láminas > Peso propio, measured).
+    void setWindowOnlySelection(bool on);
     /// Bars the selection tool cannot capture (like setNodeExclusion). Empty function: all.
     void setBarExclusion(std::function<bool(int)> excluded);
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
@@ -435,6 +448,7 @@ private:
     void drawNodes(class QPainter& painter) const;
     void drawNodalLoads(class QPainter& painter) const;  ///< Carga > Nudos: yellow lines with the value
     void drawBarLoads(class QPainter& painter) const;    ///< Carga > Barras: bands / arrows / arcs with their labels
+    void drawShellLoads(class QPainter& painter) const;  ///< Carga > Láminas: prisms with their labels
     bool elementExcluded(const core::ElementRef& e) const;
     void drawSupports(class QPainter& painter) const;  ///< symbols of the external restraints and internal links
     void drawMoveRubber(class QPainter& painter) const;  ///< Nudos > Mover: black bars to the cursor and the orange dimension
@@ -475,6 +489,11 @@ private:
     const core::NodeSupports* m_nodeSupports = nullptr;
     const core::NodalLoads* m_nodalLoads = nullptr;
     const core::BarLoads* m_barLoads = nullptr;
+    const core::ShellLoads* m_shellLoads = nullptr;
+    bool m_shellSelfWeightDrawn = false;
+    int m_shellSelfWeightCase = 0;
+    std::function<bool(int)> m_shellExcluded;
+    bool m_windowOnlySelection = false;
     bool m_selfWeightDrawn = false;
     int m_selfWeightCase = 0;
     std::function<bool(int)> m_barExcluded;

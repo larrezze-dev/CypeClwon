@@ -27,6 +27,7 @@ class DeflectionTool;
 class ShellPropertiesTool;
 class NodalLoadTool;
 class BarLoadTool;
+class ShellLoadTool;
 class BarTool;
 class PieceTool;
 class BarDescribeTool;
@@ -139,6 +140,7 @@ private:
     ShellPropertiesTool* m_shellPropsTool = nullptr;  ///< Propiedades > Laminas (T-P6-07)
     NodalLoadTool* m_nodalLoadTool = nullptr;         ///< Carga > Nudos / Visualización (T-P7-02)
     BarLoadTool* m_barLoadTool = nullptr;             ///< Carga > Barras (T-P7-03)
+    ShellLoadTool* m_shellLoadTool = nullptr;         ///< Carga > Láminas (T-P7-04)
     DeflectionTool* m_deflectionTool = nullptr;  ///< Propiedades > Barras > Grupos de flecha (T-P6-06)
     BucklingTool* m_bucklingTool = nullptr;  ///< Propiedades > Barras > Pandeo / Pandeo lateral (T-P6-04)
     BarEndsTool* m_barEndsTool = nullptr;  ///< Propiedades > Barras > Articular / Empotramiento (T-P6-05)
