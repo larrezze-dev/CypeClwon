@@ -98,10 +98,11 @@ std::string nextUseCategoryRef(const LoadCaseSet& set);
 struct LoadCaseDependents {
     std::vector<int> loads;                  ///< ids of the loads defined in the case (nodal so far; bar, surface... later)
     std::vector<int> barLoads;               ///< ids of the bar loads defined in the case (T-P7-03; removed with it)
+    std::vector<int> shellLoads;             ///< ids of the shell loads defined in the case (T-P7-04; removed with it)
     std::vector<int> prescribedNodes;        ///< nodes whose prescribed displacements include a set for the case (removed with it; not measured)
     std::vector<int> nonlinearCombinations;  ///< non-linear combinations that use it
     std::vector<int> bucklingCombinations;   ///< buckling combinations that use it
-    bool empty() const { return loads.empty() && barLoads.empty() && prescribedNodes.empty() && nonlinearCombinations.empty() && bucklingCombinations.empty(); }
+    bool empty() const { return loads.empty() && barLoads.empty() && shellLoads.empty() && prescribedNodes.empty() && nonlinearCombinations.empty() && bucklingCombinations.empty(); }
 };
 
 /// Internal consistency of the stored set (case 0 is the self weight, unique ids below nextId, non-blank references, extra cases of a nature

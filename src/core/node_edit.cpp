@@ -199,6 +199,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     m_diaphragmsBefore = project.diaphragms;
     m_nodalLoadsBefore = project.nodalLoads;
     m_barLoadsBefore = m_barLoadsAfter = project.barLoads;
+    m_shellLoadsBefore = m_shellLoadsAfter = project.shellLoads;
     m_barEndsBefore = project.barEnds;
     m_barEndsAfter = project.barEnds;
     m_bucklingBefore = project.buckling;
@@ -258,6 +259,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     for (int id : barIds) m_bars.push_back(*model.findBar(id));
     applyBarLoadsBarsDeleted(m_barLoadsAfter, barIds);  // also the two bars of a merge: their loads are lost (not measured)
     for (int id : shellIds) m_shells.push_back(*model.findShell(id));
+    applyShellLoadsShellsDeleted(m_shellLoadsAfter, shellIds);
 
     if (!project.deflection.empty()) {
         // The merged bar takes the place of the two bars in their explicit group (the group of the first one wins).
@@ -306,6 +308,7 @@ void DeleteNodesCommand::redo() {
     applyDiaphragmNodesDeleted(m_project.diaphragms, deletedIds);
     applyNodalLoadsNodesDeleted(m_project.nodalLoads, deletedIds);
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsAfter);
     for (const Bar& b : m_merged) model.insertBar(b);
     m_project.barEnds = m_barEndsAfter;
     m_project.buckling = m_bucklingAfter;
@@ -323,6 +326,7 @@ void DeleteNodesCommand::undo() {
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.nodalLoads = m_nodalLoadsBefore;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsBefore);
     m_project.barEnds = m_barEndsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;

@@ -978,6 +978,56 @@ const std::vector<Section>& sections() {
                     p.shellProps = std::move(loaded);
                 },
                 [](const Project& p) { return validateShellProperties(p.shellProps).empty(); }},
+        Section{"shell_loads", "Cargas en láminas",
+                [](const Project& p) {
+                    // Versioned. Loads (and self-weight flags) of shells that no longer exist are not saved.
+                    const ShellLoads& d = p.shellLoads;
+                    json items = json::array();
+                    for (const ShellLoad& l : d.items) {
+                        if (!p.structure.findShell(l.shellId)) continue;
+                        items.push_back({{"id", l.id},
+                                         {"shell", l.shellId},
+                                         {"load_case", l.loadCaseId},
+                                         {"type", static_cast<int>(l.type)},
+                                         {"axes", static_cast<int>(l.axes)},
+                                         {"sense", static_cast<int>(l.sense)},
+                                         {"value1", l.value1},
+                                         {"value2", l.value2}});
+                    }
+                    json off = json::array();
+                    for (int id : d.selfWeightOff)
+                        if (p.structure.findShell(id)) off.push_back(id);
+                    return json{{"version", 1}, {"next", d.nextId}, {"items", items}, {"self_weight_off", off}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    ShellLoads loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            ShellLoad l;
+                            l.id = e.value("id", 0);
+                            l.shellId = e.value("shell", 0);
+                            if (l.id < 1 || l.shellId < 1) continue;
+                            l.loadCaseId = e.value("load_case", 0);
+                            const int type = e.value("type", static_cast<int>(ShellLoadType::Uniform));
+                            if (type < 0 || type >= kShellLoadTypeCount) continue;
+                            l.type = static_cast<ShellLoadType>(type);
+                            l.axes = e.value("axes", 1) == 0 ? ShellLoadAxes::Global : ShellLoadAxes::Local;
+                            l.sense = e.value("sense", 0) == 1 ? ShellLoadSense::MinusZ : ShellLoadSense::PlusZ;
+                            l.value1 = e.value("value1", kShellLoadDefaultSurface);
+                            l.value2 = e.value("value2", 0.0);
+                            static_cast<ShellLoadData&>(l) = normaliseShellLoadData(l);  // tolerant: canonical form (rounded, unused fields reset)
+                            following = std::max(following, l.id + 1);
+                            loaded.items.push_back(l);
+                        }
+                    loaded.nextId = std::max(following, j.value("next", following));
+                    if (j.contains("self_weight_off"))
+                        for (const json& id : j.at("self_weight_off"))
+                            if (id.is_number_integer() && id.get<int>() >= 1) loaded.selfWeightOff.insert(id.get<int>());
+                    p.shellLoads = std::move(loaded);
+                },
+                [](const Project& p) { return validateShellLoads(p.shellLoads, p.loadCases).empty(); }},
     };
     return all;
 }

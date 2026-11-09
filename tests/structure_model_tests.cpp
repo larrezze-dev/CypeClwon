@@ -198,22 +198,23 @@ Project projectWithStructure() {
 
 TEST(StructureProject, SectionsAreRegisteredAfterTheExistingOnes) {
     const auto& names = project_json::sectionNames();
-    ASSERT_GE(names.size(), 19u);
-    EXPECT_EQ(names[names.size() - 19], "nodes");
-    EXPECT_EQ(names[names.size() - 14], "pieces");
-    EXPECT_EQ(names[names.size() - 13], "layers");
-    EXPECT_EQ(names[names.size() - 12], "continuous_elements");
-    EXPECT_EQ(names[names.size() - 11], "bar_descriptions");
-    EXPECT_EQ(names[names.size() - 10], "node_supports");
-    EXPECT_EQ(names[names.size() - 9], "node_ties");
-    EXPECT_EQ(names[names.size() - 8], "diaphragms");
-    EXPECT_EQ(names[names.size() - 7], "bar_ends");
-    EXPECT_EQ(names[names.size() - 6], "buckling");
-    EXPECT_EQ(names[names.size() - 5], "deflection_groups");
-    EXPECT_EQ(names[names.size() - 4], "load_cases");
-    EXPECT_EQ(names[names.size() - 3], "nodal_loads");
-    EXPECT_EQ(names[names.size() - 2], "bar_loads");
-    EXPECT_EQ(names.back(), "shell_properties");
+    ASSERT_GE(names.size(), 20u);
+    EXPECT_EQ(names[names.size() - 20], "nodes");
+    EXPECT_EQ(names[names.size() - 15], "pieces");
+    EXPECT_EQ(names[names.size() - 14], "layers");
+    EXPECT_EQ(names[names.size() - 13], "continuous_elements");
+    EXPECT_EQ(names[names.size() - 12], "bar_descriptions");
+    EXPECT_EQ(names[names.size() - 11], "node_supports");
+    EXPECT_EQ(names[names.size() - 10], "node_ties");
+    EXPECT_EQ(names[names.size() - 9], "diaphragms");
+    EXPECT_EQ(names[names.size() - 8], "bar_ends");
+    EXPECT_EQ(names[names.size() - 7], "buckling");
+    EXPECT_EQ(names[names.size() - 6], "deflection_groups");
+    EXPECT_EQ(names[names.size() - 5], "load_cases");
+    EXPECT_EQ(names[names.size() - 4], "nodal_loads");
+    EXPECT_EQ(names[names.size() - 3], "bar_loads");
+    EXPECT_EQ(names[names.size() - 2], "shell_properties");
+    EXPECT_EQ(names.back(), "shell_loads");
     EXPECT_EQ(project_json::sectionTitle("cross_sections"), "Secciones");
 }
 

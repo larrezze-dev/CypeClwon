@@ -98,6 +98,7 @@ private:
     NodeLigatures m_ligaturesBefore;  ///< ties before the deletion (deleted nodes leave them and ties are renumbered; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
     BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< bar loads; those of the deleted bars (and of the two bars of a merge) go
+    ShellLoads m_shellLoadsBefore, m_shellLoadsAfter;  ///< shell loads; those of the deleted shells go
     NodalLoads m_nodalLoadsBefore;    ///< nodal loads before the deletion (the loads of the deleted nodes go with them; restored by undo)
     BucklingData m_bucklingBefore, m_bucklingAfter;  ///< buckling data; the merged bar takes the data of the first (lower id) bar it replaces
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties; the deleted shells leave

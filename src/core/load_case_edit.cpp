@@ -86,22 +86,24 @@ LoadCaseDependents loadCaseDependents(const Project& project, int id) {
     LoadCaseDependents out;
     out.loads = nodalLoadsOfCase(project.nodalLoads, id);
     out.barLoads = barLoadsOfCase(project.barLoads, id);
+    out.shellLoads = shellLoadsOfCase(project.shellLoads, id);
     for (const auto& [nodeId, support] : project.nodeSupports.external)
         for (const PrescribedDisplacement& p : support.prescribed)
             if (p.loadCaseId == id) {
                 out.prescribedNodes.push_back(nodeId);
                 break;
             }
-    // TODO(T-P7-03..05, T-P7-06): bar / surface loads, non-linear combinations and buckling combinations do not exist yet.
+    // TODO(T-P7-05, T-P7-06): panel loads, non-linear combinations and buckling combinations do not exist yet.
     return out;
 }
 
 DeleteLoadCaseCommand::DeleteLoadCaseCommand(Project& project, LoadCaseSet casesAfter, int loadCaseId)
     : m_project(project), m_caseId(loadCaseId), m_casesBefore(project.loadCases), m_casesAfter(std::move(casesAfter)),
-      m_loadsBefore(project.nodalLoads), m_loadsAfter(project.nodalLoads), m_barLoadsBefore(project.barLoads), m_barLoadsAfter(project.barLoads), m_supportsBefore(project.nodeSupports),
+      m_loadsBefore(project.nodalLoads), m_loadsAfter(project.nodalLoads), m_barLoadsBefore(project.barLoads), m_barLoadsAfter(project.barLoads), m_shellLoadsBefore(project.shellLoads), m_shellLoadsAfter(project.shellLoads), m_supportsBefore(project.nodeSupports),
       m_supportsAfter(project.nodeSupports) {
     applyNodalLoadsCaseDeleted(m_loadsAfter, loadCaseId);
     applyBarLoadsCaseDeleted(m_barLoadsAfter, loadCaseId);
+    applyShellLoadsCaseDeleted(m_shellLoadsAfter, loadCaseId);
     for (auto& [nodeId, support] : m_supportsAfter.external)
         support.prescribed.erase(std::remove_if(support.prescribed.begin(), support.prescribed.end(),
                                                 [&](const PrescribedDisplacement& p) { return p.loadCaseId == loadCaseId; }),
@@ -114,6 +116,7 @@ void DeleteLoadCaseCommand::redo() {
     m_project.nodalLoads = m_loadsAfter;
     m_project.nodalLoads.nextId = next;
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsAfter);
     m_project.nodeSupports = m_supportsAfter;
 }
 
@@ -123,6 +126,7 @@ void DeleteLoadCaseCommand::undo() {
     m_project.nodalLoads = m_loadsBefore;
     m_project.nodalLoads.nextId = next;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsBefore);
     m_project.nodeSupports = m_supportsBefore;
 }
 
@@ -132,7 +136,7 @@ LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id) {
     const auto it = std::find_if(after.cases.begin(), after.cases.end(), [&](const LoadCase& c) { return c.id == id; });
     if (it == after.cases.end()) return LoadCaseError::UnknownCase;
     after.cases.erase(it);  // the per-nature counter is kept: the numbers are not reused (PROVISIONAL)
-    // Nodal loads and prescribed sets of the case go with it (same command); TODO(T-P7-03..06): bar / surface loads and combinations.
+    // Nodal, bar and shell loads and prescribed sets of the case go with it (same command); TODO(T-P7-05, T-P7-06): panel loads and combinations.
     stack.push(std::make_unique<DeleteLoadCaseCommand>(project, std::move(after), id));
     return LoadCaseError::None;
 }

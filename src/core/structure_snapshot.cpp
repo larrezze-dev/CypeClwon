@@ -27,6 +27,8 @@ void SnapshotCommand::commit() {
                                   m_nodalLoadsAfter.items.end());
     m_barLoadsBefore = m_project.barLoads;
     m_barLoadsAfter = reconcileBarLoads(m_barLoadsBefore, m_before, m_after, &m_barLoadInfo);
+    m_shellLoadsBefore = m_project.shellLoads;
+    m_shellLoadsAfter = reconcileShellLoads(m_shellLoadsBefore, m_before, m_after);
     m_committed = true;
 }
 
@@ -44,6 +46,7 @@ void SnapshotCommand::redo() {
     m_project.nodalLoads = m_nodalLoadsAfter;
     m_project.nodalLoads.nextId = nextLoad;
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsAfter);
 }
 
 void SnapshotCommand::undo() {
@@ -61,6 +64,7 @@ void SnapshotCommand::undo() {
     m_project.nodalLoads = m_nodalLoadsBefore;
     m_project.nodalLoads.nextId = nextLoad;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
+    restoreShellLoads(m_project.shellLoads, m_shellLoadsBefore);
     StructuralModel& s = m_project.structure;
     s.nextNodeId = std::max(s.nextNodeId, current.nextNodeId);
     s.nextBarId = std::max(s.nextBarId, current.nextBarId);

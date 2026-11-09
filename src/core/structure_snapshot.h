@@ -45,6 +45,7 @@ private:
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
     BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< bar loads reconciled with the new bars (divided bars split their loads, vanished bars lose them)
     BarLoadReconcileInfo m_barLoadInfo;
+    ShellLoads m_shellLoadsBefore, m_shellLoadsAfter;  ///< shell loads: vanished shells lose them, the pieces of a divided shell get a copy (not measured)
     NodalLoads m_nodalLoadsBefore, m_nodalLoadsAfter;  ///< loads of vanished nodes go with them
 };
 
