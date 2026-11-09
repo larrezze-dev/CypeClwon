@@ -144,6 +144,13 @@ void PieceDiffCommand::capture(const StructuralModel& edited) {
     m_piecesAfter = edited.pieces;
     m_nextPieceBefore = now.nextPieceId;
     m_nextPieceAfter = edited.nextPieceId;
+    if (!m_project.barLoads.empty()) {
+        BarLoads after = reconcileBarLoads(m_project.barLoads, now, edited);
+        if (!(after == m_project.barLoads)) {
+            m_barLoadsBefore = m_project.barLoads;
+            m_barLoadsAfter = std::move(after);
+        }
+    }
 }
 
 void PieceDiffCommand::captureBarEnds(const BarEnds& edited) {
@@ -164,6 +171,7 @@ void PieceDiffCommand::redo() {
     m.pieces = m_piecesAfter;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceAfter);
     if (m_endsAfter) m_project.barEnds = *m_endsAfter;
+    if (m_barLoadsAfter) restoreBarLoads(m_project.barLoads, *m_barLoadsAfter);
     if (m_deflectionAfter) m_project.deflection = *m_deflectionAfter;
 }
 
@@ -175,6 +183,7 @@ void PieceDiffCommand::undo() {
     m.pieces = m_piecesBefore;
     m.nextPieceId = std::max(m.nextPieceId, m_nextPieceBefore);  // ids are never reused
     if (m_endsBefore) m_project.barEnds = *m_endsBefore;
+    if (m_barLoadsBefore) restoreBarLoads(m_project.barLoads, *m_barLoadsBefore);
     if (m_deflectionBefore) m_project.deflection = *m_deflectionBefore;
 }
 

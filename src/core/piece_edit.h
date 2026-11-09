@@ -62,6 +62,7 @@ private:
     std::vector<Piece> m_piecesBefore, m_piecesAfter;
     int m_nextPieceBefore = 1, m_nextPieceAfter = 1;
     std::optional<BarEnds> m_endsBefore, m_endsAfter;
+    std::optional<BarLoads> m_barLoadsBefore, m_barLoadsAfter;  ///< set when moving a bar end changes its length
     std::optional<DeflectionData> m_deflectionBefore, m_deflectionAfter;
 };
 

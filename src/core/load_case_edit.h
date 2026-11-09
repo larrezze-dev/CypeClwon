@@ -39,6 +39,7 @@ private:
     int m_caseId;
     LoadCaseSet m_casesBefore, m_casesAfter;
     NodalLoads m_loadsBefore, m_loadsAfter;
+    BarLoads m_barLoadsBefore, m_barLoadsAfter;
     NodeSupports m_supportsBefore, m_supportsAfter;
 };
 

@@ -281,10 +281,13 @@ DeleteBarsCommand::DeleteBarsCommand(Project& project, std::vector<int> barIds) 
         if (const Bar* b = project.structure.findBar(id)) m_bars.push_back(*b);
     m_piecesBefore = project.structure.pieces;
     m_nextPieceBefore = project.structure.nextPieceId;
+    m_barLoadsBefore = m_barLoadsAfter = project.barLoads;
+    applyBarLoadsBarsDeleted(m_barLoadsAfter, barIds);
 }
 
 void DeleteBarsCommand::redo() {
     for (const Bar& b : m_bars) m_project.structure.removeBar(b.id);
+    restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
 }
 
 void DeleteBarsCommand::undo() {
@@ -292,6 +295,7 @@ void DeleteBarsCommand::undo() {
     // Deleting bars splits or drops their pieces: put the records (and the id counter) back as they were.
     m_project.structure.pieces = m_piecesBefore;
     m_project.structure.nextPieceId = m_nextPieceBefore;
+    restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
 }
 
 // --- wrappers ---------------------------------------------------------------------------------------------------

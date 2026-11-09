@@ -60,6 +60,7 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     m_ligaturesBefore = project.ligatures;
     m_diaphragmsBefore = project.diaphragms;
     m_nodalLoadsBefore = project.nodalLoads;
+    m_barLoadsBefore = m_barLoadsAfter = project.barLoads;
     m_deflectionBefore = project.deflection;
     m_deflectionAfter = project.deflection;
     m_shellPropsBefore = project.shellProps;
@@ -83,6 +84,11 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
             if (!far || distance(far->position, newPosition) < kMinBarLengthM) return;
         }
         m_valid = true;
+        if (!project.barLoads.empty()) {
+            StructuralModel work = model;
+            work.findNode(nodeId)->position = newPosition;
+            m_barLoadsAfter = reconcileBarLoads(project.barLoads, model, work);
+        }
         if (!project.deflection.empty() || !project.shellProps.empty()) {
             StructuralModel work = model;
             work.findNode(nodeId)->position = newPosition;
@@ -111,6 +117,14 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
         m_newShells.push_back(moved);
     }
     m_valid = true;
+    if (!project.barLoads.empty()) {
+        StructuralModel work = model;
+        for (const Shell& s : m_oldShells) work.removeShell(s.id);
+        for (const Bar& b : m_oldBars) work.removeBar(b.id);
+        work.removeNode(nodeId);
+        for (const Bar& b : m_newBars) work.insertBar(b);
+        m_barLoadsAfter = reconcileBarLoads(project.barLoads, model, work);
+    }
     if (!project.deflection.empty() || !project.shellProps.empty()) {
         StructuralModel work = model;
         for (const Shell& s : m_oldShells) work.removeShell(s.id);
@@ -128,6 +142,7 @@ void MoveNodeCommand::redo() {
     StructuralModel& model = m_project.structure;
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_after;
+        restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
         m_project.deflection = m_deflectionAfter;
         m_project.shellProps = m_shellPropsAfter;
         return;
@@ -140,6 +155,7 @@ void MoveNodeCommand::redo() {
     applyLigatureNodesDeleted(m_project.ligatures, {m_id});
     applyDiaphragmNodesDeleted(m_project.diaphragms, {m_id});
     applyNodalLoadsNodesMerged(m_project.nodalLoads, m_id, m_mergeTarget);
+    restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
     m_project.deflection = m_deflectionAfter;
@@ -151,6 +167,7 @@ void MoveNodeCommand::undo() {
     StructuralModel& model = m_project.structure;
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_before;
+        restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
         m_project.deflection = m_deflectionBefore;
         m_project.shellProps = m_shellPropsBefore;
         return;
@@ -163,6 +180,7 @@ void MoveNodeCommand::undo() {
     m_project.ligatures = m_ligaturesBefore;
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.nodalLoads = m_nodalLoadsBefore;
+    restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
     m_project.deflection = m_deflectionBefore;
@@ -180,6 +198,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     m_ligaturesBefore = project.ligatures;
     m_diaphragmsBefore = project.diaphragms;
     m_nodalLoadsBefore = project.nodalLoads;
+    m_barLoadsBefore = m_barLoadsAfter = project.barLoads;
     m_barEndsBefore = project.barEnds;
     m_barEndsAfter = project.barEnds;
     m_bucklingBefore = project.buckling;
@@ -237,6 +256,7 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     std::sort(shellIds.begin(), shellIds.end());
     shellIds.erase(std::unique(shellIds.begin(), shellIds.end()), shellIds.end());
     for (int id : barIds) m_bars.push_back(*model.findBar(id));
+    applyBarLoadsBarsDeleted(m_barLoadsAfter, barIds);  // also the two bars of a merge: their loads are lost (not measured)
     for (int id : shellIds) m_shells.push_back(*model.findShell(id));
 
     if (!project.deflection.empty()) {
@@ -285,6 +305,7 @@ void DeleteNodesCommand::redo() {
     applyLigatureNodesDeleted(m_project.ligatures, deletedIds);
     applyDiaphragmNodesDeleted(m_project.diaphragms, deletedIds);
     applyNodalLoadsNodesDeleted(m_project.nodalLoads, deletedIds);
+    restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
     for (const Bar& b : m_merged) model.insertBar(b);
     m_project.barEnds = m_barEndsAfter;
     m_project.buckling = m_bucklingAfter;
@@ -301,6 +322,7 @@ void DeleteNodesCommand::undo() {
     m_project.ligatures = m_ligaturesBefore;
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.nodalLoads = m_nodalLoadsBefore;
+    restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     m_project.barEnds = m_barEndsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;

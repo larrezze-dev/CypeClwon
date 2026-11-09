@@ -19,6 +19,8 @@ public:
     std::string text() const override { return m_text; }
     /// True once the subclass accepted the edit.
     bool committed() const { return m_committed; }
+    /// Bar loads deleted because a bar became shorter than their absolute position (#65192, the GUI shows the message); valid after commit.
+    int barLoadsRemovedOutOfLength() const { return m_barLoadInfo.removedOutOfLength; }
 
 protected:
     SnapshotCommand(Project& project, std::string text) : work(project.structure), m_project(project), m_text(std::move(text)) {}
@@ -41,6 +43,8 @@ private:
     DeflectionData m_deflectionBefore, m_deflectionAfter;
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;
     Diaphragms m_diaphragmsBefore, m_diaphragmsAfter;
+    BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< bar loads reconciled with the new bars (divided bars split their loads, vanished bars lose them)
+    BarLoadReconcileInfo m_barLoadInfo;
     NodalLoads m_nodalLoadsBefore, m_nodalLoadsAfter;  ///< loads of vanished nodes go with them
 };
 

@@ -126,6 +126,8 @@ try {
             'mainshot' { $p.Refresh(); $h = $p.MainWindowHandle; $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r)
                        $bmp = New-Object System.Drawing.Bitmap ($r.Rt - $r.L), ($r.B - $r.T); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($r.L, $r.T, 0, 0, $bmp.Size); $g.Dispose()
                        $bmp.Save((Join-Path $OutDir "$arg.png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose(); Log "saved main window $arg" }   # screen capture of the MAIN window rectangle (floating panels and tooltips included)
+            'cshot'  { $a = $arg.Split(','); $bmp = New-Object System.Drawing.Bitmap ([int]$a[3]), ([int]$a[4]); $g = [System.Drawing.Graphics]::FromImage($bmp)
+                       $g.CopyFromScreen([int]$a[1], [int]$a[2], 0, 0, $bmp.Size); $g.Dispose(); $bmp.Save((Join-Path $OutDir "$($a[0]).png"), [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose(); Log "saved crop $($a[0])" }   # cshot:name,x,y,w,h = absolute screen crop (tooltips included)
             'sshot'  { SShot $p $arg }
             'fshot'  { FShot $arg }
             'shot'   { Shot $p $arg }

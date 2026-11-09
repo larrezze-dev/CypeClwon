@@ -122,6 +122,9 @@ struct LoadValueParse {
 /// «La cadena introducida no es un número.»; out of range (after rounding) -> «El valor de 'Valor' debe estar entre 0.01 y 49000.00.».
 LoadValueParse parseLoadValue(const std::string& text);
 
+/// Plain decimal text (trims blanks, "." or ",", optional leading sign; no exponent, "inf" or "nan") -> value. False when it is no number.
+bool parsePlainDecimal(const std::string& text, double& value);
+
 /// Data of the dialog (also the data written by "Editar", which overwrites every selected load).
 struct NodalLoadData {
     int loadCaseId = 0;

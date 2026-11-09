@@ -85,6 +85,7 @@ LoadCaseError toggleLoadCaseActs(Project& project, UndoStack& stack, int id) {
 LoadCaseDependents loadCaseDependents(const Project& project, int id) {
     LoadCaseDependents out;
     out.loads = nodalLoadsOfCase(project.nodalLoads, id);
+    out.barLoads = barLoadsOfCase(project.barLoads, id);
     for (const auto& [nodeId, support] : project.nodeSupports.external)
         for (const PrescribedDisplacement& p : support.prescribed)
             if (p.loadCaseId == id) {
@@ -97,9 +98,10 @@ LoadCaseDependents loadCaseDependents(const Project& project, int id) {
 
 DeleteLoadCaseCommand::DeleteLoadCaseCommand(Project& project, LoadCaseSet casesAfter, int loadCaseId)
     : m_project(project), m_caseId(loadCaseId), m_casesBefore(project.loadCases), m_casesAfter(std::move(casesAfter)),
-      m_loadsBefore(project.nodalLoads), m_loadsAfter(project.nodalLoads), m_supportsBefore(project.nodeSupports),
+      m_loadsBefore(project.nodalLoads), m_loadsAfter(project.nodalLoads), m_barLoadsBefore(project.barLoads), m_barLoadsAfter(project.barLoads), m_supportsBefore(project.nodeSupports),
       m_supportsAfter(project.nodeSupports) {
     applyNodalLoadsCaseDeleted(m_loadsAfter, loadCaseId);
+    applyBarLoadsCaseDeleted(m_barLoadsAfter, loadCaseId);
     for (auto& [nodeId, support] : m_supportsAfter.external)
         support.prescribed.erase(std::remove_if(support.prescribed.begin(), support.prescribed.end(),
                                                 [&](const PrescribedDisplacement& p) { return p.loadCaseId == loadCaseId; }),
@@ -111,6 +113,7 @@ void DeleteLoadCaseCommand::redo() {
     const int next = std::max(m_project.nodalLoads.nextId, m_loadsAfter.nextId);
     m_project.nodalLoads = m_loadsAfter;
     m_project.nodalLoads.nextId = next;
+    restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
     m_project.nodeSupports = m_supportsAfter;
 }
 
@@ -119,6 +122,7 @@ void DeleteLoadCaseCommand::undo() {
     const int next = std::max(m_project.nodalLoads.nextId, m_loadsBefore.nextId);
     m_project.nodalLoads = m_loadsBefore;
     m_project.nodalLoads.nextId = next;
+    restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     m_project.nodeSupports = m_supportsBefore;
 }
 

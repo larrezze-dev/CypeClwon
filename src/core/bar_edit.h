@@ -109,6 +109,7 @@ private:
     std::vector<Bar> m_bars;
     std::vector<Piece> m_piecesBefore;
     int m_nextPieceBefore = 1;
+    BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< the loads of the deleted bars go without warning
 };
 
 /// Wrappers: build the command, push it on `stack`; empty vector / false (and nothing pushed) when invalid.

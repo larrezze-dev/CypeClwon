@@ -74,8 +74,7 @@ bool nodalLoadValueInRange(double value) {
     return r >= kMinNodalLoadKn && r <= kMaxNodalLoadKn;
 }
 
-LoadValueParse parseLoadValue(const std::string& text) {
-    LoadValueParse out;
+bool parsePlainDecimal(const std::string& text, double& value) {
     std::string s = text;
     const auto blank = [](char c) { return std::isspace(static_cast<unsigned char>(c)) != 0; };
     while (!s.empty() && blank(s.front())) s.erase(s.begin());
@@ -93,11 +92,18 @@ LoadValueParse parseLoadValue(const std::string& text) {
             valid = false;
         }
     }
-    if (!valid || !digit) {
+    if (!valid || !digit) return false;
+    value = std::strtod(s.c_str(), nullptr);
+    return true;
+}
+
+LoadValueParse parseLoadValue(const std::string& text) {
+    LoadValueParse out;
+    double v = 0.0;
+    if (!parsePlainDecimal(text, v)) {
         out.message = nodalLoadNotNumberMessage();
         return out;
     }
-    const double v = std::strtod(s.c_str(), nullptr);
     if (!nodalLoadValueInRange(v)) {
         out.message = nodalLoadRangeMessage();
         return out;

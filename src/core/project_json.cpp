@@ -834,6 +834,76 @@ const std::vector<Section>& sections() {
                     p.nodalLoads = std::move(loaded);
                 },
                 [](const Project& p) { return validateNodalLoads(p.nodalLoads, p.loadCases).empty(); }},
+        Section{"bar_loads", "Cargas sobre barras",
+                [](const Project& p) {
+                    // Versioned. Loads (and self-weight flags) of bars that no longer exist are not saved.
+                    const BarLoads& d = p.barLoads;
+                    json items = json::array();
+                    for (const BarLoad& l : d.items) {
+                        if (!p.structure.findBar(l.barId)) continue;
+                        json e = {{"id", l.id},
+                                  {"bar", l.barId},
+                                  {"load_case", l.loadCaseId},
+                                  {"type", static_cast<int>(l.type)},
+                                  {"axes", static_cast<int>(l.axes)},
+                                  {"direction", static_cast<int>(l.direction)},
+                                  {"vector", {l.userVector.x, l.userVector.y, l.userVector.z}},
+                                  {"angle_in_plane", l.angleInPlaneXz},
+                                  {"angle_to_plane", l.angleToPlaneXz},
+                                  {"temperature_direction", static_cast<int>(l.temperatureDirection)},
+                                  {"temperature_angle", l.temperatureAngle},
+                                  {"relative", l.relative},
+                                  {"start", l.start},
+                                  {"end", l.end},
+                                  {"value1", l.value1},
+                                  {"value2", l.value2}};
+                        items.push_back(std::move(e));
+                    }
+                    json off = json::array();
+                    for (int id : d.selfWeightOff)
+                        if (p.structure.findBar(id)) off.push_back(id);
+                    return json{{"version", 1}, {"next", d.nextId}, {"items", items}, {"self_weight_off", off}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    BarLoads loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            BarLoad l;
+                            l.id = e.value("id", 0);
+                            l.barId = e.value("bar", 0);
+                            if (l.id < 1 || l.barId < 1) continue;
+                            l.loadCaseId = e.value("load_case", 0);
+                            const int type = e.value("type", static_cast<int>(BarLoadType::Uniform));
+                            if (type < 0 || type >= kBarLoadTypeCount) continue;
+                            l.type = static_cast<BarLoadType>(type);
+                            l.axes = e.value("axes", 0) == 1 ? BarLoadAxes::Local : BarLoadAxes::Global;
+                            const int dir = e.value("direction", static_cast<int>(LoadDirection::MinusZ));
+                            l.direction = (dir >= 0 && dir < kLoadDirectionCount) ? static_cast<LoadDirection>(dir) : LoadDirection::MinusZ;
+                            const std::vector<double> v = e.value("vector", std::vector<double>{});
+                            if (v.size() == 3) l.userVector = {v[0], v[1], v[2]};
+                            l.angleInPlaneXz = e.value("angle_in_plane", 0.0);
+                            l.angleToPlaneXz = e.value("angle_to_plane", 0.0);
+                            const int td = e.value("temperature_direction", static_cast<int>(TemperatureDirection::PlusZ));
+                            l.temperatureDirection = (td >= 0 && td <= 2) ? static_cast<TemperatureDirection>(td) : TemperatureDirection::PlusZ;
+                            l.temperatureAngle = e.value("temperature_angle", 0.0);
+                            l.relative = e.value("relative", true);
+                            l.start = e.value("start", 0.0);
+                            l.end = e.value("end", 1.0);
+                            l.value1 = e.value("value1", kBarLoadDefaultValue);
+                            l.value2 = e.value("value2", 0.0);
+                            static_cast<BarLoadData&>(l) = normaliseBarLoadData(l);  // tolerant: canonical form (rounded, unused fields reset)
+                            following = std::max(following, l.id + 1);
+                            loaded.items.push_back(l);
+                        }
+                    loaded.nextId = std::max(following, j.value("next", following));
+                    if (j.contains("self_weight_off"))
+                        for (const json& id : j.at("self_weight_off"))
+                            if (id.is_number_integer() && id.get<int>() >= 1) loaded.selfWeightOff.insert(id.get<int>());
+                    p.barLoads = std::move(loaded);
+                },
+                [](const Project& p) { return validateBarLoads(p.barLoads, p.loadCases).empty(); }},
         Section{"shell_properties", "Propiedades de láminas",
                 [](const Project& p) {
                     // Shells and edges that no longer exist are not saved.

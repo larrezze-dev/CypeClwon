@@ -25,6 +25,8 @@ void SnapshotCommand::commit() {
     m_nodalLoadsAfter.items.erase(std::remove_if(m_nodalLoadsAfter.items.begin(), m_nodalLoadsAfter.items.end(),
                                                  [&](const NodalLoad& l) { return !m_after.findNode(l.nodeId); }),
                                   m_nodalLoadsAfter.items.end());
+    m_barLoadsBefore = m_project.barLoads;
+    m_barLoadsAfter = reconcileBarLoads(m_barLoadsBefore, m_before, m_after, &m_barLoadInfo);
     m_committed = true;
 }
 
@@ -41,6 +43,7 @@ void SnapshotCommand::redo() {
     const int nextLoad = std::max(m_project.nodalLoads.nextId, m_nodalLoadsAfter.nextId);
     m_project.nodalLoads = m_nodalLoadsAfter;
     m_project.nodalLoads.nextId = nextLoad;
+    restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
 }
 
 void SnapshotCommand::undo() {
@@ -57,6 +60,7 @@ void SnapshotCommand::undo() {
     const int nextLoad = std::max(m_project.nodalLoads.nextId, m_nodalLoadsBefore.nextId);
     m_project.nodalLoads = m_nodalLoadsBefore;
     m_project.nodalLoads.nextId = nextLoad;
+    restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     StructuralModel& s = m_project.structure;
     s.nextNodeId = std::max(s.nextNodeId, current.nextNodeId);
     s.nextBarId = std::max(s.nextBarId, current.nextBarId);
