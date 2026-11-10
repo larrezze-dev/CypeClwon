@@ -351,8 +351,16 @@ Point3 panelPositiveDirection(const std::vector<Point3>& polygon, bool wind) {
     if (!wind) return {0.0, 0.0, -1.0};
     const auto f = panelFrame(polygon);
     if (!f) return {0.0, 0.0, 1.0};
+    // Measured (research 14.3): unit normal with Z > 0; when Z == 0, Y > 0; (ASSUMED) when Y == 0 too, X > 0.
+    constexpr double eps = 1e-9;
     Point3 w = f->w;
-    if (w.z < -1e-9) w = scale(w, -1.0);
+    bool flip = false;
+    if (w.z < -eps) flip = true;
+    else if (std::fabs(w.z) <= eps) {
+        if (w.y < -eps) flip = true;
+        else if (std::fabs(w.y) <= eps && w.x < -eps) flip = true;
+    }
+    if (flip) w = scale(w, -1.0);
     return w;
 }
 
@@ -369,19 +377,21 @@ Point3 panelLoadActionDirection(const std::vector<Point3>& polygon, bool wind, d
 
 int panelLoadColourSlot(const LoadCaseSet& cases, int loadCaseId) {
     if (loadCaseId == 0) return 0;
-    int position = 0;
-    for (const LoadCase& c : cases.cases) {
-        if (c.id == 0) continue;
-        ++position;
-        if (c.id == loadCaseId) return ((position - 1) % 2) + 1;
-    }
-    return 0;
+    const LoadCase* target = findLoadCase(cases, loadCaseId);
+    if (!target) return 0;
+    // Ids are never reused (nextId only grows), so the id order is the creation order. Rank = additional cases created before it, plus one.
+    int rank = 1;
+    for (const LoadCase& c : cases.cases)
+        if (c.id != 0 && c.id < loadCaseId) ++rank;
+    return ((rank - 1) % 4) + 1;
 }
 
 unsigned panelLoadSlotRgb(int slot) {
     switch (slot) {
         case 1: return 0x00BFFF;
         case 2: return 0x00FF00;
+        case 3: return 0xFF00FF;
+        case 4: return 0xCC6600;
         default: return 0xFFFF00;
     }
 }

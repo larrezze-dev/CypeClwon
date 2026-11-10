@@ -184,6 +184,16 @@ TEST(Panel, PositiveSenseTexts) {
     EXPECT_EQ(panelPositiveSenseText(square(), true), "Vertical hacia arriba");        // wind on a horizontal panel (measured)
     EXPECT_EQ(panelPositiveSenseText(inclined(), false), "Vertical hacia abajo");
     EXPECT_EQ(panelPositiveSenseText(inclined(), true), "(0, -0.447, 0.894)");         // measured
+    // Vertical panel on Y = 0: the wind vector is (0, 1, 0) whatever the vertex order (measured, 14.3); the others stay "hacia abajo".
+    const std::vector<Point3> wall{{0, 0, 0}, {4, 0, 0}, {4, 0, 3}, {0, 0, 3}};
+    const std::vector<Point3> wallReversed{{0, 0, 0}, {0, 0, 3}, {4, 0, 3}, {4, 0, 0}};
+    EXPECT_EQ(panelPositiveSenseText(wall, true), "(0, 1, 0)");
+    EXPECT_EQ(panelPositiveSenseText(wallReversed, true), "(0, 1, 0)");
+    EXPECT_EQ(panelPositiveSenseText(wall, false), "Vertical hacia abajo");
+    EXPECT_NEAR(panelPositiveDirection(wall, true).y, 1.0, 1e-12);
+    // Vertical panel on X = 4: Y == 0 too -> X > 0 (assumed).
+    const std::vector<Point3> sideWall{{4, 0, 0}, {4, 0, 3}, {4, 4, 3}, {4, 4, 0}};
+    EXPECT_NEAR(panelPositiveDirection(sideWall, true).x, 1.0, 1e-12);
     // Clockwise order: the wind vector still points up.
     const std::vector<Point3> clockwise{{0, 0, 0}, {0, 4, 0}, {4, 4, 0}, {4, 0, 0}};
     EXPECT_EQ(panelPositiveSenseText(clockwise, true), "Vertical hacia arriba");
@@ -202,19 +212,27 @@ TEST(Panel, PositiveSenseTexts) {
     EXPECT_TRUE(isWindCase(p.loadCases, v));
 }
 
-TEST(Panel, ColourSlotFollowsThePositionOfTheHypothesis) {
+TEST(Panel, ColourSlotFollowsTheCreationOrderOfTheHypothesis) {
     UndoStack stack;
     Project p = baseProject();
-    const int a = addCase(p, stack, LoadNature::Wind, "V 1");   // first additional: cyan whatever its nature (measured)
-    const int b = addCase(p, stack, LoadNature::DeadLoad, "CM 1");
-    const int c = addCase(p, stack, LoadNature::Snow, "N 1");
+    // Measured (14.2): created V 1, CM 1, T 1, V 2 -> cyan, green, magenta, brown; independent of the nature and of the sorted list.
+    const int v1 = addCase(p, stack, LoadNature::Wind, "V 1");
+    const int cm = addCase(p, stack, LoadNature::DeadLoad, "CM 1");
+    const int t1 = addCase(p, stack, LoadNature::Temperature, "T 1");
+    const int v2 = addCase(p, stack, LoadNature::Wind, "V 2");
+    const int n1 = addCase(p, stack, LoadNature::Snow, "N 1");
     EXPECT_EQ(panelLoadColourSlot(p.loadCases, 0), 0);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, a), 1);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, b), 2);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, c), 1);   // third: assumed to cycle
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, v1), 1);
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, cm), 2);
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, t1), 3);
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, v2), 4);
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, n1), 1);   // fifth: assumed to cycle from the first
+    EXPECT_EQ(panelLoadColourSlot(p.loadCases, 9999), 0);
     EXPECT_EQ(panelLoadSlotRgb(0), 0xFFFF00u);
     EXPECT_EQ(panelLoadSlotRgb(1), 0x00BFFFu);
     EXPECT_EQ(panelLoadSlotRgb(2), 0x00FF00u);
+    EXPECT_EQ(panelLoadSlotRgb(3), 0xFF00FFu);
+    EXPECT_EQ(panelLoadSlotRgb(4), 0xCC6600u);
 }
 
 TEST(Panel, DrawingPrismsHeightsAndStacking) {
@@ -884,8 +902,8 @@ TEST(PanelDistribution, MeasuredSquareOnFourBars) {
     EXPECT_NE(loadOnBar(r3.loads, 1), nullptr);
 }
 
-TEST(PanelDistribution, AsymmetricFractionFollowsTheInverseDistance) {
-    // An intermediate bar at x = 1: the force (160 kN at x = 2) goes to the two nearest bars, d_other / (d_own + d_other): 2/3 and 1/3.
+TEST(PanelDistribution, StripsBetweenConsecutiveBarsShareTheirForceEqually) {
+    // An intermediate bar at x = 1 (measured model, 14.1): [0,1] gives 40 kN split 20/20, [1,4] gives 120 kN split 60/60.
     Project p = baseProject();
     const int n5 = p.structure.addNode({1, 0, 0});
     const int n6 = p.structure.addNode({1, 4, 0});
@@ -895,11 +913,13 @@ TEST(PanelDistribution, AsymmetricFractionFollowsTheInverseDistance) {
     const PanelDistribution r = distributePanels(p);
     const PanelBarLoad* m = loadOnBar(r.loads, mid);
     const PanelBarLoad* far = loadOnBar(r.loads, 2);
+    const PanelBarLoad* near0 = loadOnBar(r.loads, 4);
     ASSERT_NE(m, nullptr);
     ASSERT_NE(far, nullptr);
-    EXPECT_NEAR(m->q * 4.0, 160.0 * 2.0 / 3.0, 1e-9);
-    EXPECT_NEAR(far->q * 4.0, 160.0 / 3.0, 1e-9);
-    EXPECT_EQ(loadOnBar(r.loads, 4), nullptr);   // only the two nearest bars take load
+    ASSERT_NE(near0, nullptr);
+    EXPECT_NEAR(m->q * 4.0, 80.0, 1e-9);
+    EXPECT_NEAR(far->q * 4.0, 60.0, 1e-9);
+    EXPECT_NEAR(near0->q * 4.0, 20.0, 1e-9);
     double total = 0.0;
     for (const PanelBarLoad& l : r.loads) total += l.q * (l.s2 - l.s1);
     EXPECT_NEAR(total, 160.0, 1e-9);   // equilibrium
@@ -1117,4 +1137,38 @@ TEST(PanelDistribution, BarsOfPanelAndInvalidInputs) {
     EXPECT_TRUE(none.valid);
     EXPECT_TRUE(none.unassigned());
     EXPECT_TRUE(none.loads.empty());
+}
+
+TEST(PanelDistribution, StripsBetweenThreeBarsPerpendicularToTheArrow) {
+    // Measured (14.1): 10 kN/m2, arrow along Y, bars along X at y = 0, 1 and 4 -> 5, 20 and 15 kN/m.
+    Project p = baseProject();   // bars 1 (y = 0) and 3 (y = 4) along X
+    const int n5 = p.structure.addNode({0, 1, 0});
+    const int n6 = p.structure.addNode({4, 1, 0});
+    const int mid = p.structure.addBar(n5, n6);
+    UndoStack stack;
+    const int a = newPanel(p, stack, square(), {uniform(10.0)});
+    ASSERT_EQ(setPanelDirection(p, stack, {a}, 1, PanelDirectionMode::Parallel), PanelError::None);   // along Y
+    const PanelDistribution r = distributePanels(p);
+    const PanelBarLoad *b0 = loadOnBar(r.loads, 1), *b1 = loadOnBar(r.loads, mid), *b4 = loadOnBar(r.loads, 3);
+    ASSERT_NE(b0, nullptr);
+    ASSERT_NE(b1, nullptr);
+    ASSERT_NE(b4, nullptr);
+    EXPECT_NEAR(b0->q, 5.0, 1e-9);
+    EXPECT_NEAR(b1->q, 20.0, 1e-9);
+    EXPECT_NEAR(b4->q, 15.0, 1e-9);
+}
+
+TEST(PanelDistribution, CalculationBlockedByPanelsWithoutBars) {
+    Project p = baseProject();
+    UndoStack stack;
+    EXPECT_TRUE(calculationPanelError(p).empty());   // no panels
+    const int a = newPanel(p, stack, square(), {uniform(10.0)});
+    EXPECT_TRUE(panelsWithoutBars(p).empty());
+    EXPECT_TRUE(calculationPanelError(p).empty());
+    const int far = newPanel(p, stack, square(5.0));   // no bar in its plane
+    const std::vector<int> ids = panelsWithoutBars(p);
+    ASSERT_EQ(ids.size(), 1u);
+    EXPECT_EQ(ids[0], far);
+    EXPECT_NE(ids[0], a);
+    EXPECT_EQ(calculationPanelError(p), "Se han encontrado paños sin ninguna barra asociada.");
 }

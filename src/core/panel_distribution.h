@@ -85,4 +85,11 @@ struct PanelDistribution {
 /// when partially, #64205 when not at all; the transfer to shells is NOT implemented), #64202 force not assigned (with its point).
 PanelDistribution distributePanels(const Project& project);
 
+/// Ids of the panels with no associated bar (active, non-tie bars in their plane). Measured (research 14.7): Calcular is BLOCKED before calculating with
+/// the dialog "Error" «Se han encontrado paños sin ninguna barra asociada.» (not isolated: whether the panel must carry loads; ASSUMED: any panel).
+/// A panel completely covered by shells is excluded (ASSUMED). To be hooked into Calcular (TK-101).
+std::vector<int> panelsWithoutBars(const Project& project);
+/// The blocking message of Calcular («Error» dialog), empty when the calculation may go on.
+std::string calculationPanelError(const Project& project);
+
 }  // namespace cc::core

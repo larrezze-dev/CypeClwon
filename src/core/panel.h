@@ -184,7 +184,7 @@ PanelArrow panelArrow(const Panel& panel);
 // --- sense of the load, colours ---
 
 /// [REA, measured] Wind hypotheses act perpendicular to the panel along the positive vector; the others act vertically and a load is positive when it
-/// points DOWN. Positive vector of wind: the unit normal turned to +Z (a vertical panel keeps the right-hand normal of its vertex order: NOT measured).
+/// points DOWN. Positive vector of wind (measured): the unit normal with Z > 0; when Z == 0, Y > 0 (vertical panel on Y = 0 -> (0, 1, 0)); when Y == 0 too, X > 0 (ASSUMED).
 bool isWindCase(const LoadCaseSet& cases, int loadCaseId);
 Point3 panelPositiveDirection(const std::vector<Point3>& polygon, bool wind);
 /// "Vertical hacia abajo" / "Vertical hacia arriba" (the wind vector of a horizontal panel is +Z) or the vector «(0, -0.447, 0.894)» (3 decimals, zeros
@@ -193,10 +193,10 @@ std::string panelPositiveSenseText(const std::vector<Point3>& polygon, bool wind
 /// Direction in which a value PUSHES (positive vector times the sign of the value); null vector for a zero value.
 Point3 panelLoadActionDirection(const std::vector<Point3>& polygon, bool wind, double value);
 
-/// Colour slot of the hypothesis (measured: by POSITION in the list of additional hypotheses, not by nature): 0 = Peso propio (yellow), 1 = first
-/// additional (cyan), 2 = second additional (green). The third and later: NOT measured, ASSUMED to cycle 1, 2, 1, 2...
+/// Colour slot of the hypothesis (measured, research 14.2): by ORDER OF CREATION of the additional hypothesis (id order), not by nature or list
+/// position: 0 = Peso propio (yellow), 1 = first created (cyan), 2 = green, 3 = magenta, 4 = brown; the fifth and later: ASSUMED to cycle from 1.
 int panelLoadColourSlot(const LoadCaseSet& cases, int loadCaseId);
-/// 0xRRGGBB of a slot: yellow, cyan, green (approximations of the measured colours: see the viewport constants).
+/// 0xRRGGBB of a slot: yellow (255,255,0), cyan (0,191,255), green (0,255,0), magenta (255,0,255), brown (204,102,0).
 unsigned panelLoadSlotRgb(int slot);
 
 // --- drawing ---

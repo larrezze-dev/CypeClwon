@@ -164,7 +164,24 @@ DistributionResult distributeSurfaceLoad(const DistributionInput& in) {
         const Point2 base = add2(c0, mul2(t, mid));
         const Point2 from = sub2(base, mul2(d, reach)), to = add2(base, mul2(d, reach));
         for (const Interval& iv : clipSegment(from, to, poly)) {
-            const double sa = -reach + iv.first * 2.0 * reach, sb = -reach + iv.second * 2.0 * reach;
+            const double ivA = -reach + iv.first * 2.0 * reach, ivB = -reach + iv.second * 2.0 * reach;
+            if (ivB - ivA < kEps) continue;
+            // Measured (research 14.1: bars at y = 0, 1, 4 under 10 kN/m2 give 5, 20, 15 kN/m): the segment is cut where the centre line meets a bar, and
+            // each stretch between consecutive bars applies its own force, shared by the two bars that bound it.
+            std::vector<double> sCuts{ivA, ivB};
+            for (const LocalBar& bar : bars) {
+                const double ta = tOf(bar.a), tb = tOf(bar.b);
+                if (std::fabs(tb - ta) < kEps) continue;
+                const double u = (mid - ta) / (tb - ta);
+                const double eu = 1e-7 / bar.length;
+                const bool onSupport = std::any_of(bar.support.begin(), bar.support.end(), [&](const Interval& i) { return u >= i.first - eu && u <= i.second + eu; });
+                if (!onSupport) continue;
+                const double sx = sOf(add2(bar.a, mul2(sub2(bar.b, bar.a), u)));
+                if (sx > ivA + kEps && sx < ivB - kEps) sCuts.push_back(sx);
+            }
+            std::sort(sCuts.begin(), sCuts.end());
+            for (std::size_t ci = 0; ci + 1 < sCuts.size(); ++ci) {
+            const double sa = sCuts[ci], sb = sCuts[ci + 1];
             const double segLength = sb - sa;
             if (segLength < kEps) continue;
             const auto world = [&](double s) { return frame->toWorld(add2(base, mul2(d, s))); };
@@ -253,9 +270,28 @@ DistributionResult distributeSurfaceLoad(const DistributionInput& in) {
                     loads.push_back(out);
                 }
             }
+            }
         }
     }
     if (in.compact) {
+        std::sort(loads.begin(), loads.end(), [](const PanelBarLoad& x, const PanelBarLoad& y) {
+            if (x.barId != y.barId) return x.barId < y.barId;
+            return x.s1 < y.s1;
+        });
+        // Stretches of one bar with the same extent and direction (the two sides of a bar, several forces of a strip) add up.
+        std::vector<PanelBarLoad> summed;
+        for (const PanelBarLoad& l : loads) {
+            bool added = false;
+            for (PanelBarLoad& o : summed)
+                if (o.barId == l.barId && std::fabs(o.s1 - l.s1) <= kPrecision && std::fabs(o.s2 - l.s2) <= kPrecision &&
+                    length(sub(o.direction, l.direction)) < 1e-9) {
+                    o.q += l.q;
+                    added = true;
+                    break;
+                }
+            if (!added) summed.push_back(l);
+        }
+        loads = std::move(summed);
         std::sort(loads.begin(), loads.end(), [](const PanelBarLoad& x, const PanelBarLoad& y) {
             if (x.barId != y.barId) return x.barId < y.barId;
             return x.s1 < y.s1;
@@ -451,6 +487,31 @@ PanelDistribution distributePanels(const Project& project) {
         }
     }
     return out;
+}
+
+}  // namespace cc::core
+
+namespace cc::core {
+
+std::vector<int> panelsWithoutBars(const Project& project) {
+    std::vector<DistributionBar> allBars;
+    for (const Bar& bar : project.structure.bars) {
+        if (!surfaceBarAssigned(project.surfaceLoads, bar.id) || barIsTie(project, bar.id)) continue;
+        const Node *a = project.structure.findNode(bar.startNode), *b = project.structure.findNode(bar.endNode);
+        if (a && b) allBars.push_back({bar.id, a->position, b->position});
+    }
+    std::vector<int> ids;
+    for (const Panel& panel : project.panels.items) {
+        if (!barsOfPanel(panel.vertices, allBars).empty()) continue;
+        // ASSUMED: a panel completely covered by shells is not an error (it has its own warning logic, see distributePanels).
+        if (!project.structure.shells.empty() && shellCoverage(project, panel) >= 1.0 - 1e-9) continue;
+        ids.push_back(panel.id);
+    }
+    return ids;
+}
+
+std::string calculationPanelError(const Project& project) {
+    return panelsWithoutBars(project).empty() ? std::string() : std::string("Se han encontrado paños sin ninguna barra asociada.");
 }
 
 }  // namespace cc::core
