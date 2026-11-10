@@ -15,6 +15,7 @@
 #include "LoadCaseDialogs.h"
 #include "UserMessages.h"
 #include "core/general_data.h"
+#include "core/shell_load_edit.h"
 
 using namespace cc::app;
 using namespace cc::core;
@@ -114,6 +115,40 @@ TEST(LoadNatureDialog, ActsDeleteAndUndoThroughTheCore) {
     EXPECT_EQ(dialog.caseIdOfRow(0), -1);
     stack.undo();
     EXPECT_EQ(project.loadCases.cases.size(), 2u);
+}
+
+TEST(LoadNatureDialog, DeletingAHypothesisWithShellLoadsAsksTheMeasuredQuestion) {
+    ensureApp();
+    EXPECT_EQ(deleteLoadCaseQuestion(QStringLiteral("CM 1")),
+              QStringLiteral("Se van a borrar todas las cargas definidas en la hipótesis.: 'CM 1'. ¿Desea continuar?"));
+    Project project;
+    project.structure.addNode({0, 0, 0});
+    project.structure.addNode({1, 0, 0});
+    project.structure.addNode({1, 1, 0});
+    ASSERT_GT(project.structure.addShell({1, 2, 3}, 0.1), 0);
+    project.loadCases = withOneCase(LoadNature::DeadLoad, "CM 1", "");
+    UndoStack stack;
+    const int cm = project.loadCases.cases[1].id;
+    ASSERT_EQ(addShellLoads(project, stack, {project.structure.shells.front().id}, shellLoadDefaults(cm)), ShellLoadError::None);
+    EXPECT_EQ(loadCaseDependents(project, cm).shellLoads.size(), 1u) << "the loads of shells count as dependents";
+    std::vector<QString> asked;
+    bool answer = false;
+    messages::handler() = [&](QWidget*, messages::Kind kind, const QString& text) {
+        EXPECT_EQ(kind, messages::Kind::Question);
+        asked.push_back(text);
+        return answer;
+    };
+    LoadNatureDialog dialog(LoadNature::DeadLoad, project, stack);
+    dialog.deleteRow(0);  // No: nothing is destroyed
+    ASSERT_EQ(asked.size(), 1u);
+    EXPECT_EQ(asked[0], QStringLiteral("Se van a borrar todas las cargas definidas en la hipótesis.: 'CM 1'. ¿Desea continuar?"));
+    EXPECT_EQ(project.loadCases.cases.size(), 2u);
+    EXPECT_EQ(project.shellLoads.items.size(), 1u);
+    answer = true;  // Sí
+    dialog.deleteRow(0);
+    EXPECT_EQ(project.loadCases.cases.size(), 1u);
+    EXPECT_TRUE(project.shellLoads.items.empty());
+    messages::handler() = nullptr;
 }
 
 TEST(LoadNatureDialog, CancelRestoresTheInitialCases) {

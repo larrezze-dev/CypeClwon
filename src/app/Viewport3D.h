@@ -171,7 +171,7 @@ public:
     /// yellow edges, vertical lines and labels in the Carga tab; the scales are the shared ones of the nodal loads. With setLoadSelectionHighlight
     /// the loads of the selected shells are orange. The self weight of the shells is drawn as a pale prism without label while
     /// setShellSelfWeightDrawing is on (a command of the group is active).
-    void setShellLoads(const core::ShellLoads* loads);
+    void setShellLoads(const core::ShellLoads* loads, const core::LoadCaseSet* cases = nullptr);
     const core::ShellLoads* shellLoads() const { return m_shellLoads; }
     void setShellSelfWeightDrawing(bool on, int loadCaseId);
     bool shellSelfWeightDrawn() const { return m_shellSelfWeightDrawn; }
@@ -490,6 +490,7 @@ private:
     const core::NodalLoads* m_nodalLoads = nullptr;
     const core::BarLoads* m_barLoads = nullptr;
     const core::ShellLoads* m_shellLoads = nullptr;
+    const core::LoadCaseSet* m_shellLoadCases = nullptr;  ///< natures of the hypotheses (colours of the shell loads)
     bool m_shellSelfWeightDrawn = false;
     int m_shellSelfWeightCase = 0;
     std::function<bool(int)> m_shellExcluded;

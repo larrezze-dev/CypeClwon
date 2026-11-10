@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 
+#include "core/load_case_edit.h"
 #include "core/project_file.h"
+#include "core/undo_stack.h"
 #include "core/shell_load.h"
 #include "core/shell_properties.h"
 
@@ -28,6 +30,26 @@ int main(int argc, char** argv) {
             };
             add(ShellLoadType::Uniform, 5.0, 0.0);
             add(ShellLoadType::VariableX, 5.0, 15.0);
+        }
+        if (std::string(argv[2]) == "shellonlycases") {  // tanda 4 alignment: hypotheses CM 1 and V 1, one uniform load of the shell in each
+            UndoStack undo;
+            int cm = 0, wind = 0;
+            NewLoadCase c;
+            c.nature = LoadNature::DeadLoad;
+            c.reference = "CM 1";
+            createLoadCase(doc.project, undo, c, &cm);
+            NewLoadCase w;
+            w.nature = LoadNature::Wind;
+            w.reference = "V 1";
+            createLoadCase(doc.project, undo, w, &wind);
+            for (const auto& [caseId, value] : {std::pair{cm, 9.81}, std::pair{wind, 5.0}}) {
+                ShellLoad load;
+                static_cast<ShellLoadData&>(load) = shellLoadDefaults(caseId, ShellLoadType::Uniform);
+                load.value1 = value;
+                load.id = doc.project.shellLoads.nextId++;
+                load.shellId = shell;
+                doc.project.shellLoads.items.push_back(load);
+            }
         }
         const auto saved = saveProjectFile(argv[1], doc);
         if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }

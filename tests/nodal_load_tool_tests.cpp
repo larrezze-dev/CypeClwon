@@ -381,6 +381,17 @@ TEST_F(NodalLoadToolTest, DeleteActsAtOnceWithoutAQuestion) {
 
 // ---- Escalas ----------------------------------------------------------------------------------------------------------------
 
+TEST_F(NodalLoadToolTest, AcceptingInFixedModeDoesNotStoreTheHypothesisTable) {
+    LoadScalesDialog dialog(project.loadCases, project.nodalLoads.scales);
+    dialog.proportionalRadio()->setChecked(true);
+    dialog.table()->item(0, 1)->setText(QStringLiteral("2"));
+    dialog.fixedRadio()->setChecked(true);
+    dialog.accept();
+    ASSERT_EQ(dialog.result(), QDialog::Accepted);
+    EXPECT_EQ(dialog.scales().mode, LoadScaleMode::Fixed);
+    EXPECT_DOUBLE_EQ(loadScaleOfCase(dialog.scales(), 0), 1.0) << "measured (tanda 4): the table edited before going back to fixed is lost";
+}
+
 TEST_F(NodalLoadToolTest, ScalesDialogMatchesTheMeasuredOne) {
     LoadScalesDialog dialog(project.loadCases, project.nodalLoads.scales);
     EXPECT_EQ(dialog.windowTitle(), QStringLiteral("Escalas"));

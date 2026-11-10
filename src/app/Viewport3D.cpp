@@ -30,6 +30,8 @@ constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on
 const QColor kNodeBlue(QStringLiteral("#0066CC"));
 const QColor kHighlight(QStringLiteral("#DA8735"));
 const QColor kLoadYellow(QStringLiteral("#FFFF00"));      // measured: pure yellow lines and values of the nodal loads
+const QColor kShellCaseCyan(0, 191, 255);   // measured (cl4_f1): shell loads of a dead-load hypothesis (CM)
+const QColor kShellCaseGreen(0, 255, 0);    // measured (cl4_d1, cl4_k6): shell loads of a wind hypothesis (V)
 const QColor kPrescribedGreen(QStringLiteral("#008000"));  // measured (0,128,0): support symbol of a node with prescribed displacements
 
 // Eye-space position of a world point (the camera looks along -z).
@@ -1308,8 +1310,9 @@ void Viewport3D::drawBarLoads(QPainter& painter) const {
     painter.restore();
 }
 
-void Viewport3D::setShellLoads(const core::ShellLoads* loads) {
+void Viewport3D::setShellLoads(const core::ShellLoads* loads, const core::LoadCaseSet* cases) {
     m_shellLoads = loads;
+    m_shellLoadCases = cases;
     update();
 }
 
@@ -1365,8 +1368,17 @@ void Viewport3D::drawShellLoads(QPainter& painter) const {
             if (!drawing.valid) continue;
             const bool selected = shellSelected && i == selectedIndex;
             // Measured: pale yellow translucent fill with yellow edges and vertical lines; orange (thicker) when selected.
-            const QColor line = selected ? kHighlight : kLoadYellow;
-            const QColor fill = selected ? QColor(218, 135, 53, 70) : QColor(255, 255, 150, 90);
+            // Measured (cargas_laminas.md 13.2): the colour belongs to the hypothesis (self weight yellow, CM cyan, V green); the natures that
+            // were not measured keep the yellow.
+            QColor caseColour = kLoadYellow;
+            if (!isSelfWeight[i] && m_shellLoadCases)
+                if (const core::LoadCase* hypothesis = core::findLoadCase(*m_shellLoadCases, datas[i].loadCaseId)) {
+                    if (hypothesis->nature == core::LoadNature::DeadLoad) caseColour = kShellCaseCyan;
+                    else if (hypothesis->nature == core::LoadNature::Wind) caseColour = kShellCaseGreen;
+                }
+            const bool yellow = caseColour == kLoadYellow;
+            const QColor line = selected ? kHighlight : caseColour;
+            const QColor fill = selected ? QColor(218, 135, 53, 70) : (yellow ? QColor(255, 255, 150, 90) : QColor(caseColour.red(), caseColour.green(), caseColour.blue(), 50));
             std::vector<QPointF> base(drawing.base.size()), top(drawing.top.size());
             bool visible = true;
             for (std::size_t k = 0; k < drawing.base.size() && visible; ++k) visible = project(drawing.base[k], base[k]) && project(drawing.top[k], top[k]);

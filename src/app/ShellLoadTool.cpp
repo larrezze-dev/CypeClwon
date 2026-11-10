@@ -113,14 +113,14 @@ void ShellLoadTool::setProject(Project* project, UndoStack* undo) {
     m_session = ShellLoadSession{};
     m_selfWeightAsked = false;
     pruneViewports();
-    for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->setShellLoads(m_project ? &m_project->shellLoads : nullptr);
+    for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->setShellLoads(m_project ? &m_project->shellLoads : nullptr, m_project ? &m_project->loadCases : nullptr);
     updateEnabled();
 }
 
 void ShellLoadTool::addViewport(Viewport3D* viewport) {
     if (!viewport || m_viewports.contains(viewport)) return;
     m_viewports.push_back(viewport);
-    viewport->setShellLoads(m_project ? &m_project->shellLoads : nullptr);
+    viewport->setShellLoads(m_project ? &m_project->shellLoads : nullptr, m_project ? &m_project->loadCases : nullptr);
     connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] { onActOnSelection(viewport); });
     connect(viewport, &Viewport3D::escapePressed, this, [this] { deactivate(); });
     if (m_mode != Mode::None) configureViewports();
@@ -235,7 +235,14 @@ std::vector<int> ShellLoadTool::loadsOfShells(const std::vector<int>& shellIds) 
 bool ShellLoadTool::createLoads(const std::vector<int>& shellIds) {
     if (!m_project || !m_undo || shellIds.empty()) return false;
     ShellLoadData initial = m_session.last;
-    initial.loadCaseId = viewCase();  // by default the shown hypothesis
+    // Measured (cargas_laminas.md 13.1): the default is the last hypothesis used in this dialog, the shown one only the first time
+    // (or when the remembered hypothesis no longer exists); the value is not remembered.
+    const bool remembered = m_session.hasLastCase && std::any_of(m_project->loadCases.cases.begin(), m_project->loadCases.cases.end(),
+                                                                   [&](const LoadCase& c) { return c.id == initial.loadCaseId; });
+    if (!remembered) initial.loadCaseId = viewCase();
+    const ShellLoadData typeDefaults = shellLoadDefaults(initial.loadCaseId, initial.type);
+    initial.value1 = typeDefaults.value1;
+    initial.value2 = typeDefaults.value2;
     ShellLoadDialog dialog(tr("Introducir cargas sobre láminas"), m_project->loadCases, initial, m_dialogParent);
     if (run(dialog) != QDialog::Accepted) return false;
     ShellLoadIssue issue;

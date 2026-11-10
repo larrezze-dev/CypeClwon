@@ -31,6 +31,9 @@ namespace cc::app {
 /// TODO(medir): complete lists per norm and the letters.
 QStringList useCategoryChoices(int normGroup);
 
+/// Question shown before deleting a hypothesis that has loads (#64905; the «.:» is literal, as measured in the original).
+QString deleteLoadCaseQuestion(const QString& label);
+
 /// The two combos of a use category with their norm headings ("Hormigón: Eurocódigo 2" ...). Shared by "Categoría" and "Categorías de uso".
 class UseCategoryChoicesPanel : public QWidget {
     Q_OBJECT

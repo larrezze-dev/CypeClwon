@@ -149,7 +149,11 @@ ShellLoadData normaliseShellLoadData(ShellLoadData data);
 struct ShellLoadSession {
     ShellLoadData last = shellLoadDefaults();
     bool selfWeightActivate = true;   ///< radios Activar (default) / Desactivar
-    void remember(const ShellLoadData& data) { last = data; }
+    bool hasLastCase = false;         ///< the dialog has been accepted at least once (last.loadCaseId is the last hypothesis used there)
+    void remember(const ShellLoadData& data) {
+        last = data;
+        hasLastCase = true;
+    }
 };
 
 // --- self weight ---

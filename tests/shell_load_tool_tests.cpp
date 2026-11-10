@@ -396,8 +396,8 @@ TEST_F(ShellLoadToolTest, NewCreatesTheLoadAsOneUndoStepAndRemembersTheLast) {
     });
     selectShell();
     act();
-    EXPECT_EQ(seen.type, ShellLoadType::UniformTemperature) << "the last type and values are remembered";
-    EXPECT_DOUBLE_EQ(seen.value1, 20.0);
+    EXPECT_EQ(seen.type, ShellLoadType::UniformTemperature) << "the last type is remembered";
+    EXPECT_DOUBLE_EQ(seen.value1, 10.0) << "the value is NOT remembered (measured, tanda 4): the default of the type";
     EXPECT_EQ(project.shellLoads.items.size(), 1u) << "Cancelar changes nothing";
     undo.undo();
     EXPECT_TRUE(project.shellLoads.items.empty());
@@ -414,6 +414,65 @@ TEST_F(ShellLoadToolTest, NewTakesTheShownHypothesisByDefault) {
     });
     EXPECT_FALSE(tool->createLoads({shellId()}));
     EXPECT_EQ(offered, cm1);
+}
+
+TEST_F(ShellLoadToolTest, NewDefaultsToTheLastHypothesisUsedInTheDialogNotTheShownOne) {
+    const int cm1 = addCase();
+    NewLoadCase wind;
+    wind.nature = LoadNature::Wind;
+    wind.reference = "V 1";
+    int v1 = 0;
+    ASSERT_EQ(createLoadCase(project, undo, wind, &v1), LoadCaseError::None);
+    tool->newAction()->trigger();
+    nodal->panel()->setCaseId(cm1);
+    std::vector<int> offered;
+    QStringList items;
+    runner<ShellLoadDialog>([&](ShellLoadDialog& d) {
+        offered.push_back(d.data().loadCaseId);
+        if (items.isEmpty())
+            for (int i = 0; i < d.caseCombo()->count(); ++i) items << d.caseCombo()->itemText(i);
+        if (offered.size() == 1) d.caseCombo()->setCurrentIndex(d.caseCombo()->findData(v1));
+        return offered.size() <= 2;  // the third opening is cancelled
+    });
+    ASSERT_TRUE(tool->createLoads({shellId()}));
+    ASSERT_EQ(offered.size(), 1u);
+    EXPECT_EQ(offered[0], cm1) << "first time: the shown hypothesis";
+    EXPECT_EQ(project.shellLoads.items.back().loadCaseId, v1);
+    ASSERT_EQ(items.size(), 3) << "Peso propio, CM 1, V 1 (measured order)";
+    EXPECT_EQ(items[0], QStringLiteral("Peso propio"));
+    EXPECT_TRUE(items[1].startsWith(QStringLiteral("CM 1")));
+    EXPECT_TRUE(items[2].startsWith(QStringLiteral("V 1")));
+    EXPECT_TRUE(tool->createLoads({shellId()}));
+    ASSERT_EQ(offered.size(), 2u);
+    EXPECT_EQ(offered[1], v1) << "afterwards: the last one used in the dialog, although CM 1 is still shown";
+    EXPECT_EQ(nodal->viewCaseId(), cm1);
+    // A wind hypothesis changes nothing else in the dialog (measured: no eccentricity variant).
+    ShellLoadData d = shellLoadDefaults(v1);
+    EXPECT_EQ(d.sense, ShellLoadSense::PlusZ);
+    EXPECT_EQ(d.axes, ShellLoadAxes::Local);
+    // Deleting the remembered hypothesis falls back to the shown one.
+    undo.undo();
+    undo.undo();
+    ASSERT_EQ(deleteLoadCase(project, undo, v1), LoadCaseError::None);
+    tool->setDialogRunner([&offered](QDialog& dialog) {
+        offered.push_back(static_cast<ShellLoadDialog&>(dialog).data().loadCaseId);
+        return static_cast<int>(QDialog::Rejected);
+    });
+    EXPECT_FALSE(tool->createLoads({shellId()}));
+    EXPECT_EQ(offered.back(), cm1);
+}
+
+TEST_F(ShellLoadToolTest, ViewHypothesisFiltersAndColoursTheDrawing) {
+    const int cm1 = addCase();
+    addUniform(3.0, 0);
+    addUniform(4.0, cm1);
+    tool->newAction()->trigger();
+    nodal->panel()->setCaseId(cm1);
+    ASSERT_TRUE(view->loadViewCase().has_value());
+    EXPECT_EQ(*view->loadViewCase(), cm1) << "only the loads of the shown hypothesis are drawn";
+    nodal->panel()->setViewAll(true);
+    EXPECT_FALSE(view->loadViewCase().has_value()) << "Ver todas draws every hypothesis";
+    EXPECT_FALSE(view->grab().isNull());
 }
 
 // ---- Editar / Hipótesis / Borrar ---------------------------------------------------------------------------------------------
@@ -481,6 +540,8 @@ TEST_F(ShellLoadToolTest, CaseMovesTheLoad) {
     });
     act();
     EXPECT_EQ(project.shellLoads.items.at(0).loadCaseId, cm1);
+    EXPECT_EQ(tool->mode(), ShellLoadTool::Mode::Case) << "the command stays active, without any warning";
+    EXPECT_TRUE(shown.empty());
 }
 
 // ---- Peso propio ------------------------------------------------------------------------------------------------------------
@@ -550,6 +611,40 @@ TEST_F(ShellLoadToolTest, ViewportFollowsTheDataAndTheHistory) {
     EXPECT_FALSE(view->grab().isNull());
     tool->deactivate();
     EXPECT_FALSE(view->shellSelfWeightDrawn());
+}
+
+// Visual comparison aid: CC_SNAPSHOT_DIR=<dir> writes PNGs (offscreen) to compare with docs/screenshots/cl4_*.png.
+TEST_F(ShellLoadToolTest, SnapshotsForVisualComparison) {
+    const QByteArray dir = qgetenv("CC_SNAPSHOT_DIR");
+    if (dir.isEmpty()) GTEST_SKIP() << "CC_SNAPSHOT_DIR not set";
+    const QString base = QString::fromLocal8Bit(dir);
+    const int cm1 = addCase();
+    NewLoadCase wind;
+    wind.nature = LoadNature::Wind;
+    wind.reference = "V 1";
+    int v1 = 0;
+    ASSERT_EQ(createLoadCase(project, undo, wind, &v1), LoadCaseError::None);
+    addUniform(9.81, cm1);
+    addUniform(5.0, v1);
+    tool->newAction()->trigger();
+    nodal->panel()->setCaseId(cm1);
+    view->grab().save(base + "/t4_view_cm1.png");
+    nodal->panel()->setCaseId(v1);
+    view->grab().save(base + "/t4_view_v1.png");
+    nodal->panel()->setViewAll(true);
+    view->grab().save(base + "/t4_view_all.png");
+    ShellLoadDialog dialog(QStringLiteral("Introducir cargas sobre láminas"), project.loadCases, shellLoadDefaults(v1));
+    dialog.grab().save(base + "/t4_dialog_new.png");
+    cc::app::LoadCaseChoiceDialog choice(project.loadCases, cm1);
+    choice.grab().save(base + "/t4_dialog_case.png");
+    // Proportional scales: V 1 x2.
+    auto scales = project.nodalLoads.scales;
+    scales.mode = cc::core::LoadScaleMode::Proportional;
+    scales.perCase[v1] = 2.0;
+    project.nodalLoads.scales = scales;
+    nodal->structureChanged();
+    view->update();
+    view->grab().save(base + "/t4_view_all_proportional.png");
 }
 
 int main(int argc, char** argv) {

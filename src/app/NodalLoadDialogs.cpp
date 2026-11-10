@@ -456,7 +456,8 @@ void LoadScalesDialog::accept() {
         }
         out.perType[static_cast<std::size_t>(t)] = v;
     }
-    for (int r = 0; r < m_table->rowCount(); ++r) {
+    // Measured (cargas_laminas.md 13.5): accepting in "fixed" mode does not store the table of hypotheses (the table is hidden then).
+    for (int r = 0; r < m_table->rowCount() && !m_fixed->isChecked(); ++r) {
         double scale = 0.0;
         if (!readNumber(m_table->item(r, 1)->text(), scale)) {
             messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadNotNumberMessage()));

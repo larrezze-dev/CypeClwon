@@ -23,10 +23,11 @@ public class D {
  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr e);
  [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+ [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
  public delegate bool EnumProc(IntPtr h, IntPtr l);
  [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc p, IntPtr l);
- [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+ [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
  [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint cmd);
  // Topmost visible window of the process (dialogs are owned windows and sit above the main one in Z order).
@@ -90,6 +91,12 @@ try {
         $kind, $arg = $step.Split(':', 2)
         switch ($kind) {
             'wait'   { Start-Sleep -Milliseconds ([int]$arg) }
+            'front'  { # bring the window to the front (ALT trick against the foreground lock) and ABORT the run if it is not there, so that later clicks never reach another application
+                       $h = [D]::Top([uint32]$p.Id); [D]::ShowWindow($h, 9) | Out-Null; [D]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [D]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
+                       [uint32]$fp = 0
+                       for ($try = 0; $try -lt 5 -and $fp -ne $p.Id; $try++) { [D]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [D]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero); [void][D]::SetForegroundWindow($h); Start-Sleep -Milliseconds 600
+                           $fg = [D]::GetForegroundWindow(); [void][D]::GetWindowThreadProcessId($fg, [ref]$fp) }
+                       if ($fp -ne $p.Id) { throw "the application window is not in the foreground (pid $fp)" } }
             'click'  { $xy = $arg.Split(','); Click $p ([int]$xy[0]) ([int]$xy[1]) $false; Start-Sleep -Milliseconds 700 }
             'rclick' { $xy = $arg.Split(','); $h = [D]::Top([uint32]$p.Id); $r = New-Object D+R; [void][D]::GetWindowRect($h, [ref]$r); [void][D]::SetForegroundWindow($h)
                        [void][D]::SetCursorPos($r.L + [int]$xy[0], $r.T + [int]$xy[1]); Start-Sleep -Milliseconds 150; [D]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [D]::mouse_event(1, [uint32]4294967295, 0, 0, [UIntPtr]::Zero); Start-Sleep -Milliseconds 120

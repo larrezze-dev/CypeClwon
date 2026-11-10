@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "LoadCaseDialogs.h"
 
 #include <QCheckBox>
@@ -27,6 +28,11 @@ using core::LoadCase;
 using core::LoadCaseError;
 using core::LoadNature;
 using core::SeismicType;
+
+QString deleteLoadCaseQuestion(const QString& label) {
+    return QCoreApplication::translate("cc::app::LoadCaseDialogs", "Se van a borrar todas las cargas definidas en la hipótesis.") + QStringLiteral(": '") + label +
+           QStringLiteral("'. ") + QCoreApplication::translate("cc::app::LoadCaseDialogs", "¿Desea continuar?");
+}
 
 namespace {
 
@@ -557,9 +563,13 @@ void LoadNatureDialog::deleteRow(int row) {
     const int id = caseIdOfRow(row);
     if (id < 0) return;
     // Without loads it is immediate (measured); with them the original asks first (#64905).
-    if (!core::loadCaseDependents(m_project, id).empty() &&
-        !messages::show(this, messages::Kind::Question, tr("Se van a borrar todas las cargas definidas en la hipótesis.")))
-        return;
+    if (!core::loadCaseDependents(m_project, id).empty()) {
+        // Measured (cargas_laminas.md 13.6): «Se van a borrar todas las cargas definidas en la hipótesis.: 'CM 1'. ¿Desea continuar?» (the
+        // «.:» is literal), Sí / No; No keeps the hypothesis and its loads.
+        const core::LoadCase* hypothesis = core::findLoadCase(m_project.loadCases, id);
+        const QString label = hypothesis ? QString::fromStdString(core::loadCaseLabel(*hypothesis)) : QString();
+        if (!messages::show(this, messages::Kind::Question, deleteLoadCaseQuestion(label))) return;
+    }
     const LoadCaseError error = core::deleteLoadCase(m_project, m_stack, id);
     if (error != LoadCaseError::None) showError(this, error);
     refresh();
