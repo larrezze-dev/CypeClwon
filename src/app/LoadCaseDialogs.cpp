@@ -29,6 +29,20 @@ using core::LoadCaseError;
 using core::LoadNature;
 using core::SeismicType;
 
+LoadCaseState LoadCaseState::capture(const core::Project& project) {
+    return {project.loadCases, project.nodalLoads, project.barLoads, project.shellLoads, project.nodeSupports};
+}
+
+void LoadCaseState::restoreTo(core::Project& project) const {
+    const int nextNodalId = std::max(project.nodalLoads.nextId, nodalLoads.nextId);  // ids are never reused, as in the undo commands
+    project.loadCases = cases;
+    project.nodalLoads = nodalLoads;
+    project.nodalLoads.nextId = nextNodalId;
+    core::restoreBarLoads(project.barLoads, barLoads);
+    core::restoreShellLoads(project.shellLoads, shellLoads);
+    project.nodeSupports = nodeSupports;
+}
+
 QString deleteLoadCaseQuestion(const QString& label) {
     return QCoreApplication::translate("cc::app::LoadCaseDialogs", "Se van a borrar todas las cargas definidas en la hipótesis.") + QStringLiteral(": '") + label +
            QStringLiteral("'. ") + QCoreApplication::translate("cc::app::LoadCaseDialogs", "¿Desea continuar?");
@@ -134,7 +148,7 @@ UseCategoryDialog::UseCategoryDialog(QWidget* parent) : CypeDialog(tr("Categorí
 // ---------------------------------------------------------------- Categorías de uso
 
 UseCategoriesDialog::UseCategoriesDialog(core::Project& project, core::UndoStack& stack, QWidget* parent)
-    : CypeDialog(tr("Categorías de uso"), parent), m_project(project), m_stack(stack), m_initial(project.loadCases) {
+    : CypeDialog(tr("Categorías de uso"), parent), m_project(project), m_stack(stack), m_initial(LoadCaseState::capture(project)) {
     setFixedSize(430, 320);
     auto* bar = new QHBoxLayout;
     bar->setContentsMargins(6, 4, 6, 0);
@@ -225,7 +239,7 @@ void UseCategoriesDialog::deleteSelected() {
 }
 
 void UseCategoriesDialog::done(int result) {
-    if (result != QDialog::Accepted) m_project.loadCases = m_initial;  // Cancelar: nothing of this window stays
+    if (result != QDialog::Accepted) m_initial.restoreTo(m_project);  // Cancelar: nothing of this window stays
     CypeDialog::done(result);
 }
 
@@ -424,7 +438,7 @@ bool LoadCaseDataDialog::eventFilter(QObject* watched, QEvent* event) {
 // ---------------------------------------------------------------- Ventana por naturaleza
 
 LoadNatureDialog::LoadNatureDialog(LoadNature nature, core::Project& project, core::UndoStack& stack, QWidget* parent)
-    : CypeDialog(natureName(nature), parent), m_nature(nature), m_project(project), m_stack(stack), m_initial(project.loadCases) {
+    : CypeDialog(natureName(nature), parent), m_nature(nature), m_project(project), m_stack(stack), m_initial(LoadCaseState::capture(project)) {
     setMaximizable();
     const bool seismic = nature == LoadNature::Seismic;
     resize(seismic ? 308 : 304, seismic ? 320 : 281);
@@ -576,7 +590,7 @@ void LoadNatureDialog::deleteRow(int row) {
 }
 
 void LoadNatureDialog::done(int result) {
-    if (result != QDialog::Accepted) m_project.loadCases = m_initial;  // Cancelar
+    if (result != QDialog::Accepted) m_initial.restoreTo(m_project);  // Cancelar
     CypeDialog::done(result);
 }
 

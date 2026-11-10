@@ -203,8 +203,10 @@ TEST_F(ShellLoadToolTest, OnlyShellsAreCaptured) {
     EXPECT_EQ(view->selectionFilter().shells, true);
     EXPECT_EQ(view->selectionFilter().nodes, false);
     EXPECT_EQ(view->selectionFilter().bars, false);
+    status.clear();
     nodal->setView(0, true);  // the host reconfigures its own viewports: the command must stay in selection mode
     EXPECT_TRUE(view->selectionMode());
+    EXPECT_EQ(status, ShellLoadTool::statusText(ShellLoadTool::Mode::New)) << "changing the shown hypothesis keeps the command's status";
 }
 
 // ---- the dialog ------------------------------------------------------------------------------------------------------------

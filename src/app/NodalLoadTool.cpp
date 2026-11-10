@@ -119,6 +119,7 @@ void NodalLoadTool::setView(int caseId, bool all) {
     applyView();
     configureViewports();  // the nodes that can be captured depend on the loads in view
     emit viewChanged();
+    if (m_mode != Mode::None) emit statusChanged(statusText(m_mode));  // configureViewports announced the generic hint
 }
 
 void NodalLoadTool::updateEnabled() {

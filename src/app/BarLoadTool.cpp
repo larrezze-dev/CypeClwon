@@ -100,7 +100,11 @@ int BarLoadTool::selfWeightCaseId() const {
 void BarLoadTool::setHost(NodalLoadTool* host) {
     m_host = host;
     if (!host) return;
-    connect(host, &NodalLoadTool::viewChanged, this, [this] { configureViewports(); });
+    connect(host, &NodalLoadTool::viewChanged, this, [this] {
+        configureViewports();
+        // configureViewports announces the generic selection hint: restore the command's own status (measured: the original keeps it)
+        if (m_mode != Mode::None) emit statusChanged(statusText(m_mode));
+    });
     connect(host, &NodalLoadTool::viewPanelClosed, this, [this] {
         if (m_mode != Mode::None) deactivate();  // closing the window ends the command (like the others)
     });

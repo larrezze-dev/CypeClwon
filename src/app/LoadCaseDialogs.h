@@ -31,6 +31,18 @@ namespace cc::app {
 /// TODO(medir): complete lists per norm and the letters.
 QStringList useCategoryChoices(int normGroup);
 
+/// Everything a hypothesis deletion can touch in the scratch project of «Hipótesis adicionales»: the hypotheses and the loads that go with
+/// them. Cancelar in a nested window restores all of it (so that a second deletion asks again).
+struct LoadCaseState {
+    core::LoadCaseSet cases;
+    core::NodalLoads nodalLoads;
+    core::BarLoads barLoads;
+    core::ShellLoads shellLoads;
+    core::NodeSupports nodeSupports;
+    static LoadCaseState capture(const core::Project& project);
+    void restoreTo(core::Project& project) const;
+};
+
 /// Question shown before deleting a hypothesis that has loads (#64905; the «.:» is literal, as measured in the original).
 QString deleteLoadCaseQuestion(const QString& label);
 
@@ -77,7 +89,7 @@ private:
     int selectedRow() const;
     core::Project& m_project;
     core::UndoStack& m_stack;
-    core::LoadCaseSet m_initial;
+    LoadCaseState m_initial;
     QTableWidget* m_table = nullptr;
     UseCategoryChoicesPanel* m_panel = nullptr;
     QToolButton* m_copy = nullptr;
@@ -158,7 +170,7 @@ private:
     core::LoadNature m_nature;
     core::Project& m_project;
     core::UndoStack& m_stack;
-    core::LoadCaseSet m_initial;
+    LoadCaseState m_initial;
     QTableWidget* m_table = nullptr;
     QCheckBox* m_secondOrder = nullptr;
 };

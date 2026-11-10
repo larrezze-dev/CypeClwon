@@ -163,6 +163,44 @@ TEST(LoadNatureDialog, CancelRestoresTheInitialCases) {
     EXPECT_EQ(project.loadCases.cases.size(), 2u);
 }
 
+TEST(LoadNatureDialog, CancelRestoresTheLoadsAndTheSecondDeletionAsksAgain) {
+    ensureApp();
+    Project project;
+    project.structure.addNode({0, 0, 0});
+    project.structure.addNode({1, 0, 0});
+    project.structure.addNode({1, 1, 0});
+    ASSERT_GT(project.structure.addShell({1, 2, 3}, 0.1), 0);
+    project.loadCases = withOneCase(LoadNature::DeadLoad, "CM 1", "");
+    UndoStack stack;
+    const int cm = project.loadCases.cases[1].id;
+    ASSERT_EQ(addShellLoads(project, stack, {project.structure.shells.front().id}, shellLoadDefaults(cm)), ShellLoadError::None);
+    const auto before = LoadCaseState::capture(project);
+    int asked = 0;
+    messages::handler() = [&](QWidget*, messages::Kind, const QString&) {
+        ++asked;
+        return true;
+    };
+    {
+        LoadNatureDialog dialog(LoadNature::DeadLoad, project, stack);
+        dialog.deleteRow(0);  // Sí
+        EXPECT_TRUE(project.shellLoads.items.empty());
+        dialog.reject();  // Cancelar: hypotheses AND loads come back
+    }
+    EXPECT_EQ(asked, 1);
+    EXPECT_EQ(project.loadCases.cases.size(), 2u);
+    EXPECT_EQ(project.shellLoads.items.size(), 1u);
+    EXPECT_EQ(loadCaseDependents(project, cm).shellLoads.size(), 1u);
+    {
+        LoadNatureDialog dialog(LoadNature::DeadLoad, project, stack);
+        dialog.deleteRow(0);
+    }
+    EXPECT_EQ(asked, 2) << "the second deletion asks again";
+    before.restoreTo(project);  // the snapshot alone brings everything back
+    EXPECT_EQ(project.loadCases.cases.size(), 2u);
+    EXPECT_EQ(project.shellLoads.items.size(), 1u);
+    messages::handler() = nullptr;
+}
+
 TEST(LoadNatureDialog, SeismicHasTypeColumnAndSecondOrderCheck) {
     ensureApp();
     Project project;
