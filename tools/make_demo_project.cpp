@@ -56,6 +56,42 @@ int main(int argc, char** argv) {
         if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
         return 0;
     }
+    if (argc > 2 && std::string(argv[2]) == "panelsp6") {  // T-P7-05 on-screen checks: the measured work p6_a (5/20/15 kN/m) with CM 1 and V 1 as well
+        auto& st = doc.project.structure;
+        const double xyz[8][3] = {{0, 0, 0}, {4, 0, 0}, {4, 4, 0}, {0, 4, 0}, {0, 1, 0}, {4, 1, 0}, {4, 0, 3}, {0, 0, 3}};
+        int n[8];
+        for (int i = 0; i < 8; ++i) n[i] = st.addNode({xyz[i][0], xyz[i][1], xyz[i][2]});
+        for (const auto& [from, to] : {std::pair{0, 1}, {1, 5}, {5, 2}, {2, 3}, {3, 4}, {4, 0}, {4, 5}}) st.addBar(n[from], n[to], 0);
+        UndoStack undo;
+        int cm = 0, wind = 0;
+        NewLoadCase c;
+        c.nature = LoadNature::DeadLoad;
+        c.reference = "CM 1";
+        createLoadCase(doc.project, undo, c, &cm);
+        NewLoadCase w;
+        w.nature = LoadNature::Wind;
+        w.reference = "V 1";
+        createLoadCase(doc.project, undo, w, &wind);
+        Panel horizontal;
+        horizontal.id = doc.project.panels.nextId++;
+        horizontal.vertices = {{0, 0, 0}, {4, 0, 0}, {4, 4, 0}, {0, 4, 0}};
+        horizontal.direction = {0, 1, 0};
+        horizontal.loads.push_back(surfaceLoadDefaults(0));
+        horizontal.loads.back().value = 10.0;
+        horizontal.loads.push_back(surfaceLoadDefaults(cm));
+        horizontal.loads.back().value = 5.0;
+        doc.project.panels.items.push_back(horizontal);
+        Panel vertical;
+        vertical.id = doc.project.panels.nextId++;
+        vertical.vertices = {{0, 0, 0}, {4, 0, 0}, {4, 0, 3}, {0, 0, 3}};
+        vertical.direction = {0, 0, 1};
+        vertical.loads.push_back(surfaceLoadDefaults(wind));
+        vertical.loads.back().value = 4.0;
+        doc.project.panels.items.push_back(vertical);
+        const auto saved = saveProjectFile(argv[1], doc);
+        if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
+        return 0;
+    }
     if (argc > 2 && std::string(argv[2]).rfind("panels", 0) == 0) {  // T-P7-05 visual checks: 4 x 4 m on four bars; "panelsload" adds a panel, rows and a surface load
         auto& st = doc.project.structure;
         const int n1 = st.addNode({0, 0, 0}), n2 = st.addNode({4, 0, 0}), n3 = st.addNode({4, 4, 0}), n4 = st.addNode({0, 4, 0});

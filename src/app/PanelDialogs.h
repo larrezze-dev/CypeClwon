@@ -51,6 +51,11 @@ public:
     void setRowCase(bool variable, int row, int loadCaseId);
     void accept() override;
 
+public:
+    /// Tab order (measured, research 14.4): Hipótesis -> Sentido positivo -> Valor (-> the next value column) -> the cells of the next row, then Aceptar and
+    /// Cancelar; the buttons of the list and the tabs are outside the sequence. Shift+Tab goes the other way round.
+    bool focusNextPrevChild(bool next) override;
+
 private:
     struct Table {
         QTableWidget* widget = nullptr;

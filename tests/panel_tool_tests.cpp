@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QHeaderView>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QLabel>
@@ -359,8 +360,13 @@ TEST_F(PanelToolTest, MovePanelStepsAndInvalidPolygon) {
     EXPECT_EQ(tool->step(), 3);
     click(*view, at(2, 4));  // destination: on the bar 3-4
     EXPECT_EQ(tool->step(), 1);  // back to the vertices (measured)
+    // Measured (research 10.4 / 14.8): the destination is only PENDING (green dashed edges); nothing changes until the RMB.
+    ASSERT_TRUE(findPanel(project.panels, id));
+    EXPECT_NEAR(findPanel(project.panels, id)->vertices[2].x, 4.0, 1e-9);
+    rmb();
     const Panel* panel = findPanel(project.panels, id);
     ASSERT_TRUE(panel);
+    EXPECT_EQ(shown.size(), 1u);  // no further box
     EXPECT_NEAR(panel->vertices[2].x, 2.0, 1e-6);
     EXPECT_NEAR(panel->vertices[2].y, 4.0, 1e-6);
     undo.undo();
@@ -666,4 +672,64 @@ int main(int argc, char** argv) {
     app();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+// ---- help mode and tab order of «Cargas en paño» (research 14.4 / 14.5) ----------------------------------------------------------
+
+TEST_F(PanelToolTest, PanelLoadsDialogHelpModeFramesAndExplains) {
+    const std::vector<Point3> inclined{{0, 0, 0}, {4, 0, 0}, {4, 4, 2}, {0, 4, 2}};
+    PanelLoadsDialog dialog(project.loadCases, inclined, {}, 0);
+    dialog.show();
+    QApplication::processEvents();
+    ASSERT_NE(dialog.helpButton(), nullptr);
+    EXPECT_FALSE(dialog.helpMode());
+    EXPECT_EQ(dialog.helpClick(QPoint(50, 50)), -1);  // nothing happens outside the help mode
+    dialog.helpButton()->click();
+    EXPECT_TRUE(dialog.helpMode());
+    // The header «Sentido positivo» explains itself (#65051).
+    QHeaderView* header = dialog.uniformTable()->horizontalHeader();
+    const QPoint inHeader = header->mapTo(&dialog, QPoint(header->sectionViewportPosition(1) + 5, header->height() / 2));
+    const int index = dialog.helpClick(inHeader);
+    EXPECT_GE(index, 0);
+    EXPECT_EQ(dialog.helpSelected(), index);
+    EXPECT_EQ(dialog.helpBalloonText(), QStringLiteral("Sentido positivo de la carga"));
+    // The buttons of the list have help too; a click on the plain background clears the selection.
+    const QPoint onAdd = dialog.addButton()->mapTo(&dialog, QPoint(4, 4));
+    EXPECT_GE(dialog.helpClick(onAdd), 0);
+    EXPECT_NE(dialog.helpClick(onAdd), index);
+    EXPECT_EQ(dialog.helpClick(QPoint(2, 2)), -1);
+    EXPECT_TRUE(dialog.helpBalloonText().isEmpty());
+    dialog.helpButton()->click();
+    EXPECT_FALSE(dialog.helpMode());
+}
+
+TEST_F(PanelToolTest, PanelLoadsDialogTabOrderIsCellsThenButtons) {
+    PanelLoadsDialog dialog(project.loadCases, {{0, 0, 0}, {4, 0, 0}, {4, 4, 0}, {0, 4, 0}}, {}, 0);
+    dialog.show();
+    QApplication::processEvents();
+    dialog.addRow();
+    dialog.addRow();
+    QTableWidget* table = dialog.uniformTable();
+    ASSERT_EQ(table->rowCount(), 2);
+    // The buttons of the list are outside the sequence.
+    EXPECT_EQ(dialog.addButton()->focusPolicy(), Qt::NoFocus);
+    EXPECT_EQ(dialog.copyButton()->focusPolicy(), Qt::NoFocus);
+    EXPECT_EQ(dialog.removeButton()->focusPolicy(), Qt::NoFocus);
+    table->cellWidget(0, 0)->setFocus();
+    const auto position = [&] {
+        QWidget* f = dialog.focusWidget();
+        if (f == dialog.acceptButton()) return std::pair{-1, 1};
+        if (f == dialog.cancelButton()) return std::pair{-1, 2};
+        for (int r = 0; r < table->rowCount(); ++r)
+            if (f == table->cellWidget(r, 0) || table->cellWidget(r, 0)->isAncestorOf(f)) return std::pair{r, 0};
+        return std::pair{table->currentRow(), table->currentColumn()};
+    };
+    EXPECT_EQ(position(), (std::pair{0, 0}));  // Hipótesis
+    const std::vector<std::pair<int, int>> expected{{0, 1}, {0, 2}, {1, 0}, {1, 1}, {1, 2}, {-1, 1}, {-1, 2}, {0, 0}};
+    for (const auto& step : expected) {
+        EXPECT_TRUE(dialog.focusNextPrevChild(true));
+        EXPECT_EQ(position(), step);
+    }
+    EXPECT_TRUE(dialog.focusNextPrevChild(false));  // Shift+Tab from the first cell goes to Cancelar
+    EXPECT_EQ(position(), (std::pair{-1, 2}));
 }

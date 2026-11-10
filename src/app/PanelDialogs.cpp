@@ -100,6 +100,7 @@ QLineEdit* makeValueEdit(QWidget* parent) {
 PanelLoadsDialog::PanelLoadsDialog(const LoadCaseSet& cases, const std::vector<Point3>& polygon, const std::vector<SurfaceLoadData>& initial, int defaultCaseId,
                                    QWidget* parent)
     : CypeDialog(tr("Cargas en paño"), parent), m_cases(cases), m_polygon(polygon), m_defaultCase(defaultCaseId) {
+    setHelpable();
     setMaximizable();
     m_variable.variable = true;
     for (const SurfaceLoadData& row : initial) (row.type == SurfaceLoadType::Variable ? m_variable : m_uniform).rows.push_back(row);
@@ -118,7 +119,10 @@ PanelLoadsDialog::PanelLoadsDialog(const LoadCaseSet& cases, const std::vector<P
     m_add->setObjectName(QStringLiteral("panelAdd"));
     m_copy->setObjectName(QStringLiteral("panelCopy"));
     m_remove->setObjectName(QStringLiteral("panelRemove"));
-    for (QToolButton* b : {m_add, m_copy, m_remove}) bar->addWidget(b);
+    for (QToolButton* b : {m_add, m_copy, m_remove}) {
+        b->setFocusPolicy(Qt::NoFocus);  // measured: the buttons of the list are not in the tab sequence
+        bar->addWidget(b);
+    }
     bar->addStretch(1);
     outer->addLayout(bar);
 
@@ -130,6 +134,7 @@ PanelLoadsDialog::PanelLoadsDialog(const LoadCaseSet& cases, const std::vector<P
     } else {
         m_tabs = new QTabWidget(body);
         m_tabs->setObjectName(QStringLiteral("panelTabs"));
+        m_tabs->tabBar()->setFocusPolicy(Qt::NoFocus);  // measured: the tabs are not in the tab sequence
         m_tabs->addTab(uniform, tr("Uniformes"));
         QWidget* variable = buildTable(m_variable, m_tabs);
         m_variableTable = m_variable.widget;
@@ -141,11 +146,91 @@ PanelLoadsDialog::PanelLoadsDialog(const LoadCaseSet& cases, const std::vector<P
     contentLayout()->addWidget(body, 1);
     setupFooter(tr("Aceptar"), tr("Cancelar"));
     resize(450, 370);  // measured (cp_30_m)
+    // Contextual help (measured: +, copy, delete, the header «Sentido positivo» and Aceptar are framed; the header says «Sentido positivo de la carga»,
+    // #65051). Texts of the three buttons = their tooltips and of the value headers #65055 / #65056: ASSUMED (the balloons were not captured); Aceptar
+    // is framed in the original but its text is NOT MEASURED, so it is left out.
+    const auto areaOf = [this](QWidget* w) { return [this, w] { return QRect(w->mapTo(this, QPoint(0, 0)), w->size()); }; };
+    addHelpItem(areaOf(m_add), tr("Añadir nuevo elemento a la lista"));
+    addHelpItem(areaOf(m_copy), tr("Copiar elemento seleccionado y añadirlo a la lista"));
+    addHelpItem(areaOf(m_remove), tr("Suprimir elemento seleccionado de la lista"));
+    const auto headerArea = [this](int section) {
+        return [this, section] {
+            QTableWidget* t = currentTable();
+            QHeaderView* header = t->horizontalHeader();
+            return QRect(header->mapTo(this, QPoint(header->sectionViewportPosition(section), 0)), QSize(header->sectionSize(section), header->height()));
+        };
+    };
+    addHelpItem(headerArea(1), tr("Sentido positivo de la carga"));
+    addHelpItem(
+        [this, headerArea] {
+            QTableWidget* t = currentTable();
+            return t == m_variableTable ? headerArea(2)() : QRect();
+        },
+        tr("Valor de la carga en el punto más bajo de la superficie."));
+    addHelpItem(
+        [this, headerArea] {
+            QTableWidget* t = currentTable();
+            return t == m_variableTable ? headerArea(3)() : QRect();
+        },
+        tr("Valor de la carga en el punto más alto de la superficie."));
     connect(m_add, &QToolButton::clicked, this, [this] { addRow(); });
     connect(m_copy, &QToolButton::clicked, this, [this] { copyRow(); });
     connect(m_remove, &QToolButton::clicked, this, [this] { removeRows(); });
     refresh(false, {});
     if (m_tabs) refresh(true, {});
+    if (auto* first = qobject_cast<QComboBox*>(m_uniformTable->cellWidget(0, 0))) first->setFocus();  // measured: the focus starts on the first row
+}
+
+bool PanelLoadsDialog::focusNextPrevChild(bool next) {
+    QTableWidget* t = currentTable();
+    const int rows = t->rowCount(), columns = t->columnCount();
+    const int cells = rows * columns;
+    QWidget* focus = focusWidget();
+    int position = -1;  // index in the sequence row * columns + column; -1 = outside the cells
+    if (focus) {
+        for (int r = 0; r < rows && position < 0; ++r)
+            if (QWidget* combo = t->cellWidget(r, 0); combo && (focus == combo || combo->isAncestorOf(focus))) position = r * columns;
+        if (position < 0 && (focus == t || t->isAncestorOf(focus)) && t->currentRow() >= 0) position = t->currentRow() * columns + std::max(0, t->currentColumn());
+    }
+    const auto focusCell = [&](int index) {
+        const int row = index / columns, column = index % columns;
+        t->setCurrentCell(row, column);
+        if (column == 0) {
+            if (auto* combo = qobject_cast<QComboBox*>(t->cellWidget(row, 0))) combo->setFocus();
+        } else {
+            t->setFocus();
+            if (column >= 2)
+                if (QTableWidgetItem* item = t->item(row, column)) t->editItem(item);  // a value cell takes the typing at once
+        }
+    };
+    if (position >= 0) {
+        const int target = position + (next ? 1 : -1);
+        if (target >= 0 && target < cells) {
+            focusCell(target);
+        } else {
+            QWidget* button = next ? static_cast<QWidget*>(acceptButton()) : static_cast<QWidget*>(cancelButton());
+            t->clearFocus();
+            button->setFocus();
+        }
+        return true;
+    }
+    if (focus == acceptButton()) {
+        if (next) cancelButton()->setFocus();
+        else if (cells > 0) focusCell(cells - 1);
+        else cancelButton()->setFocus();
+        return true;
+    }
+    if (focus == cancelButton()) {
+        if (!next) acceptButton()->setFocus();
+        else if (cells > 0) focusCell(0);
+        else acceptButton()->setFocus();
+        return true;
+    }
+    if (cells > 0) {
+        focusCell(next ? 0 : cells - 1);
+        return true;
+    }
+    return CypeDialog::focusNextPrevChild(next);
 }
 
 QWidget* PanelLoadsDialog::buildTable(Table& t, QWidget* parent) {
@@ -161,6 +246,7 @@ QWidget* PanelLoadsDialog::buildTable(Table& t, QWidget* parent) {
     t.widget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);  // measured: left-aligned headers
     t.widget->setSelectionBehavior(QAbstractItemView::SelectRows);
     t.widget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    t.widget->setTabKeyNavigation(false);  // the sequence is driven by focusNextPrevChild
     t.widget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     t.widget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     for (int c = 2; c < static_cast<int>(labels.size()); ++c) t.widget->horizontalHeader()->setSectionResizeMode(c, QHeaderView::ResizeToContents);
@@ -326,6 +412,7 @@ void PanelLoadsDialog::accept() {
 SurfaceLoadDialog::SurfaceLoadDialog(const QString& title, const LoadCaseSet& cases, const std::vector<Point3>& polygon, const SurfaceLoadData& initial,
                                      QWidget* parent)
     : CypeDialog(title, parent), m_cases(cases), m_polygon(polygon), m_horizontal(isHorizontalPolygon(polygon)), m_last(initial) {
+    setHelpable();  // measured: the book icon is in the title bar of this dialog too (texts of its balloons NOT MEASURED)
     if (m_horizontal) m_last.type = SurfaceLoadType::Uniform;  // measured: a horizontal surface only has uniform loads
     auto* body = new QWidget(this);
     auto* column = new QVBoxLayout(body);
@@ -344,6 +431,7 @@ SurfaceLoadDialog::SurfaceLoadDialog(const QString& title, const LoadCaseSet& ca
     m_sense = new QLabel(body);
     m_sense->setObjectName(QStringLiteral("senseLabel"));
     column->addWidget(m_sense);
+    addHelpItem([this] { return QRect(m_sense->mapTo(this, QPoint(0, 0)), m_sense->size()); }, tr("Sentido positivo de la carga"));  // balloon text ASSUMED (#65051)
     column->addWidget(separator(body));
 
     if (!m_horizontal) {

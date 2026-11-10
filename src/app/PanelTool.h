@@ -6,6 +6,7 @@
 #include <QString>
 #include <functional>
 #include <optional>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -140,7 +141,8 @@ private:
     void toggleLoads(const std::vector<int>& ids);
     void createPanelFromPolyline();
     void createSurfaceFromPolyline();
-    void applyMove(const cc::core::Point3& delta);
+    void applyMove(const cc::core::Point3& delta);  ///< destination chosen: the displacement becomes pending
+    void commitMove();                              ///< RMB with a pending displacement: moves the vertices (or #65133 / #65134)
     void paint(QPainter& painter, const Viewport3D& viewport) const;
     const std::vector<cc::core::Point3>* movingPolygon() const;
 
@@ -161,6 +163,7 @@ private:
     std::set<int> m_selPanels;
     std::set<int> m_selLoads;
     std::set<int> m_selVertices;
+    std::map<int, cc::core::Point3> m_pending;  ///< Mover: displacement chosen per vertex, applied by the RMB (measured: the new edges stay green dashed until then)
     int m_movingId = 0;                         ///< panel / surface load of the Mover command
     std::optional<int> m_side;
     cc::core::PanelDirectionMode m_direction = cc::core::PanelDirectionMode::Parallel;

@@ -10,7 +10,10 @@
 #include <cmath>
 #include <map>
 #include <numbers>
+#include <tuple>
 
+#include "core/bar_load.h"
+#include "core/panel_distribution.h"
 #include "NodalLoadDialogs.h"
 #include "NodalLoadTool.h"
 #include "PanelDialogs.h"
@@ -401,6 +404,7 @@ void PanelTool::resetSteps() {
     m_points.clear();
     m_contour.clear();
     m_selVertices.clear();
+    m_pending.clear();
     m_movingId = 0;
     m_side.reset();
     m_copySource = 0;
@@ -630,7 +634,9 @@ void PanelTool::act(Viewport3D* viewport) {
                 if (m_mode == Mode::SurfMove) showMoveBox();  // measured: RMB without a selection shows the box again
                 else resetSteps();
             } else if (m_step == 1) {
-                if (m_selVertices.empty()) {
+                if (!m_pending.empty()) {
+                    commitMove();  // measured: the RMB applies the displacement chosen
+                } else if (m_selVertices.empty()) {
                     resetSteps();  // «se finaliza la ejecución»
                 } else {
                     info(tr("A continuación, seleccione el punto que se tomará como referencia para el desplazamiento y, posteriormente, seleccione el destino de dicho punto de referencia."));
@@ -722,19 +728,43 @@ void PanelTool::rightClicked() {
 }
 
 void PanelTool::applyMove(const Point3& delta) {
-    ContourError why = ContourError::None;
-    const std::vector<int> vertices(m_selVertices.begin(), m_selVertices.end());
-    if (m_mode == Mode::PanelMove) {
-        if (movePanelVertices(*m_project, *m_undo, m_movingId, vertices, delta, &why) == PanelError::InvalidContour)
-            warn(QString::fromStdString(panelContourMessage(false, true)), true);  // #65133, measured «Error»
-    } else {
-        std::vector<int> moved;
-        if (moveSurfaceLoadVertices(*m_project, *m_undo, m_movingId, vertices, delta, m_alsoOther, &moved, &why) == PanelError::InvalidContour)
-            warn(QString::fromStdString(panelContourMessage(true, true)), true);
+    for (int v : m_selVertices) {
+        Point3& total = m_pending[v];
+        total = {total.x + delta.x, total.y + delta.y, total.z + delta.z};
     }
     m_points.clear();
     m_selVertices.clear();
-    m_step = 1;  // measured: back to the choice of vertices
+    m_step = 1;  // measured: back to the choice of vertices, the new edges stay green dashed until the RMB
+    configureViewports();
+    announce();
+}
+
+void PanelTool::commitMove() {
+    // Vertices with the same displacement move together; usually there is a single group.
+    std::vector<std::pair<Point3, std::vector<int>>> groups;
+    for (const auto& [vertex, delta] : m_pending) {
+        auto it = std::find_if(groups.begin(), groups.end(), [&](const auto& g) { return g.first == delta; });
+        if (it == groups.end()) groups.push_back({delta, {vertex}});
+        else it->second.push_back(vertex);
+    }
+    ContourError why = ContourError::None;
+    bool failed = false;
+    if (groups.size() > 1) m_undo->beginMacro(tr("Mover").toStdString());
+    for (const auto& [delta, vertices] : groups) {
+        if (m_mode == Mode::PanelMove) {
+            if (movePanelVertices(*m_project, *m_undo, m_movingId, vertices, delta, &why) == PanelError::InvalidContour) failed = true;
+        } else {
+            std::vector<int> moved;
+            if (moveSurfaceLoadVertices(*m_project, *m_undo, m_movingId, vertices, delta, m_alsoOther, &moved, &why) == PanelError::InvalidContour) failed = true;
+        }
+        if (failed) break;
+    }
+    if (groups.size() > 1) m_undo->endMacro();
+    m_pending.clear();
+    m_selVertices.clear();
+    m_points.clear();
+    if (failed) warn(QString::fromStdString(panelContourMessage(m_mode == Mode::SurfMove, true)), true);  // #65133 / #65134, measured «Error»
+    m_step = 1;
     configureViewports();
     announce();
 }
@@ -969,6 +999,82 @@ void PanelTool::paint(QPainter& painter, const Viewport3D& viewport) const {
         }
     }
 
+    // At rest (no command) the loads of the panels already distributed over the bars: vertical strips of the colour of the load case along every bar with
+    // a label in kN/m, those acting upwards below the bar (measured, research 14.1).
+    if (m_mode == Mode::None && viewport.loadsVisible() && (!m_project->panels.items.empty() || !m_project->surfaceLoads.items.empty())) {
+        const PanelDistribution distribution = distributePanels(*m_project);
+        // Loads of the same bar and the same side stack in the order of the hypotheses (measured: Peso propio nearest the bar, then CM, T, V ...).
+        const auto caseIndex = [&cases](int id) {
+            for (std::size_t i = 0; i < cases.cases.size(); ++i)
+                if (cases.cases[i].id == id) return static_cast<int>(i);
+            return -1;
+        };
+        std::vector<const PanelBarLoad*> ordered;
+        for (const PanelBarLoad& load : distribution.loads)
+            if (caseInView(load.loadCaseId)) ordered.push_back(&load);
+        std::stable_sort(ordered.begin(), ordered.end(), [&](const PanelBarLoad* a, const PanelBarLoad* b) {
+            return a->barId != b->barId ? a->barId < b->barId : caseIndex(a->loadCaseId) < caseIndex(b->loadCaseId);
+        });
+        std::map<std::tuple<int, long, long, long>, double> stacked;  // (bar, side) -> height already used
+        for (const PanelBarLoad* ptr : ordered) {
+            const PanelBarLoad& load = *ptr;
+            const auto frame = barLocalAxes(m_project->structure, load.barId);
+            if (!frame || frame->length <= 1e-9 || !viewport.visibleAfterClipping(toVec(frame->origin))) continue;
+            BarLoadData data = barLoadDefaults(load.loadCaseId);
+            data.axes = BarLoadAxes::Global;
+            data.direction = LoadDirection::UserVector;
+            data.userVector = load.direction;
+            data.relative = false;
+            data.value1 = load.q;
+            data.value2 = 0.0;
+            const bool whole = load.s1 <= 0.001 && load.s2 + 0.001 >= frame->length;
+            data.type = whole ? BarLoadType::Uniform : BarLoadType::Strip;
+            data.start = load.s1;
+            data.end = load.s2;
+            const BarLoadDrawing drawing = barLoadDrawing(data, *frame, scales);
+            if (!drawing.valid) continue;
+            const Point3 dir = barLoadDirection(data, *frame);
+            const auto key = std::make_tuple(load.barId, std::lround(dir.x * 1000.0), std::lround(dir.y * 1000.0), std::lround(dir.z * 1000.0));
+            double& used = stacked[key];
+            const Point3 shift{-dir.x * used, -dir.y * used, -dir.z * used};
+            used += drawing.sizeM;
+            const auto moved = [&shift](const Point3& p) { return Point3{p.x + shift.x, p.y + shift.y, p.z + shift.z}; };
+            const QColor line = caseColour(load.loadCaseId);
+            QColor fill = line;
+            fill.setAlpha(60);
+            QPolygonF outline;
+            bool visible = true;
+            for (const Point3& point : drawing.outline) {
+                QPointF q;
+                if (!project(moved(point), q)) { visible = false; break; }
+                outline << q;
+            }
+            if (!visible || outline.size() < 3) continue;
+            painter.setBrush(fill);
+            painter.setPen(QPen(line, 1.0));
+            painter.drawPolygon(outline);
+            for (const auto& [from, to] : drawing.ticks) {
+                QPointF a, b;
+                if (project(moved(from), a) && project(moved(to), b)) painter.drawLine(a, b);
+            }
+            const double angle0 = std::atan2(outline[1].y() - outline[0].y(), outline[1].x() - outline[0].x()) * 180.0 / std::numbers::pi;
+            for (const BarLoadLabel& label : drawing.labels) {
+                QPointF at;
+                if (!project(moved(label.anchor), at)) continue;
+                double angle = angle0;
+                if (angle > 90.0 + 1e-6) angle -= 180.0;
+                if (angle < -90.0 + 1e-6) angle += 180.0;
+                const QString text = QString::fromStdString(label.text);
+                painter.save();
+                painter.setPen(line);
+                painter.translate(at);
+                painter.rotate(angle);
+                painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, -3.0), text);
+                painter.restore();
+            }
+        }
+    }
+
     // Panels: contour and arrow, only while a command of Paños is active (measured).
     if (panelMode) {
         for (const Panel& panel : m_project->panels.items) {
@@ -1047,6 +1153,29 @@ void PanelTool::paint(QPainter& painter, const Viewport3D& viewport) const {
                 painter.setBrush(chosen ? kOrange : QColor(0, 90, 220));
                 painter.setPen(Qt::NoPen);
                 painter.drawRect(QRectF(poly[i].x() - 4, poly[i].y() - 4, 8, 8));
+            }
+            if (!m_pending.empty()) {  // displacement chosen, not yet applied: the new edges in green dashed with the new vertices (measured)
+                const std::size_t count = polygon->size();
+                const auto moved = [&](std::size_t i) {
+                    Point3 p = (*polygon)[i];
+                    if (const auto it = m_pending.find(static_cast<int>(i)); it != m_pending.end()) p = {p.x + it->second.x, p.y + it->second.y, p.z + it->second.z};
+                    return p;
+                };
+                painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(kSideGreen, 1.5, Qt::DashLine));
+                for (std::size_t i = 0; i < count; ++i) {
+                    const std::size_t j = (i + 1) % count;
+                    if (!m_pending.count(static_cast<int>(i)) && !m_pending.count(static_cast<int>(j))) continue;
+                    QPointF a, b;
+                    if (project(moved(i), a) && project(moved(j), b)) painter.drawLine(a, b);
+                }
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(QColor(0, 90, 220));
+                for (const auto& [vertex, delta] : m_pending) {
+                    QPointF a;
+                    if (vertex >= 0 && static_cast<std::size_t>(vertex) < count && project(moved(static_cast<std::size_t>(vertex)), a))
+                        painter.drawRect(QRectF(a.x() - 4, a.y() - 4, 8, 8));
+                }
             }
             if (m_step == 3 && m_points.size() == 1 && viewport.snapMode()) {  // preview of the destination
                 const Vec3 cursor = viewport.cursorWorld();

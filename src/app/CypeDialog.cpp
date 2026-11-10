@@ -5,7 +5,10 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
+#include <QIcon>
+#include <QPixmap>
 #include <QToolButton>
+#include <algorithm>
 #include <QVBoxLayout>
 
 namespace cc::app {
@@ -81,7 +84,120 @@ void CypeDialog::setMaximizable() {
     maximise->setCursor(Qt::ArrowCursor);
     connect(maximise, &QToolButton::clicked, this, [this] { isMaximized() ? showNormal() : showMaximized(); });
     m_titleLayout->insertWidget(m_titleLayout->count() - 1, maximise);
-    m_titleLayout->setContentsMargins(2 * kTitleBarHeight, 0, 0, 0);  // balances both buttons
+    m_titleLayout->setContentsMargins(m_helpButton ? 0 : 2 * kTitleBarHeight, 0, 0, 0);  // balances both buttons (not with the help button: see setHelpable)
+}
+
+// Transparent layer over the whole dialog: draws the frames of the help mode and takes its clicks (the book button stays above it).
+class CypeDialog::HelpOverlay : public QWidget {
+public:
+    HelpOverlay(CypeDialog* owner) : QWidget(owner), m_owner(owner) {
+        setAttribute(Qt::WA_NoSystemBackground);
+        setMouseTracking(true);
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter painter(this);
+        for (std::size_t i = 0; i < m_owner->m_helpItems.size(); ++i) {
+            const QRect area = m_owner->m_helpItems[i].area();
+            if (area.isEmpty()) continue;
+            const bool chosen = static_cast<int>(i) == m_owner->m_helpSelected;
+            painter.setPen(QPen(chosen ? QColor(255, 200, 0) : QColor(0, 120, 215), 2));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(area.adjusted(-1, -1, 1, 1));
+        }
+    }
+    void mousePressEvent(QMouseEvent* event) override {
+        const QPoint at = event->position().toPoint();
+        m_owner->helpClick(at);
+        update();
+    }
+
+private:
+    CypeDialog* m_owner;
+};
+
+void CypeDialog::setHelpable() {
+    auto* help = new QToolButton(m_titleBar);
+    help->setObjectName(QStringLiteral("dlgClose"));
+    help->setFixedSize(kTitleBarHeight, kTitleBarHeight);
+    help->setCursor(Qt::ArrowCursor);
+    // Book icon (two pages), drawn so that no resource is needed.
+    QPixmap book(32, 32);
+    book.fill(Qt::transparent);
+    {
+        QPainter p(&book);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(Qt::white, 1.6));
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(QRectF(5, 8, 10, 16));
+        p.drawRect(QRectF(15, 8, 10, 16));
+        p.drawLine(QPointF(8, 12), QPointF(12, 12));
+        p.drawLine(QPointF(18, 12), QPointF(22, 12));
+        p.drawLine(QPointF(8, 16), QPointF(12, 16));
+        p.drawLine(QPointF(18, 16), QPointF(22, 16));
+    }
+    help->setIcon(QIcon(book));
+    help->setIconSize(QSize(20, 20));
+    m_helpButton = help;
+    connect(help, &QToolButton::clicked, this, [this] { setHelpMode(!m_helpMode); });
+    m_titleLayout->insertWidget(1, help);  // measured: book, maximise, close
+    m_titleLayout->setContentsMargins(0, 0, 0, 0);  // measured: the title is centred in the space left of the buttons
+    m_overlay = new HelpOverlay(this);
+    m_overlay->hide();
+}
+
+void CypeDialog::addHelpItem(std::function<QRect()> area, const QString& text) { m_helpItems.push_back({std::move(area), text}); }
+
+void CypeDialog::setHelpMode(bool on) {
+    m_helpMode = on;
+    m_helpSelected = -1;
+    if (!m_overlay) return;
+    m_overlay->setGeometry(rect());
+    m_overlay->setVisible(on);
+    if (on) {
+        m_overlay->raise();
+        if (m_helpButton) m_helpButton->raise();
+        m_titleBar->raise();  // the title bar (with the book and the close button) stays reachable
+    } else {
+        showBalloon(QString(), QPoint());
+    }
+    update();
+}
+
+void CypeDialog::showBalloon(const QString& text, const QPoint& at) {
+    if (!m_balloon) {
+        m_balloon = new QLabel(this);
+        m_balloon->setObjectName(QStringLiteral("helpBalloon"));
+        m_balloon->setWordWrap(true);
+        m_balloon->setMaximumWidth(260);
+        m_balloon->setMargin(5);
+        m_balloon->setStyleSheet(QStringLiteral("QLabel#helpBalloon { background: #FFFFE1; color: black; border: 1px solid #555555; }"));
+    }
+    if (text.isEmpty()) {
+        m_balloon->hide();
+        return;
+    }
+    m_balloon->setText(text);
+    m_balloon->adjustSize();
+    QPoint where = at + QPoint(8, 14);
+    where.setX(std::clamp(where.x(), 0, std::max(0, width() - m_balloon->width())));
+    where.setY(std::clamp(where.y(), 0, std::max(0, height() - m_balloon->height())));
+    m_balloon->move(where);
+    m_balloon->show();
+    m_balloon->raise();
+}
+
+QString CypeDialog::helpBalloonText() const { return m_balloon && m_balloon->isVisible() ? m_balloon->text() : QString(); }
+
+int CypeDialog::helpClick(const QPoint& point) {
+    if (!m_helpMode) return -1;
+    m_helpSelected = -1;
+    for (std::size_t i = 0; i < m_helpItems.size(); ++i)
+        if (const QRect area = m_helpItems[i].area(); !area.isEmpty() && area.adjusted(-1, -1, 1, 1).contains(point)) m_helpSelected = static_cast<int>(i);
+    if (m_overlay) m_overlay->update();
+    showBalloon(m_helpSelected >= 0 ? m_helpItems[static_cast<std::size_t>(m_helpSelected)].text : QString(), point);
+    return m_helpSelected;
 }
 
 void CypeDialog::setCompactTitle() {
