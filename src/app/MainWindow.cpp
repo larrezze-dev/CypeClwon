@@ -61,6 +61,7 @@
 #include "ShellPropertiesTool.h"
 #include "NodalLoadTool.h"
 #include "BarLoadTool.h"
+#include "PanelTool.h"
 #include "ShellLoadTool.h"
 #include "UserMessages.h"
 #include "ViewBar.h"
@@ -214,6 +215,7 @@ void MainWindow::createWorkArea() {
             m_nodalLoadTool->deactivate();
             m_barLoadTool->deactivate();
             m_shellLoadTool->deactivate();
+            m_panelTool->deactivate();
         }
         for (QMdiSubWindow* sub : m_workArea->mdiArea()->subWindowList())
             if (auto* viewport = viewportOf(sub->widget())) {
@@ -263,6 +265,8 @@ void MainWindow::createWorkArea() {
             statusBar()->showMessage(BarLoadTool::statusText(m_barLoadTool->mode()));
         else if (m_shellLoadTool->mode() != ShellLoadTool::Mode::None)
             statusBar()->showMessage(ShellLoadTool::statusText(m_shellLoadTool->mode()));
+        else if (m_panelTool->mode() != PanelTool::Mode::None)
+            statusBar()->showMessage(PanelTool::statusText(m_panelTool->mode(), m_panelTool->step()));
     });
     connect(m_nodeTool, &NodeTool::aboutToActivate, this, [this] {
         m_leftPanel->layersPanel()->assignToolButton()->setChecked(false);
@@ -484,6 +488,7 @@ void MainWindow::createWorkArea() {
         m_shellPropsTool->deactivate();
         m_barLoadTool->deactivate();
         m_shellLoadTool->deactivate();
+        m_panelTool->deactivate();
     });
     // Carga > Barras (T-P7-03): same rules; it shares the window «Propiedades - Hipótesis vista» with the nodal loads.
     m_barLoadTool->setHost(m_nodalLoadTool);
@@ -502,6 +507,7 @@ void MainWindow::createWorkArea() {
         m_shellPropsTool->deactivate();
         m_nodalLoadTool->deactivate();
         m_shellLoadTool->deactivate();
+        m_panelTool->deactivate();
     });
     // Carga > Láminas (T-P7-04): same rules and the same shared window.
     m_shellLoadTool->setHost(m_nodalLoadTool);
@@ -520,11 +526,32 @@ void MainWindow::createWorkArea() {
         m_shellPropsTool->deactivate();
         m_nodalLoadTool->deactivate();
         m_barLoadTool->deactivate();
+        m_panelTool->deactivate();
+    });
+    // Carga > Paños / Cargas superficiales (T-P7-05): same rules and the same shared window.
+    m_panelTool->setHost(m_nodalLoadTool);
+    m_panelTool->setDialogParent(this);
+    connect(m_panelTool, &PanelTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_panelTool, &PanelTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
+        m_shellPropsTool->deactivate();
+        m_nodalLoadTool->deactivate();
+        m_barLoadTool->deactivate();
+        m_shellLoadTool->deactivate();
     });
     const auto stopLoadsWhen = [this](auto* tool) {
         connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_nodalLoadTool, &NodalLoadTool::deactivate);
         connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_barLoadTool, &BarLoadTool::deactivate);
         connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_shellLoadTool, &ShellLoadTool::deactivate);
+        connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_panelTool, &PanelTool::deactivate);
     };
     stopLoadsWhen(m_nodeTool);
     stopLoadsWhen(m_barTool);
@@ -650,6 +677,7 @@ void MainWindow::createWorkArea() {
         m_nodalLoadTool->deactivate();
         m_barLoadTool->deactivate();
         m_shellLoadTool->deactivate();
+        m_panelTool->deactivate();
     });
     connect(m_importTool, &ImportTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text, 6000); });
     connect(m_importTool, &ImportTool::messageRequested, this, [this](const QString& title, const QString& text, bool error) {
@@ -699,6 +727,7 @@ void MainWindow::createWorkArea() {
             m_nodalLoadTool->structureChanged();
             m_barLoadTool->structureChanged();
             m_shellLoadTool->structureChanged();
+            m_panelTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -944,6 +973,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_nodalLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_barLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_shellLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_panelTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -990,6 +1020,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_nodalLoadTool->addViewport(viewport);
         m_barLoadTool->addViewport(viewport);
         m_shellLoadTool->addViewport(viewport);
+        m_panelTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1467,6 +1498,48 @@ void MainWindow::buildGeometryTab() {
     loadShells->addMediumAction(m_shellLoadTool->deleteAction());
     loadShells->addMediumAction(m_shellLoadTool->caseAction());
     loadShells->addMediumAction(m_shellLoadTool->selfWeightAction());
+
+    // Carga > Paños and Cargas superficiales (cp_*, measured): Nuevo (large) | Editar / Borrar (stacked) | Mover | Dividir | Dirección de reparto (large);
+    // Nueva | Editar / Borrar | Hipótesis (small, alone) | Copiar | Mover | Asignar (large).
+    m_panelTool = new PanelTool(this);
+    using PM = PanelTool::Mode;
+    icon(m_panelTool->action(PM::PanelNew), "panel_new");
+    icon(m_panelTool->action(PM::PanelEdit), "panel_edit");
+    icon(m_panelTool->action(PM::PanelDelete), "panel_delete");
+    icon(m_panelTool->action(PM::PanelMove), "panel_move");
+    icon(m_panelTool->action(PM::PanelDivide), "panel_divide");
+    icon(m_panelTool->action(PM::PanelDirection), "panel_direction");
+    icon(m_panelTool->action(PM::SurfNew), "surface_load_new");
+    icon(m_panelTool->action(PM::SurfEdit), "surface_load_edit");
+    icon(m_panelTool->action(PM::SurfDelete), "surface_load_delete");
+    icon(m_panelTool->action(PM::SurfCase), "surface_load_case");
+    icon(m_panelTool->action(PM::SurfCopy), "surface_load_copy");
+    icon(m_panelTool->action(PM::SurfMove), "surface_load_move");
+    icon(m_panelTool->action(PM::SurfAssign), "surface_load_assign");
+    SARibbonPanel* loadPanels = loadTab->addPanel(tr("Paños"));
+    loadPanels->addLargeAction(m_panelTool->action(PM::PanelNew));
+    loadPanels->addMediumAction(m_panelTool->action(PM::PanelEdit));
+    loadPanels->addMediumAction(m_panelTool->action(PM::PanelDelete));
+    loadPanels->addLargeAction(m_panelTool->action(PM::PanelMove));
+    loadPanels->addLargeAction(m_panelTool->action(PM::PanelDivide));
+    loadPanels->addLargeAction(m_panelTool->action(PM::PanelDirection));
+    SARibbonPanel* loadSurfaces = loadTab->addPanel(tr("Cargas superficiales"));
+    loadSurfaces->addLargeAction(m_panelTool->action(PM::SurfNew));
+    loadSurfaces->addMediumAction(m_panelTool->action(PM::SurfEdit));
+    loadSurfaces->addMediumAction(m_panelTool->action(PM::SurfDelete));
+    loadSurfaces->addSmallAction(m_panelTool->action(PM::SurfCase));
+    loadSurfaces->addLargeAction(m_panelTool->action(PM::SurfCopy));
+    loadSurfaces->addLargeAction(m_panelTool->action(PM::SurfMove));
+    loadSurfaces->addLargeAction(m_panelTool->action(PM::SurfAssign));
+    // Measured: Dividir and Hipótesis show no tooltip at all (the action would fall back to its text): swallow the tooltip events of those buttons.
+    struct NoTooltip : QObject {
+        using QObject::QObject;
+        bool eventFilter(QObject*, QEvent* event) override { return event->type() == QEvent::ToolTip; }
+    };
+    auto* noTooltip = new NoTooltip(this);
+    for (QToolButton* button : loadTab->findChildren<QToolButton*>())
+        for (QAction* quiet : m_panelTool->actionsWithoutTooltip())
+            if (button->defaultAction() == quiet) button->installEventFilter(noTooltip);
 }
 
 void MainWindow::buildObraTab() {

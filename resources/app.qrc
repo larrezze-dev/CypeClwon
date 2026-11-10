@@ -25,6 +25,19 @@
     <file>icons/shell_load_delete.svg</file>
     <file>icons/shell_load_case.svg</file>
     <file>icons/shell_load_selfweight.svg</file>
+    <file>icons/panel_new.svg</file>
+    <file>icons/panel_edit.svg</file>
+    <file>icons/panel_delete.svg</file>
+    <file>icons/panel_move.svg</file>
+    <file>icons/panel_divide.svg</file>
+    <file>icons/panel_direction.svg</file>
+    <file>icons/surface_load_new.svg</file>
+    <file>icons/surface_load_edit.svg</file>
+    <file>icons/surface_load_delete.svg</file>
+    <file>icons/surface_load_case.svg</file>
+    <file>icons/surface_load_copy.svg</file>
+    <file>icons/surface_load_move.svg</file>
+    <file>icons/surface_load_assign.svg</file>
     <file>icons/support_external.svg</file>
     <file>icons/support_internal.svg</file>
     <file>icons/support_ligature.svg</file>

@@ -6,6 +6,7 @@
 #include "core/load_case_edit.h"
 #include "core/project_file.h"
 #include "core/undo_stack.h"
+#include "core/panel.h"
 #include "core/shell_load.h"
 #include "core/shell_properties.h"
 
@@ -50,6 +51,32 @@ int main(int argc, char** argv) {
                 load.shellId = shell;
                 doc.project.shellLoads.items.push_back(load);
             }
+        }
+        const auto saved = saveProjectFile(argv[1], doc);
+        if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
+        return 0;
+    }
+    if (argc > 2 && std::string(argv[2]).rfind("panels", 0) == 0) {  // T-P7-05 visual checks: 4 x 4 m on four bars; "panelsload" adds a panel, rows and a surface load
+        auto& st = doc.project.structure;
+        const int n1 = st.addNode({0, 0, 0}), n2 = st.addNode({4, 0, 0}), n3 = st.addNode({4, 4, 0}), n4 = st.addNode({0, 4, 0});
+        st.addBar(n1, n2, 0);
+        st.addBar(n2, n3, 0);
+        st.addBar(n3, n4, 0);
+        st.addBar(n4, n1, 0);
+        if (std::string(argv[2]) == "panelsload") {
+            Panel panel;
+            panel.id = doc.project.panels.nextId++;
+            panel.vertices = {{0, 0, 0}, {4, 0, 0}, {4, 4, 0}, {0, 4, 0}};
+            panel.direction = {1, 0, 0};
+            panel.loads.push_back(surfaceLoadDefaults(0));
+            panel.loads.back().value = 10.0;
+            doc.project.panels.items.push_back(panel);
+            SurfaceLoad load;
+            load.id = doc.project.surfaceLoads.nextId++;
+            load.contour = {{0, 0, 0}, {2, 0, 0}, {2, 2, 0}, {0, 2, 0}};
+            load.data = surfaceLoadDefaults(0);
+            load.data.value = 8.0;
+            doc.project.surfaceLoads.items.push_back(load);
         }
         const auto saved = saveProjectFile(argv[1], doc);
         if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }

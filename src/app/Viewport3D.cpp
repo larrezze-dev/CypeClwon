@@ -1,4 +1,4 @@
-﻿#include "Viewport3D.h"
+#include "Viewport3D.h"
 #include "SupportPictograms.h"
 
 #include <QFont>
@@ -204,7 +204,7 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
         }
     }
     m_drag = actionFor(event->buttons());
-    const bool selectionAtStart = m_selectionMode, snapAtStart = m_snapMode;  // a handler may switch the mode under our feet
+    const bool selectionAtStart = m_selectionMode, snapAtStart = m_snapMode, pickAtStart = m_pickMode;  // a handler may switch the mode under our feet
     if (!m_committed) m_committed = m_camera.view();
     if (m_drag == DragAction::Orbit && m_rotateAroundPoint) m_orbitPivot = orbitPivotAt(event->position());
     if (m_zoomMark && event->button() == Qt::LeftButton && width() > 0 && height() > 0) {
@@ -223,6 +223,8 @@ void Viewport3D::mousePressEvent(QMouseEvent* event) {
         emit pointEntered(cursorWorld(), m_snap);
     }
     if (snapAtStart && event->button() == Qt::RightButton) emit rightClicked();
+    if (pickAtStart && event->button() == Qt::LeftButton) emit pickClicked(event->position(), event->modifiers());
+    if (pickAtStart && event->button() == Qt::RightButton) emit actOnSelection();
     event->accept();
 }
 
@@ -290,6 +292,7 @@ void Viewport3D::mouseMoveEvent(QMouseEvent* event) {
     m_cursorInside = true;
     if (m_selectionMode) updateHover(m_cursor);
     if (m_snapMode) updateSnap(m_cursor);
+    if (m_pickMode) update();  // the hovered panel / side follows the pointer
     if (!m_rubberChain.empty()) update();  // the elastic line follows the pointer
     emit cursorMoved(screenToTargetPlane(event->position()));
     event->accept();
@@ -530,7 +533,24 @@ void Viewport3D::rebuildSnapModel() {
     m_snapModel = std::move(model);
 }
 
-void Viewport3D::updateFocusPolicy() { setFocusPolicy(m_selectionMode || m_snapMode ? Qt::ClickFocus : Qt::NoFocus); }
+void Viewport3D::updateFocusPolicy() { setFocusPolicy(m_selectionMode || m_snapMode || m_pickMode ? Qt::ClickFocus : Qt::NoFocus); }
+
+void Viewport3D::setPickMode(bool on) {
+    if (m_pickMode == on) return;
+    m_pickMode = on;
+    updateFocusPolicy();
+    update();
+}
+
+void Viewport3D::setOverlay(std::function<void(QPainter&)> overlay) {
+    m_overlay = std::move(overlay);
+    update();
+}
+
+void Viewport3D::setDashedBars(std::function<bool(int)> dashed) {
+    m_dashedBars = std::move(dashed);
+    update();
+}
 
 void Viewport3D::setTextSizePercent(double percent) {
     if (!(percent > 0.0) || m_textSizePercent == percent) return;
@@ -753,6 +773,11 @@ void Viewport3D::edgePress(QMouseEvent* event) {
 }
 
 void Viewport3D::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Escape && m_pickMode && !m_selectionMode && !m_snapMode) {
+        event->accept();
+        emit escapePressed();
+        return;
+    }
     if (event->key() == Qt::Key_Escape && (m_selectionMode || m_snapMode)) {
         event->accept();
         if (m_selectionMode && m_windowStart) {  // first Esc only cancels the pending window
@@ -1095,7 +1120,8 @@ void Viewport3D::drawStructure(QPainter& painter) const {
             painter.setPen(QPen(QColor(30, 30, 30), 10.0, Qt::SolidLine, Qt::FlatCap));
             painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
         }
-        painter.setPen(QPen(colour, rendered ? 7.0 : 1.5, Qt::SolidLine, rendered ? Qt::FlatCap : Qt::SquareCap));
+        const bool dashed = m_loadsVisible && m_dashedBars && m_dashedBars(bar.id);  // «Asignar»: bars off for surface loads (#64683)
+        painter.setPen(QPen(colour, rendered ? 7.0 : 1.5, dashed ? Qt::DashLine : Qt::SolidLine, rendered ? Qt::FlatCap : Qt::SquareCap));
         painter.drawLine(QPointF(ax, ay), QPointF(bx, by));
     }
 }
@@ -2418,6 +2444,7 @@ void Viewport3D::paintGL() {
     drawNodalLoads(painter);
     drawBarLoads(painter);
     drawShellLoads(painter);
+    if (m_overlay) m_overlay(painter);
     drawMoveRubber(painter);
     drawBarRubber(painter);
     drawBarEnds(painter);

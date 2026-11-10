@@ -181,6 +181,14 @@ public:
     void setWindowOnlySelection(bool on);
     /// Bars the selection tool cannot capture (like setNodeExclusion). Empty function: all.
     void setBarExclusion(std::function<bool(int)> excluded);
+    /// Pick mode (Carga > Paños / Cargas superficiales): LMB emits pickClicked() (the tool keeps its own selection and hit-tests the panels and
+    /// surface loads it draws), RMB emits actOnSelection(); Esc emits escapePressed(). Independent of the selection and snap modes.
+    void setPickMode(bool on);
+    bool pickMode() const { return m_pickMode; }
+    /// Extra drawing of a tool (panels, surface loads), painted after the shell loads. Empty function: nothing.
+    void setOverlay(std::function<void(class QPainter&)> overlay);
+    /// Bars drawn dashed in the Carga tab (the ones "Asignar" switched off for surface loads). Empty function: none.
+    void setDashedBars(std::function<bool(int)> dashed);
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
     QPointF cursorPosition() const { return m_cursor; }
     /// Nodes the selection tool cannot capture (neither by click nor by window; they are not highlighted either). Empty function: all.
@@ -409,6 +417,8 @@ signals:
     void snapChanged();
     /// Left click in snap mode: the world position entered (snapped or free) and the snap that produced it.
     void pointEntered(const cc::core::Vec3& world, const cc::core::SnapResult& snap);
+    /// Left click in pick mode (widget position, modifiers).
+    void pickClicked(const QPointF& pos, Qt::KeyboardModifiers modifiers);
     /// Right button in selection mode: act on the selected elements.
     void actOnSelection();
     /// Right button in snap mode (Nudos > Mover cancels with it).
@@ -494,6 +504,9 @@ private:
     bool m_shellSelfWeightDrawn = false;
     int m_shellSelfWeightCase = 0;
     std::function<bool(int)> m_shellExcluded;
+    bool m_pickMode = false;
+    std::function<void(QPainter&)> m_overlay;
+    std::function<bool(int)> m_dashedBars;
     bool m_windowOnlySelection = false;
     bool m_selfWeightDrawn = false;
     int m_selfWeightCase = 0;
