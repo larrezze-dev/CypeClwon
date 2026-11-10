@@ -69,6 +69,7 @@
 #include <QActionGroup>
 #include "WorkArea.h"
 #include "core/general_data.h"
+#include "core/load_case_edit.h"
 #include "core/project.h"
 #include "core/project_file.h"
 #include "core/version.h"
@@ -879,8 +880,15 @@ void MainWindow::editGeneralData() {
     if (!m_projectOpen || !m_document) return;
     cc::core::Project& project = m_document->project;
     EmptyProjectWizard wizard(cc::core::generalDataOf(project), EmptyProjectWizard::Mode::Edit, this);
+    wizard.setLoadsSource(&project);
     if (wizard.exec() != QDialog::Accepted) return;
     const cc::core::GeneralData edited = wizard.generalData();
+    // Hypotheses deleted in "Hipótesis adicionales" take their loads with them (the window already asked when they had loads).
+    std::vector<int> removed;
+    for (const cc::core::LoadCase& before : project.loadCases.cases) {
+        if (!cc::core::findLoadCase(edited.loadCases, before.id)) removed.push_back(before.id);
+    }
+    for (const int id : removed) cc::core::deleteLoadCase(project, m_undo, id);
     if (cc::core::sameGeneralData(edited, cc::core::generalDataOf(project))) return;  // nothing changed: not "modified"
     m_undo.push(std::make_unique<cc::core::EditGeneralDataCommand>(project, edited));
 }

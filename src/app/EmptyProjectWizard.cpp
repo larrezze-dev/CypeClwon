@@ -279,6 +279,13 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
     });
     connect(addButton(tr("Hipótesis adicionales")), &QPushButton::clicked, this, [this] {
         AdditionalLoadsDialog dialog(m_loadCases, this);
+        if (m_loadsSource) {  // the scratch project of the window needs the loads to know which hypotheses have dependents
+            core::Project& scratch = dialog.scratchProject();
+            scratch.nodalLoads = m_loadsSource->nodalLoads;
+            scratch.barLoads = m_loadsSource->barLoads;
+            scratch.shellLoads = m_loadsSource->shellLoads;
+            scratch.nodeSupports = m_loadsSource->nodeSupports;
+        }
         if (dialog.exec() == QDialog::Accepted) m_loadCases = dialog.value();
     });
     connect(addButton(tr("Cimentación")), &QPushButton::clicked, this, [this] {

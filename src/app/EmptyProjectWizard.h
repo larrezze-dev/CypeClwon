@@ -29,6 +29,11 @@ public:
     /// What the page currently describes.
     cc::core::GeneralData generalData() const;
 
+    /// Obra > Datos generales on an open obra: the loads of `project` (nodal, bar, shell, prescribed displacements) are copied into
+    /// "Hipótesis adicionales" so that deleting a hypothesis that has loads asks first (#64905, measured on shell loads). The pointer is
+    /// only read while the window is open; the caller deletes the loads of the removed hypotheses on Aceptar.
+    void setLoadsSource(const cc::core::Project* project) { m_loadsSource = project; }
+
     const cc::core::StandardsSelection& standards() const { return m_standards; }
     const cc::core::ProfileSettings& profiles() const { return m_profiles; }
     const cc::core::ReinforcedConcreteSettings& reinforcedConcrete() const { return m_concrete; }
@@ -67,6 +72,7 @@ private:
     cc::core::MicropileSettings m_micropiles;
     cc::core::OptionsSettings m_options;
     cc::core::LoadCaseSet m_loadCases;
+    const cc::core::Project* m_loadsSource = nullptr;
     QPushButton* m_environmentButton = nullptr;
     QLineEdit* m_persistentEdit = nullptr;
     QLineEdit* m_seismicEdit = nullptr;
