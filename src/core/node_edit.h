@@ -68,6 +68,8 @@ private:
     NodeLigatures m_ligaturesBefore;  ///< ties before the merge (the node that goes away leaves them; restored by undo)
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the merge (the node that goes away leaves its diaphragm; restored by undo)
     BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< bar loads, reconciled against the model after the move (bars that vanish lose them)
+    Panels m_panelsBefore, m_panelsAfter;  ///< panels and surface loads whose vertices sit on the moved / merged node follow it
+    SurfaceLoads m_surfaceLoadsBefore, m_surfaceLoadsAfter;
     NodalLoads m_nodalLoadsBefore;    ///< nodal loads before the merge (those of the node that goes away move to the survivor; restored by undo)
     DeflectionData m_deflectionBefore, m_deflectionAfter;  ///< deflection groups, normalised against the model after the move
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties, reconciled against the model after the move
@@ -99,6 +101,8 @@ private:
     Diaphragms m_diaphragmsBefore;    ///< diaphragms before the deletion (deleted nodes leave them; restored by undo)
     BarLoads m_barLoadsBefore, m_barLoadsAfter;  ///< bar loads; those of the deleted bars (and of the two bars of a merge) go
     ShellLoads m_shellLoadsBefore, m_shellLoadsAfter;  ///< shell loads; those of the deleted shells go
+    Panels m_panelsBefore, m_panelsAfter;  ///< panels with a vertex on a deleted node go (not measured), with the surface loads they contain
+    SurfaceLoads m_surfaceLoadsBefore, m_surfaceLoadsAfter;
     NodalLoads m_nodalLoadsBefore;    ///< nodal loads before the deletion (the loads of the deleted nodes go with them; restored by undo)
     BucklingData m_bucklingBefore, m_bucklingAfter;  ///< buckling data; the merged bar takes the data of the first (lower id) bar it replaces
     ShellProperties m_shellPropsBefore, m_shellPropsAfter;  ///< shell properties; the deleted shells leave

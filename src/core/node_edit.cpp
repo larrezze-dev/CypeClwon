@@ -65,6 +65,8 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
     m_deflectionAfter = project.deflection;
     m_shellPropsBefore = project.shellProps;
     m_shellPropsAfter = project.shellProps;
+    m_panelsBefore = m_panelsAfter = project.panels;
+    m_surfaceLoadsBefore = m_surfaceLoadsAfter = project.surfaceLoads;
     if (auto it = project.nodeSupports.external.find(nodeId); it != project.nodeSupports.external.end()) m_externalBefore = it->second;
     if (auto it = project.nodeSupports.internal.find(nodeId); it != project.nodeSupports.internal.end()) m_internalBefore = it->second;
 
@@ -88,6 +90,11 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
             StructuralModel work = model;
             work.findNode(nodeId)->position = newPosition;
             m_barLoadsAfter = reconcileBarLoads(project.barLoads, model, work);
+        }
+        if (!project.panels.empty() || !project.surfaceLoads.items.empty()) {
+            StructuralModel work = model;
+            work.findNode(nodeId)->position = newPosition;
+            reconcilePanels(m_panelsAfter, m_surfaceLoadsAfter, model, work);
         }
         if (!project.deflection.empty() || !project.shellProps.empty()) {
             StructuralModel work = model;
@@ -117,6 +124,15 @@ MoveNodeCommand::MoveNodeCommand(Project& project, int nodeId, const Point3& new
         m_newShells.push_back(moved);
     }
     m_valid = true;
+    if (!project.panels.empty() || !project.surfaceLoads.items.empty()) {
+        StructuralModel work = model;
+        for (const Shell& s : m_oldShells) work.removeShell(s.id);
+        for (const Bar& b : m_oldBars) work.removeBar(b.id);
+        work.removeNode(nodeId);
+        for (const Bar& b : m_newBars) work.insertBar(b);
+        for (const Shell& s : m_newShells) work.insertShell(s);
+        reconcilePanels(m_panelsAfter, m_surfaceLoadsAfter, model, work, {{nodeId, m_mergeTarget}});
+    }
     if (!project.barLoads.empty()) {
         StructuralModel work = model;
         for (const Shell& s : m_oldShells) work.removeShell(s.id);
@@ -143,6 +159,8 @@ void MoveNodeCommand::redo() {
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_after;
         restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
+        restorePanels(m_project.panels, m_panelsAfter);
+        restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsAfter);
         m_project.deflection = m_deflectionAfter;
         m_project.shellProps = m_shellPropsAfter;
         return;
@@ -156,6 +174,8 @@ void MoveNodeCommand::redo() {
     applyDiaphragmNodesDeleted(m_project.diaphragms, {m_id});
     applyNodalLoadsNodesMerged(m_project.nodalLoads, m_id, m_mergeTarget);
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
+    restorePanels(m_project.panels, m_panelsAfter);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsAfter);
     for (const Bar& b : m_newBars) model.insertBar(b);
     for (const Shell& s : m_newShells) model.insertShell(s);
     m_project.deflection = m_deflectionAfter;
@@ -168,6 +188,8 @@ void MoveNodeCommand::undo() {
     if (m_mergeTarget == 0) {
         if (Node* n = model.findNode(m_id)) n->position = m_before;
         restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
+        restorePanels(m_project.panels, m_panelsBefore);
+        restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsBefore);
         m_project.deflection = m_deflectionBefore;
         m_project.shellProps = m_shellPropsBefore;
         return;
@@ -181,6 +203,8 @@ void MoveNodeCommand::undo() {
     m_project.diaphragms = m_diaphragmsBefore;
     m_project.nodalLoads = m_nodalLoadsBefore;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
+    restorePanels(m_project.panels, m_panelsBefore);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsBefore);
     for (const Bar& b : m_oldBars) model.insertBar(b);
     for (const Shell& s : m_oldShells) model.insertShell(s);
     m_project.deflection = m_deflectionBefore;
@@ -200,6 +224,8 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
     m_nodalLoadsBefore = project.nodalLoads;
     m_barLoadsBefore = m_barLoadsAfter = project.barLoads;
     m_shellLoadsBefore = m_shellLoadsAfter = project.shellLoads;
+    m_panelsBefore = m_panelsAfter = project.panels;
+    m_surfaceLoadsBefore = m_surfaceLoadsAfter = project.surfaceLoads;
     m_barEndsBefore = project.barEnds;
     m_barEndsAfter = project.barEnds;
     m_bucklingBefore = project.buckling;
@@ -291,6 +317,14 @@ DeleteNodesCommand::DeleteNodesCommand(Project& project, std::vector<int> nodeId
         for (int id : nodeIds) after.removeNode(id);
         m_shellPropsAfter = reconcileShellProperties(project.shellProps, model, after);
     }
+    if (!project.panels.empty() || !project.surfaceLoads.items.empty()) {
+        StructuralModel after = model;
+        for (int id : shellIds) after.removeShell(id);
+        for (int id : barIds) after.removeBar(id);
+        for (int id : nodeIds) after.removeNode(id);
+        for (const Bar& b : m_merged) after.insertBar(b);
+        reconcilePanels(m_panelsAfter, m_surfaceLoadsAfter, model, after);
+    }
 }
 
 void DeleteNodesCommand::redo() {
@@ -309,6 +343,8 @@ void DeleteNodesCommand::redo() {
     applyNodalLoadsNodesDeleted(m_project.nodalLoads, deletedIds);
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
     restoreShellLoads(m_project.shellLoads, m_shellLoadsAfter);
+    restorePanels(m_project.panels, m_panelsAfter);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsAfter);
     for (const Bar& b : m_merged) model.insertBar(b);
     m_project.barEnds = m_barEndsAfter;
     m_project.buckling = m_bucklingAfter;
@@ -327,6 +363,8 @@ void DeleteNodesCommand::undo() {
     m_project.nodalLoads = m_nodalLoadsBefore;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     restoreShellLoads(m_project.shellLoads, m_shellLoadsBefore);
+    restorePanels(m_project.panels, m_panelsBefore);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsBefore);
     m_project.barEnds = m_barEndsBefore;
     m_project.buckling = m_bucklingBefore;
     m_project.deflection = m_deflectionBefore;

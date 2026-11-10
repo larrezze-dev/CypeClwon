@@ -17,6 +17,7 @@
 #include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/options_settings.h"
+#include "core/panel.h"
 #include "core/profile_series.h"
 #include "core/shell_load.h"
 #include "core/shell_properties.h"
@@ -57,6 +58,8 @@ struct Project {
     LoadCaseSet loadCases;  ///< load cases "Hipótesis de carga": self weight plus additional cases and use categories (section load_cases); only the self weight in older files
     BarLoads barLoads;  ///< bar loads and the bars without automatic self weight (section bar_loads); empty in older files
     ShellLoads shellLoads;  ///< shell loads and the shells without automatic self weight (section shell_loads); empty in older files
+    Panels panels;  ///< panels "Paños" with their loads (section panels); empty in older files
+    SurfaceLoads surfaceLoads;  ///< surface loads "Cargas superficiales" and the bars switched off for them (section surface_loads); empty in older files
     NodalLoads nodalLoads;  ///< nodal loads and their drawing scales (section nodal_loads); empty in older files
     ShellProperties shellProps;  ///< shell properties: discretisation, stiffness factors, integration bands, edge bonds, buckling, modal (section shell_properties); empty in older files
     StructuralModel structure;  ///< nodes, materials, cross sections, bars and shells (sections nodes ... shells)

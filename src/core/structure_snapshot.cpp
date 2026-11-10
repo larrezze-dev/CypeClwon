@@ -29,6 +29,11 @@ void SnapshotCommand::commit() {
     m_barLoadsAfter = reconcileBarLoads(m_barLoadsBefore, m_before, m_after, &m_barLoadInfo);
     m_shellLoadsBefore = m_project.shellLoads;
     m_shellLoadsAfter = reconcileShellLoads(m_shellLoadsBefore, m_before, m_after);
+    m_panelsBefore = m_project.panels;
+    m_surfaceLoadsBefore = m_project.surfaceLoads;
+    m_panelsAfter = m_panelsBefore;
+    m_surfaceLoadsAfter = m_surfaceLoadsBefore;
+    reconcilePanels(m_panelsAfter, m_surfaceLoadsAfter, m_before, m_after, nodeRemap);
     m_committed = true;
 }
 
@@ -47,6 +52,8 @@ void SnapshotCommand::redo() {
     m_project.nodalLoads.nextId = nextLoad;
     restoreBarLoads(m_project.barLoads, m_barLoadsAfter);
     restoreShellLoads(m_project.shellLoads, m_shellLoadsAfter);
+    restorePanels(m_project.panels, m_panelsAfter);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsAfter);
 }
 
 void SnapshotCommand::undo() {
@@ -65,6 +72,8 @@ void SnapshotCommand::undo() {
     m_project.nodalLoads.nextId = nextLoad;
     restoreBarLoads(m_project.barLoads, m_barLoadsBefore);
     restoreShellLoads(m_project.shellLoads, m_shellLoadsBefore);
+    restorePanels(m_project.panels, m_panelsBefore);
+    restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsBefore);
     StructuralModel& s = m_project.structure;
     s.nextNodeId = std::max(s.nextNodeId, current.nextNodeId);
     s.nextBarId = std::max(s.nextBarId, current.nextBarId);

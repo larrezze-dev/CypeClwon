@@ -47,6 +47,8 @@ private:
     BarLoadReconcileInfo m_barLoadInfo;
     ShellLoads m_shellLoadsBefore, m_shellLoadsAfter;  ///< shell loads: vanished shells lose them, the pieces of a divided shell get a copy (not measured)
     NodalLoads m_nodalLoadsBefore, m_nodalLoadsAfter;  ///< loads of vanished nodes go with them
+    Panels m_panelsBefore, m_panelsAfter;  ///< panels follow the nodes they sit on (merged / moved); a vanished node takes its panels (not measured)
+    SurfaceLoads m_surfaceLoadsBefore, m_surfaceLoadsAfter;  ///< surface loads: same rule; bars switched off for them follow divided bars
 };
 
 }  // namespace cc::core

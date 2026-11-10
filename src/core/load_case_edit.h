@@ -41,6 +41,8 @@ private:
     NodalLoads m_loadsBefore, m_loadsAfter;
     BarLoads m_barLoadsBefore, m_barLoadsAfter;
     ShellLoads m_shellLoadsBefore, m_shellLoadsAfter;
+    Panels m_panelsBefore, m_panelsAfter;
+    SurfaceLoads m_surfaceLoadsBefore, m_surfaceLoadsAfter;
     NodeSupports m_supportsBefore, m_supportsAfter;
 };
 
@@ -74,12 +76,12 @@ LoadCaseError editLoadCase(Project& project, UndoStack& stack, int id, const std
 /// Clicking the "Actúa" cell.
 LoadCaseError toggleLoadCaseActs(Project& project, UndoStack& stack, int id);
 
-/// Dependents of a case in the project: nodal, bar and shell loads (T-P7-02..04) and prescribed displacement sets. TODO(T-P7-05, T-P7-06): the
-/// panel (paño) loads and the non-linear / buckling combinations that use it.
+/// Dependents of a case in the project: nodal, bar, shell, panel and surface loads (T-P7-02..05) and prescribed displacement sets. TODO(T-P7-06): the
+/// non-linear / buckling combinations that use it.
 LoadCaseDependents loadCaseDependents(const Project& project, int id);
 /// "Borrar". Without dependents it is immediate (measured); the dependents are deleted with the case inside the same undoable command
-/// (nodal, bar and shell loads, their scale, prescribed sets; #64905 / #380751 / #380752: the GUI asks first when loadCaseDependents is not empty).
-/// TODO(T-P7-05, T-P7-06): the remaining dependents.
+/// (nodal, bar, shell, panel and surface loads, their scale, prescribed sets; #64905 / #380751 / #380752: the GUI asks first when loadCaseDependents is
+/// not empty). The panel rows of the case go, the panel stays (measured). TODO(T-P7-06): the remaining dependents.
 LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id);
 
 /// "+" of the arrangements table: appends the next number ("3", "4", ...); `name` receives it.

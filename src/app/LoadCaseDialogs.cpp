@@ -30,7 +30,7 @@ using core::LoadNature;
 using core::SeismicType;
 
 LoadCaseState LoadCaseState::capture(const core::Project& project) {
-    return {project.loadCases, project.nodalLoads, project.barLoads, project.shellLoads, project.nodeSupports};
+    return {project.loadCases, project.nodalLoads, project.barLoads, project.shellLoads, project.panels, project.surfaceLoads, project.nodeSupports};
 }
 
 void LoadCaseState::restoreTo(core::Project& project) const {
@@ -40,6 +40,8 @@ void LoadCaseState::restoreTo(core::Project& project) const {
     project.nodalLoads.nextId = nextNodalId;
     core::restoreBarLoads(project.barLoads, barLoads);
     core::restoreShellLoads(project.shellLoads, shellLoads);
+    core::restorePanels(project.panels, panels);
+    core::restoreSurfaceLoads(project.surfaceLoads, surfaceLoads);
     project.nodeSupports = nodeSupports;
 }
 

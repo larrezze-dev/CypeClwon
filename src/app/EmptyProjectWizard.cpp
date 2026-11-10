@@ -284,6 +284,8 @@ void EmptyProjectWizard::buildActions(QVBoxLayout* layout) {
             scratch.nodalLoads = m_loadsSource->nodalLoads;
             scratch.barLoads = m_loadsSource->barLoads;
             scratch.shellLoads = m_loadsSource->shellLoads;
+            scratch.panels = m_loadsSource->panels;
+            scratch.surfaceLoads = m_loadsSource->surfaceLoads;
             scratch.nodeSupports = m_loadsSource->nodeSupports;
         }
         if (dialog.exec() == QDialog::Accepted) m_loadCases = dialog.value();

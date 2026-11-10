@@ -38,6 +38,8 @@ struct LoadCaseState {
     core::NodalLoads nodalLoads;
     core::BarLoads barLoads;
     core::ShellLoads shellLoads;
+    core::Panels panels;
+    core::SurfaceLoads surfaceLoads;
     core::NodeSupports nodeSupports;
     static LoadCaseState capture(const core::Project& project);
     void restoreTo(core::Project& project) const;

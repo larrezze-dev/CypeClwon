@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -381,6 +382,43 @@ CC_STRUCT(OptionsSettings, foundation, beams, joints)
 
 namespace project_json {
 namespace {
+
+json pointToJson(const Point3& p) { return json::array({p.x, p.y, p.z}); }
+json pointsToJson(const std::vector<Point3>& points) {
+    json a = json::array();
+    for (const Point3& p : points) a.push_back(pointToJson(p));
+    return a;
+}
+Point3 pointFromJson(const json& j) {
+    Point3 p;
+    if (j.is_array() && j.size() >= 3) {
+        p.x = j[0].get<double>();
+        p.y = j[1].get<double>();
+        p.z = j[2].get<double>();
+    }
+    return p;
+}
+std::vector<Point3> pointsFromJson(const json& j) {
+    std::vector<Point3> out;
+    if (j.is_array())
+        for (const json& e : j) out.push_back(pointFromJson(e));
+    return out;
+}
+json surfaceLoadDataToJson(const SurfaceLoadData& d) {
+    return json{{"load_case", d.loadCaseId}, {"type", static_cast<int>(d.type)}, {"value", d.value}, {"lower", d.lower}, {"upper", d.upper}};
+}
+/// Tolerant: nullopt for an unknown type; the canonical form (rounded, unused fields reset).
+std::optional<SurfaceLoadData> surfaceLoadDataFromJson(const json& j) {
+    const int type = j.value("type", 0);
+    if (type < 0 || type > 1) return std::nullopt;
+    SurfaceLoadData d;
+    d.loadCaseId = j.value("load_case", 0);
+    d.type = static_cast<SurfaceLoadType>(type);
+    d.value = j.value("value", 0.0);
+    d.lower = j.value("lower", 0.0);
+    d.upper = j.value("upper", 0.0);
+    return normaliseSurfaceLoadData(d);
+}
 
 struct Section {
     const char* name;
@@ -1028,6 +1066,77 @@ const std::vector<Section>& sections() {
                     p.shellLoads = std::move(loaded);
                 },
                 [](const Project& p) { return validateShellLoads(p.shellLoads, p.loadCases).empty(); }},
+        Section{"panels", "Paños",
+                [](const Project& p) {
+                    // Versioned. A panel is a closed planar polygon of free points with its direction of distribution and its rows of load.
+                    json items = json::array();
+                    for (const Panel& panel : p.panels.items) {
+                        json loads = json::array();
+                        for (const SurfaceLoadData& d : panel.loads) loads.push_back(surfaceLoadDataToJson(d));
+                        items.push_back({{"id", panel.id}, {"vertices", pointsToJson(panel.vertices)}, {"direction", pointToJson(panel.direction)}, {"loads", loads}});
+                    }
+                    return json{{"version", 1}, {"next", p.panels.nextId}, {"items", items}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    Panels loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            Panel panel;
+                            panel.id = e.value("id", 0);
+                            if (panel.id < 1 || !e.contains("vertices")) continue;
+                            panel.vertices = pointsFromJson(e.at("vertices"));
+                            if (e.contains("direction")) panel.direction = pointFromJson(e.at("direction"));
+                            if (e.contains("loads"))
+                                for (const json& l : e.at("loads"))
+                                    if (const auto d = surfaceLoadDataFromJson(l)) panel.loads.push_back(*d);
+                            following = std::max(following, panel.id + 1);
+                            loaded.items.push_back(std::move(panel));
+                        }
+                    loaded.nextId = std::max(following, j.value("next", following));
+                    p.panels = std::move(loaded);
+                },
+                [](const Project& p) { return validatePanels(p.panels, p.loadCases).empty(); }},
+        Section{"surface_loads", "Cargas superficiales",
+                [](const Project& p) {
+                    // Versioned. Switched-off bars that no longer exist are not saved.
+                    const SurfaceLoads& d = p.surfaceLoads;
+                    json items = json::array();
+                    for (const SurfaceLoad& l : d.items) {
+                        json e = surfaceLoadDataToJson(l.data);
+                        e["id"] = l.id;
+                        e["contour"] = pointsToJson(l.contour);
+                        items.push_back(std::move(e));
+                    }
+                    json off = json::array();
+                    for (int id : d.unassignedBars)
+                        if (p.structure.findBar(id)) off.push_back(id);
+                    return json{{"version", 1}, {"next", d.nextId}, {"items", items}, {"unassigned_bars", off}}.dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    SurfaceLoads loaded;
+                    int following = 1;
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            SurfaceLoad l;
+                            l.id = e.value("id", 0);
+                            if (l.id < 1 || !e.contains("contour")) continue;
+                            const auto data = surfaceLoadDataFromJson(e);
+                            if (!data) continue;
+                            l.data = *data;
+                            l.contour = pointsFromJson(e.at("contour"));
+                            following = std::max(following, l.id + 1);
+                            loaded.items.push_back(std::move(l));
+                        }
+                    loaded.nextId = std::max(following, j.value("next", following));
+                    if (j.contains("unassigned_bars"))
+                        for (const json& id : j.at("unassigned_bars"))
+                            if (id.is_number_integer() && id.get<int>() >= 1) loaded.unassignedBars.insert(id.get<int>());
+                    p.surfaceLoads = std::move(loaded);
+                },
+                [](const Project& p) { return validateSurfaceLoads(p.surfaceLoads, p.loadCases).empty(); }},
     };
     return all;
 }
