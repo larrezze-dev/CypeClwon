@@ -487,6 +487,18 @@ SurfaceLoadDialog::SurfaceLoadDialog(const QString& title, const LoadCaseSet& ca
     }
     m_sense->setText(tr("Sentido positivo: ") + senseText());
     refresh();
+    {
+        for (auto* button : findChildren<QToolButton*>(QStringLiteral("dlgClose"))) button->setFocusPolicy(Qt::NoFocus);  // title-bar buttons are outside the cycle
+        QWidget* previous = m_case;
+        const auto chain = [&](QWidget* w) { if (w) { setTabOrder(previous, w); previous = w; } };
+        chain(m_uniformRadio);   // inclined only (order by rows, not measured)
+        chain(m_value);
+        chain(m_upper);
+        chain(m_lower);
+        chain(acceptButton());
+        chain(cancelButton());
+    }
+    m_case->setFocus();  // measured: the focus starts on the Hipótesis combo; Tab: Valor -> Aceptar -> Cancelar -> Hipótesis ("Sentido positivo" is a label)
 }
 
 QString SurfaceLoadDialog::senseText() const {

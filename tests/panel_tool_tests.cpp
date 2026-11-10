@@ -4,6 +4,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QKeyEvent>
 #include <QCheckBox>
 #include <QHeaderView>
 #include <QComboBox>
@@ -732,4 +733,18 @@ TEST_F(PanelToolTest, PanelLoadsDialogTabOrderIsCellsThenButtons) {
     }
     EXPECT_TRUE(dialog.focusNextPrevChild(false));  // Shift+Tab from the first cell goes to Cancelar
     EXPECT_EQ(position(), (std::pair{-1, 2}));
+}
+
+TEST_F(PanelToolTest, SurfaceDialogHorizontalFocusStartsOnTheCaseComboAndTabCycles) {
+    SurfaceLoadDialog dialog(QStringLiteral("t"), project.loadCases, {{0, 0, 0}, {4, 0, 0}, {4, 4, 0}, {0, 4, 0}}, surfaceLoadDefaults(0));
+    dialog.show();
+    QApplication::processEvents();
+    EXPECT_EQ(dialog.focusWidget(), dialog.caseCombo());
+    const std::vector<QWidget*> expected{dialog.valueEdit(), dialog.acceptButton(), dialog.cancelButton(), dialog.caseCombo()};
+    for (QWidget* step : expected) {
+        QKeyEvent tab(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+        QApplication::sendEvent(dialog.focusWidget(), &tab);
+        EXPECT_EQ(dialog.focusWidget(), step) << step->metaObject()->className() << ' ' << dialog.focusWidget()->metaObject()->className() << ' ' << dialog.focusWidget()->objectName().toStdString();
+    }
+    EXPECT_EQ(dialog.senseLabel()->focusPolicy(), Qt::NoFocus);
 }

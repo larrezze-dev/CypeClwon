@@ -414,6 +414,46 @@ TEST(Panel, DeletingOneOfTwoOverlappingPanelsKeepsTheLoadsThatStillHaveAPanel) {
     EXPECT_TRUE(p.surfaceLoads.items.empty());
 }
 
+TEST(Panel, DeletingOnlyTheTriangleKeepsTheSurfaceLoadStillCoveredByTheSquare) {
+    // Measured (research 14.9 point 3): square 1-2-3-4 plus triangle 1-2-3, surface loads 8 / 2 / 0.5 on them; deleting the triangle removed nothing.
+    Project p = baseProject();
+    UndoStack stack;
+    newPanel(p, stack);
+    const std::vector<Point3> tri{{0, 0, 0}, {4, 0, 0}, {4, 4, 0}};
+    const int t = newPanel(p, stack, tri);
+    int onTriangle = 0, onSquare = 0;
+    ASSERT_EQ(addSurfaceLoad(p, stack, tri, uniform(0.5), false, &onTriangle), PanelError::None);
+    ASSERT_EQ(addSurfaceLoad(p, stack, square(), uniform(8.0), false, &onSquare), PanelError::None);
+    std::vector<int> removed;
+    ASSERT_EQ(deletePanels(p, stack, {t}, &removed), PanelError::None);
+    EXPECT_TRUE(removed.empty());
+    EXPECT_EQ(p.surfaceLoads.items.size(), 2u);   // the triangle load is still under the square
+    EXPECT_EQ(p.panels.items.size(), 1u);
+}
+
+TEST(Panel, FixedScaleGivesTheSameHeightWhateverTheValueProportionalIsLinear) {
+    // Measured (14.9 point 2): fixed mode = 0.5 m for every load; proportional = 0.1 m per kN/m2 x factor.
+    LoadScales fixed;   // default: Fixed, 0.5 m
+    for (const double v : {8.0, 2.0, 0.5}) EXPECT_NEAR(panelLoadMaxSizeM(fixed, uniform(v)), 0.5, 1e-12);
+    LoadScales proportional;
+    proportional.mode = LoadScaleMode::Proportional;
+    EXPECT_NEAR(panelLoadMaxSizeM(proportional, uniform(8.0)), 0.8, 1e-12);
+    EXPECT_NEAR(panelLoadMaxSizeM(proportional, uniform(2.0)), 0.2, 1e-12);
+    EXPECT_NEAR(panelLoadMaxSizeM(proportional, uniform(0.5)), 0.05, 1e-12);
+    proportional.perType[static_cast<std::size_t>(LoadScaleType::Surface)] = 2.0;
+    EXPECT_NEAR(panelLoadMaxSizeM(proportional, uniform(2.0)), 0.4, 1e-12);
+}
+
+TEST(Panel, MovingVerticesNeverAppliesTheSurfaceLoadContainmentRules) {
+    // Measured (14.9 point 4): neither creating, editing nor moving enforces #65275/#65276; a load may end outside every panel.
+    Project p = baseProject();
+    UndoStack stack;
+    const std::vector<Point3> outside{{10, 10, 0}, {12, 10, 0}, {12, 12, 0}};
+    int id = 0;
+    ASSERT_EQ(addSurfaceLoad(p, stack, outside, uniform(3.0), false, &id), PanelError::None);   // not inside any panel: accepted
+    EXPECT_EQ(p.surfaceLoads.items.size(), 1u);
+}
+
 TEST(Panel, MoveVerticesKeepsThePlaneOrRefuses) {
     Project p = baseProject();
     UndoStack stack;
