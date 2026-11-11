@@ -99,7 +99,24 @@ std::string validateLoadCases(const LoadCaseSet& set) {
         if (set.created[static_cast<std::size_t>(n)] < count[static_cast<std::size_t>(n)]) return "Contador de hipótesis inferior al número de hipótesis.";
     for (const UseCategory& u : set.useCategories)
         if (u.ref.empty()) return "Categoría de uso sin referencia.";
+    if (!findLoadCase(set, set.viewedCaseId)) return "Hipótesis vista inexistente.";
     return {};
 }
+
+unsigned loadCaseColour(int creationIndex) {
+    static const unsigned palette[kLoadCaseColourPeriod] = {0xFFFF00, 0x00BFFF, 0x00FF00, 0xFF00FF, 0xCC6600, 0x0000FF, 0x800080, 0x808080};
+    const int i = creationIndex < 0 ? 0 : creationIndex;
+    return palette[i % kLoadCaseColourPeriod];
+}
+
+int loadCaseCreationIndex(const LoadCaseSet& set, int loadCaseId) {
+    if (loadCaseId == 0 || !findLoadCase(set, loadCaseId)) return 0;
+    int rank = 1;
+    for (const LoadCase& c : set.cases)
+        if (c.id != 0 && c.id < loadCaseId) ++rank;
+    return rank;
+}
+
+unsigned loadCaseColourOf(const LoadCaseSet& set, int loadCaseId) { return loadCaseColour(loadCaseCreationIndex(set, loadCaseId)); }
 
 }  // namespace cc::core

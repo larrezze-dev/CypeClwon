@@ -142,9 +142,17 @@ LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id) {
     LoadCaseSet after = project.loadCases;
     const auto it = std::find_if(after.cases.begin(), after.cases.end(), [&](const LoadCase& c) { return c.id == id; });
     if (it == after.cases.end()) return LoadCaseError::UnknownCase;
+    if (after.viewedCaseId == id) after.viewedCaseId = 0;  // the viewed case falls back to Peso propio (FUN_1801941f0)
     after.cases.erase(it);  // the per-nature counter is kept: the numbers are not reused (PROVISIONAL)
     // Nodal, bar, shell, panel and surface loads and prescribed sets of the case go with it (same command); TODO(T-P7-06): combinations.
     stack.push(std::make_unique<DeleteLoadCaseCommand>(project, std::move(after), id));
+    return LoadCaseError::None;
+}
+
+LoadCaseError setLoadView(Project& project, int viewedCaseId, bool viewAll) {
+    if (!findLoadCase(project.loadCases, viewedCaseId)) return LoadCaseError::UnknownCase;
+    project.loadCases.viewedCaseId = viewedCaseId;
+    project.loadCases.viewAllCases = viewAll;
     return LoadCaseError::None;
 }
 

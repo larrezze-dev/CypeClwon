@@ -375,33 +375,10 @@ Point3 panelLoadActionDirection(const std::vector<Point3>& polygon, bool wind, d
     return scale(panelPositiveDirection(polygon, wind), value < 0 ? -1.0 : 1.0);
 }
 
-int panelLoadColourSlot(const LoadCaseSet& cases, int loadCaseId) {
-    if (loadCaseId == 0) return 0;
-    const LoadCase* target = findLoadCase(cases, loadCaseId);
-    if (!target) return 0;
-    // Ids are never reused (nextId only grows), so the id order is the creation order. Rank = additional cases created before it, plus one.
-    int rank = 1;
-    for (const LoadCase& c : cases.cases)
-        if (c.id != 0 && c.id < loadCaseId) ++rank;
-    return ((rank - 1) % 4) + 1;
-}
-
-unsigned panelLoadSlotRgb(int slot) {
-    switch (slot) {
-        case 1: return 0x00BFFF;
-        case 2: return 0x00FF00;
-        case 3: return 0xFF00FF;
-        case 4: return 0xCC6600;
-        default: return 0xFFFF00;
-    }
-}
-
 // --- drawing ---
 
 double panelLoadDrawSizeM(const LoadScales& scales, int loadCaseId, double value, double maxValueAbs) {
-    const double v = std::fabs(value);
-    if (scales.mode == LoadScaleMode::Fixed) return maxValueAbs > 0.0 ? scales.fixedSizeM * v / maxValueAbs : scales.fixedSizeM;
-    return kLoadMetresPerKn * v * loadScaleOfCase(scales, loadCaseId) * scales.perType[static_cast<std::size_t>(LoadScaleType::Surface)];
+    return loadDrawSizeM(scales, LoadScaleType::Surface, loadCaseId, value, maxValueAbs);
 }
 
 namespace {

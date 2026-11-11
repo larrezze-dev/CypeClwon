@@ -245,12 +245,7 @@ LoadScaleType shellLoadScaleType(ShellLoadType type) {
 }
 
 double shellLoadDrawSizeM(const LoadScales& scales, const ShellLoadData& d, double value, double maxValue) {
-    const double v = std::fabs(value);
-    if (scales.mode == LoadScaleMode::Fixed) {
-        const double m = std::fabs(maxValue);
-        return m > 0.0 ? scales.fixedSizeM * v / m : scales.fixedSizeM;
-    }
-    return kLoadMetresPerKn * v * loadScaleOfCase(scales, d.loadCaseId) * scales.perType[static_cast<std::size_t>(shellLoadScaleType(d.type))];
+    return loadDrawSizeM(scales, shellLoadScaleType(d.type), d.loadCaseId, value, maxValue);
 }
 
 double shellLoadMaxSizeM(const LoadScales& scales, const ShellLoadData& d) {

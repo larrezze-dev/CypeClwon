@@ -788,7 +788,8 @@ const std::vector<Section>& sections() {
                     for (const UseCategory& u : d.useCategories)
                         categories.push_back({{"ref", u.ref}, {"description", u.description}, {"choices", u.choices}});
                     return json{{"version", 1}, {"cases", cases}, {"created", d.created}, {"nextId", d.nextId},
-                                {"useCategories", categories}, {"seismicSecondOrder", d.seismicSecondOrder}}.dump(2);
+                                {"useCategories", categories}, {"seismicSecondOrder", d.seismicSecondOrder},
+                                {"viewedCaseId", d.viewedCaseId}, {"viewAllCases", d.viewAllCases}}.dump(2);
                 },
                 [](Project& p, const std::string& text) {
                     const json j = json::parse(text);
@@ -826,6 +827,8 @@ const std::vector<Section>& sections() {
                             loaded.useCategories.push_back(std::move(u));
                         }
                     loaded.seismicSecondOrder = j.value("seismicSecondOrder", false);
+                    loaded.viewedCaseId = findLoadCase(loaded, j.value("viewedCaseId", 0)) ? j.value("viewedCaseId", 0) : 0;  // tolerant: unknown -> Peso propio
+                    loaded.viewAllCases = j.value("viewAllCases", false);
                     p.loadCases = std::move(loaded);
                 },
                 [](const Project& p) { return validateLoadCases(p.loadCases).empty(); }},

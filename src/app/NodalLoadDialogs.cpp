@@ -436,8 +436,8 @@ void LoadScalesDialog::accept() {
         messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadNotNumberMessage()));
         return;
     }
-    if (size <= 0.0) {
-        messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadErrorMessage(NodalLoadError::InvalidScale)));
+    if (!loadFixedSizeInRange(size)) {  // measured: 0.010 .. 100.000
+        messages::show(this, messages::Kind::Warning, QString::fromStdString(loadFixedSizeRangeMessage()));
         return;
     }
     out.fixedSizeM = size;
@@ -447,11 +447,9 @@ void LoadScalesDialog::accept() {
             messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadNotNumberMessage()));
             return;
         }
-        if (v < kMinTypeScale || v > kMaxTypeScale) {  // text built like the other ranges (pattern of RangedEdit); not measured
-            static const char* names[kLoadScaleTypeCount] = {"Uniforme", "Puntual", "Faja", "Triangular", "Trapecial", "Momento puntual",
-                                                             "Superficial", "Temperatura", "Retracción"};
+        if (!loadScaleValueInRange(v)) {
             messages::show(this, messages::Kind::Warning,
-                           tr("El valor de '%1' debe estar entre %2  y %3 .").arg(tr(names[t]), threeDecimals(kMinTypeScale), threeDecimals(kMaxTypeScale)));
+                           QString::fromStdString(loadScaleRangeMessage(loadScaleTypeName(static_cast<LoadScaleType>(t)))));
             return;
         }
         out.perType[static_cast<std::size_t>(t)] = v;
@@ -463,8 +461,9 @@ void LoadScalesDialog::accept() {
             messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadNotNumberMessage()));
             return;
         }
-        if (scale <= 0.0) {
-            messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadErrorMessage(NodalLoadError::InvalidScale)));
+        if (!loadScaleValueInRange(scale)) {  // same template as the type fields (the cell warning was not measured: [N])
+            messages::show(this, messages::Kind::Warning,
+                           QString::fromStdString(loadScaleRangeMessage(m_table->item(r, 0)->text().toStdString())));
             return;
         }
         const int id = m_table->item(r, 0)->data(Qt::UserRole).toInt();

@@ -70,6 +70,10 @@ struct LoadCaseSet {
     std::array<int, kLoadNatureCount> created{};  ///< cases created per nature (the next proposal is created + 1)
     std::vector<UseCategory> useCategories;
     bool seismicSecondOrder = false;  ///< "Considerar efectos de segundo orden" (#46224)
+    /// View state of the work ("Hipótesis vista" / "Ver todas", saved with the work; the original keeps the viewed case in the work configuration):
+    /// the case whose loads are drawn (default Peso propio, falls back to it when that case is deleted) and the "Ver todas" box (default off).
+    int viewedCaseId = 0;
+    bool viewAllCases = false;
     int nextId = 1;
     LoadCaseSet();
     bool operator==(const LoadCaseSet&) const = default;
@@ -77,6 +81,17 @@ struct LoadCaseSet {
 
 /// "Peso propio", "Cargas muertas", ...
 std::string loadNatureName(LoadNature nature);
+/// Colour of a hypothesis (measured in the original, research visualizacion_hipotesis_escalas 5): by CREATION INDEX, Peso propio = 0, cycle of
+/// period 8 (index % 8): 0 yellow (255,255,0), 1 cyan (0,191,255), 2 green (0,255,0), 3 magenta (255,0,255), 4 brown (204,102,0), 5 blue (0,0,255),
+/// 6 purple (128,0,128), 7 grey (128,128,128); the ninth (index 8) is yellow again. Returns 0xRRGGBB. Used by nodal, bar, shell and panel loads.
+inline constexpr int kLoadCaseColourPeriod = 8;
+unsigned loadCaseColour(int creationIndex);
+/// Creation index of a case: 0 for Peso propio (and for an unknown id), otherwise 1 + additional cases with a lower id (ids are never reused, so
+/// id order is creation order). TODO(medir): colour of later cases after deleting an intermediate one (they shift here).
+int loadCaseCreationIndex(const LoadCaseSet& set, int loadCaseId);
+/// loadCaseColour(loadCaseCreationIndex(set, id)).
+unsigned loadCaseColourOf(const LoadCaseSet& set, int loadCaseId);
+
 /// Prefix of the proposed reference: "CM", "Q", "T", "R", "V", "S", "N", "H", "A"; empty for SelfWeight (not seen in the original).
 std::string loadNaturePrefix(LoadNature nature);
 /// True when the nature takes additional cases (every one but SelfWeight).

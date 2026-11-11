@@ -8,10 +8,52 @@
 
 namespace cc::core {
 
+LoadDrawSize resolveLoadDrawSize(const LoadScales& scales, LoadScaleType type, int loadCaseId) {
+    LoadDrawSize out;
+    out.fixed = scales.mode == LoadScaleMode::Fixed;
+    out.maxM = scales.fixedSizeM;
+    out.factor = loadScaleOfCase(scales, loadCaseId) * scales.perType[static_cast<std::size_t>(type)];
+    return out;
+}
+
+double loadDrawSizeM(const LoadScales& scales, LoadScaleType type, int loadCaseId, double value, double maxValue) {
+    const LoadDrawSize r = resolveLoadDrawSize(scales, type, loadCaseId);
+    const double v = std::fabs(value);
+    if (r.fixed) {
+        const double m = std::fabs(maxValue);
+        return m > 0.0 ? r.maxM * v / m : r.maxM;
+    }
+    return kLoadMetresPerKn * v * r.factor;
+}
+
+bool loadScaleValueInRange(double value) { return std::isfinite(value) && value >= kMinTypeScale && value <= kMaxTypeScale; }
+bool loadFixedSizeInRange(double value) { return std::isfinite(value) && value >= kMinFixedLoadSizeM && value <= kMaxFixedLoadSizeM; }
+
+LoadScaleValidation validateLoadScales(const LoadScales& scales) {
+    if (!loadFixedSizeInRange(scales.fixedSizeM)) return {LoadScaleIssue::FixedSize, -1};
+    for (std::size_t t = 0; t < scales.perType.size(); ++t)
+        if (!loadScaleValueInRange(scales.perType[t])) return {LoadScaleIssue::TypeScale, static_cast<int>(t)};
+    for (const auto& [id, v] : scales.perCase)
+        if (!loadScaleValueInRange(v)) return {LoadScaleIssue::CaseScale, id};
+    return {};
+}
+
+std::string loadScaleTypeName(LoadScaleType type) {
+    static const char* names[kLoadScaleTypeCount] = {"Uniforme", "Puntual", "Faja", "Triangular", "Trapecial", "Momento puntual",
+                                                     "Superficial", "Temperatura", "Retracción"};
+    return names[static_cast<std::size_t>(type)];
+}
+
+std::string loadScaleRangeMessage(const std::string& fieldName) {
+    return "El valor de '" + fieldName + "' debe estar entre 0.001  y 1000.000 .";
+}
+
+std::string loadFixedSizeRangeMessage() {
+    return "El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000.";
+}
+
 double nodalLoadDrawLengthM(const LoadScales& scales, const NodalLoad& load) {
-    if (scales.mode == LoadScaleMode::Fixed) return scales.fixedSizeM;
-    return kLoadMetresPerKn * load.magnitude * loadScaleOfCase(scales, load.loadCaseId) *
-           scales.perType[static_cast<std::size_t>(LoadScaleType::Punctual)];
+    return loadDrawSizeM(scales, LoadScaleType::Punctual, load.loadCaseId, load.magnitude, load.magnitude);
 }
 
 double loadScaleOfCase(const LoadScales& scales, int loadCaseId) {
@@ -156,11 +198,7 @@ std::string validateNodalLoads(const NodalLoads& loads, const LoadCaseSet& cases
             return "Carga de nudo " + std::to_string(l.id) + " con dirección no válida.";
     }
     const LoadScales& s = loads.scales;
-    if (!(std::isfinite(s.fixedSizeM) && s.fixedSizeM > 0.0)) return "Escala de cargas no válida.";
-    for (const auto& [id, v] : s.perCase)
-        if (!(std::isfinite(v) && v > 0.0)) return "Escala de cargas no válida.";
-    for (double v : s.perType)
-        if (!(std::isfinite(v) && v >= kMinTypeScale && v <= kMaxTypeScale)) return "Escala de cargas no válida.";
+    if (!validateLoadScales(s).ok()) return "Escala de cargas no válida.";
     return {};
 }
 

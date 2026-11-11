@@ -262,3 +262,56 @@ TEST(LoadCase, ValidateDetectsCorruptData) {
     bad.cases[1].nature = LoadNature::SelfWeight;
     EXPECT_FALSE(validateLoadCases(bad).empty());
 }
+
+TEST(LoadCase, ColourPaletteHasPeriodEightFromSelfWeight) {
+    const unsigned expected[8] = {0xFFFF00, 0x00BFFF, 0x00FF00, 0xFF00FF, 0xCC6600, 0x0000FF, 0x800080, 0x808080};
+    for (int i = 0; i < 8; ++i) EXPECT_EQ(loadCaseColour(i), expected[i]) << i;
+    EXPECT_EQ(loadCaseColour(8), 0xFFFF00u);   // measured: the ninth (index 8) is yellow again
+    EXPECT_EQ(loadCaseColour(9), 0x00BFFFu);
+    EXPECT_EQ(loadCaseColour(17), 0x00BFFFu);
+    EXPECT_EQ(loadCaseColour(-3), 0xFFFF00u);
+
+    Project p;
+    UndoStack stack;
+    std::vector<int> ids;
+    for (int i = 1; i <= 8; ++i) {
+        int id = 0;
+        ASSERT_EQ(createLoadCase(p, stack, make(LoadNature::Wind, "V " + std::to_string(i)), &id), LoadCaseError::None);
+        ids.push_back(id);
+    }
+    EXPECT_EQ(loadCaseColourOf(p.loadCases, 0), 0xFFFF00u);
+    for (int i = 0; i < 8; ++i) {
+        EXPECT_EQ(loadCaseCreationIndex(p.loadCases, ids[static_cast<std::size_t>(i)]), i + 1);
+        EXPECT_EQ(loadCaseColourOf(p.loadCases, ids[static_cast<std::size_t>(i)]), expected[(i + 1) % 8]);
+    }
+    EXPECT_EQ(loadCaseColourOf(p.loadCases, ids.back()), 0xFFFF00u);   // V 8 = index 8
+    EXPECT_EQ(loadCaseColourOf(p.loadCases, 9999), 0xFFFF00u);
+}
+
+TEST(LoadCase, ViewStateDefaultsPersistsAndFallsBackOnDelete) {
+    Project p;
+    UndoStack stack;
+    EXPECT_EQ(p.loadCases.viewedCaseId, 0);
+    EXPECT_FALSE(p.loadCases.viewAllCases);
+    int id = 0;
+    ASSERT_EQ(createLoadCase(p, stack, make(LoadNature::Wind, "V 1"), &id), LoadCaseError::None);
+    EXPECT_EQ(setLoadView(p, 99, true), LoadCaseError::UnknownCase);
+    ASSERT_EQ(setLoadView(p, id, true), LoadCaseError::None);
+    const std::string text = project_json::dumpSection(p, "load_cases");
+    Project q;
+    project_json::loadSection(q, "load_cases", text);
+    EXPECT_EQ(q.loadCases.viewedCaseId, id);
+    EXPECT_TRUE(q.loadCases.viewAllCases);
+    EXPECT_TRUE(validateLoadCases(q.loadCases).empty());
+    // tolerant: an unknown viewed case in the file becomes Peso propio; old files keep the defaults
+    Project r;
+    project_json::loadSection(r, "load_cases", "{\"viewedCaseId\": 42}");
+    EXPECT_EQ(r.loadCases.viewedCaseId, 0);
+    // deleting the viewed case falls back to Peso propio (undoable together with the deletion)
+    ASSERT_EQ(deleteLoadCase(p, stack, id), LoadCaseError::None);
+    EXPECT_EQ(p.loadCases.viewedCaseId, 0);
+    EXPECT_TRUE(p.loadCases.viewAllCases);
+    EXPECT_TRUE(validateLoadCases(p.loadCases).empty());
+    stack.undo();
+    EXPECT_EQ(p.loadCases.viewedCaseId, id);
+}

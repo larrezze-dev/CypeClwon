@@ -420,3 +420,69 @@ TEST(NodalLoad, JsonSkipsLoadsOfVanishedNodesAndValidationCatchesCorruption) {
     bad.scales.fixedSizeM = -1.0;
     EXPECT_FALSE(validateNodalLoads(bad, q.loadCases).empty());
 }
+
+TEST(LoadScales, ResolveLoadDrawSizeIsTheSingleSourceOfAllLoadModules) {
+    LoadScales s;
+    s.perCase[3] = 2.0;
+    s.perType[static_cast<std::size_t>(LoadScaleType::Surface)] = 3.0;
+    const LoadDrawSize fixed = resolveLoadDrawSize(s, LoadScaleType::Surface, 3);
+    EXPECT_TRUE(fixed.fixed);
+    EXPECT_DOUBLE_EQ(fixed.maxM, 0.5);
+    EXPECT_DOUBLE_EQ(fixed.factor, 6.0);
+    s.mode = LoadScaleMode::Proportional;
+    EXPECT_FALSE(resolveLoadDrawSize(s, LoadScaleType::Surface, 3).fixed);
+    EXPECT_DOUBLE_EQ(loadDrawSizeM(s, LoadScaleType::Surface, 3, 5.0, 5.0), 0.1 * 5.0 * 6.0);
+    EXPECT_DOUBLE_EQ(loadDrawSizeM(s, LoadScaleType::Surface, 3, -5.0, 5.0), 3.0);   // sign is the caller's
+    EXPECT_DOUBLE_EQ(loadDrawSizeM(s, LoadScaleType::Uniform, 0, 5.0, 5.0), 0.5);
+    s.mode = LoadScaleMode::Fixed;
+    EXPECT_DOUBLE_EQ(loadDrawSizeM(s, LoadScaleType::Surface, 3, 5.0, 10.0), 0.25);
+    EXPECT_DOUBLE_EQ(loadDrawSizeM(s, LoadScaleType::Surface, 3, 7.0, 0.0), 0.5);   // zero maximum: full size
+    // every module agrees with the single function
+    NodalLoad n;
+    n.magnitude = 8.0;
+    n.loadCaseId = 3;
+    EXPECT_DOUBLE_EQ(nodalLoadDrawLengthM(s, n), loadDrawSizeM(s, LoadScaleType::Punctual, 3, 8.0, 8.0));
+}
+
+TEST(LoadScales, RangesAndLiteralMessages) {
+    EXPECT_TRUE(loadScaleValueInRange(0.001));
+    EXPECT_TRUE(loadScaleValueInRange(1000.0));
+    EXPECT_FALSE(loadScaleValueInRange(0.0009));
+    EXPECT_FALSE(loadScaleValueInRange(1000.001));
+    EXPECT_FALSE(loadScaleValueInRange(std::nan("")));
+    EXPECT_TRUE(loadFixedSizeInRange(0.010));
+    EXPECT_TRUE(loadFixedSizeInRange(100.0));
+    for (double bad : {0.0, 0.009, 100.001, 20000.0, -1.0}) EXPECT_FALSE(loadFixedSizeInRange(bad)) << bad;
+
+    EXPECT_TRUE(validateLoadScales(LoadScales{}).ok());
+    LoadScales s;
+    s.fixedSizeM = 20000.0;
+    EXPECT_EQ(validateLoadScales(s).issue, LoadScaleIssue::FixedSize);
+    s = LoadScales{};
+    s.perType[static_cast<std::size_t>(LoadScaleType::Strip)] = 0.0;
+    LoadScaleValidation v = validateLoadScales(s);
+    EXPECT_EQ(v.issue, LoadScaleIssue::TypeScale);
+    EXPECT_EQ(v.index, static_cast<int>(LoadScaleType::Strip));
+    s = LoadScales{};
+    s.perCase[7] = 1001.0;
+    v = validateLoadScales(s);
+    EXPECT_EQ(v.issue, LoadScaleIssue::CaseScale);
+    EXPECT_EQ(v.index, 7);
+
+    EXPECT_EQ(loadScaleRangeMessage(loadScaleTypeName(LoadScaleType::Uniform)), "El valor de 'Uniforme' debe estar entre 0.001  y 1000.000 .");
+    EXPECT_EQ(loadFixedSizeRangeMessage(), "El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000.");
+    EXPECT_EQ(loadScaleTypeName(LoadScaleType::Shrinkage), "Retracción");
+    EXPECT_EQ(loadScaleTypeName(LoadScaleType::PointMoment), "Momento puntual");
+
+    // setLoadScales shares the rules
+    Project p = baseProject();
+    UndoStack stack;
+    LoadScales bad;
+    bad.fixedSizeM = 0.005;
+    EXPECT_EQ(setLoadScales(p, stack, bad), NodalLoadError::InvalidScale);
+    bad = LoadScales{};
+    bad.perCase[0] = 0.0005;
+    EXPECT_EQ(setLoadScales(p, stack, bad), NodalLoadError::InvalidScale);
+    bad.perCase[0] = 1000.0;
+    EXPECT_EQ(setLoadScales(p, stack, bad), NodalLoadError::None);
+}

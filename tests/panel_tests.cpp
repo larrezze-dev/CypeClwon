@@ -221,18 +221,14 @@ TEST(Panel, ColourSlotFollowsTheCreationOrderOfTheHypothesis) {
     const int t1 = addCase(p, stack, LoadNature::Temperature, "T 1");
     const int v2 = addCase(p, stack, LoadNature::Wind, "V 2");
     const int n1 = addCase(p, stack, LoadNature::Snow, "N 1");
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, 0), 0);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, v1), 1);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, cm), 2);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, t1), 3);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, v2), 4);
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, n1), 1);   // fifth: assumed to cycle from the first
-    EXPECT_EQ(panelLoadColourSlot(p.loadCases, 9999), 0);
-    EXPECT_EQ(panelLoadSlotRgb(0), 0xFFFF00u);
-    EXPECT_EQ(panelLoadSlotRgb(1), 0x00BFFFu);
-    EXPECT_EQ(panelLoadSlotRgb(2), 0x00FF00u);
-    EXPECT_EQ(panelLoadSlotRgb(3), 0xFF00FFu);
-    EXPECT_EQ(panelLoadSlotRgb(4), 0xCC6600u);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, 0), 0);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, v1), 1);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, cm), 2);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, t1), 3);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, v2), 4);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, n1), 5);   // fifth: blue (measured cycle of 8, from index 0)
+    EXPECT_EQ(loadCaseColourOf(p.loadCases, n1), 0x0000FFu);
+    EXPECT_EQ(loadCaseCreationIndex(p.loadCases, 9999), 0);
 }
 
 TEST(Panel, DrawingPrismsHeightsAndStacking) {

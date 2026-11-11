@@ -956,7 +956,7 @@ void PanelTool::paint(QPainter& painter, const Viewport3D& viewport) const {
             painter.restore();
         }
     };
-    const auto caseColour = [&](int loadCaseId) { return QColor::fromRgb(panelLoadSlotRgb(panelLoadColourSlot(cases, loadCaseId))); };
+    const auto caseColour = [&](int loadCaseId) { return QColor::fromRgb(loadCaseColourOf(cases, loadCaseId)); };
 
     if (viewport.loadsVisible()) {
         // Loads of the panels: in colour unless a surface-load command is active (measured: then they are pale grey).

@@ -433,12 +433,7 @@ LoadScaleType barLoadScaleType(BarLoadType type) {
 }
 
 double barLoadDrawSizeM(const LoadScales& scales, const BarLoadData& d, double value, double maxValue) {
-    const double v = std::fabs(value);
-    if (scales.mode == LoadScaleMode::Fixed) {
-        const double m = std::fabs(maxValue);
-        return m > 0.0 ? scales.fixedSizeM * v / m : scales.fixedSizeM;
-    }
-    return kLoadMetresPerKn * v * loadScaleOfCase(scales, d.loadCaseId) * scales.perType[static_cast<std::size_t>(barLoadScaleType(d.type))];
+    return loadDrawSizeM(scales, barLoadScaleType(d.type), d.loadCaseId, value, maxValue);
 }
 
 std::string barLoadValueLabel(double value) {

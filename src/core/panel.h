@@ -193,11 +193,7 @@ std::string panelPositiveSenseText(const std::vector<Point3>& polygon, bool wind
 /// Direction in which a value PUSHES (positive vector times the sign of the value); null vector for a zero value.
 Point3 panelLoadActionDirection(const std::vector<Point3>& polygon, bool wind, double value);
 
-/// Colour slot of the hypothesis (measured, research 14.2): by ORDER OF CREATION of the additional hypothesis (id order), not by nature or list
-/// position: 0 = Peso propio (yellow), 1 = first created (cyan), 2 = green, 3 = magenta, 4 = brown; the fifth and later: ASSUMED to cycle from 1.
-int panelLoadColourSlot(const LoadCaseSet& cases, int loadCaseId);
-/// 0xRRGGBB of a slot: yellow (255,255,0), cyan (0,191,255), green (0,255,0), magenta (255,0,255), brown (204,102,0).
-unsigned panelLoadSlotRgb(int slot);
+// Hypothesis colours: see loadCaseColour / loadCaseColourOf in load_case.h (period 8, measured).
 
 // --- drawing ---
 

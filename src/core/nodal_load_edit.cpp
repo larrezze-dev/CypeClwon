@@ -105,11 +105,7 @@ NodalLoadError deleteNodalLoads(Project& project, UndoStack& stack, const std::v
 }
 
 NodalLoadError setLoadScales(Project& project, UndoStack& stack, const LoadScales& scales) {
-    if (!(std::isfinite(scales.fixedSizeM) && scales.fixedSizeM > 0.0)) return NodalLoadError::InvalidScale;
-    for (const auto& [id, v] : scales.perCase)
-        if (!(std::isfinite(v) && v > 0.0)) return NodalLoadError::InvalidScale;
-    for (double v : scales.perType)
-        if (!(std::isfinite(v) && v >= kMinTypeScale && v <= kMaxTypeScale)) return NodalLoadError::InvalidScale;
+    if (!validateLoadScales(scales).ok()) return NodalLoadError::InvalidScale;
     NodalLoads after = project.nodalLoads;
     after.scales = scales;
     return push(project, stack, std::move(after), "Escalas de cargas");

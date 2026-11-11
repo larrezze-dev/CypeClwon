@@ -89,6 +89,9 @@ LoadCaseError addLoadArrangement(Project& project, UndoStack& stack, int id, std
 /// Aspa of the arrangements table (removes the entry at `index`).
 LoadCaseError deleteLoadArrangement(Project& project, UndoStack& stack, int id, std::size_t index);
 
+/// "Hipótesis vista" box: sets the viewed case and "Ver todas". NOT undoable (a view setting, like the camera); UnknownCase when the case does not exist.
+LoadCaseError setLoadView(Project& project, int viewedCaseId, bool viewAll);
+
 /// "Considerar efectos de segundo orden" of the Sismo window.
 LoadCaseError setSeismicSecondOrder(Project& project, UndoStack& stack, bool value);
 

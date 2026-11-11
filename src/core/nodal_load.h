@@ -84,6 +84,37 @@ struct NodalLoads {
     bool operator==(const NodalLoads&) const = default;
 };
 
+/// Single resolution of the drawing size of any load (equivalent of FUN_1802dd290 of ed3dlib.dll). Fixed mode: the largest value of the load reaches
+/// `maxM` (= fixedSizeM). Proportional mode: `factor` = scale of the case x scale of the type, applied to 0.1 m per unit.
+struct LoadDrawSize {
+    bool fixed = true;
+    double maxM = kDefaultLoadDrawSizeM;
+    double factor = 1.0;
+};
+LoadDrawSize resolveLoadDrawSize(const LoadScales& scales, LoadScaleType type, int loadCaseId);
+/// Size in metres of a value of a load of the given scale type. `maxValue` = largest value of the SAME load (a wedge draws its smaller end in
+/// proportion); in fixed mode a zero `maxValue` gives the full fixed size. Always non-negative (the sign is the caller's).
+double loadDrawSizeM(const LoadScales& scales, LoadScaleType type, int loadCaseId, double value, double maxValue);
+
+/// Valid ranges (measured / REA, research visualizacion_hipotesis_escalas): every scale of a type and of a case 0.001 .. 1000, fixed size
+/// 0.010 .. 100.000 m (0 and 20000 are refused).
+inline constexpr double kMinFixedLoadSizeM = 0.010;
+inline constexpr double kMaxFixedLoadSizeM = 100.0;
+bool loadScaleValueInRange(double value);
+bool loadFixedSizeInRange(double value);
+enum class LoadScaleIssue { None, FixedSize, TypeScale, CaseScale };
+struct LoadScaleValidation {
+    LoadScaleIssue issue = LoadScaleIssue::None;
+    int index = -1;   ///< LoadScaleType for TypeScale, load case id for CaseScale
+    bool ok() const { return issue == LoadScaleIssue::None; }
+};
+LoadScaleValidation validateLoadScales(const LoadScales& scales);
+/// Row label of "Escalas de cargas por tipos" ("Uniforme", ..., "Retracción").
+std::string loadScaleTypeName(LoadScaleType type);
+/// Literal warning texts of the original (double space before "y" and space before the final dot are measured).
+std::string loadScaleRangeMessage(const std::string& fieldName);   ///< "El valor de 'Uniforme' debe estar entre 0.001  y 1000.000 ."
+std::string loadFixedSizeRangeMessage();                           ///< "El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000."
+
 /// Length in metres at which a nodal load is drawn (see kLoadMetresPerKn).
 double nodalLoadDrawLengthM(const LoadScales& scales, const NodalLoad& load);
 
