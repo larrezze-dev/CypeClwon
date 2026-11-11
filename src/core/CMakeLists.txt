@@ -1,4 +1,4 @@
-﻿add_library(cc_core STATIC version.cpp standards.cpp standards.h project_settings.cpp project_settings.h
+add_library(cc_core STATIC version.cpp standards.cpp standards.h project_settings.cpp project_settings.h
   limit_states.cpp limit_states.h user_situations.cpp user_situations.h combinations.cpp combinations.h recent_files.cpp recent_files.h undo_stack.cpp undo_stack.h units.cpp units.h
   options_settings.cpp options_settings.h
   combination_report.cpp combination_report.h combination_report_data.cpp combination_report_data.h
@@ -11,8 +11,9 @@
   node_ligature.cpp node_ligature.h node_ligature_edit.cpp node_ligature_edit.h
   node_diaphragm.cpp node_diaphragm.h node_diaphragm_edit.cpp node_diaphragm_edit.h bar_ends.cpp bar_ends.h bar_ends_edit.cpp bar_ends_edit.h buckling.cpp buckling.h buckling_edit.cpp buckling_edit.h deflection_group.cpp deflection_group.h deflection_group_edit.cpp deflection_group_edit.h bar_load.cpp bar_load.h bar_load_edit.cpp bar_load_edit.h shell_load.cpp shell_load.h shell_load_edit.cpp shell_load_edit.h panel.cpp panel.h panel_distribution.cpp panel_distribution.h panel_edit.cpp panel_edit.h nodal_load.cpp nodal_load.h nodal_load_edit.cpp nodal_load_edit.h load_case.cpp load_case.h load_case_edit.cpp load_case_edit.h shell_properties.cpp shell_properties.h shell_properties_edit.cpp shell_properties_edit.h
   predefined_profiles.cpp predefined_profiles.h profile_catalogue_data.inc
-  describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc describir_concrete_data.inc describir_timber_data.inc tie_document_data.inc)
-target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json)
+  describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc describir_concrete_data.inc describir_timber_data.inc tie_document_data.inc
+  fem/frame_model.h fem/linear_solver.cpp fem/linear_solver.h fem/frame_builder.cpp fem/frame_builder.h)
+target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json Eigen3::Eigen)
 target_include_directories(cc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(cc_core PUBLIC cxx_std_20)
 target_compile_definitions(cc_core PUBLIC CC_VERSION_STRING="${PROJECT_VERSION}")
