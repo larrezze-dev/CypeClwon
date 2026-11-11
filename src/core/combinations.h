@@ -70,7 +70,11 @@ struct Combination {
     DesignSituation situation = DesignSituation::Persistent;
     CombinationLimitState limitState = CombinationLimitState::Ultimate;
     std::vector<double> coefficients;  ///< one per load case, in the order of LoadCaseSet::cases
-    std::string name;                  ///< "Comb. n" (ASSUMPTION: the original's text was not found), numbered per limit state
+    /// Formula name of the original (research 12.1), e.g. "1.35·PP+1.5·Q1+0.9·V(270°)H1+1.05·N(EI)", "PP-S1" (see combinationFormulaName).
+    std::string name;
+    /// Coefficient-set index per load case (-1 = does not act; permanent 0 = favourable / 1 = unfavourable; variable 0 = principal /
+    /// 1 = accompanying; seismic 0 = "-" / 1 = "+"). The list is ordered by it, comparing from the last case to the first.
+    std::vector<int> indices;
 };
 
 struct CombinationResult {
@@ -78,10 +82,19 @@ struct CombinationResult {
     std::string error;  ///< empty when generation succeeded
 };
 
-/// Generates the combinations of every requested situation: ordered per situation (Persistent, Seismic, Accidental, ELS
-/// characteristic, frequent, quasi-permanent), lexicographically by coefficient vector, deduplicated by vector.
-/// Self weight, dead loads (and shrinkage [N]) are permanent; earth pressure is permanent with its own gamma; live loads, temperature
-/// and snow are independent variables; wind cases (and seismic cases) are alternatives with sign +/- [V section 7.1 form 2];
+/// Name of a combination in the original's format (measured, research 12.1): terms joined by "+", each "coef·REF" (U+00B7, coefficient
+/// 1 omitted, minimum decimals), "PP" for the self weight, references without spaces, order PP, CM, Q, T, R, V, N, H, S, A (only
+/// PP, Q, V, N, S, A measured), zero coefficients omitted, negative terms as "-S1".
+std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients);
+
+/// Generates the combinations of every requested situation, in the order of the original: per situation (Persistent, Seismic,
+/// Accidental, ELS characteristic = "Desplazamientos", frequent, quasi-permanent), then by coefficient-set index vector
+/// (significance N > V > Q > PP, absent < principal < accompanying, favourable < unfavourable, seismic "-" < "+"), deduplicated by
+/// coefficient vector. Changes of T-P7-06 for the frontend: `name` is the formula (no "Comb. n", no numbering), `indices` is new, wind
+/// cases form one group of alternatives with sign + only, ELS characteristic = displacements (every variable 1.0, no principal, every
+/// subset, + seismic +/- variants without wind / snow), accidental EC uses psi2 as principal (CTE psi1).
+/// Self weight, dead loads and shrinkage are permanent; earth pressure is permanent with its own gamma; live loads, temperature
+/// and snow are independent variables; seismic cases are alternatives with sign +/- [V section 7.1 form 2];
 /// accidental cases act only in the accidental situation. Cases that do not act (`acts == false`) are skipped; load arrangements
 /// are not expanded yet (ticket).
 CombinationResult generateCombinations(const LoadCaseSet& set, const CombinationOptions& options);

@@ -2,13 +2,55 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
+#include <string>
+#include <tuple>
 
 #include "core/combinations.h"
 #include "core/project.h"
 
 using namespace cc::core;
 
+#define MD "\xC2\xB7"  // U+00B7 middle dot of the original's combination names
+
 namespace {
+
+/// Reference work of the original (research 12.1/12.2): PP, Q 1, five wind cases, N(EI) and optionally S 1, S 2, A 1.
+LoadCaseSet referenceWork(bool seismic, bool accidental, int seismicCount = 1) {
+    LoadCaseSet set;
+    auto add = [&](LoadNature n, const char* ref) {
+        LoadCase c;
+        c.id = set.nextId++;
+        c.nature = n;
+        c.reference = ref;
+        set.cases.push_back(c);
+    };
+    add(LoadNature::LiveLoad, "Q 1");
+    for (const char* v : {"V(0\xC2\xB0) H1", "V(0\xC2\xB0) H2", "V(90\xC2\xB0) H1", "V(180\xC2\xB0) H1", "V(270\xC2\xB0) H1"})
+        add(LoadNature::Wind, v);
+    add(LoadNature::Snow, "N(EI)");
+    if (seismic) {
+        add(LoadNature::Seismic, "S 1");
+        if (seismicCount > 1) add(LoadNature::Seismic, "S 2");
+    }
+    if (accidental) add(LoadNature::Accidental, "A 1");
+    return set;
+}
+
+CombinationOptions referenceOptions(bool ec) {
+    CombinationOptions o;
+    o.code = ec ? NormCode::En1990CaseB : NormCode::CteDbSe;
+    o.snow = ec ? SnowZone::Above1000 : SnowZone::AtOrBelow1000;
+    o.defaultUseCategory = ec ? "H" : "G2";  // psi0 = 0
+    return o;
+}
+
+std::vector<std::string> namesOf(const CombinationResult& r, DesignSituation s) {
+    std::vector<std::string> v;
+    for (const auto& c : r.combinations)
+        if (c.situation == s) v.push_back(c.name);
+    return v;
+}
 
 LoadCaseSet makeSet(std::initializer_list<LoadNature> natures) {
     LoadCaseSet set;
@@ -112,9 +154,9 @@ TEST(Combinations, SelfWeightOnly) {
     EXPECT_EQ(of(r, DesignSituation::ServiceCharacteristic).size(), 1u);
     EXPECT_EQ(of(r, DesignSituation::ServiceFrequent).size(), 1u);
     EXPECT_EQ(of(r, DesignSituation::ServiceQuasiPermanent).size(), 1u);
-    EXPECT_EQ(r.combinations.front().name, "Comb. 1");
-    EXPECT_EQ(r.combinations[1].name, "Comb. 2");
-    EXPECT_EQ(r.combinations[2].name, "Comb. 1");  // service numbering restarts
+    EXPECT_EQ(r.combinations[0].name, "0.8" MD "PP");  // formula names of the original, favourable first
+    EXPECT_EQ(r.combinations[1].name, "1.35" MD "PP");
+    EXPECT_EQ(r.combinations[2].name, "PP");
 }
 
 TEST(Combinations, LiveLoadPersistentAndOrder) {
@@ -122,10 +164,10 @@ TEST(Combinations, LiveLoadPersistentAndOrder) {
     const auto r = generateCombinations(set, {});
     const auto p = of(r, DesignSituation::Persistent);
     ASSERT_EQ(p.size(), 4u);
-    // Lexicographic ascending by coefficient vector.
+    // Index order (Q more significant than PP; absent < principal; favourable < unfavourable), not by coefficient value.
     EXPECT_EQ(p[0]->coefficients, (std::vector<double>{0.8, 0.0}));
-    EXPECT_EQ(p[1]->coefficients, (std::vector<double>{0.8, 1.5}));
-    EXPECT_EQ(p[2]->coefficients, (std::vector<double>{1.35, 0.0}));
+    EXPECT_EQ(p[1]->coefficients, (std::vector<double>{1.35, 0.0}));
+    EXPECT_EQ(p[2]->coefficients, (std::vector<double>{0.8, 1.5}));
     EXPECT_EQ(p[3]->coefficients, (std::vector<double>{1.35, 1.5}));
 }
 
@@ -135,7 +177,7 @@ TEST(Combinations, MainAndAccompanyingVariables) {
     ASSERT_TRUE(r.error.empty());
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.05, 1.5, 0.0}));    // wind main, Q psi0 0.7
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5, 0.9, 0.0}));     // Q main, wind psi0 0.6
-    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.05, -1.5, 0.0}));   // wind sign alternation
+    EXPECT_FALSE(has(r, DesignSituation::Persistent, {1.35, 1.05, -1.5, 0.0}));  // wind has no negative sign
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5, 0.0, 0.75}));    // snow psi0 0.5 (<= 1000 m)
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {0.8, 0.0, 1.5, 0.0}));      // favourable permanent
     // No duplicates in any situation.
@@ -277,4 +319,159 @@ TEST(Combinations, FromProject) {
     EXPECT_EQ(combinationCodeFromStandard("Código Estructural (España)"), NormCode::Ehe08);
     const auto r = generateCombinations(p, StandardFamily::Timber);
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5}));
+}
+
+// ---- T-P7-06: adjustments to what was measured in the original (research 12.1 - 12.5) ----
+
+TEST(CombinationsOriginal, FormulaNames) {
+    const auto set = referenceWork(true, true);  // PP, Q1, V0H1, V0H2, V90H1, V180H1, V270H1, N, S1, A1
+    EXPECT_EQ(combinationFormulaName(set, {1.35, 1.5, 0, 0, 0, 0, 0.9, 1.05, 0, 0}),
+              "1.35" MD "PP+1.5" MD "Q1+0.9" MD "V(270\xC2\xB0)H1+1.05" MD "N(EI)");
+    EXPECT_EQ(combinationFormulaName(set, {0.8, 0, 0, 0, 0, 0, 0, 1.5, 0, 0}), "0.8" MD "PP+1.5" MD "N(EI)");
+    EXPECT_EQ(combinationFormulaName(set, {1, 0, 0, 0, 0, 0, 0, 0, -1, 0}), "PP-S1");
+    EXPECT_EQ(combinationFormulaName(set, {1, 0, 0, 0, 0, 0, 0, 0, 1, 0}), "PP+S1");
+    EXPECT_EQ(combinationFormulaName(set, {1, 0, 0.5, 0, 0, 0, 0, 0, 0, 1}), "PP+0.5" MD "V(0\xC2\xB0)H1+A1");
+    EXPECT_EQ(combinationFormulaName(set, {1, 0, 0, 0, 0, 0, 0, 0.2, 0, 1}), "PP+0.2" MD "N(EI)+A1");
+    EXPECT_EQ(combinationFormulaName(set, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0}), "PP");
+}
+
+TEST(CombinationsOriginal, PersistentCount58EcAndCte) {
+    for (const bool ec : {true, false}) {
+        const auto set = referenceWork(false, false);
+        auto o = referenceOptions(ec);
+        o.withSeismic = o.withAccidental = o.withService = false;
+        const auto r = generateCombinations(set, o);
+        ASSERT_TRUE(r.error.empty());
+        const auto names = namesOf(r, DesignSituation::Persistent);
+        EXPECT_EQ(names.size(), 58u) << (ec ? "EC" : "CTE");
+        EXPECT_EQ(r.combinations.size(), 58u);
+        // 24 without snow + 12 with snow as the main action + 22 with snow accompanying.
+        const std::string snowMain = "1.5" MD "N(EI)", snowAcc = std::string(ec ? "1.05" : "0.75") + MD "N(EI)";
+        int none = 0, main = 0, acc = 0;
+        for (const auto& n : names) {
+            if (n.find("N(EI)") == std::string::npos) ++none;
+            else if (n.find(snowMain) != std::string::npos) ++main;
+            else if (n.find(snowAcc) != std::string::npos) ++acc;
+        }
+        EXPECT_EQ(none, 24);
+        EXPECT_EQ(main, 12);
+        EXPECT_EQ(acc, 22);
+        // Order of the original: PP favourable first, then Q, then each wind (without / with Q), then snow.
+        const std::string fav = ec ? "PP" : "0.8" MD "PP";
+        EXPECT_EQ(names[0], fav);
+        EXPECT_EQ(names[1], "1.35" MD "PP");
+        EXPECT_EQ(names[2], fav + "+1.5" MD "Q1");
+        EXPECT_EQ(names[3], "1.35" MD "PP+1.5" MD "Q1");
+        EXPECT_EQ(names[4], fav + "+1.5" MD "V(0\xC2\xB0)H1");
+        EXPECT_EQ(names[5], "1.35" MD "PP+1.5" MD "V(0\xC2\xB0)H1");
+        EXPECT_EQ(names[6], fav + "+1.5" MD "Q1+0.9" MD "V(0\xC2\xB0)H1");
+        EXPECT_EQ(names[8], fav + "+1.5" MD "V(0\xC2\xB0)H2");
+        EXPECT_EQ(names[24], fav + "+1.5" MD "N(EI)");  // first snow-main combination
+        EXPECT_EQ(names.back(), std::string("1.35" MD "PP+1.5" MD "Q1+0.9" MD "V(270\xC2\xB0)H1+") + (ec ? "1.05" : "0.75") + MD "N(EI)");
+        // No negative sign for the wind and no duplicates.
+        for (const auto& c : r.combinations)
+            for (size_t i = 2; i < 7; ++i) EXPECT_GE(c.coefficients[i], 0.0);
+        std::set<std::string> uniq(names.begin(), names.end());
+        EXPECT_EQ(uniq.size(), names.size());
+    }
+}
+
+TEST(CombinationsOriginal, SeismicAndAccidentalCte67) {
+    const auto set = referenceWork(true, true);
+    auto o = referenceOptions(false);
+    o.withService = false;
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    EXPECT_EQ(r.combinations.size(), 67u);  // 58 + 2 (S1) + 7 (A1, psi1 principal)
+    EXPECT_EQ(namesOf(r, DesignSituation::Seismic), (std::vector<std::string>{"PP-S1", "PP+S1"}));
+    const auto acc = namesOf(r, DesignSituation::Accidental);
+    ASSERT_EQ(acc.size(), 7u);
+    EXPECT_EQ(acc[0], "PP+A1");
+    EXPECT_EQ(acc[1], "PP+0.5" MD "V(0\xC2\xB0)H1+A1");
+    EXPECT_EQ(acc[5], "PP+0.5" MD "V(270\xC2\xB0)H1+A1");
+    EXPECT_EQ(acc[6], "PP+0.2" MD "N(EI)+A1");
+}
+
+TEST(CombinationsOriginal, SeismicAndAccidentalEcUsePsi2) {
+    const auto set = referenceWork(true, true, 2);
+    auto o = referenceOptions(true);
+    o.snow = SnowZone::AtOrBelow1000;  // snow psi2 = 0 (TODO: with H > 1000 m psi2 = 0.2 would add a snow term; not measured)
+    o.withService = false;
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    EXPECT_EQ(namesOf(r, DesignSituation::Seismic), (std::vector<std::string>{"PP-S1", "PP+S1", "PP-S2", "PP+S2"}));
+    EXPECT_EQ(namesOf(r, DesignSituation::Accidental), (std::vector<std::string>{"PP+A1"}));  // psi2 principal: wind / snow psi2 = 0
+    // Principal factor of a live load in the accidental situation: EC psi2, CTE psi1.
+    const auto q = makeSet({LoadNature::LiveLoad, LoadNature::Accidental});
+    CombinationOptions e;
+    e.code = NormCode::En1990CaseB;  // category A: psi1 0.5, psi2 0.3
+    EXPECT_TRUE(has(generateCombinations(q, e), DesignSituation::Accidental, {1, 0.3, 1}));
+    EXPECT_FALSE(has(generateCombinations(q, e), DesignSituation::Accidental, {1, 0.5, 1}));
+}
+
+TEST(CombinationsOriginal, DisplacementsAre24) {
+    for (const bool ec : {true, false}) {
+        const auto set = referenceWork(false, false);
+        auto o = referenceOptions(ec);
+        o.withUltimate = false;
+        const auto r = generateCombinations(set, o);
+        ASSERT_TRUE(r.error.empty());
+        const auto d = namesOf(r, DesignSituation::ServiceCharacteristic);
+        ASSERT_EQ(d.size(), 24u);
+        EXPECT_EQ(d[0], "PP");
+        EXPECT_EQ(d[1], "PP+Q1");
+        EXPECT_EQ(d[2], "PP+V(0\xC2\xB0)H1");
+        EXPECT_EQ(d[3], "PP+Q1+V(0\xC2\xB0)H1");
+        EXPECT_EQ(d[12], "PP+N(EI)");
+        EXPECT_EQ(d[13], "PP+Q1+N(EI)");
+        EXPECT_EQ(d[14], "PP+V(0\xC2\xB0)H1+N(EI)");
+        EXPECT_EQ(d.back(), "PP+Q1+V(270\xC2\xB0)H1+N(EI)");
+    }
+    // With two seismic cases: the +/- variants follow (Q 1 only; wind and snow do not appear with the earthquake).
+    const auto set = referenceWork(true, false, 2);
+    auto o = referenceOptions(false);
+    o.withUltimate = false;
+    const auto d = namesOf(generateCombinations(set, o), DesignSituation::ServiceCharacteristic);
+    ASSERT_EQ(d.size(), 32u);
+    const std::vector<std::string> tail(d.begin() + 24, d.end());
+    EXPECT_EQ(tail, (std::vector<std::string>{"PP-S1", "PP+Q1-S1", "PP+S1", "PP+Q1+S1", "PP-S2", "PP+Q1-S2", "PP+S2", "PP+Q1+S2"}));
+}
+
+TEST(CombinationsOriginal, ShrinkageAndEarthPressureGamma) {
+    const auto cte = partialFactors(NormCode::CteDbSe, DesignSituation::Persistent);
+    EXPECT_EQ(std::make_tuple(cte.nonConstFav, cte.nonConstUnfav), std::make_tuple(1.0, 1.5));  // Retracción 1.000 / 1.500
+    const auto ecb = partialFactors(NormCode::En1990CaseB, DesignSituation::Persistent);
+    EXPECT_EQ(std::make_tuple(ecb.earthFav, ecb.earthUnfav), std::make_tuple(1.0, 1.35));  // Empujes del terreno
+    for (auto s : {DesignSituation::Seismic, DesignSituation::Accidental}) {
+        const auto p = partialFactors(NormCode::CteDbSe, s);
+        EXPECT_EQ(std::make_tuple(p.nonConstFav, p.nonConstUnfav), std::make_tuple(1.0, 1.0));  // 1 / 1
+    }
+    const auto set = makeSet({LoadNature::Shrinkage});
+    const auto r = generateCombinations(set, {});  // CTE
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {0.8, 1.0}));
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5}));
+}
+
+TEST(CombinationsOriginal, HotRolledRadioChangesTheSet) {
+    Project p;
+    p.loadCases = referenceWork(true, true);
+    p.limitStates.hotRolledSnow = "Resto de los Estados miembro del CEN, H > 1000 m";
+    auto cteOpt = combinationOptionsFor(p, StandardFamily::HotRolledSteel);
+    p.limitStates.hotRolledCode = CombinationCode::EC;
+    auto ecOpt = combinationOptionsFor(p, StandardFamily::HotRolledSteel);
+    EXPECT_EQ(ecOpt.snow, SnowZone::Above1000);
+    cteOpt.snow = SnowZone::AtOrBelow1000;
+    cteOpt.caseUseCategory[1] = "G2";
+    ecOpt.caseUseCategory[1] = "H";
+    cteOpt.withService = ecOpt.withService = false;
+    const auto cte = generateCombinations(p.loadCases, cteOpt);
+    const auto ec = generateCombinations(p.loadCases, ecOpt);
+    ASSERT_TRUE(cte.error.empty() && ec.error.empty());
+    EXPECT_EQ(cte.combinations.front().name, "0.8" MD "PP");  // CTE: PP favourable 0.8
+    EXPECT_EQ(ec.combinations.front().name, "PP");             // EC: PP favourable 1.0
+    EXPECT_EQ(namesOf(cte, DesignSituation::Accidental).size(), 7u);  // psi1 principal
+    EXPECT_EQ(namesOf(ec, DesignSituation::Persistent).size(), 58u);
+    EXPECT_EQ(namesOf(cte, DesignSituation::Persistent).size(), 58u);
+    EXPECT_EQ(snowZoneFromText("Finlandia, Islandia, Noruega, Suecia"), SnowZone::Nordic);
+    EXPECT_EQ(snowZoneFromText("Resto de los Estados miembro del CEN, H <= 1000 m"), SnowZone::AtOrBelow1000);
 }

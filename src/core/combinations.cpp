@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <map>
 #include <set>
 
 #include "core/project.h"
@@ -18,6 +20,14 @@ std::vector<long long> keyOf(const std::vector<double>& v) {
     return k;
 }
 
+/// Ordering of the original (T-P7-06, research section 12.2): vectors of coefficient-set indices compared from the LAST
+/// hypothesis (most significant: N > V > Q > PP) to the first, ascending. -1 (does not act) < 0 < 1 ...
+bool indexLess(const std::vector<int>& a, const std::vector<int>& b) {
+    for (size_t i = a.size(); i-- > 0;)
+        if (a[i] != b[i]) return a[i] < b[i];
+    return false;
+}
+
 enum class PermKind { Plain, Earth, NonConstant };
 
 struct PermEntry {
@@ -25,38 +35,50 @@ struct PermEntry {
     PermKind kind;
 };
 
-/// One alternative of a variable slot: a case with its sign and psi.
+/// One alternative of a variable slot: a case with its sign and psi. `signIndex` is the coefficient-set index of an action with
+/// sign (seismic: 0 = "-", 1 = "+").
 struct VarOption {
     int idx;
     double sign;
     Psi psi;
     bool nonConcomitant;
+    LoadNature nature = LoadNature::LiveLoad;
+    int signIndex = 0;
 };
 struct VarSlot {
     std::vector<VarOption> options;
 };
 
 enum class Role { PrincipalRequired, PrincipalOptional, NoPrincipal };
+enum class ActionGroup { None, Seismic, Accidental };
 
 struct SituationSpec {
     DesignSituation situation;
     Role role;
     bool g1Mode = false;
+    ActionGroup group = ActionGroup::None;
+    bool skipWindAndSnow = false;  ///< seismic displacements: wind and snow do not appear (measured in the reference work)
 };
 
-double principalFactor(DesignSituation s, const Psi& psi) {
+/// Combination coefficients plus the coefficient-set index of every case (-1 = does not act).
+struct Item {
+    std::vector<double> c;
+    std::vector<int> k;
+};
+
+double principalFactor(NormCode code, DesignSituation s, const Psi& psi) {
     switch (s) {
     case DesignSituation::Persistent: return 1.0;
     case DesignSituation::ServiceCharacteristic: return 1.0;
-    case DesignSituation::Accidental:
+    case DesignSituation::Accidental: return isEn(code) ? psi.psi2 : psi.psi1;  // EC: psi2, CTE: psi1 [V, research 12.3]
     case DesignSituation::ServiceFrequent: return psi.psi1;
     default: return psi.psi2;
     }
 }
 double accompanyingFactor(DesignSituation s, const Psi& psi) {
     switch (s) {
-    case DesignSituation::Persistent:
-    case DesignSituation::ServiceCharacteristic: return psi.psi0;
+    case DesignSituation::Persistent: return psi.psi0;
+    case DesignSituation::ServiceCharacteristic: return 1.0;  // "Acciones características" (displacements): no psi [V]
     default: return psi.psi2;
     }
 }
@@ -65,12 +87,14 @@ struct Generator {
     const LoadCaseSet& set;
     const CombinationOptions& opt;
     std::vector<PermEntry> perms;
-    std::vector<VarSlot> slots;       // live load, temperature, snow, wind
-    std::vector<VarOption> seismic;   // alternatives with sign
+    std::vector<VarSlot> slots;      // live load, temperature, snow, wind (one slot for all the wind cases)
+    std::vector<VarOption> seismic;  // alternatives with sign
     std::vector<VarOption> accidental;
     std::string error;
 
     bool build() {
+        bool windSlotOpen = false;
+        size_t windSlot = 0;
         for (size_t i = 0; i < set.cases.size(); ++i) {
             const LoadCase& c = set.cases[i];
             if (!c.acts) continue;
@@ -88,65 +112,76 @@ struct Generator {
                     error = "Unknown use category '" + cat + "' for the selected code.";
                     return false;
                 }
-                slots.push_back({{{idx, 1.0, *psi, isNonConcomitantCategory(cat) && !isEn(opt.code)}}});
+                slots.push_back({{{idx, 1.0, *psi, isNonConcomitantCategory(cat) && !isEn(opt.code), LoadNature::LiveLoad}}});
                 break;
             }
-            case LoadNature::Temperature: slots.push_back({{{idx, 1.0, psiTemperature(), false}}}); break;
-            case LoadNature::Snow: slots.push_back({{{idx, 1.0, psiSnow(opt.code, opt.snow), false}}}); break;
-            case LoadNature::Wind: {
-                if (slots.empty() || slots.back().options.empty() || !windSlotOpen) {
+            case LoadNature::Temperature:
+                slots.push_back({{{idx, 1.0, psiTemperature(), false, LoadNature::Temperature}}});
+                break;
+            case LoadNature::Snow:
+                slots.push_back({{{idx, 1.0, psiSnow(opt.code, opt.snow), false, LoadNature::Snow}}});
+                break;
+            case LoadNature::Wind: {  // one group of alternatives, sign + only [V, research 12.2]
+                if (!windSlotOpen) {
                     slots.push_back({});
                     windSlot = slots.size() - 1;
                     windSlotOpen = true;
                 }
-                const Psi psi = psiWind(opt.code, opt.nationalAnnex);
-                slots[windSlot].options.push_back({idx, 1.0, psi, false});
-                slots[windSlot].options.push_back({idx, -1.0, psi, false});
+                slots[windSlot].options.push_back({idx, 1.0, psiWind(opt.code, opt.nationalAnnex), false, LoadNature::Wind});
                 break;
             }
             case LoadNature::Seismic:
-                seismic.push_back({idx, 1.0, {}, false});
-                seismic.push_back({idx, -1.0, {}, false});
+                seismic.push_back({idx, -1.0, {}, false, LoadNature::Seismic, 0});
+                seismic.push_back({idx, 1.0, {}, false, LoadNature::Seismic, 1});
                 break;
             case LoadNature::Accidental:
-                accidental.push_back({idx, 1.0, {}, false});
-                if (opt.code == NormCode::Ehe08) accidental.push_back({idx, -1.0, {}, false});  // EHE-08: +/- accidental action [V]
+                if (opt.code == NormCode::Ehe08) {  // EHE-08: +/- accidental action [V]
+                    accidental.push_back({idx, -1.0, {}, false, LoadNature::Accidental, 0});
+                    accidental.push_back({idx, 1.0, {}, false, LoadNature::Accidental, 1});
+                } else {
+                    accidental.push_back({idx, 1.0, {}, false, LoadNature::Accidental, 0});
+                }
                 break;
             }
         }
         return true;
     }
 
-    bool windSlotOpen = false;
-    size_t windSlot = 0;
+    std::map<std::vector<long long>, size_t> seen;
+    std::vector<Item> out;
 
-    long long emitted = 0;
-    std::set<std::vector<long long>> seen;
-    std::vector<std::vector<double>> out;
-
-    void emit(const std::vector<double>& v) {
+    /// Deduplicates by coefficient vector keeping the entry with the smallest index vector (what the original's sort + filter does).
+    void emit(const Item& it) {
         if (error.size()) return;
-        if (!seen.insert(keyOf(v)).second) return;
-        if (static_cast<long long>(seen.size()) > opt.maxCombinations) {
-            error = "Too many combinations (limit " + std::to_string(opt.maxCombinations) + ").";
+        const auto key = keyOf(it.c);
+        if (const auto f = seen.find(key); f != seen.end()) {
+            if (indexLess(it.k, out[f->second].k)) out[f->second] = it;
             return;
         }
-        out.push_back(v);
+        seen.emplace(key, out.size());
+        out.push_back(it);
+        if (static_cast<long long>(seen.size()) > opt.maxCombinations)
+            error = "Too many combinations (limit " + std::to_string(opt.maxCombinations) + ").";
     }
 
-    void principalLoop(const SituationSpec& spec, const PartialFactors& g, const std::vector<double>& base,
+    void principalLoop(const SituationSpec& spec, const PartialFactors& g, const Item& base,
                        const std::vector<const VarOption*>& chosen) {
         auto coefOf = [&](const VarOption& o, bool principal) {
-            const double factor = principal ? principalFactor(spec.situation, o.psi) : accompanyingFactor(spec.situation, o.psi);
+            const double factor =
+                principal ? principalFactor(opt.code, spec.situation, o.psi) : accompanyingFactor(spec.situation, o.psi);
             const double gamma = g.varUnfav;
             if (opt.longTermFraction > 0.0)
                 return o.sign * effectiveVariableCoefficient(gamma, o.psi.psi2, gamma, factor, opt.longTermFraction);
             return o.sign * gamma * factor;
         };
         auto build = [&](int principal) {
-            std::vector<double> v = base;
-            for (size_t i = 0; i < chosen.size(); ++i)
-                v[static_cast<size_t>(chosen[i]->idx)] = coefOf(*chosen[i], static_cast<int>(i) == principal);
+            Item v = base;
+            for (size_t i = 0; i < chosen.size(); ++i) {
+                const size_t at = static_cast<size_t>(chosen[i]->idx);
+                const bool isPrincipal = static_cast<int>(i) == principal;
+                v.c[at] = coefOf(*chosen[i], isPrincipal);
+                v.k[at] = (spec.role == Role::NoPrincipal || isPrincipal) ? 0 : 1;  // principal < accompanying
+            }
             emit(v);
         };
         if (chosen.empty()) {
@@ -161,7 +196,7 @@ struct Generator {
         for (size_t i = 0; i < chosen.size(); ++i) build(static_cast<int>(i));
     }
 
-    void slotLoop(const SituationSpec& spec, const PartialFactors& g, const std::vector<double>& base, size_t slot,
+    void slotLoop(const SituationSpec& spec, const PartialFactors& g, const Item& base, size_t slot,
                   std::vector<const VarOption*>& chosen) {
         if (error.size()) return;
         if (slot == slots.size()) {
@@ -171,6 +206,7 @@ struct Generator {
         slotLoop(spec, g, base, slot + 1, chosen);  // slot not acting
         for (const VarOption& o : slots[slot].options) {
             if (spec.g1Mode != o.nonConcomitant) continue;  // G1 acts only alone, in its own situation
+            if (spec.skipWindAndSnow && (o.nature == LoadNature::Wind || o.nature == LoadNature::Snow)) continue;
             chosen.push_back(&o);
             slotLoop(spec, g, base, slot + 1, chosen);
             chosen.pop_back();
@@ -179,8 +215,8 @@ struct Generator {
 
     void run(const SituationSpec& spec) {
         const PartialFactors g = partialFactors(opt.code, spec.situation);
-        const bool seismicSit = spec.situation == DesignSituation::Seismic;
-        const bool accSit = spec.situation == DesignSituation::Accidental;
+        const bool seismicSit = spec.group == ActionGroup::Seismic;
+        const bool accSit = spec.group == ActionGroup::Accidental;
         if (seismicSit && seismic.empty()) return;
         if (accSit && accidental.empty()) return;
         if (spec.g1Mode && std::none_of(slots.begin(), slots.end(), [](const VarSlot& s) {
@@ -207,19 +243,22 @@ struct Generator {
         }
         const size_t n = set.cases.size();
         for (unsigned long long mask = 0; mask < (1ULL << varying.size()); ++mask) {
-            std::vector<double> base(n, 0.0);
+            Item base{std::vector<double>(n, 0.0), std::vector<int>(n, -1)};
             for (size_t i = 0; i < perms.size(); ++i) {
                 double f, u;
                 gammas(perms[i].kind, f, u);
                 bool unfavourable = true;
                 const auto it = std::find(varying.begin(), varying.end(), i);
                 if (it != varying.end()) unfavourable = (mask >> (it - varying.begin())) & 1ULL;
-                base[static_cast<size_t>(perms[i].idx)] = unfavourable ? u : f;
+                const size_t at = static_cast<size_t>(perms[i].idx);
+                base.c[at] = unfavourable ? u : f;
+                base.k[at] = (it != varying.end() && unfavourable) ? 1 : 0;  // favourable set first
             }
             if (seismicSit || accSit) {
                 for (const VarOption& a : seismicSit ? seismic : accidental) {
-                    std::vector<double> b = base;
-                    b[static_cast<size_t>(a.idx)] = a.sign * 1.0;  // gamma_A = gamma_E = 1.0 [V]
+                    Item b = base;
+                    b.c[static_cast<size_t>(a.idx)] = a.sign * 1.0;  // gamma_A = gamma_E = 1.0 [V]
+                    b.k[static_cast<size_t>(a.idx)] = a.signIndex;
                     std::vector<const VarOption*> chosen;
                     slotLoop(spec, g, b, 0, chosen);
                 }
@@ -231,7 +270,51 @@ struct Generator {
     }
 };
 
+/// Rank of a nature in the name of a combination: PP, Q, V, N, S, A measured; the others are placed by analogy [N].
+int nameRank(LoadNature n) {
+    switch (n) {
+    case LoadNature::SelfWeight: return 0;
+    case LoadNature::DeadLoad: return 1;
+    case LoadNature::LiveLoad: return 2;
+    case LoadNature::Temperature: return 3;
+    case LoadNature::Shrinkage: return 4;
+    case LoadNature::Wind: return 5;
+    case LoadNature::Snow: return 6;
+    case LoadNature::EarthPressure: return 7;
+    case LoadNature::Seismic: return 8;
+    case LoadNature::Accidental: return 9;
+    }
+    return 10;
+}
+
+std::string formatCoefficient(double v) {
+    char buf[32];
+    std::snprintf(buf, sizeof buf, "%.6g", v);
+    return buf;
+}
+
 }  // namespace
+
+std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients) {
+    std::vector<size_t> order;
+    for (size_t i = 0; i < set.cases.size() && i < coefficients.size(); ++i)
+        if (std::fabs(coefficients[i]) > 1e-12) order.push_back(i);
+    std::stable_sort(order.begin(), order.end(),
+                     [&](size_t a, size_t b) { return nameRank(set.cases[a].nature) < nameRank(set.cases[b].nature); });
+    std::string name;
+    for (size_t i : order) {
+        const double c = coefficients[i];
+        const LoadCase& lc = set.cases[i];
+        std::string ref = lc.nature == LoadNature::SelfWeight ? "PP" : lc.reference;
+        ref.erase(std::remove(ref.begin(), ref.end(), ' '), ref.end());
+        if (c < 0.0) name += '-';
+        else if (!name.empty()) name += '+';
+        const double m = std::fabs(c);
+        if (std::fabs(m - 1.0) > 1e-9) name += formatCoefficient(m) + "\xC2\xB7";  // U+00B7 middle dot
+        name += ref;
+    }
+    return name;
+}
 
 PartialFactors partialFactors(NormCode code, DesignSituation s) {
     PartialFactors p;  // 1 / 1, variable 0 / 1: accidental, seismic and service situations
@@ -240,10 +323,11 @@ PartialFactors partialFactors(NormCode code, DesignSituation s) {
     case NormCode::CteDbSe:  // CTE DB-SE 4.2.2 [V]
         p.permFav = 0.8; p.permUnfav = 1.35; p.varUnfav = 1.5;
         p.earthFav = 0.7; p.earthUnfav = 1.35;
-        p.nonConstFav = 0.8; p.nonConstUnfav = 1.35;
+        p.nonConstFav = 1.0; p.nonConstUnfav = 1.5;  // shrinkage "Retracción" 1.000 / 1.500 [V, measured in the original]
         break;
     case NormCode::En1990CaseB:  // EN 1990 Table A1.2(B) [V]
         p.permFav = 1.0; p.permUnfav = 1.35; p.varUnfav = 1.5;
+        p.earthFav = 1.0; p.earthUnfav = 1.35;  // measured in the original
         break;
     case NormCode::En1990CaseC:  // Table A1.2(C) [V]
         p.permFav = 1.0; p.permUnfav = 1.0; p.varUnfav = 1.3;
@@ -308,47 +392,56 @@ CombinationResult generateCombinations(const LoadCaseSet& set, const Combination
     if (options.withUltimate) {
         blocks.push_back({{DesignSituation::Persistent, Role::PrincipalRequired, false}, CombinationLimitState::Ultimate});
         blocks.push_back({{DesignSituation::Persistent, Role::PrincipalRequired, true}, CombinationLimitState::Ultimate});
-        if (options.withSeismic) blocks.push_back({{DesignSituation::Seismic, Role::NoPrincipal, false}, CombinationLimitState::Ultimate});
+        if (options.withSeismic)
+            blocks.push_back({{DesignSituation::Seismic, Role::NoPrincipal, false, ActionGroup::Seismic}, CombinationLimitState::Ultimate});
         if (options.withAccidental)
-            blocks.push_back({{DesignSituation::Accidental, Role::PrincipalOptional, false}, CombinationLimitState::Ultimate});
+            blocks.push_back({{DesignSituation::Accidental, Role::PrincipalOptional, false, ActionGroup::Accidental},
+                              CombinationLimitState::Ultimate});
     }
     if (options.withService) {
-        blocks.push_back({{DesignSituation::ServiceCharacteristic, Role::PrincipalRequired, false}, CombinationLimitState::Service});
+        // "Desplazamientos / Acciones características": every variable at 1.0, no principal, every subset (+ seismic +/- variants).
+        blocks.push_back({{DesignSituation::ServiceCharacteristic, Role::NoPrincipal, false}, CombinationLimitState::Service});
+        if (options.withSeismic)
+            blocks.push_back({{DesignSituation::ServiceCharacteristic, Role::NoPrincipal, false, ActionGroup::Seismic, true},
+                              CombinationLimitState::Service});
         blocks.push_back({{DesignSituation::ServiceFrequent, Role::PrincipalRequired, false}, CombinationLimitState::Service});
         blocks.push_back({{DesignSituation::ServiceQuasiPermanent, Role::NoPrincipal, false}, CombinationLimitState::Service});
     }
 
-    int ultimateCount = 0, serviceCount = 0;
-    std::set<std::pair<int, std::vector<long long>>> seenPerSituation;  // the "(G1)" block shares the persistent situation
+    struct Entry {
+        Combination comb;
+        std::vector<int> k;
+    };
+    std::vector<Entry> entries;
     for (const Block& b : blocks) {
         gen.out.clear();
         gen.seen.clear();
         gen.run(b.spec);
         if (!gen.error.empty()) {
             result.error = gen.error;
-            result.combinations.clear();
             return result;
         }
-        std::vector<std::vector<double>> sorted = gen.out;
-        std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& c) { return keyOf(a) < keyOf(c); });
-        for (auto& v : sorted) {
-            if (!seenPerSituation.insert({static_cast<int>(b.spec.situation), keyOf(v)}).second) continue;
-            Combination c;
-            c.situation = b.spec.situation;
-            c.limitState = b.ls;
-            c.coefficients = std::move(v);
-            c.name.clear();
-            result.combinations.push_back(std::move(c));
+        for (Item& it : gen.out) {
+            Entry e;
+            e.comb.situation = b.spec.situation;
+            e.comb.limitState = b.ls;
+            e.comb.coefficients = std::move(it.c);
+            e.k = std::move(it.k);
+            entries.push_back(std::move(e));
         }
     }
-    // Per situation, lexicographic order across the persistent ordinary and "(G1)" blocks.
-    std::stable_sort(result.combinations.begin(), result.combinations.end(), [](const Combination& a, const Combination& b) {
-        if (a.situation != b.situation) return static_cast<int>(a.situation) < static_cast<int>(b.situation);
-        return keyOf(a.coefficients) < keyOf(b.coefficients);
+    // Per situation, by coefficient-set index vector (the "(G1)" block merges into the persistent situation); then deduplicate by
+    // coefficient vector keeping the first.
+    std::stable_sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+        if (a.comb.situation != b.comb.situation) return static_cast<int>(a.comb.situation) < static_cast<int>(b.comb.situation);
+        return indexLess(a.k, b.k);
     });
-    for (Combination& c : result.combinations) {
-        const int n = c.limitState == CombinationLimitState::Ultimate ? ++ultimateCount : ++serviceCount;
-        c.name = "Comb. " + std::to_string(n);
+    std::set<std::pair<int, std::vector<long long>>> seenPerSituation;
+    for (Entry& e : entries) {
+        if (!seenPerSituation.insert({static_cast<int>(e.comb.situation), keyOf(e.comb.coefficients)}).second) continue;
+        e.comb.indices = std::move(e.k);
+        e.comb.name = combinationFormulaName(set, e.comb.coefficients);
+        result.combinations.push_back(std::move(e.comb));
     }
     return result;
 }
@@ -361,7 +454,9 @@ std::optional<NormCode> combinationCodeFromStandard(const std::string& name) {
 }
 
 SnowZone snowZoneFromText(const std::string& text) {
-    return text.find("superior a 1000") != std::string::npos ? SnowZone::Above1000 : SnowZone::AtOrBelow1000;
+    if (text.find("Finlandia") != std::string::npos) return SnowZone::Nordic;  // EC list: "Finlandia, Islandia, Noruega, Suecia"
+    if (text.find("superior a 1000") != std::string::npos || text.find("H > 1000") != std::string::npos) return SnowZone::Above1000;
+    return SnowZone::AtOrBelow1000;
 }
 
 CombinationOptions combinationOptionsFor(const Project& project, StandardFamily family) {
