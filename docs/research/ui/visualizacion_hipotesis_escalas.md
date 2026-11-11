@@ -1,0 +1,74 @@
+# Visualización de hipótesis y escalas (T-P7-07) — mediciones en el original
+
+Sesión 2026-11-11 (RE-ANALYST, original lanzado con autorización de la sesión; cerrado al terminar, `fdlauncher` sigue). Marcas: **[V]** verificado (REA o medido en esta sesión), **[V previo]** ya medido en otros documentos (citados), **[N]** no verificado. Complementa `visualizacion_hipotesis_escalas_rea.md` (parte REA de otra sesión; hay que fusionarlos: no se contradicen). Capturas `docs/screenshots/vh_*.png` (las `vh_NN_*c.png`/`*s.png`/`*z.png` son recortes). Obra de prueba: `docs/sample_project/vh_base.ed3` (obra vacía + `p6_a.txt` + hipótesis CM 1, T 1, R 1, V 1..V 5 + cargas de nudo en cada una + Escalas proporcional con Puntual 2.000; vista = V 5, «Ver todas» desmarcada). Herramientas nuevas: `tools/vh_open.ps1` (reinicia el original con una obra de `docs/sample_project` pasada como argumento: **el .exe abre un .ed3 recibido por línea de órdenes**), `tools/vh_lib.sh`.
+
+## 1. Vías
+- [REA, ed3dlib.dll] estructura `escalas_cargas` (`ed3esccar.c`), construcción del diálogo, rangos; no hay literal ni campo de «color de hipótesis» (búsqueda `color.*hipot` sin resultados): la paleta se midió en pantalla. Resto de la parte REA: ver `visualizacion_hipotesis_escalas_rea.md`.
+- [CAP] diálogos Hipótesis vista y Escalas (tamaño, foco, ciclo de tabulación, avisos), paleta de colores en nudos, persistencia en el `.ed3`, «Dibujar las cargas con relleno».
+
+## 2. Estructura de escalas y diálogo «Escalas» [REA, ed3esccar.c]
+- Registro de la obra (`datos_obra->escalas_cargas`, 0x5c bytes, empaquetado): `+0x04 dimension_max_representacion_carga` (>0.0001), `+0x0c uniforme`, `+0x14 puntual`, `+0x1c faja`, `+0x24 triangular`, `+0x2c trapezoidal`, `+0x34 momento_puntual`, `+0x3c variacion_temperatura`, `+0x44 carga_superficial`, `+0x4c retraccion` (todos double > 0.0001), `+0x54 escalas_hipotesis` (lista no nula) [V]. En memoria Temperatura va antes que Superficial; en el diálogo Superficial va antes que Temperatura [V].
+- Panel `escalas_cargas_hipotesis` = caja vertical: lista `lista_cargas_por_hipotesis` (Hipótesis | Escala) arriba y panel `cargas_por_tipos` abajo (rejilla 9 filas x 3 columnas, título en negrita #64478 «Escalas de cargas por tipos», margen vertical 5). Orden de filas: uniforme, puntual, faja, triangular, trapezoidal, momento_puntual, superficial, temperatura, retraccion. Cada campo: `pnlEdit_setEnGridNumeroDouble` con **mín 0.001, máx 1000.0**, 3 decimales [V].
+- Cadenas: #64337 «Escalas»; #64652 tooltip del botón; #388086 «Proporcionales a un valor fijo»; #388087 «Tamaño máximo para representación»; #388088 «Proporcionales al valor de la carga»; #388085 «Dibujar las cargas con relleno»; #65380 «Hipótesis vista»; #38947 «Ver todas» [V].
+- Aserciones de datos al guardar/validar: todos los factores y el tamaño > 0.0001 [V].
+
+## 3. Cuadro «Hipótesis vista» (ribbon Carga > Visualización) [CAP `vh_02`, `vh_04c`, `vh_06c`, `vh_48c`, `vh_52c`, `vh_54c`]
+- Cuadro modal con barra de título roja **«Hipótesis vista»** y aspa (sin icono de ayuda), pequeño, centrado: etiqueta **Hipótesis** + combo; casilla **Ver todas** debajo; botones **Aceptar** (por defecto, A subrayada) y **Cancelar**. El **ancho se adapta al texto más largo del combo** (≈185 px con «V(0°) H1»; algo mayor con «Sobrecarga de uso») [V].
+- El combo muestra **solo la referencia** de la hipótesis (no la descripción): «Peso propio», «CM 1», «T 1», «R 1», «V 1»..«V 5»; en obras con hipótesis automáticas: «V(0°) H1», «V(0°) H2», «V(90°) H1», «V(180°) H1», «V(270°) H1», «N(EI)»; con categorías: «Sobrecarga de uso». **Orden de la lista: Peso propio primero y luego por naturaleza (CM, Q, T, R, V, S, N, H, A) y número**, no por orden de creación [V; coincide con `cargas_panos.md` §14.2].
+- Defecto de una obra nueva: vista = **Peso propio**, «Ver todas» **desmarcada**. Con vista = Peso propio solo se ve el Peso propio (en nudos: las cargas de nudo asignadas a Peso propio); con «Ver todas» marcada se dibujan todas las hipótesis a la vez (`vh_49c`) [V].
+- Aceptar aplica y termina el modo activo (barra «Seleccione una opción del menú.»); Cancelar descarta [V previo `cargas_laminas.md` §13.2].
+- **Persistencia en el .ed3** [V]: tras guardar con **Ctrl+G** (el atajo de «Guardar» es **Ctrl+G**, tooltip «Guardar (Ctrl+G)»; Ctrl+S no guarda) y reabrir, el cuadro vuelve con la hipótesis (V 5) y la casilla tal como estaban (`vh_66a`). Además, las obras de ejemplo de CYPE se abren con «Ver todas» **marcada** y la vista en V(0°) H1 (`vh_02`): la casilla se lee del fichero. Es decir, **hipótesis vista y «Ver todas» son estado de la obra** (concuerda con `configuracion->hipotesis_vista` [REA]).
+- El selector «Hipótesis» del panel flotante «Propiedades - Hipótesis vista» de los modos Nueva/Editar/Hipótesis/Borrar y el cuadro del ribbon comparten ese estado [V previo].
+- Nota de conducción (no es comportamiento): con la ventana principal NO maximizada, el panel flotante «Propiedades - Hipótesis vista» aparece a pantalla completa cada vez que se activa un modo de carga; se corrige con (1848,12) = restaurar y (1708,120) = cerrar (OJO: si el panel no está, (1848,12) cae en el botón de maximizar de otra aplicación). Con la ventana maximizada no ocurre. Conviene `aclick` en pantalla.
+
+## 4. Cuadro «Escalas» [CAP `vh_07c`, `vt_tab_montage*`, `vh_09_*`, `vh_56c`, `vh_60c`, `vh_67c`]
+- Cuadro modal 306x579 (barra roja «Escalas», aspa): radios **Proporcionales a un valor fijo** / **Proporcionales al valor de la carga** (el elegido en negrita); línea separadora; luego solo el bloque del radio activo; Aceptar / Cancelar abajo (Aceptar por defecto). El tamaño **no cambia** con el radio (en modo fijo queda vacío bajo el campo) [V].
+- **Fijo**: campo **Tamaño máximo para representación [0.500] m**; al abrir el foco está en ese campo con el texto seleccionado [V].
+- **Proporcional**: tabla **Hipótesis | Escala** (5 filas visibles + barra de desplazamiento; celdas de escala 3 decimales alineadas a la derecha; primera fila «Peso propio» seleccionada; lista = mismo orden que el combo de Hipótesis vista, sin ordenación) y bloque **Escalas de cargas por tipos** (negrita) con 9 campos (Uniforme, Puntual, Faja, Triangular, Trapecial, Momento puntual, Superficial, Temperatura, Retracción) de 3 decimales alineados a la derecha [V]. Valores por defecto de obra nueva: todos 1.000 salvo Retracción 100.000; en obras de ejemplo antiguas Retracción vale 1.000 y el modo es proporcional (se leen del fichero) [V].
+- **Orden de tabulación** (proporcional) [V `vt_t0..vt_t25`]: foco inicial en la primera celda de la tabla (Peso propio); **TAB recorre la tabla celda a celda**, fila a fila (celda Hipótesis -> celda Escala -> fila siguiente...) hasta la última fila; después **Uniforme -> Puntual -> Faja -> Triangular -> Trapecial -> Momento puntual -> Superficial -> Temperatura -> Retracción** (cada campo entra con el texto seleccionado) **-> Aceptar -> Cancelar -> radio activo (con marco de foco) -> tabla** (ciclo).
+- **Validación** [V `vh_09_c/d`, `vh_57`]: al salir del campo (TAB o Aceptar) con un valor fuera de rango aparece un cuadro modal **«Aviso»** (icono de advertencia, botón Aceptar, ≈419x162) y el campo **vuelve al último valor válido** (queda en 1.000), pasando el foco al campo siguiente. Mientras se edita se admiten hasta 4 decimales (se vio «0.0001» en el campo). Textos literales:
+  - campos por tipo (mín 0.001, máx 1000.000): **«El valor de 'Uniforme' debe estar entre 0.001  y 1000.000 .»** (doble espacio antes de «y» y espacio antes del punto final: plantilla con unidad vacía; el nombre del campo es el rótulo: 'Uniforme', 'Faja'...); el mismo texto como **tooltip** del campo («Uniforme» en negrita + «Debe estar entre 0.001  y 1000.000 .»).
+  - tamaño máximo (**mín 0.010, máx 100.000 m**): **«El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000.»** (sin unidades, ≈385x162; 0 y 20000 dan el mismo aviso) [V]. Distinto del rango de las escalas por tipo.
+  - celdas de la tabla de hipótesis: rango REA 0.001..1000.0; el aviso de celda no se midió [N].
+- Edición de la celda de la tabla, Ctrl+A en la tabla y «Aceptar en modo fijo no guarda la tabla»: [V previo `cargas_laminas.md` §13.5].
+- **Persistencia** [V `vh_67c`]: guardado y reabierto, el modo (proporcional), Puntual 2.000 y la tabla de hipótesis se conservan en el .ed3.
+
+## 5. Reglas de escala y de dibujo (consolidado)
+- Tamaño de dibujo (m): **modo fijo** = el valor máximo de la propia carga alcanza `Tamaño máximo` (0.5 m), el resto proporcional (cuñas 1/3..1); una carga uniforme siempre mide 0.5 m [V previo nudos §7, barras §12.5, láminas §10.2, paños §14.9]. **Modo proporcional** = **0.1 m por unidad (kN, kN/m, kN·m, kN/m², ºC) x escala de la hipótesis x escala del tipo** [V previo nudos/barras/láminas/paños]. Temperatura y retracción proporcionales: **sin medir en barras** [N] (en láminas el prisma de temperatura toma el tamaño fijo con un solo valor; fórmula proporcional por ºC no medida).
+- Tipo -> fila de escala: nudo = **Puntual** (confirmado `vh_55`: Puntual 2.000 duplica la flecha y el texto de la carga de nudo); barras: Uniforme/Puntual/Faja/Triangular/Trapecial/Momento puntual/Temperatura según tipo; láminas y paños/superficiales = **Superficial**; Retracción propia [V previo, REA].
+- **Texto de la carga**: valor con 2 decimales sin unidad en nudos y barras («9.81»), del color de la hipótesis; **la altura del texto y de la punta crecen con la longitud de la carga** (con Puntual 2.000 las etiquetas son enormes) [V `vh_80c`]; barras/temperatura «T1/T2», láminas «kN/m²» y «20° C» [V previo].
+- **Paleta por hipótesis** [V `vh_49c`, `vh_51`, `vh_55`, muestreo de píxeles]: el color depende del **índice de creación de la hipótesis** (Peso propio = 0) y **cicla con periodo 8**:
+
+| Índice | 0 (Peso propio) | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| RGB | 255,255,0 amarillo | 0,191,255 cian | 0,255,0 verde | 255,0,255 magenta | 204,102,0 marrón | 0,0,255 azul | 128,0,128 púrpura | 128,128,128 gris | 255,255,0 (**vuelve al amarillo**, medido con la 9.ª = V 5) |
+
+  Medido en esta obra con creación CM 1, T 1, R 1, V 1, V 2, V 3, V 4, V 5 (índices 1..8): cian, verde, magenta, marrón, azul, púrpura, gris, amarillo. Que el índice sea el de **creación** y no el de la posición en la lista ya se midió en `cargas_panos.md` §14.2 (V 1 creada primera = cian). **Las cargas de nudo usan la misma paleta** (línea + punta + etiqueta del color de la hipótesis) [V]; la banda de barra de V 5 sale amarilla (coherente con el ciclo) [V parcial]. Cargas seleccionadas: naranja [V previo].
+- **«Dibujar las cargas con relleno»** (Opciones de visualización, casilla por obra, por defecto marcada) [V `vh_84c`]: desmarcada, las bandas de barras **pierden el relleno translúcido** y conservan **contorno, líneas verticales a intervalos y etiqueta**; las cargas de nudo no cambian. Efecto en prismas de láminas/paños: no observado [N] (se supone igual: solo se quita el relleno).
+- Filtro de vista: con «Ver todas» desmarcada solo se dibujan las cargas de la hipótesis vista; el **Peso propio solo se ve con la vista en Peso propio**; marcada, todas con su color [V previo + `vh_49c`].
+- Los modos Editar/Borrar/Hipótesis actúan sobre las cargas de la hipótesis vista [V previo `cargas_laminas.md` §13.2].
+
+## 6. Hallazgos secundarios
+- Lista de una naturaleza en «Hipótesis adicionales» (p. ej. Viento): con 2 o más hipótesis aparece bajo la tabla un grupo **Combinatoria** (cabecera «Hipótesis» y una columna por hipótesis, celdas con ✓ combinable / ✕ no combinable, leyenda «Combinables / No combinables» y botón **Mostrar la combinatoria**; tooltip con los textos #39166-#39170) y la ventana crece; el botón Aceptar baja (relevante para T-P7-06; no medido en detalle) [V `vh_38d`].
+- El combo «Hipótesis» de «Introducir cargas sobre nudos» y de «Introducir cargas sobre barras» abre con la **hipótesis vista** (V 5 en `vh_82s`) y su lista es la misma (Peso propio, CM 1, T 1, R 1, V 1..V 5) [V].
+- La obra recuerda **dirección y valor** de la última carga de nudo y de barra [V previo].
+
+## 7. Qué depende de módulos no construidos
+- Escalas/amplificación de **deformada, leyes de esfuerzos y reacciones**: no hay cadena «Escala de …» localizable en ningún binario (barrido REA de la otra sesión); requiere obra calculada (solver, T-P8-06) [N].
+- Las hipótesis automáticas de viento/nieve («V(0°) H1»..., «N(EI)») aparecen en la lista de la vista solo cuando el módulo de acciones automáticas las genera (no construido; las del usuario sí).
+
+## 8. Por medir (y por qué)
+1. Escala proporcional de **temperatura** (barras): el clic de selección de barra no abrió el diálogo en la última pasada (se agotó el margen de la sesión).
+2. Rango/aviso de las **celdas de la tabla** de hipótesis (REA da 0.001..1000.0; el aviso literal no se leyó).
+3. Efecto de «relleno» desmarcado en prismas de láminas/paños y en cargas superficiales.
+4. Colores de naturalezas Q, S, N, H, A (la paleta es por índice de creación; sin comprobar).
+5. Píxeles exactos del cuadro «Hipótesis vista» (ancho variable con el combo) y posición de los avisos.
+
+## 9. Especificación para el clon (backend / GUI)
+1. **Paleta**: función única `loadCaseColour(creationIndex)` con la tabla de 8 colores y ciclo `index % 8` (Peso propio = 0 amarillo; el clon cicla hoy desde 1: corregir a periodo 8 incluyendo el 0); usarla en nudos, barras (hoy siempre `kLoadYellow`), láminas y paños. El índice debe guardarse en la hipótesis (qué ocurre al borrar una intermedia: [N]).
+2. **Estado de obra**: guardar `viewedCaseId` (defecto Peso propio) y `viewAllCases` (defecto false) en la obra y restaurarlos al abrir.
+3. **Cuadro Hipótesis vista**: título «Hipótesis vista», combo con referencias en orden Peso propio + naturaleza + número, casilla «Ver todas», Aceptar (defecto) / Cancelar; ancho según el texto más largo.
+4. **Escalas**: rango 0.001..1000 en campos de tipo **y celdas**; tamaño fijo 0.010..100.000; avisos con los textos literales de §4 (dobles espacios incluidos), modal «Aviso», valor revertido y foco al siguiente campo; foco inicial (fijo: campo de tamaño; proporcional: primera celda de la tabla); ciclo de TAB de §4; selección de texto al enfocar.
+5. **fillLoads**: cablear `DisplayOptions::fillLoads` (false = sin relleno translúcido en bandas de barras; contorno, líneas verticales y etiquetas se mantienen).
+6. **Etiquetas**: altura de texto y punta proporcionales a la longitud de la carga (tamaño de mundo).
+7. Atajo de Guardar del original = Ctrl+G (el clon puede mantener Ctrl+S además).
