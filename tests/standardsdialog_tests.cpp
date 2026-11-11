@@ -32,7 +32,7 @@ TEST(StandardsDialog, ReflectsUserChoice) {
     ensureApp();
     StandardsDialog dialog{StandardsSelection{}};
     auto combos = dialog.findChildren<QComboBox*>();
-    ASSERT_EQ(combos.size(), 5);
+    ASSERT_EQ(combos.size(), 6);  // the five families and the "Cimentación" criterion (hidden unless the concrete is Código Estructural)
     combos.front()->setCurrentText("EHE-08");
     EXPECT_EQ(dialog.selection().concrete, "EHE-08");
 }

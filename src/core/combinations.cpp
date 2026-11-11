@@ -14,9 +14,10 @@ namespace {
 
 bool isEn(NormCode c) { return c == NormCode::En1990CaseB || c == NormCode::En1990CaseC; }
 
-std::vector<long long> keyOf(const std::vector<double>& v) {
-    std::vector<long long> k(v.size());
+std::vector<long long> keyOf(const std::vector<double>& v, const std::vector<double>& y = {}) {
+    std::vector<long long> k(v.size() + y.size());
     for (size_t i = 0; i < v.size(); ++i) k[i] = std::llround(v[i] * 1e6);
+    for (size_t i = 0; i < y.size(); ++i) k[v.size() + i] = std::llround(y[i] * 1e6);
     return k;
 }
 
@@ -44,6 +45,7 @@ struct VarOption {
     bool nonConcomitant;
     LoadNature nature = LoadNature::LiveLoad;
     int signIndex = 0;
+    double ortho = 0.0;  ///< XY seismic: Y-component coefficient (`sign` is the X component)
 };
 struct VarSlot {
     std::vector<VarOption> options;
@@ -64,6 +66,7 @@ struct SituationSpec {
 struct Item {
     std::vector<double> c;
     std::vector<int> k;
+    std::vector<double> y;  ///< Y components of XY seismic cases (same size as c)
 };
 
 double principalFactor(NormCode code, DesignSituation s, const Psi& psi) {
@@ -90,6 +93,7 @@ struct Generator {
     std::vector<VarSlot> slots;      // live load, temperature, snow, wind (one slot for all the wind cases)
     std::vector<VarOption> seismic;  // alternatives with sign
     std::vector<VarOption> accidental;
+    bool hasXY = false;  ///< some seismic case is of type XY
     std::string error;
 
     bool build() {
@@ -131,8 +135,31 @@ struct Generator {
                 break;
             }
             case LoadNature::Seismic:
-                seismic.push_back({idx, -1.0, {}, false, LoadNature::Seismic, 0});
-                seismic.push_back({idx, 1.0, {}, false, LoadNature::Seismic, 1});
+                if (c.seismic == SeismicType::XY) {
+                    hasXY = true;
+                    const double f = std::clamp(opt.seismicOrthogonalFraction, 0.0, 1.0);
+                    // Fraction 0 [V]: S(X)-, S(X)+, S(Y)-, S(Y)+. Fraction > 0 [N, REA 7.1 form 2: orthogonal coefficient x fraction]:
+                    // +-X with +-f*Y, then +-Y with +-f*X; sign indices 4*axis + 2*principal sign + orthogonal sign.
+                    for (int axis = 0; axis < 2; ++axis)
+                        for (int sp = 0; sp < 2; ++sp) {
+                            const double principal = sp == 0 ? -1.0 : 1.0;
+                            if (f <= 0.0) {
+                                VarOption o{idx, axis == 0 ? principal : 0.0, {}, false, LoadNature::Seismic, axis * 2 + sp};
+                                o.ortho = axis == 0 ? 0.0 : principal;
+                                seismic.push_back(o);
+                                continue;
+                            }
+                            for (int so = 0; so < 2; ++so) {
+                                const double orth = (so == 0 ? -1.0 : 1.0) * f;
+                                VarOption o{idx, axis == 0 ? principal : orth, {}, false, LoadNature::Seismic, axis * 4 + sp * 2 + so};
+                                o.ortho = axis == 0 ? orth : principal;
+                                seismic.push_back(o);
+                            }
+                        }
+                } else {
+                    seismic.push_back({idx, -1.0, {}, false, LoadNature::Seismic, 0});
+                    seismic.push_back({idx, 1.0, {}, false, LoadNature::Seismic, 1});
+                }
                 break;
             case LoadNature::Accidental:
                 if (opt.code == NormCode::Ehe08) {  // EHE-08: +/- accidental action [V]
@@ -153,7 +180,7 @@ struct Generator {
     /// Deduplicates by coefficient vector keeping the entry with the smallest index vector (what the original's sort + filter does).
     void emit(const Item& it) {
         if (error.size()) return;
-        const auto key = keyOf(it.c);
+        const auto key = keyOf(it.c, it.y);
         if (const auto f = seen.find(key); f != seen.end()) {
             if (indexLess(it.k, out[f->second].k)) out[f->second] = it;
             return;
@@ -243,7 +270,7 @@ struct Generator {
         }
         const size_t n = set.cases.size();
         for (unsigned long long mask = 0; mask < (1ULL << varying.size()); ++mask) {
-            Item base{std::vector<double>(n, 0.0), std::vector<int>(n, -1)};
+            Item base{std::vector<double>(n, 0.0), std::vector<int>(n, -1), std::vector<double>(n, 0.0)};
             for (size_t i = 0; i < perms.size(); ++i) {
                 double f, u;
                 gammas(perms[i].kind, f, u);
@@ -258,6 +285,7 @@ struct Generator {
                 for (const VarOption& a : seismicSit ? seismic : accidental) {
                     Item b = base;
                     b.c[static_cast<size_t>(a.idx)] = a.sign * 1.0;  // gamma_A = gamma_E = 1.0 [V]
+                    b.y[static_cast<size_t>(a.idx)] = a.ortho;
                     b.k[static_cast<size_t>(a.idx)] = a.signIndex;
                     std::vector<const VarOption*> chosen;
                     slotLoop(spec, g, b, 0, chosen);
@@ -295,21 +323,32 @@ std::string formatCoefficient(double v) {
 
 }  // namespace
 
-std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients) {
-    std::vector<size_t> order;
-    for (size_t i = 0; i < set.cases.size() && i < coefficients.size(); ++i)
-        if (std::fabs(coefficients[i]) > 1e-12) order.push_back(i);
-    std::stable_sort(order.begin(), order.end(),
-                     [&](size_t a, size_t b) { return nameRank(set.cases[a].nature) < nameRank(set.cases[b].nature); });
-    std::string name;
-    for (size_t i : order) {
-        const double c = coefficients[i];
+std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients,
+                                   const std::vector<double>& orthogonal) {
+    struct Term {
+        size_t index;
+        double coefficient;
+        char axis;  // 0 = plain, 'X' / 'Y' = component of an XY seismic case
+    };
+    std::vector<Term> terms;
+    for (size_t i = 0; i < set.cases.size() && i < coefficients.size(); ++i) {
         const LoadCase& lc = set.cases[i];
+        const bool xy = lc.nature == LoadNature::Seismic && lc.seismic == SeismicType::XY;
+        if (std::fabs(coefficients[i]) > 1e-12) terms.push_back({i, coefficients[i], xy ? 'X' : '\0'});
+        if (xy && i < orthogonal.size() && std::fabs(orthogonal[i]) > 1e-12) terms.push_back({i, orthogonal[i], 'Y'});
+    }
+    std::stable_sort(terms.begin(), terms.end(), [&](const Term& a, const Term& b) {
+        return nameRank(set.cases[a.index].nature) < nameRank(set.cases[b.index].nature);
+    });
+    std::string name;
+    for (const Term& t : terms) {
+        const LoadCase& lc = set.cases[t.index];
         std::string ref = lc.nature == LoadNature::SelfWeight ? "PP" : lc.reference;
         ref.erase(std::remove(ref.begin(), ref.end(), ' '), ref.end());
-        if (c < 0.0) name += '-';
+        if (t.axis) ref += std::string("(") + t.axis + ")";
+        if (t.coefficient < 0.0) name += '-';
         else if (!name.empty()) name += '+';
-        const double m = std::fabs(c);
+        const double m = std::fabs(t.coefficient);
         if (std::fabs(m - 1.0) > 1e-9) name += formatCoefficient(m) + "\xC2\xB7";  // U+00B7 middle dot
         name += ref;
     }
@@ -318,6 +357,11 @@ std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<dou
 
 PartialFactors partialFactors(NormCode code, DesignSituation s) {
     PartialFactors p;  // 1 / 1, variable 0 / 1: accidental, seismic and service situations
+    if (s == DesignSituation::ServiceQuasiPermanent && code == NormCode::Ehe08) {  // "Cuasipermanente" (cracking) [V, research 14.2]
+        p.prestressFav = 0.9; p.prestressUnfav = 1.1;
+        p.temperatureFav = 1.0; p.temperatureUnfav = 1.0;
+        return p;
+    }
     if (s != DesignSituation::Persistent) return p;
     switch (code) {
     case NormCode::CteDbSe:  // CTE DB-SE 4.2.2 [V]
@@ -332,10 +376,10 @@ PartialFactors partialFactors(NormCode code, DesignSituation s) {
     case NormCode::En1990CaseC:  // Table A1.2(C) [V]
         p.permFav = 1.0; p.permUnfav = 1.0; p.varUnfav = 1.3;
         break;
-    case NormCode::Ehe08:  // EHE-08 art. 12.1 [V]
-        p.permFav = 1.0; p.permUnfav = 1.35; p.varUnfav = 1.5;
-        p.nonConstFav = 1.0; p.nonConstUnfav = 1.5;
-        p.earthFav = 1.0; p.earthUnfav = 1.5;  // [N] earth pressure as non-constant permanent
+    case NormCode::Ehe08:  // EHE-08 / Código Estructural, measured in the original's "Situaciones" viewer (research 14.2)
+        p.permFav = 1.0; p.permUnfav = 1.35; p.varUnfav = 1.5;  // G 1.000 / 1.350 (not 0.8)
+        p.nonConstFav = 1.0; p.nonConstUnfav = 1.35;            // shrinkage 1.000 / 1.350
+        p.earthFav = 1.0; p.earthUnfav = 1.35;                  // earth thrust 1.000 / 1.350
         break;
     }
     return p;
@@ -426,6 +470,7 @@ CombinationResult generateCombinations(const LoadCaseSet& set, const Combination
             e.comb.situation = b.spec.situation;
             e.comb.limitState = b.ls;
             e.comb.coefficients = std::move(it.c);
+            if (gen.hasXY) e.comb.orthogonalCoefficients = std::move(it.y);
             e.k = std::move(it.k);
             entries.push_back(std::move(e));
         }
@@ -438,9 +483,9 @@ CombinationResult generateCombinations(const LoadCaseSet& set, const Combination
     });
     std::set<std::pair<int, std::vector<long long>>> seenPerSituation;
     for (Entry& e : entries) {
-        if (!seenPerSituation.insert({static_cast<int>(e.comb.situation), keyOf(e.comb.coefficients)}).second) continue;
+        if (!seenPerSituation.insert({static_cast<int>(e.comb.situation), keyOf(e.comb.coefficients, e.comb.orthogonalCoefficients)}).second) continue;
         e.comb.indices = std::move(e.k);
-        e.comb.name = combinationFormulaName(set, e.comb.coefficients);
+        e.comb.name = combinationFormulaName(set, e.comb.coefficients, e.comb.orthogonalCoefficients);
         result.combinations.push_back(std::move(e.comb));
     }
     return result;
@@ -461,18 +506,29 @@ SnowZone snowZoneFromText(const std::string& text) {
 
 CombinationOptions combinationOptionsFor(const Project& project, StandardFamily family) {
     CombinationOptions o;
-    std::string snow = LimitStatesSettings::defaultSnow();
+    LimitStateKind kind = LimitStateKind::Concrete;
     switch (family) {
-    case StandardFamily::Concrete:
-    case StandardFamily::Aluminium: snow = project.limitStates.groundSnow; break;
-    case StandardFamily::ColdFormedSteel: snow = project.limitStates.coldFormedSnow; break;
-    case StandardFamily::Timber: snow = project.limitStates.timberSnow; break;
-    case StandardFamily::HotRolledSteel: snow = project.limitStates.hotRolledSnow; break;
+    case StandardFamily::Concrete: kind = LimitStateKind::Concrete; break;
+    case StandardFamily::Aluminium: kind = LimitStateKind::Aluminium; break;
+    case StandardFamily::ColdFormedSteel: kind = LimitStateKind::ColdFormed; break;
+    case StandardFamily::Timber: kind = LimitStateKind::Timber; break;
+    case StandardFamily::HotRolledSteel: kind = LimitStateKind::HotRolled; break;
     }
-    o.snow = snowZoneFromText(snow);
+    // Snow entry of the block the limit state belongs to in "Estados límite" (research 13).
+    const LimitStatesSettings::Effective effective = project.limitStates.effective(kind, project.standards);
+    o.snow = snowZoneFromText(effective.snow.empty() ? LimitStatesSettings::defaultSnow() : effective.snow);
+    // Orthogonal fraction of XY seismic cases: "Acompañamiento" cell of the "Sismo" row of the user's seismic situation (default 0) [V, 14.1].
+    if (const std::string ref = project.limitStates.userSetFor(kind); !ref.empty())
+        if (const UserSituationSet* set = project.limitStates.findSet(ref))
+            for (const UserSituation& s : set->situations)
+                if (s.type == SituationType::Seismic) {
+                    o.seismicOrthogonalFraction = s.seismic.accompanying;
+                    break;
+                }
     o.code = combinationCodeFromStandard(project.standards.get(family)).value_or(NormCode::CteDbSe);
-    if (family == StandardFamily::HotRolledSteel)  // radio CTE / EC of "Estados límite" (section 9 of the research)
-        o.code = project.limitStates.hotRolledCode == CombinationCode::EC ? NormCode::En1990CaseB : NormCode::CteDbSe;
+    // Radios of the structural-code block: CTE | EC | "Hormigón: EC, Acero: CTE" (steel follows CTE in the third).
+    if (family == StandardFamily::HotRolledSteel && normClassOf(project.standards.hotRolledSteel) == NormClass::StructuralCode)
+        o.code = project.limitStates.effectiveCode(project.standards) == CombinationCode::EC ? NormCode::En1990CaseB : NormCode::CteDbSe;
     return o;
 }
 

@@ -1,5 +1,5 @@
 ﻿include(GoogleTest)
-add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp units_tests.cpp project_file_tests.cpp structure_model_tests.cpp general_data_tests.cpp camera_tests.cpp selection_tests.cpp snap_tests.cpp display_options_tests.cpp categories_tests.cpp clipping_tests.cpp work_planes_tests.cpp node_edit_tests.cpp bar_edit_tests.cpp piece_edit_tests.cpp shell_edit_tests.cpp tools_edit_tests.cpp generate_edit_tests.cpp reference_edit_tests.cpp import_tests.cpp continuous_edit_tests.cpp section_properties_tests.cpp profile_library_tests.cpp concrete_timber_tests.cpp bar_description_tests.cpp describir_catalogue_tests.cpp node_support_tests.cpp node_ligature_tests.cpp node_diaphragm_tests.cpp bar_ends_tests.cpp buckling_tests.cpp deflection_group_tests.cpp load_case_tests.cpp nodal_load_tests.cpp bar_load_tests.cpp shell_load_tests.cpp panel_tests.cpp shell_properties_tests.cpp combinations_tests.cpp)
+add_executable(core_tests core_tests.cpp standards_tests.cpp project_settings_tests.cpp limit_states_tests.cpp recent_files_tests.cpp options_settings_tests.cpp combination_report_tests.cpp project_archive_tests.cpp undo_stack_tests.cpp units_tests.cpp project_file_tests.cpp structure_model_tests.cpp general_data_tests.cpp camera_tests.cpp selection_tests.cpp snap_tests.cpp display_options_tests.cpp categories_tests.cpp clipping_tests.cpp work_planes_tests.cpp node_edit_tests.cpp bar_edit_tests.cpp piece_edit_tests.cpp shell_edit_tests.cpp tools_edit_tests.cpp generate_edit_tests.cpp reference_edit_tests.cpp import_tests.cpp continuous_edit_tests.cpp section_properties_tests.cpp profile_library_tests.cpp concrete_timber_tests.cpp bar_description_tests.cpp describir_catalogue_tests.cpp node_support_tests.cpp node_ligature_tests.cpp node_diaphragm_tests.cpp bar_ends_tests.cpp buckling_tests.cpp deflection_group_tests.cpp load_case_tests.cpp nodal_load_tests.cpp bar_load_tests.cpp shell_load_tests.cpp panel_tests.cpp shell_properties_tests.cpp combinations_tests.cpp user_situations_tests.cpp)
 target_compile_definitions(core_tests PRIVATE CC_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 target_link_libraries(core_tests PRIVATE cc_core miniz::miniz GTest::gtest GTest::gtest_main)
 gtest_discover_tests(core_tests)
@@ -45,18 +45,25 @@ target_include_directories(standardsdialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src
 target_link_libraries(standardsdialog_tests PRIVATE cc_core Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(standardsdialog_tests)
 
-add_executable(emptywizard_tests emptywizard_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/EmptyProjectWizard.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
+add_executable(emptywizard_tests emptywizard_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/EmptyProjectWizard.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/UserSituationsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/WizardSubDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/LoadCaseDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/OptionsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/OptionsLeafDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(emptywizard_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(emptywizard_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(emptywizard_tests)
 
-add_executable(limitstates_dialog_tests limitstates_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
+add_executable(limitstates_dialog_tests limitstates_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/UserSituationsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
 target_include_directories(limitstates_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
 target_link_libraries(limitstates_dialog_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg GTest::gtest)
 gtest_discover_tests(limitstates_dialog_tests)
+
+add_executable(user_situations_dialog_tests user_situations_dialog_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/LimitStatesDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/UserSituationsDialogs.cpp ${CMAKE_SOURCE_DIR}/src/app/RangedEdit.cpp ${CMAKE_SOURCE_DIR}/src/app/SituationsDialog.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/StandardsDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)
+target_include_directories(user_situations_dialog_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/app)
+target_link_libraries(user_situations_dialog_tests PRIVATE cc_core Qt6::PrintSupport Qt6::Widgets Qt6::Svg Qt6::Test GTest::gtest)
+gtest_discover_tests(user_situations_dialog_tests)
 
 add_executable(filemanager_tests filemanager_tests.cpp ${CMAKE_SOURCE_DIR}/src/app/FileManagerDialog.cpp ${CMAKE_SOURCE_DIR}/src/app/FileOpsDialogs.cpp
   ${CMAKE_SOURCE_DIR}/src/app/CypeDialog.cpp ${CMAKE_SOURCE_DIR}/resources/app.qrc)

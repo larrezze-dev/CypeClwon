@@ -20,6 +20,14 @@ struct StandardsSelection {
     std::string hotRolledSteel = "Código Estructural (España)";
     std::string timber = "CTE DB SE-M (España)";
     std::string aluminium = "Eurocódigo 9";
+    /// "Cimentación" combo, shown only with the Código Estructural / CTE (measured: the CTE button assigns "Criterio del CTE DB-SE-C", the
+    /// C.E. button "Criterio del Código Estructural"; the full list of the combo was not captured).
+    std::string foundation = "Criterio del CTE DB-SE-C";
+
+    /// Complete sets assigned by the buttons "C.E." and "CTE" of "Selección de normas" (research 12.4); the foundation criterion included.
+    static StandardsSelection structuralCodeSet();
+    static StandardsSelection cteSet();
+    static const std::vector<std::string>& foundationCriteria();
 
     const std::string& get(StandardFamily family) const;
     void set(StandardFamily family, std::string name);

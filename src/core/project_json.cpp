@@ -45,7 +45,7 @@ CC_ENUM(ExposureClass, {{ExposureClass::NoRisk, "X0"},
                         {ExposureClass::FreezeThaw, "freezeThaw"},
                         {ExposureClass::Chemical, "chemical"}})
 CC_ENUM(StrengthBasis, {{StrengthBasis::Relative, "relative"}, {StrengthBasis::Absolute, "absolute"}})
-CC_ENUM(CombinationCode, {{CombinationCode::CTE, "CTE"}, {CombinationCode::EC, "EC"}})
+CC_ENUM(CombinationCode, {{CombinationCode::CTE, "CTE"}, {CombinationCode::EC, "EC"}, {CombinationCode::Mixed, "mixed"}})
 CC_ENUM(LengthUnit, {{LengthUnit::Metres, "m"}, {LengthUnit::Centimetres, "cm"}, {LengthUnit::Millimetres, "mm"}})
 CC_ENUM(BeamNumbering, {{BeamNumbering::None, "none"},
                         {BeamNumbering::Consecutive, "consecutive"},
@@ -66,7 +66,7 @@ CC_ENUM(ReinforcementTableSource, {{ReinforcementTableSource::Predefined, "prede
 #define CC_STRUCT(Type, ...) NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Type, __VA_ARGS__)
 
 // --- project_settings.h ---
-CC_STRUCT(StandardsSelection, concrete, coldFormedSteel, hotRolledSteel, timber, aluminium)
+CC_STRUCT(StandardsSelection, concrete, coldFormedSteel, hotRolledSteel, timber, aluminium, foundation)
 CC_STRUCT(TimberSettings, material, strengthClass, serviceClass, fireResistance)
 CC_STRUCT(AluminiumSettings, alloy, temper)
 CC_STRUCT(ProfileSettings, hotRolledSteel, coldFormedSteel, timber, aluminium, concrete)
@@ -96,7 +96,15 @@ CC_STRUCT(MicropileSettings, reducedAxial, reducedAxialFactor, bucklingAnalysis,
           corrosionThicknessMm, tubularAreaFactor, executionFactor, advanced)
 
 // --- limit_states.h / units.h ---
-CC_STRUCT(LimitStatesSettings, groundSnow, coldFormedSnow, timberSnow, hotRolledSnow, hotRolledCode)
+CC_ENUM(SituationType, {{SituationType::PersistentOrTransient, "persistent"}, {SituationType::Accidental, "accidental"},
+                        {SituationType::Seismic, "seismic"}, {SituationType::PrestressInVacuum, "prestressInVacuum"},
+                        {SituationType::Service, "service"}})
+CC_ENUM(CoefficientMode, {{CoefficientMode::PartialFactors, "partialFactors"}, {CoefficientMode::PartialAndCombination, "partialAndCombination"}})
+CC_STRUCT(SituationRow, favourable, unfavourable, principal, accompanying)
+CC_STRUCT(UserSituation, name, type, permanent, prestress, shrinkage, wind, snow, temperature, earthThrust, imposed, seismic)
+CC_STRUCT(UserSituationSet, reference, mode, categories, situations, service)
+CC_STRUCT(LimitStatesSettings, groundSnow, coldFormedSnow, timberSnow, hotRolledSnow, hotRolledCode, codeChosen, userSets, userSetOfKind,
+          userServiceSetOfKind)
 CC_STRUCT(DimensioningUnits, dimensions, reinforcement, lengths)
 
 // --- structure_model.h ---

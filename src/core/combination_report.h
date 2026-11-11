@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "core/user_situations.h"
+
 namespace cc::core {
 
 /// One coefficient of a table; `present == false` is the "-" of the original.
@@ -53,6 +55,11 @@ CombinationReport buildColdFormedTimberReport(bool highAltitude, const ReportCon
 /// Report behind the fourth pencil ("Desplazamientos", characteristic actions); independent of the snow altitude.
 /// The pencil of hot-rolled steel (third) opened no viewer in the original (ticket TK-017).
 CombinationReport buildDisplacementsReport(bool highAltitude = false, const ReportContext& ctx = {});
+
+/// Listing of a set of situations defined by the user (the pencil of "Situaciones de proyecto introducidas por el usuario": "Muestra un
+/// listado con las situaciones de proyecto ... coeficientes parciales de seguridad ... y los coeficientes de combinación"). One table per
+/// situation; the combination columns only when the set holds "mayoración y combinación" coefficients (two-column layout otherwise).
+CombinationReport buildUserSetReport(const UserSituationSet& set);
 
 /// A legend entry ("Gk  Acción permanente"); `symbol` is the ASCII form used by the text export (g = γ, y = ψ).
 struct LegendItem {

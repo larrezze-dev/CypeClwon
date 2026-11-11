@@ -149,3 +149,42 @@ std::string formatCoefficient(const Coefficient& c, SectionLayout layout) {
 }
 
 }  // namespace cc::core
+
+namespace cc::core {
+
+CombinationReport buildUserSetReport(const UserSituationSet& set) {
+    CombinationReport report;
+    ReportSection section;
+    const bool both = set.mode == CoefficientMode::PartialAndCombination;
+    section.layout = both ? SectionLayout::Ultimate : SectionLayout::Displacements;
+    section.titles = {set.reference};
+    for (const UserSituation& s : set.situations) {
+        CoefficientTable table;
+        table.title = s.name + " (" + situationTypeCaption(s.type) + ")";
+        const auto add = [&](const std::string& label, SituationAction action, const SituationRow& row) {
+            CoefficientRow r;
+            r.label = label;
+            r.favourable = {true, row.favourable};
+            r.unfavourable = {true, row.unfavourable};
+            if (both && hasCombinationFactors(action)) {
+                r.principal = {true, row.principal};
+                r.accompanying = {true, row.accompanying};
+            }
+            table.rows.push_back(r);
+        };
+        add("Carga permanente (G)", SituationAction::Permanent, s.permanent);
+        add("Pretensado (PST)", SituationAction::Prestress, s.prestress);
+        add("Retracción (R)", SituationAction::Shrinkage, s.shrinkage);
+        for (std::size_t i = 0; i < s.imposed.size(); ++i)
+            add("Sobrecarga (Q - Uso " + std::to_string(i + 1) + ")", SituationAction::Imposed, s.imposed[i]);
+        add("Viento (Q)", SituationAction::Wind, s.wind);
+        add("Nieve (Q)", SituationAction::Snow, s.snow);
+        add("Temperatura (T)", SituationAction::Temperature, s.temperature);
+        add("Empujes del terreno (H)", SituationAction::EarthThrust, s.earthThrust);
+        section.tables.push_back(table);
+    }
+    report.sections.push_back(section);
+    return report;
+}
+
+}  // namespace cc::core

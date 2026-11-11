@@ -87,6 +87,14 @@ EmptyProjectWizard::EmptyProjectWizard(const cc::core::GeneralData& initial, Mod
         if (dialog.exec() != QDialog::Accepted) return;
         m_standards = dialog.selection();
         refreshButtons();
+        // After the standards the original always opens "Categorías de uso" [V, research 14.5]: Eurocodes all unticked, CTE with G2 ticked.
+        bool singleScheme = false;
+        const auto scheme = UseCategorySelectionDialog::schemeFor(m_standards, &singleScheme);
+        if (!singleScheme) return;  // mixed norms: list with a combo per norm group (needs the load-case module, TK-102)
+        std::vector<bool> initial(UseCategorySelectionDialog::categoryTexts(scheme).size(), false);
+        if (scheme == UseCategorySelectionDialog::Scheme::Cte) initial.back() = true;
+        UseCategorySelectionDialog categories(scheme, initial, this);
+        if (categories.exec() == QDialog::Accepted) m_useCategoryRefs = categories.checkedReferences();
     });
 
     auto* columns = new QHBoxLayout;

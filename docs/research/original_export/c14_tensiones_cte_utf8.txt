@@ -1,0 +1,150 @@
+
+Tensiones sobre el terreno 
+
+ Para las distintas situaciones de proyecto, las combinaciones de acciones se definirán de acuerdo con los siguientes 
+ criterios: 
+
+
+  -Situaciones persistentes o transitorias 
+
+
+
+
+   - 
+
+
+
+
+  -Situaciones sísmicas 
+
+
+
+
+   - 
+
+
+
+
+  -Situaciones accidentales 
+
+
+
+
+   - 
+
+
+
+
+  -Donde: 
+
+
+
+
+
+
+
+
+
+    Gk   Acción permanente 
+
+    Pk   Acción de pretensado 
+
+    Qk   Acción variable 
+
+    AE   Acción sísmica 
+
+    Ad   Acción accidental 
+
+    gG   Coeficiente parcial de seguridad de las acciones permanentes 
+
+    gP   Coeficiente parcial de seguridad de la acción de pretensado 
+
+    gQ,1 Coeficiente parcial de seguridad de la acción variable principal 
+
+    gQ,i Coeficiente parcial de seguridad de las acciones variables de acompañamiento 
+
+    gAE  Coeficiente parcial de seguridad de la acción sísmica 
+
+    gAd  Coeficiente parcial de seguridad de la acción accidental 
+
+     
+
+
+
+
+ |---------------------------------------------------------------------------------------------------------------------| 
+ |                                            Acciones variables sin sismo                                             | 
+ |-------------------------------------------------|-------------------------------------------------------------------| 
+ |                                                 |              Coeficientes parciales de seguridad (g)              | 
+ |                                                 |--------------------------------|----------------------------------| 
+ |                                                 |           Favorable            |           Desfavorable           | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+ |Carga permanente (G)                             |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Pretensado, armadura postesa (PST)               |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso A)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso B)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Viento (Q)                                       |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Nieve (Q)                                        |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Empujes del terreno (H)                          |             1.000              |              1.000               | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+   
+
+
+
+ |---------------------------------------------------------------------------------------------------------------------| 
+ |                                                       Sísmica                                                       | 
+ |-------------------------------------------------|-------------------------------------------------------------------| 
+ |                                                 |              Coeficientes parciales de seguridad (g)              | 
+ |                                                 |--------------------------------|----------------------------------| 
+ |                                                 |           Favorable            |           Desfavorable           | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+ |Carga permanente (G)                             |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Pretensado, armadura postesa (PST)               |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso A)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso B)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Viento (Q)                                       |                                |                                  | 
+ |                                                 |                                |                                  | 
+ |Nieve (Q)                                        |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Empujes del terreno (H)                          |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sismo (E)                                        |             -1.000             |              1.000               | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+   
+
+
+
+ |---------------------------------------------------------------------------------------------------------------------| 
+ |                                                     Accidental                                                      | 
+ |-------------------------------------------------|-------------------------------------------------------------------| 
+ |                                                 |              Coeficientes parciales de seguridad (g)              | 
+ |                                                 |--------------------------------|----------------------------------| 
+ |                                                 |           Favorable            |           Desfavorable           | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+ |Carga permanente (G)                             |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Pretensado, armadura postesa (PST)               |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso A)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Sobrecarga (Q - Uso B)                           |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Viento (Q)                                       |                                |                                  | 
+ |                                                 |                                |                                  | 
+ |Nieve (Q)                                        |             0.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Empujes del terreno (H)                          |             1.000              |              1.000               | 
+ |                                                 |                                |                                  | 
+ |Accidental (A)                                   |             1.000              |              1.000               | 
+ |-------------------------------------------------|--------------------------------|----------------------------------| 
+   

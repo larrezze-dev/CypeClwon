@@ -107,7 +107,7 @@ TEST(CombinationTables, En1990AndEheGamma) {
     EXPECT_EQ(std::make_tuple(c.permFav, c.permUnfav, c.varFav, c.varUnfav), std::make_tuple(1.0, 1.0, 0.0, 1.3));
     const auto e = partialFactors(NormCode::Ehe08, DesignSituation::Persistent);
     EXPECT_EQ(std::make_tuple(e.permFav, e.permUnfav, e.varUnfav), std::make_tuple(1.0, 1.35, 1.5));
-    EXPECT_EQ(std::make_tuple(e.nonConstFav, e.nonConstUnfav), std::make_tuple(1.0, 1.5));
+    EXPECT_EQ(std::make_tuple(e.nonConstFav, e.nonConstUnfav), std::make_tuple(1.0, 1.35));  // shrinkage 1.000 / 1.350 [V, 14.2]
 }
 
 TEST(CombinationTables, CtePsi) {
@@ -264,7 +264,7 @@ TEST(Combinations, EarthPressureAndEhe) {
     e.code = NormCode::Ehe08;
     r = generateCombinations(set, e);
     EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.0, 1.0}));
-    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5}));
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.35}));  // earth thrust 1.000 / 1.350 [V, 14.2]
     EXPECT_EQ(of(r, DesignSituation::Persistent).size(), 4u);
     // Accidental action: +/- under EHE-08.
     const auto acc = makeSet({LoadNature::Accidental});
@@ -474,4 +474,127 @@ TEST(CombinationsOriginal, HotRolledRadioChangesTheSet) {
     EXPECT_EQ(namesOf(cte, DesignSituation::Persistent).size(), 58u);
     EXPECT_EQ(snowZoneFromText("Finlandia, Islandia, Noruega, Suecia"), SnowZone::Nordic);
     EXPECT_EQ(snowZoneFromText("Resto de los Estados miembro del CEN, H <= 1000 m"), SnowZone::AtOrBelow1000);
+}
+
+
+// ----------------------------------------------------------------------------- T-P7-06 session 2 (research 14)
+
+namespace {
+LoadCaseSet xyWork(bool xy = true) {
+    LoadCaseSet set;
+    LoadCase c;
+    c.id = set.nextId++;
+    c.nature = LoadNature::Seismic;
+    c.reference = "S 1";
+    c.seismic = xy ? SeismicType::XY : SeismicType::Simple;
+    set.cases.push_back(c);
+    return set;
+}
+}  // namespace
+
+TEST(CombinationsEhe, PartialFactorsOfTheStructuralCodeAreTheMeasuredOnes) {
+    const auto p = partialFactors(NormCode::Ehe08, DesignSituation::Persistent);
+    EXPECT_EQ(std::make_tuple(p.permFav, p.permUnfav), std::make_tuple(1.0, 1.35));          // G 1.000 / 1.350 (not 0.8)
+    EXPECT_EQ(std::make_tuple(p.nonConstFav, p.nonConstUnfav), std::make_tuple(1.0, 1.35));  // shrinkage
+    EXPECT_EQ(std::make_tuple(p.earthFav, p.earthUnfav), std::make_tuple(1.0, 1.35));        // earth thrust
+    EXPECT_EQ(std::make_tuple(p.prestressFav, p.prestressUnfav), std::make_tuple(1.0, 1.0));
+    EXPECT_DOUBLE_EQ(p.varUnfav, 1.5);
+    // Cracking "Cuasipermanente": PST 0.9 / 1.1, temperature 1 / 1, the rest 1 / 1 (variables 0 / 1).
+    const auto q = partialFactors(NormCode::Ehe08, DesignSituation::ServiceQuasiPermanent);
+    EXPECT_EQ(std::make_tuple(q.permFav, q.permUnfav), std::make_tuple(1.0, 1.0));
+    EXPECT_EQ(std::make_tuple(q.prestressFav, q.prestressUnfav), std::make_tuple(0.9, 1.1));
+    EXPECT_EQ(std::make_tuple(q.temperatureFav, q.temperatureUnfav), std::make_tuple(1.0, 1.0));
+    EXPECT_EQ(std::make_tuple(q.varFav, q.varUnfav), std::make_tuple(0.0, 1.0));
+    EXPECT_EQ(std::make_tuple(q.nonConstFav, q.nonConstUnfav), std::make_tuple(1.0, 1.0));
+    // Seismic and accidental: everything 1 / 1 (R, H, PST included).
+    for (auto s : {DesignSituation::Seismic, DesignSituation::Accidental}) {
+        const auto x = partialFactors(NormCode::Ehe08, s);
+        EXPECT_EQ(std::make_tuple(x.nonConstUnfav, x.earthUnfav, x.prestressUnfav), std::make_tuple(1.0, 1.0, 1.0));
+    }
+    // The other codes keep the default temperature row (= the variable actions).
+    EXPECT_LT(partialFactors(NormCode::CteDbSe, DesignSituation::ServiceQuasiPermanent).temperatureFav, 0.0);
+}
+
+TEST(CombinationsEhe, SnowAccompanyingAndAccidentalPsiOfTheStructuralCode) {
+    // <= 1000 m: persistent accompanying 0.5, accidental principal psi1 0.2, companion psi2 0 (research 14.2).
+    const Psi snow = psiSnow(NormCode::Ehe08, SnowZone::AtOrBelow1000);
+    EXPECT_EQ(std::make_tuple(snow.psi0, snow.psi1, snow.psi2), std::make_tuple(0.5, 0.2, 0.0));
+    CombinationOptions o;
+    o.code = NormCode::Ehe08;
+    o.defaultUseCategory = "G2";  // psi0 = 0 so that Q alone does not mask the snow
+    o.withService = false;
+    const auto set = makeSet({LoadNature::LiveLoad, LoadNature::Snow, LoadNature::Accidental});  // PP, Q, N, A
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.5, 0.75, 0.0}));  // Q principal + snow psi0 0.5 -> 0.75
+    EXPECT_TRUE(has(r, DesignSituation::Accidental, {1.0, 0.0, 0.2, 1.0}));    // snow principal psi1 = 0.2, A
+    EXPECT_TRUE(has(r, DesignSituation::Accidental, {1.0, 0.0, 0.0, 1.0}));    // psi2 0 as companion: no snow term
+}
+
+TEST(CombinationsEhe, PermanentsAndShrinkageUse1And135) {
+    const auto set = makeSet({LoadNature::Shrinkage});
+    CombinationOptions o;
+    o.code = NormCode::Ehe08;
+    o.withSeismic = o.withAccidental = o.withService = false;
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.0, 1.0}));
+    EXPECT_TRUE(has(r, DesignSituation::Persistent, {1.35, 1.35}));
+    EXPECT_FALSE(has(r, DesignSituation::Persistent, {0.8, 1.0}));
+}
+
+TEST(CombinationsXY, FractionZeroGivesTheFourMeasuredCombinations) {
+    const LoadCaseSet set = xyWork();  // PP, S 1 (XY)
+    CombinationOptions o;
+    o.withService = false;
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    EXPECT_EQ(namesOf(r, DesignSituation::Seismic), (std::vector<std::string>{"PP-S1(X)", "PP+S1(X)", "PP-S1(Y)", "PP+S1(Y)"}));
+    std::vector<const Combination*> seismic;
+    for (const auto& c : r.combinations)
+        if (c.situation == DesignSituation::Seismic) seismic.push_back(&c);
+    ASSERT_EQ(seismic.size(), 4u);
+    EXPECT_EQ(seismic[0]->coefficients, (std::vector<double>{1.0, -1.0}));
+    EXPECT_EQ(seismic[0]->orthogonalCoefficients, (std::vector<double>{0.0, 0.0}));
+    EXPECT_EQ(seismic[3]->coefficients, (std::vector<double>{1.0, 0.0}));
+    EXPECT_EQ(seismic[3]->orthogonalCoefficients, (std::vector<double>{0.0, 1.0}));
+    // A simple seismic case keeps the old names and has no orthogonal vector.
+    const auto simple = generateCombinations(xyWork(false), o);
+    EXPECT_EQ(namesOf(simple, DesignSituation::Seismic), (std::vector<std::string>{"PP-S1", "PP+S1"}));
+    EXPECT_TRUE(simple.combinations.front().orthogonalCoefficients.empty());
+}
+
+TEST(CombinationsXY, FractionAboveZeroExpandsTheOrthogonalComponent) {
+    // [N]: name and order with a fraction > 0 are not measured (research 14.6); this fixes the implementation of REA 7.1 form 2.
+    const LoadCaseSet set = xyWork();
+    CombinationOptions o;
+    o.withService = false;
+    o.seismicOrthogonalFraction = 0.3;
+    const auto r = generateCombinations(set, o);
+    ASSERT_TRUE(r.error.empty());
+    const auto names = namesOf(r, DesignSituation::Seismic);
+    ASSERT_EQ(names.size(), 8u);
+    EXPECT_EQ(names.front(), "PP-S1(X)-0.3" MD "S1(Y)");
+    EXPECT_NE(std::find(names.begin(), names.end(), "PP+S1(X)+0.3" MD "S1(Y)"), names.end());
+    EXPECT_NE(std::find(names.begin(), names.end(), "PP+0.3" MD "S1(X)+S1(Y)"), names.end());
+    // Ignored for a simple seismic case.
+    EXPECT_EQ(namesOf(generateCombinations(xyWork(false), o), DesignSituation::Seismic).size(), 2u);
+}
+
+TEST(CombinationsXY, OptionsTakeTheFractionFromTheUserSeismicSituation) {
+    Project p;
+    p.loadCases = xyWork();
+    UserSituationSet set;
+    set.reference = "U";
+    UserSituation persistent = UserSituation::withDefaults(0);
+    persistent.name = "P";
+    UserSituation seismic = UserSituation::withDefaults(0);
+    seismic.name = "S";
+    seismic.type = SituationType::Seismic;
+    seismic.seismic.accompanying = 0.3;
+    set.situations = {persistent, seismic};
+    p.limitStates.userSets.push_back(set);
+    EXPECT_DOUBLE_EQ(combinationOptionsFor(p, StandardFamily::HotRolledSteel).seismicOrthogonalFraction, 0.0);
+    p.limitStates.setUserSetFor(LimitStateKind::HotRolled, "U");
+    EXPECT_DOUBLE_EQ(combinationOptionsFor(p, StandardFamily::HotRolledSteel).seismicOrthogonalFraction, 0.3);
 }

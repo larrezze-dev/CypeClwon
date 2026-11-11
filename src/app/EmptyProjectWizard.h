@@ -45,6 +45,9 @@ public:
     const cc::core::MicropileSettings& micropiles() const { return m_micropiles; }
     const cc::core::OptionsSettings& options() const { return m_options; }
     const cc::core::LoadCaseSet& loadCases() const { return m_loadCases; }
+    /// Letters of the use categories ticked in "Categorías de uso" after the choice of standards (opens every time; not yet linked to the load
+    /// cases: ticket TK-102).
+    const std::vector<std::string>& useCategoryReferences() const { return m_useCategoryRefs; }
 
     QPushButton* finishButton() const { return m_finish; }
     QPushButton* previousButton() const { return m_previous; }
@@ -72,6 +75,7 @@ private:
     cc::core::MicropileSettings m_micropiles;
     cc::core::OptionsSettings m_options;
     cc::core::LoadCaseSet m_loadCases;
+    std::vector<std::string> m_useCategoryRefs;
     const cc::core::Project* m_loadsSource = nullptr;
     QPushButton* m_environmentButton = nullptr;
     QLineEdit* m_persistentEdit = nullptr;

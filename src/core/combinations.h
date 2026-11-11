@@ -31,6 +31,10 @@ struct PartialFactors {
     double varFav = 0.0, varUnfav = 1.0;
     double earthFav = 1.0, earthUnfav = 1.0;
     double nonConstFav = 1.0, nonConstUnfav = 1.0;
+    double prestressFav = 1.0, prestressUnfav = 1.0;  ///< "Pretensado (PST)"; EHE-08 / Código Estructural quasi-permanent (cracking) 0.9 / 1.1 [V, research 14.2]
+    /// Temperature row when it differs from the other variable actions (EHE-08 quasi-permanent cracking: 1.000 / 1.000 with psi 0, so the
+    /// factor never reaches a coefficient) [V, research 14.2]; negative = same as the other variable actions (varFav / varUnfav).
+    double temperatureFav = -1.0, temperatureUnfav = -1.0;
     bool operator==(const PartialFactors&) const = default;
 };
 
@@ -63,13 +67,20 @@ struct CombinationOptions {
     double longTermFraction = 0.0;               ///< 0 = instantaneous. [N] long pair = (gamma, psi2)
     bool withSeismic = true, withAccidental = true;
     bool withUltimate = true, withService = true;
+    /// Fraction (0..1) of the seismic effects of the orthogonal direction of an XY static seismic case: the "Acompañamiento" cell of the
+    /// "Sismo" row of the seismic situation [V, research 14.1]. 0 = default (4 combinations measured); > 0 expands according to REA 7.1
+    /// form 2 of FUN_1800035e0 [N: name and order not measured].
+    double seismicOrthogonalFraction = 0.0;
     int maxCombinations = 20000;  ///< safety cap; above it the generation reports an error
 };
 
 struct Combination {
     DesignSituation situation = DesignSituation::Persistent;
     CombinationLimitState limitState = CombinationLimitState::Ultimate;
-    std::vector<double> coefficients;  ///< one per load case, in the order of LoadCaseSet::cases
+    std::vector<double> coefficients;  ///< one per load case, in the order of LoadCaseSet::cases (X component for an XY seismic case)
+    /// Y component of the XY seismic cases (same indexing as `coefficients`, zero elsewhere); empty when the set has no XY seismic case.
+    /// The names are `S1(X)` / `S1(Y)` [V, research 14.1].
+    std::vector<double> orthogonalCoefficients;
     /// Formula name of the original (research 12.1), e.g. "1.35·PP+1.5·Q1+0.9·V(270°)H1+1.05·N(EI)", "PP-S1" (see combinationFormulaName).
     std::string name;
     /// Coefficient-set index per load case (-1 = does not act; permanent 0 = favourable / 1 = unfavourable; variable 0 = principal /
@@ -85,7 +96,9 @@ struct CombinationResult {
 /// Name of a combination in the original's format (measured, research 12.1): terms joined by "+", each "coef·REF" (U+00B7, coefficient
 /// 1 omitted, minimum decimals), "PP" for the self weight, references without spaces, order PP, CM, Q, T, R, V, N, H, S, A (only
 /// PP, Q, V, N, S, A measured), zero coefficients omitted, negative terms as "-S1".
-std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients);
+/// `orthogonal` = Combination::orthogonalCoefficients: an XY seismic case is written `S1(X)` / `S1(Y)` (axis in brackets, X first).
+std::string combinationFormulaName(const LoadCaseSet& set, const std::vector<double>& coefficients,
+                                   const std::vector<double>& orthogonal = {});
 
 /// Generates the combinations of every requested situation, in the order of the original: per situation (Persistent, Seismic,
 /// Accidental, ELS characteristic = "Desplazamientos", frequent, quasi-permanent), then by coefficient-set index vector

@@ -94,7 +94,36 @@ void StandardsSelection::set(StandardFamily family, std::string name) {
     }
 }
 
+const std::vector<std::string>& StandardsSelection::foundationCriteria() {
+    static const std::vector<std::string> v = {"Criterio del CTE DB-SE-C", "Criterio del Código Estructural"};
+    return v;
+}
+
+StandardsSelection StandardsSelection::cteSet() {
+    StandardsSelection s;
+    s.concrete = "Código Estructural (España)";
+    s.coldFormedSteel = "CTE DB SE-A (España)";
+    s.hotRolledSteel = "CTE DB SE-A (España)";
+    s.timber = "CTE DB SE-M (España)";
+    s.aluminium = "Eurocódigo 9";
+    s.foundation = "Criterio del CTE DB-SE-C";
+    return s;
+}
+
+StandardsSelection StandardsSelection::structuralCodeSet() {
+    StandardsSelection s;
+    s.concrete = "Código Estructural (España)";
+    s.coldFormedSteel = "Eurocódigos 3 y 4 (España)";
+    s.hotRolledSteel = "Código Estructural (España)";
+    s.timber = "CTE DB SE-M (España)";
+    s.aluminium = "Eurocódigo 9";
+    s.foundation = "Criterio del Código Estructural";
+    return s;
+}
+
 bool StandardsSelection::isValid() const {
+    const auto& criteria = foundationCriteria();
+    if (std::find(criteria.begin(), criteria.end(), foundation) == criteria.end()) return false;
     for (auto f : {StandardFamily::Concrete, StandardFamily::ColdFormedSteel, StandardFamily::HotRolledSteel,
                    StandardFamily::Timber, StandardFamily::Aluminium}) {
         const auto& names = availableStandards(f);
