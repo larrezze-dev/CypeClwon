@@ -149,6 +149,7 @@ void DisplayOptionsPanel::setOptions(const cc::core::DisplayOptions& options) {
 void DisplayOptionsPanel::applyTo(Viewport3D& viewport, const cc::core::DisplayOptions& options) {
     viewport.setShowElementInfo(options.showElementInfo);
     viewport.setFillShells(options.fillShells);
+    viewport.setFillLoads(options.fillLoads);
     viewport.setNodeSizeCm(options.nodeSizeCm);
     viewport.setTextSizePercent(options.textSizePercent);
     viewport.setTooltipPosition(options.tooltipPlacement == TooltipPlacement::OnElement ? TooltipPosition::OnElement

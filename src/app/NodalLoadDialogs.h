@@ -10,8 +10,10 @@
 
 class QCheckBox;
 class QComboBox;
+class QEvent;
 class QLineEdit;
 class QRadioButton;
+class QShowEvent;
 class QTableWidget;
 class QToolButton;
 class QWidget;
@@ -71,6 +73,23 @@ private:
     QComboBox* m_combo = nullptr;
 };
 
+/// «Hipótesis vista» (Carga > Visualización, ribbon button): modal box with the label «Hipótesis» + combo (references only, the order of the load
+/// case list), the box «Ver todas» and Aceptar (default) / Cancelar. The width adapts to the longest text of the combo (185 px with «V(0°) H1»;
+/// visualizacion_hipotesis_escalas 3).
+class ViewedCaseDialog : public CypeDialog {
+    Q_OBJECT
+public:
+    ViewedCaseDialog(const cc::core::LoadCaseSet& cases, int viewedCaseId, bool viewAll, QWidget* parent = nullptr);
+    int loadCaseId() const;
+    bool viewAll() const;
+    QComboBox* combo() const { return m_combo; }
+    QCheckBox* allCheck() const { return m_all; }
+
+private:
+    QComboBox* m_combo = nullptr;
+    QCheckBox* m_all = nullptr;
+};
+
 /// «Escalas» (Carga > Visualización): radios «Proporcionales a un valor fijo» (Tamaño máximo para representación, m) and «Proporcionales al valor
 /// de la carga» (table Hipótesis | Escala).
 class LoadScalesDialog : public CypeDialog {
@@ -88,10 +107,22 @@ public:
     QWidget* fixedBlock() const { return m_fixedBlock; }
     QWidget* proportionalBlock() const { return m_proportionalBlock; }
     void accept() override;
+    /// Focus order of the proportional mode (measured, vt_t0..vt_t25): table cells, the nine types, Aceptar, Cancelar, the active radio.
+    std::vector<QWidget*> tabChain() const;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 private:
+    /// Leaving a field with a value out of range (or not a number): «Aviso», the field goes back to its last valid text, the focus stays where it went.
+    void validateEdit(QLineEdit* edit);
+    void validateCell(int row, int column);
     cc::core::LoadCaseSet m_cases;
     cc::core::LoadScales m_scales;
+    bool m_validating = false;
+    bool m_loadingTable = false;
+    std::vector<QString> m_lastCell;
     QWidget* m_fixedBlock = nullptr;
     QWidget* m_proportionalBlock = nullptr;
     std::array<QLineEdit*, cc::core::kLoadScaleTypeCount> m_types{};

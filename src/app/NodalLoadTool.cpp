@@ -8,6 +8,7 @@
 
 #include "UserMessages.h"
 #include "Viewport3D.h"
+#include "core/load_case_edit.h"
 #include "core/node_support_edit.h"
 
 namespace cc::app {
@@ -46,7 +47,7 @@ NodalLoadTool::NodalLoadTool(QObject* parent) : QObject(parent) {
     m_scales->setToolTip(m_scales->statusTip());
     m_view->setEnabled(false);
     m_scales->setEnabled(false);
-    connect(m_view, &QAction::triggered, this, [this] { showViewPanel(); });
+    connect(m_view, &QAction::triggered, this, [this] { editViewedCase(); });
     connect(m_scales, &QAction::triggered, this, [this] { editScales(); });
 }
 
@@ -75,11 +76,12 @@ void NodalLoadTool::setProject(Project* project, UndoStack* undo) {
     deactivate();
     m_project = project;
     m_undo = undo;
-    m_viewCase = 0;
-    m_viewAll = false;
     m_last = NodalLoadData{};
     pruneViewports();
-    for (const QPointer<Viewport3D>& viewport : m_viewports) viewport->setNodalLoads(m_project ? &m_project->nodalLoads : nullptr);
+    for (const QPointer<Viewport3D>& viewport : m_viewports) {
+        viewport->setNodalLoads(m_project ? &m_project->nodalLoads : nullptr);
+        viewport->setLoadCases(m_project ? &m_project->loadCases : nullptr);
+    }
     applyView();
     updateEnabled();
 }
@@ -88,8 +90,9 @@ void NodalLoadTool::addViewport(Viewport3D* viewport) {
     if (!viewport || m_viewports.contains(viewport)) return;
     m_viewports.push_back(viewport);
     viewport->setNodalLoads(m_project ? &m_project->nodalLoads : nullptr);
+    viewport->setLoadCases(m_project ? &m_project->loadCases : nullptr);
     viewport->setLoadsVisible(m_loadsVisible);
-    viewport->setLoadViewCase(m_viewAll ? std::nullopt : std::optional<int>(m_viewCase));
+    viewport->setLoadViewCase(viewAll() ? std::nullopt : std::optional<int>(viewCaseId()));
     connect(viewport, &Viewport3D::actOnSelection, this, [this, viewport] { onActOnSelection(viewport); });
     connect(viewport, &Viewport3D::escapePressed, this, [this] { deactivate(); });
     if (m_mode != Mode::None) configureViewports();
@@ -104,18 +107,21 @@ void NodalLoadTool::setLoadsVisible(bool on) {
 void NodalLoadTool::applyView() {
     pruneViewports();
     for (const QPointer<Viewport3D>& viewport : m_viewports)
-        viewport->setLoadViewCase(m_viewAll ? std::nullopt : std::optional<int>(m_viewCase));
+        viewport->setLoadViewCase(viewAll() ? std::nullopt : std::optional<int>(viewCaseId()));
     if (m_panel) {
         QSignalBlocker block(m_panel.data());
         m_panel->setCases(m_project ? m_project->loadCases : LoadCaseSet{});
-        m_panel->setCaseId(m_viewCase);
-        m_panel->setViewAll(m_viewAll);
+        m_panel->setCaseId(viewCaseId());
+        m_panel->setViewAll(viewAll());
     }
 }
 
+int NodalLoadTool::viewCaseId() const { return m_project ? m_project->loadCases.viewedCaseId : 0; }
+bool NodalLoadTool::viewAll() const { return m_project && m_project->loadCases.viewAllCases; }
+
 void NodalLoadTool::setView(int caseId, bool all) {
-    m_viewCase = caseId;
-    m_viewAll = all;
+    if (!m_project) return;
+    if (setLoadView(*m_project, caseId, all) != LoadCaseError::None) return;  // the view lives in the work (saved with it)
     applyView();
     configureViewports();  // the nodes that can be captured depend on the loads in view
     emit viewChanged();
@@ -145,7 +151,7 @@ void NodalLoadTool::updateEnabled() {
 }
 
 void NodalLoadTool::structureChanged() {
-    if (m_project && !findLoadCase(m_project->loadCases, m_viewCase)) m_viewCase = 0;  // the shown case was deleted
+    if (m_project && !findLoadCase(m_project->loadCases, m_project->loadCases.viewedCaseId)) m_project->loadCases.viewedCaseId = 0;  // the shown case was deleted
     updateEnabled();
     pruneViewports();
     applyView();
@@ -212,8 +218,8 @@ void NodalLoadTool::configureViewports() {
     m_configured = on;
     const bool onLoads = m_mode == Mode::Edit || m_mode == Mode::Case || m_mode == Mode::Delete;
     const Project* project = m_project;
-    const bool all = m_viewAll;
-    const int caseId = m_viewCase;
+    const bool all = viewAll();
+    const int caseId = viewCaseId();
     for (const QPointer<Viewport3D>& viewport : m_viewports) {
         viewport->setSelectionMode(false);
         viewport->setNodeLabelsVisible(false);
@@ -250,7 +256,7 @@ std::vector<int> NodalLoadTool::loadsOfNodes(const std::vector<int>& nodeIds) co
     for (int node : nodes)
         for (int id : nodalLoadsOfNode(m_project->nodalLoads, node)) {
             const NodalLoad* load = findNodalLoad(m_project->nodalLoads, id);
-            if (load && (m_viewAll || load->loadCaseId == m_viewCase)) out.push_back(id);
+            if (load && (viewAll() || load->loadCaseId == viewCaseId())) out.push_back(id);
         }
     return out;
 }
@@ -258,12 +264,12 @@ std::vector<int> NodalLoadTool::loadsOfNodes(const std::vector<int>& nodeIds) co
 bool NodalLoadTool::createLoads(const std::vector<int>& nodeIds) {
     if (!m_project || !m_undo || nodeIds.empty()) return false;
     NodalLoadData initial = m_last;
-    initial.loadCaseId = m_viewCase;  // by default the shown hypothesis (tooltip #64651)
+    initial.loadCaseId = viewCaseId();  // by default the shown hypothesis (tooltip #64651)
     NodalLoadDialog dialog(tr("Introducir cargas sobre nudos"), m_project->loadCases, initial, m_dialogParent);
     if (run(dialog) != QDialog::Accepted) return false;
     const NodalLoadData data = dialog.data();
     m_last = data;
-    m_last.loadCaseId = m_viewCase;
+    m_last.loadCaseId = viewCaseId();
     const NodalLoadError error = addNodalLoads(*m_project, *m_undo, nodeIds, data);
     if (error != NodalLoadError::None) {
         warn(QString::fromStdString(nodalLoadErrorMessage(error)));
@@ -358,6 +364,15 @@ bool NodalLoadTool::editPrescribed(const std::vector<int>& nodeIds) {
     }
     m_undo->endMacro();
     return m_undo->count() != before;
+}
+
+bool NodalLoadTool::editViewedCase() {
+    if (!m_project) return false;
+    ViewedCaseDialog dialog(m_project->loadCases, viewCaseId(), viewAll(), m_dialogParent);
+    if (run(dialog) != QDialog::Accepted) return false;
+    setView(dialog.loadCaseId(), dialog.viewAll());
+    deactivate();  // measured: Aceptar ends the active command (the status bar goes back to «Seleccione una opción del menú.»)
+    return true;
 }
 
 bool NodalLoadTool::editScales() {

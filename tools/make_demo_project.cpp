@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 
+#include "core/bar_load.h"
 #include "core/load_case_edit.h"
+#include "core/nodal_load_edit.h"
 #include "core/project_file.h"
 #include "core/undo_stack.h"
 #include "core/panel.h"
@@ -132,6 +134,46 @@ int main(int argc, char** argv) {
     s.addLayer("Pilares", 0x0066CC);
     s.assignLayers({beam}, {}, {red}, LayerOperation::Replace);
     (void)col1; (void)col2;
+    if (argc > 2 && std::string(argv[2]) == "hypos") {  // T-P7-07 visual checks: hypotheses CM 1, T 1, V 1 with nodal and bar loads of each and a shell load
+        UndoStack undo;
+        int ids[3] = {};
+        const std::pair<LoadNature, const char*> natures[3] = {{LoadNature::DeadLoad, "CM 1"}, {LoadNature::Temperature, "T 1"}, {LoadNature::Wind, "V 1"}};
+        for (int i = 0; i < 3; ++i) {
+            NewLoadCase c;
+            c.nature = natures[i].first;
+            c.reference = natures[i].second;
+            createLoadCase(doc.project, undo, c, &ids[i]);
+        }
+        const int nodes[4] = {a, b, c, d};
+        const int cases[4] = {0, ids[0], ids[1], ids[2]};
+        for (int i = 0; i < 4; ++i) {
+            NodalLoadData data;
+            data.magnitude = 5.0;
+            data.direction = LoadDirection::MinusZ;
+            data.loadCaseId = cases[i];
+            addNodalLoads(doc.project, undo, {nodes[i]}, data);
+        }
+        int next = 1;
+        for (const int bar : {col1, beam, col2}) {
+            BarLoad load;
+            static_cast<BarLoadData&>(load) = barLoadDefaults(cases[next]);
+            load.id = doc.project.barLoads.nextId++;
+            load.barId = bar;
+            doc.project.barLoads.items.push_back(load);
+            ++next;
+        }
+        const int n1 = s.addNode({10, 0, 0}), n2 = s.addNode({14, 0, 0}), n3 = s.addNode({14, 4, 0}), n4 = s.addNode({10, 4, 0});
+        const int shell = s.addShell({n1, n2, n3, n4}, 0.1);
+        for (const int caseId : {ids[0], ids[2]}) {
+            ShellLoad load;
+            static_cast<ShellLoadData&>(load) = shellLoadDefaults(caseId, ShellLoadType::Uniform);
+            load.value1 = 5.0;
+            load.id = doc.project.shellLoads.nextId++;
+            load.shellId = shell;
+            doc.project.shellLoads.items.push_back(load);
+        }
+        doc.project.loadCases.viewAllCases = true;
+    }
     if (argc > 2 && (std::string(argv[2]) == "shell" || std::string(argv[2]) == "shellloads")) {  // a 4 x 4 m shell L1 with non-default shell properties (T-P6-07 visual checks)
         const int n1 = s.addNode({10, 0, 0}), n2 = s.addNode({14, 0, 0}), n3 = s.addNode({14, 4, 0}), n4 = s.addNode({10, 4, 0});
         const int shell = s.addShell({n1, n2, n3, n4}, 0.1);

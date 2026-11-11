@@ -29,7 +29,7 @@ Sesión 2026-11-11 (RE-ANALYST, original lanzado con autorización de la sesión
 - **Validación** [V `vh_09_c/d`, `vh_57`]: al salir del campo (TAB o Aceptar) con un valor fuera de rango aparece un cuadro modal **«Aviso»** (icono de advertencia, botón Aceptar, ≈419x162) y el campo **vuelve al último valor válido** (queda en 1.000), pasando el foco al campo siguiente. Mientras se edita se admiten hasta 4 decimales (se vio «0.0001» en el campo). Textos literales:
   - campos por tipo (mín 0.001, máx 1000.000): **«El valor de 'Uniforme' debe estar entre 0.001  y 1000.000 .»** (doble espacio antes de «y» y espacio antes del punto final: plantilla con unidad vacía; el nombre del campo es el rótulo: 'Uniforme', 'Faja'...); el mismo texto como **tooltip** del campo («Uniforme» en negrita + «Debe estar entre 0.001  y 1000.000 .»).
   - tamaño máximo (**mín 0.010, máx 100.000 m**): **«El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000.»** (sin unidades, ≈385x162; 0 y 20000 dan el mismo aviso) [V]. Distinto del rango de las escalas por tipo.
-  - celdas de la tabla de hipótesis: rango REA 0.001..1000.0; el aviso de celda no se midió [N].
+  - celdas de la tabla de hipótesis [V 2026-11-11, `vh_o3`/`vh_o4`]: tecla 5000 en la celda de Peso propio y TAB -> «Aviso» **«El valor de 'Escala' debe estar entre 0.001  y 1000.000 .»** (el nombre es la cabecera de la columna; mismos dobles espacios); la celda vuelve a 1.000 y el foco pasa a la celda Hipótesis de la fila siguiente.
 - Edición de la celda de la tabla, Ctrl+A en la tabla y «Aceptar en modo fijo no guarda la tabla»: [V previo `cargas_laminas.md` §13.5].
 - **Persistencia** [V `vh_67c`]: guardado y reabierto, el modo (proporcional), Puntual 2.000 y la tabla de hipótesis se conservan en el .ed3.
 
@@ -59,7 +59,7 @@ Sesión 2026-11-11 (RE-ANALYST, original lanzado con autorización de la sesión
 
 ## 8. Por medir (y por qué)
 1. Escala proporcional de **temperatura** (barras): el clic de selección de barra no abrió el diálogo en la última pasada (se agotó el margen de la sesión).
-2. Rango/aviso de las **celdas de la tabla** de hipótesis (REA da 0.001..1000.0; el aviso literal no se leyó).
+2. ~~Rango/aviso de las celdas de la tabla~~ [V, ver §4].
 3. Efecto de «relleno» desmarcado en prismas de láminas/paños y en cargas superficiales.
 4. Colores de naturalezas Q, S, N, H, A (la paleta es por índice de creación; sin comprobar).
 5. Píxeles exactos del cuadro «Hipótesis vista» (ancho variable con el combo) y posición de los avisos.
@@ -72,3 +72,9 @@ Sesión 2026-11-11 (RE-ANALYST, original lanzado con autorización de la sesión
 5. **fillLoads**: cablear `DisplayOptions::fillLoads` (false = sin relleno translúcido en bandas de barras; contorno, líneas verticales y etiquetas se mantienen).
 6. **Etiquetas**: altura de texto y punta proporcionales a la longitud de la carga (tamaño de mundo).
 7. Atajo de Guardar del original = Ctrl+G (el clon puede mantener Ctrl+S además).
+
+## 10. Sesión 2026-11-11 (FRONTEND, GUI de T-P7-07)
+- [V] Cuadro «Hipótesis vista» del original (`vh_02_hv.png`, recorte): ≈185 px de ancho, ≈145 de alto; combo a 53 px del borde superior, casilla a 80, botones a 121. El clon usa 185 x 156 (la barra de botones del clon es mayor); capturas del clon `vh_c8.png`.
+- [V] Cuadro «Escalas» del clon 306x579 igual que el original (`vh_c3.png`, `vh_c7.png` frente a `vh_09_c.png`); foco inicial: campo de tamaño seleccionado (fijo) / primera celda (proporcional); TAB: celdas, 9 campos, Aceptar, Cancelar, radio activo (los botones de la barra de título no entran en el ciclo).
+- [V clon] Colores por índice en nudos, barras, láminas y paños (`vh_c1.png`: Peso propio amarillo, CM 1 cian, T 1 verde, V 1 magenta); «Dibujar las cargas con relleno» desmarcado quita el relleno de bandas y prismas de láminas (`vh_c4.png`), conserva contorno, líneas y etiquetas. Efecto en el original sobre láminas/paños sigue [N] (se aplicó el mismo criterio).
+- Pendientes de §8 que NO se midieron (requieren obra con barras/láminas con cargas en el original, fuera del margen de la sesión): escala proporcional de temperatura en barras; colores de naturalezas Q S N H A (la paleta es por índice de creación, el clon la aplica así); relleno desmarcado en láminas/paños en el original. Obra de prueba del clon: `build/smoke/vh_hypos.ed3` (`make_demo_project.exe <fichero> hypos`).

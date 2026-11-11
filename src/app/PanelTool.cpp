@@ -925,7 +925,7 @@ void PanelTool::paint(QPainter& painter, const Viewport3D& viewport) const {
         const QColor line = selected ? kOrange : (grey ? kGreyLoad : colour);
         QColor fill = line;
         fill.setAlpha(selected ? 70 : (grey ? 35 : 55));
-        painter.setBrush(fill);
+        painter.setBrush(viewport.fillLoads() ? QBrush(fill) : QBrush(Qt::NoBrush));  // «Dibujar las cargas con relleno»
         painter.setPen(QPen(line, selected ? 2.5 : 1.0));
         const std::size_t n = base.size();
         for (std::size_t k = 0; k < n; ++k) {
@@ -948,11 +948,17 @@ void PanelTool::paint(QPainter& painter, const Viewport3D& viewport) const {
             if (angle > 90.0 + 1e-6) angle -= 180.0;
             if (angle < -90.0 + 1e-6) angle += 180.0;
             const QString text = QString::fromStdString(drawing.labels[k].text);
+            // The text height follows the prism length on screen (measured for the other loads, vh_80c).
+            const double edgePx = std::hypot(top[k].x() - base[k].x(), top[k].y() - base[k].y());
+            QFont labelFont = font;
+            if (edgePx > 1.0) labelFont.setPixelSize(std::clamp(static_cast<int>(std::lround(0.6 * edgePx * viewport.textSizePercent() / 100.0)), 6, 400));
+            const QFontMetricsF labelMetrics(labelFont);
             painter.save();
             painter.setPen(line);
+            painter.setFont(labelFont);
             painter.translate(at);
             painter.rotate(angle);
-            painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, -3.0), text);
+            painter.drawText(QPointF(-labelMetrics.horizontalAdvance(text) / 2.0, -3.0), text);
             painter.restore();
         }
     };

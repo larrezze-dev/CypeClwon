@@ -12,11 +12,17 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QPolygonF>
+#include <QKeyEvent>
 #include <QRadioButton>
+#include <QShowEvent>
+#include <QStyledItemDelegate>
 #include <QTableWidget>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
+#include <functional>
 
 #include "UserMessages.h"
 #include "core/nodal_load_edit.h"
@@ -98,7 +104,7 @@ QString loadCaseText(const LoadCase& loadCase) { return QString::fromStdString(l
 
 void fillLoadCaseCombo(QComboBox* combo, const LoadCaseSet& cases, int selectedId) {
     combo->clear();
-    for (const LoadCase& c : cases.cases) combo->addItem(loadCaseText(c), c.id);
+    for (const LoadCase* c : loadCasesInListOrder(cases)) combo->addItem(loadCaseText(*c), c->id);  // Peso propio, then by nature and number
     const int index = combo->findData(selectedId);
     combo->setCurrentIndex(index >= 0 ? index : (combo->count() > 0 ? 0 : -1));
 }
@@ -340,7 +346,73 @@ LoadCaseChoiceDialog::LoadCaseChoiceDialog(const LoadCaseSet& cases, int selecte
 
 int LoadCaseChoiceDialog::loadCaseId() const { return m_combo->currentIndex() < 0 ? 0 : m_combo->currentData().toInt(); }
 
+// ---- ViewedCaseDialog -------------------------------------------------------------------------------------------------------
+
+ViewedCaseDialog::ViewedCaseDialog(const LoadCaseSet& cases, int viewedCaseId, bool viewAll, QWidget* parent) : CypeDialog(tr("Hipótesis vista"), parent) {
+    auto* body = new QWidget(this);
+    auto* column = new QVBoxLayout(body);
+    column->setContentsMargins(10, 10, 10, 0);
+    column->setSpacing(10);
+    auto* row = new QHBoxLayout();
+    row->setSpacing(8);
+    row->addWidget(new QLabel(tr("Hipótesis"), body));
+    m_combo = new QComboBox(body);
+    m_combo->setObjectName(QStringLiteral("viewCase"));
+    m_combo->setMinimumHeight(26);
+    fillLoadCaseCombo(m_combo, cases, viewedCaseId);
+    row->addWidget(m_combo, 1);
+    column->addLayout(row);
+    m_all = new QCheckBox(tr("Ver todas"), body);
+    m_all->setObjectName(QStringLiteral("viewAll"));
+    m_all->setChecked(viewAll);
+    column->addWidget(m_all);
+    column->addStretch(1);
+    contentLayout()->addWidget(body, 1);
+    setupFooter(tr("Aceptar"), tr("Cancelar"));
+    // Measured (vh_04c): 185 px wide with «V(0°) H1», wider for a longer text of the combo.
+    const QFontMetrics metrics(m_combo->font());
+    int longest = metrics.horizontalAdvance(QStringLiteral("V(0°) H1"));
+    for (int i = 0; i < m_combo->count(); ++i) longest = std::max(longest, metrics.horizontalAdvance(m_combo->itemText(i)));
+    setFixedSize(185 + std::max(0, longest - metrics.horizontalAdvance(QStringLiteral("V(0°) H1"))), 156);
+    m_combo->setFocus();
+}
+
+int ViewedCaseDialog::loadCaseId() const { return m_combo->currentIndex() < 0 ? 0 : m_combo->currentData().toInt(); }
+bool ViewedCaseDialog::viewAll() const { return m_all->isChecked(); }
+
 // ---- LoadScalesDialog -------------------------------------------------------------------------------------------------------
+
+namespace {
+
+/// Delegate of the scale cells: the editor opens with the text selected and TAB / Shift+TAB move to the next / previous cell of the table (row by
+/// row, as measured), leaving the table after the last / before the first one.
+class ScaleCellDelegate : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+    std::function<void(bool)> step;
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
+        QStyledItemDelegate::setEditorData(editor, index);
+        if (auto* edit = qobject_cast<QLineEdit*>(editor)) edit->selectAll();
+    }
+    bool eventFilter(QObject* object, QEvent* event) override {
+        if (event->type() == QEvent::KeyPress) {
+            const int key = static_cast<QKeyEvent*>(event)->key();
+            if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {
+                auto* editor = qobject_cast<QWidget*>(object);
+                if (editor) {
+                    emit commitData(editor);
+                    emit closeEditor(editor, QAbstractItemDelegate::NoHint);
+                    if (step) step(key == Qt::Key_Tab);
+                    return true;
+                }
+            }
+        }
+        return QStyledItemDelegate::eventFilter(object, event);
+    }
+};
+
+}  // namespace
 
 LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& initial, QWidget* parent)
     : CypeDialog(tr("Escalas"), parent), m_cases(cases), m_scales(initial) {
@@ -365,6 +437,7 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
     m_size->setObjectName(QStringLiteral("fixedSize"));
     m_size->setAlignment(Qt::AlignRight);
     m_size->setFixedWidth(52);
+    m_size->setProperty("lastValid", m_size->text());
     sizeRow->addWidget(m_size);
     sizeRow->addWidget(new QLabel(tr("m"), m_fixedBlock));
     sizeRow->addStretch(1);
@@ -375,14 +448,16 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
     auto* proportionalColumn = new QVBoxLayout(m_proportionalBlock);
     proportionalColumn->setContentsMargins(0, 0, 0, 0);
     proportionalColumn->setSpacing(4);
-    m_table = new QTableWidget(static_cast<int>(cases.cases.size()), 2, m_proportionalBlock);
+    const std::vector<const LoadCase*> ordered = loadCasesInListOrder(cases);  // same order as the combo of «Hipótesis vista», no sorting
+    m_table = new QTableWidget(static_cast<int>(ordered.size()), 2, m_proportionalBlock);
     m_table->setObjectName(QStringLiteral("scalesTable"));
     m_table->setHorizontalHeaderLabels({tr("Hipótesis"), tr("Escala")});
     m_table->verticalHeader()->hide();
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_loadingTable = true;
     for (int r = 0; r < m_table->rowCount(); ++r) {
-        const LoadCase& c = cases.cases[static_cast<std::size_t>(r)];
+        const LoadCase& c = *ordered[static_cast<std::size_t>(r)];
         auto* name = new QTableWidgetItem(loadCaseText(c));
         name->setFlags(name->flags() & ~Qt::ItemIsEditable);
         name->setData(Qt::UserRole, c.id);
@@ -390,8 +465,28 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
         auto* scale = new QTableWidgetItem(threeDecimals(loadScaleOfCase(initial, c.id)));
         scale->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(r, 1, scale);
+        m_lastCell.push_back(scale->text());
     }
+    m_loadingTable = false;
     m_table->setFixedHeight(135);
+    auto* delegate = new ScaleCellDelegate(m_table);
+    delegate->step = [this](bool next) {
+        int row = m_table->currentRow(), col = m_table->currentColumn();
+        if (row < 0) {
+            row = 0;
+            col = next ? -1 : 2;
+        }
+        const int index = row * 2 + col + (next ? 1 : -1);
+        if (index < 0 || index >= m_table->rowCount() * 2) {
+            focusNextPrevChild(next);  // out of the table: the next / previous control of the cycle
+            return;
+        }
+        m_table->setCurrentCell(index / 2, index % 2);
+        m_table->setFocus(Qt::TabFocusReason);
+    };
+    m_table->setItemDelegate(delegate);
+    m_table->installEventFilter(this);
+    connect(m_table, &QTableWidget::cellChanged, this, [this](int row, int column) { validateCell(row, column); });
     proportionalColumn->addWidget(m_table);
     auto* typesHeading = new QLabel(tr("Escalas de cargas por tipos"), m_proportionalBlock);
     setBold(typesHeading, true);
@@ -405,6 +500,7 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
         edit->setObjectName(QStringLiteral("typeScale%1").arg(t));
         edit->setAlignment(Qt::AlignRight);
         edit->setFixedWidth(62);
+        edit->setProperty("lastValid", edit->text());
         edit->setToolTip(tr("Debe estar entre %1  y %2 .").arg(threeDecimals(kMinTypeScale), threeDecimals(kMaxTypeScale)));
         m_types[static_cast<std::size_t>(t)] = edit;
         grid->addWidget(edit, t, 1);
@@ -422,10 +518,116 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
         const bool fixed = m_fixed->isChecked();
         m_fixedBlock->setVisible(fixed);
         m_proportionalBlock->setVisible(!fixed);
+        // Only the active radio is in the TAB cycle (measured).
+        m_fixed->setFocusPolicy(fixed ? Qt::StrongFocus : Qt::ClickFocus);
+        m_proportional->setFocusPolicy(fixed ? Qt::ClickFocus : Qt::StrongFocus);
     };
     connect(m_fixed, &QRadioButton::toggled, this, sync);
     sync();
-    setFixedSize(310, 580);  // measured (cn_j1)
+    // Validation when a field is left (TAB or a click on Aceptar): editingFinished.
+    connect(m_size, &QLineEdit::editingFinished, this, [this] { validateEdit(m_size); });
+    for (QLineEdit* edit : m_types) connect(edit, &QLineEdit::editingFinished, this, [this, edit] { validateEdit(edit); });
+    // Cycle of TAB (measured): table cells -> Uniforme .. Retracción -> Aceptar -> Cancelar -> active radio -> table.
+    setTabOrder(m_fixed, m_proportional);
+    setTabOrder(m_proportional, m_size);
+    setTabOrder(m_size, m_table);
+    QWidget* previous = m_table;
+    for (QLineEdit* edit : m_types) {
+        setTabOrder(previous, edit);
+        previous = edit;
+    }
+    setTabOrder(previous, acceptButton());
+    setTabOrder(acceptButton(), cancelButton());
+    for (QToolButton* button : findChildren<QToolButton*>()) button->setFocusPolicy(Qt::NoFocus);  // the title-bar buttons are not in the cycle
+    setFixedSize(306, 579);  // measured (vh_07c, vh_09: 306 x 579)
+    // Initial focus: the size field (fixed) or the first cell of the table (proportional), with the text selected.
+    if (m_fixed->isChecked()) {
+        m_size->setFocus(Qt::TabFocusReason);
+        m_size->selectAll();
+    } else {
+        m_table->setCurrentCell(0, 0);
+        m_table->setFocus(Qt::TabFocusReason);
+    }
+}
+
+std::vector<QWidget*> LoadScalesDialog::tabChain() const {
+    std::vector<QWidget*> chain{m_table};
+    for (QLineEdit* edit : m_types) chain.push_back(edit);
+    chain.push_back(acceptButton());
+    chain.push_back(cancelButton());
+    chain.push_back(m_fixed->isChecked() ? static_cast<QWidget*>(m_fixed) : static_cast<QWidget*>(m_proportional));
+    return chain;
+}
+
+void LoadScalesDialog::showEvent(QShowEvent* event) {
+    CypeDialog::showEvent(event);
+    // QDialog gives the initial focus to the default button; the original puts it in the first field.
+    if (m_fixed->isChecked()) {
+        m_size->setFocus(Qt::TabFocusReason);
+        m_size->selectAll();
+    } else {
+        m_table->setFocus(Qt::TabFocusReason);
+    }
+}
+
+bool LoadScalesDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_table && event->type() == QEvent::KeyPress) {
+        const int key = static_cast<QKeyEvent*>(event)->key();
+        if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {
+            if (auto* delegate = dynamic_cast<ScaleCellDelegate*>(m_table->itemDelegate())) delegate->step(key == Qt::Key_Tab);
+            return true;
+        }
+    }
+    return CypeDialog::eventFilter(watched, event);
+}
+
+void LoadScalesDialog::validateEdit(QLineEdit* edit) {
+    if (m_validating) return;
+    m_validating = true;
+    const bool isSize = edit == m_size;
+    double v = 0.0;
+    const bool number = readNumber(edit->text(), v);
+    const bool inRange = number && (isSize ? loadFixedSizeInRange(v) : loadScaleValueInRange(v));
+    if (inRange) {
+        edit->setText(threeDecimals(v));
+        edit->setProperty("lastValid", edit->text());
+    } else {
+        std::string text;
+        if (!number) {
+            text = nodalLoadNotNumberMessage();
+        } else if (isSize) {
+            text = loadFixedSizeRangeMessage();
+        } else {
+            const int t = static_cast<int>(std::find(m_types.begin(), m_types.end(), edit) - m_types.begin());
+            text = loadScaleRangeMessage(loadScaleTypeName(static_cast<LoadScaleType>(t)));
+        }
+        edit->setText(edit->property("lastValid").toString());  // back to the last valid value; the focus is already in the next field
+        messages::show(this, messages::Kind::Warning, QString::fromStdString(text));
+    }
+    m_validating = false;
+}
+
+void LoadScalesDialog::validateCell(int row, int column) {
+    if (m_loadingTable || m_validating || column != 1) return;
+    QTableWidgetItem* item = m_table->item(row, column);
+    if (!item || row >= static_cast<int>(m_lastCell.size())) return;
+    m_validating = true;
+    double v = 0.0;
+    const bool number = readNumber(item->text(), v);
+    const bool inRange = number && loadScaleValueInRange(v);
+    m_loadingTable = true;
+    if (inRange) {
+        item->setText(threeDecimals(v));
+        m_lastCell[static_cast<std::size_t>(row)] = item->text();
+        m_loadingTable = false;
+    } else {
+        item->setText(m_lastCell[static_cast<std::size_t>(row)]);
+        m_loadingTable = false;
+        // Measured (vh_o3): the name in the message is the column header, 'Escala'.
+        const QString text = number ? QString::fromStdString(loadScaleRangeMessage("Escala")) : QString::fromStdString(nodalLoadNotNumberMessage());
+        messages::show(this, messages::Kind::Warning, text);
+    }
+    m_validating = false;
 }
 
 void LoadScalesDialog::accept() {
@@ -461,9 +663,8 @@ void LoadScalesDialog::accept() {
             messages::show(this, messages::Kind::Warning, QString::fromStdString(nodalLoadNotNumberMessage()));
             return;
         }
-        if (!loadScaleValueInRange(scale)) {  // same template as the type fields (the cell warning was not measured: [N])
-            messages::show(this, messages::Kind::Warning,
-                           QString::fromStdString(loadScaleRangeMessage(m_table->item(r, 0)->text().toStdString())));
+        if (!loadScaleValueInRange(scale)) {
+            messages::show(this, messages::Kind::Warning, QString::fromStdString(loadScaleRangeMessage("Escala")));
             return;
         }
         const int id = m_table->item(r, 0)->data(Qt::UserRole).toInt();

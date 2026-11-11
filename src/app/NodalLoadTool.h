@@ -61,9 +61,12 @@ public:
     static QString statusText(Mode mode);
 
     /// Shown hypothesis of the window «Propiedades - Hipótesis vista» (also kept while the window is closed).
-    int viewCaseId() const { return m_viewCase; }
-    bool viewAll() const { return m_viewAll; }
+    /// Both live in the work (project.loadCases.viewedCaseId / viewAllCases) and are saved with it.
+    int viewCaseId() const;
+    bool viewAll() const;
     void setView(int caseId, bool all);
+    /// Carga > Visualización > «Hipótesis vista»: the modal box (combo, «Ver todas», Aceptar / Cancelar).
+    bool editViewedCase();
 
     /// Loads of the given nodes that are in view (the ones the original lets Editar / Hipótesis / Borrar capture), in node and creation order.
     std::vector<int> loadsOfNodes(const std::vector<int>& nodeIds) const;
@@ -119,8 +122,6 @@ private:
     QPointer<LoadViewPanel> m_panel;
     std::function<int(QDialog&)> m_runner;
     cc::core::NodalLoadData m_last;
-    int m_viewCase = 0;
-    bool m_viewAll = false;
     bool m_loadsVisible = false;
     bool m_configured = false;  ///< the viewports were last configured for an active command (so that an idle tool leaves them alone)
 };

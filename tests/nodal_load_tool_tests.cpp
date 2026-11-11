@@ -7,6 +7,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QImage>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QRadioButton>
@@ -14,7 +15,10 @@
 #include <QToolButton>
 #include <memory>
 
+#include <QtTest/QTest>
+
 #include "DiaphragmTool.h"
+#include "DisplayOptionsPanel.h"
 #include "NodalLoadDialogs.h"
 #include "NodalLoadTool.h"
 #include "UserMessages.h"
@@ -30,6 +34,7 @@ using cc::app::NodalLoadDialog;
 using cc::app::NodalLoadTool;
 using cc::app::PrescribedDisplacementsDialog;
 using cc::app::Viewport3D;
+using cc::app::ViewedCaseDialog;
 namespace messages = cc::app::messages;
 
 namespace {
@@ -656,6 +661,224 @@ TEST_F(NodalLoadToolTest, DiaphragmLoadsListTheRealLoadCases) {
     combo = qobject_cast<QComboBox*>(dialog.loadTable()->cellWidget(1, 0));
     combo->setCurrentIndex(1);
     EXPECT_EQ(dialog.rows()[0].loads[1].loadCaseId, cm1);
+}
+
+// ---- T-P7-07: hipótesis vista (en la obra), colores, relleno, escalas (foco, TAB, avisos) --------------------------------------
+
+TEST_F(NodalLoadToolTest, ViewedCaseLivesInTheWork) {
+    const int cm1 = addCase();
+    tool->setView(cm1, true);
+    EXPECT_EQ(project.loadCases.viewedCaseId, cm1) << "persisted with the work";
+    EXPECT_TRUE(project.loadCases.viewAllCases);
+    // A new tool on the same project sees the same view (no private state).
+    NodalLoadTool other;
+    other.setProject(&project, &undo);
+    EXPECT_EQ(other.viewCaseId(), cm1);
+    EXPECT_TRUE(other.viewAll());
+    // A different project starts at its own defaults.
+    Project fresh;
+    other.setProject(&fresh, &undo);
+    EXPECT_EQ(other.viewCaseId(), 0);
+    EXPECT_FALSE(other.viewAll());
+}
+
+TEST_F(NodalLoadToolTest, ViewedCaseDialogMatchesTheMeasuredOne) {
+    const int cm1 = addCase();
+    ViewedCaseDialog dialog(project.loadCases, cm1, true);
+    EXPECT_EQ(dialog.windowTitle(), QStringLiteral("Hipótesis vista"));
+    ASSERT_EQ(dialog.combo()->count(), 2);
+    EXPECT_EQ(dialog.combo()->itemText(0), QStringLiteral("Peso propio"));
+    EXPECT_EQ(dialog.combo()->itemText(1), QStringLiteral("CM 1"));
+    EXPECT_EQ(dialog.loadCaseId(), cm1);
+    EXPECT_TRUE(dialog.viewAll());
+    EXPECT_EQ(dialog.allCheck()->text(), QStringLiteral("Ver todas"));
+    EXPECT_EQ(dialog.acceptButton()->text(), QStringLiteral("Aceptar"));
+    EXPECT_EQ(dialog.cancelButton()->text(), QStringLiteral("Cancelar"));
+    EXPECT_GE(dialog.width(), 185);
+    // Accepting through the ribbon button applies the view and ends the active command.
+    runner<ViewedCaseDialog>([cm1](ViewedCaseDialog& d) {
+        d.combo()->setCurrentIndex(d.combo()->findData(cm1));
+        d.allCheck()->setChecked(false);
+        return true;
+    });
+    EXPECT_TRUE(tool->editViewedCase());
+    EXPECT_EQ(project.loadCases.viewedCaseId, cm1);
+    EXPECT_FALSE(project.loadCases.viewAllCases);
+    EXPECT_EQ(undo.count(), 1u) << "only the case creation: the view is not undoable";
+    // Cancelar discards.
+    runner<ViewedCaseDialog>([](ViewedCaseDialog& d) {
+        d.allCheck()->setChecked(true);
+        return false;
+    });
+    EXPECT_FALSE(tool->editViewedCase());
+    EXPECT_FALSE(project.loadCases.viewAllCases);
+}
+
+TEST_F(NodalLoadToolTest, ComboListsPesoPropioThenByNatureAndNumber) {
+    NewLoadCase wind;
+    wind.nature = LoadNature::Wind;
+    wind.reference = "V 1";
+    ASSERT_EQ(createLoadCase(project, undo, wind), LoadCaseError::None);
+    const int cm1 = addCase();  // created AFTER the wind case
+    NewLoadCase temperature;
+    temperature.nature = LoadNature::Temperature;
+    temperature.reference = "T 1";
+    ASSERT_EQ(createLoadCase(project, undo, temperature), LoadCaseError::None);
+    ViewedCaseDialog dialog(project.loadCases, cm1, false);
+    ASSERT_EQ(dialog.combo()->count(), 4);
+    EXPECT_EQ(dialog.combo()->itemText(0), QStringLiteral("Peso propio"));
+    EXPECT_EQ(dialog.combo()->itemText(1), QStringLiteral("CM 1"));
+    EXPECT_EQ(dialog.combo()->itemText(2), QStringLiteral("T 1"));
+    EXPECT_EQ(dialog.combo()->itemText(3), QStringLiteral("V 1"));
+    LoadScalesDialog scales(project.loadCases, project.nodalLoads.scales);
+    ASSERT_EQ(scales.table()->rowCount(), 4);
+    EXPECT_EQ(scales.table()->item(2, 0)->text(), QStringLiteral("T 1")) << "the table follows the order of the combo";
+}
+
+TEST_F(NodalLoadToolTest, NodalLoadsTakeTheColourOfTheirHypothesis) {
+    const int cm1 = addCase();
+    addLoad(2, 5.0, LoadDirection::MinusZ, cm1);
+    tool->setView(cm1, false);
+    EXPECT_EQ(view->loadCaseColour(cm1), QColor(0, 191, 255)) << "creation index 1: cyan";
+    EXPECT_EQ(view->loadCaseColour(0), QColor(255, 255, 0)) << "Peso propio: yellow";
+}
+
+TEST_F(NodalLoadToolTest, FillLoadsOptionReachesTheViewport) {
+    EXPECT_TRUE(view->fillLoads());
+    cc::core::DisplayOptions options;
+    options.fillLoads = false;
+    cc::app::DisplayOptionsPanel::applyTo(*view, options);
+    EXPECT_FALSE(view->fillLoads());
+    options.fillLoads = true;
+    cc::app::DisplayOptionsPanel::applyTo(*view, options);
+    EXPECT_TRUE(view->fillLoads());
+}
+
+TEST_F(NodalLoadToolTest, ScalesDialogSizeAndInitialFocus) {
+    LoadScalesDialog fixed(project.loadCases, project.nodalLoads.scales);
+    EXPECT_EQ(fixed.size(), QSize(306, 579));
+    fixed.show();
+    EXPECT_EQ(fixed.focusWidget(), fixed.sizeEdit()) << "fixed mode: the size field has the focus";
+    EXPECT_EQ(fixed.sizeEdit()->selectedText(), QStringLiteral("0.500"));
+    LoadScales proportional = project.nodalLoads.scales;
+    proportional.mode = LoadScaleMode::Proportional;
+    LoadScalesDialog dialog(project.loadCases, proportional);
+    dialog.show();
+    EXPECT_EQ(dialog.focusWidget(), dialog.table()) << "proportional mode: the first cell of the table";
+    EXPECT_EQ(dialog.table()->currentRow(), 0);
+    EXPECT_EQ(dialog.table()->currentColumn(), 0);
+}
+
+TEST_F(NodalLoadToolTest, ScalesDialogTabCycle) {
+    LoadScales proportional = project.nodalLoads.scales;
+    proportional.mode = LoadScaleMode::Proportional;
+    LoadScalesDialog dialog(project.loadCases, proportional);
+    dialog.show();
+    dialog.activateWindow();
+    QTest::qWaitForWindowActive(&dialog);
+    const std::vector<QWidget*> chain = dialog.tabChain();
+    ASSERT_EQ(chain.size(), 13u);
+    EXPECT_EQ(chain.front(), dialog.table());
+    for (int t = 0; t < 9; ++t) EXPECT_EQ(chain[1 + t], dialog.typeEdit(t));
+    EXPECT_EQ(chain[10], dialog.acceptButton());
+    EXPECT_EQ(chain[11], dialog.cancelButton());
+    EXPECT_EQ(chain[12], dialog.proportionalRadio());
+    // One row: TAB goes cell by cell (Hipótesis -> Escala) and then leaves the table for Uniforme.
+    QTest::keyClick(dialog.table(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.table()->currentColumn(), 1);
+    QTest::keyClick(dialog.table(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.focusWidget(), dialog.typeEdit(0));
+    EXPECT_EQ(dialog.typeEdit(0)->selectedText(), QStringLiteral("1.000")) << "each field is entered with its text selected";
+    for (int t = 1; t < 9; ++t) {
+        QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+        EXPECT_EQ(dialog.focusWidget(), dialog.typeEdit(t)) << t;
+    }
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.focusWidget(), dialog.acceptButton());
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.focusWidget(), dialog.cancelButton());
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.focusWidget(), dialog.proportionalRadio()) << (dialog.focusWidget() ? dialog.focusWidget()->metaObject()->className() : "null");
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+    EXPECT_EQ(dialog.focusWidget(), dialog.table());
+}
+
+TEST_F(NodalLoadToolTest, ScalesDialogWarnsWhenLeavingAFieldOutOfRange) {
+    LoadScales proportional = project.nodalLoads.scales;
+    proportional.mode = LoadScaleMode::Proportional;
+    LoadScalesDialog dialog(project.loadCases, proportional);
+    dialog.show();
+    dialog.activateWindow();
+    QTest::qWaitForWindowActive(&dialog);
+    dialog.typeEdit(0)->setFocus(Qt::TabFocusReason);
+    dialog.typeEdit(0)->setText(QStringLiteral("0.0001"));
+    shown.clear();
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);  // leaving the field (TAB)
+    ASSERT_EQ(shown.size(), 1u);
+    EXPECT_EQ(shown[0].kind, messages::Kind::Warning);
+    EXPECT_EQ(shown[0].text, QStringLiteral("El valor de 'Uniforme' debe estar entre 0.001  y 1000.000 ."));
+    EXPECT_EQ(dialog.typeEdit(0)->text(), QStringLiteral("1.000")) << "back to the last valid value";
+    EXPECT_EQ(dialog.focusWidget(), dialog.typeEdit(1)) << "the focus goes on to the next field";
+    // A valid value is kept and written with three decimals.
+    dialog.typeEdit(1)->setText(QStringLiteral("2.5"));
+    shown.clear();
+    QTest::keyClick(dialog.focusWidget(), Qt::Key_Tab);
+    EXPECT_TRUE(shown.empty());
+    EXPECT_EQ(dialog.typeEdit(1)->text(), QStringLiteral("2.500"));
+    // The same for the table cells: back to the last valid value.
+    dialog.table()->item(0, 1)->setText(QStringLiteral("5000"));
+    ASSERT_EQ(shown.size(), 1u);
+    EXPECT_EQ(shown[0].text, QStringLiteral("El valor de 'Escala' debe estar entre 0.001  y 1000.000 ."));  // measured (vh_o3)
+    EXPECT_EQ(dialog.table()->item(0, 1)->text(), QStringLiteral("1.000"));
+    dialog.table()->item(0, 1)->setText(QStringLiteral("3"));
+    EXPECT_EQ(dialog.table()->item(0, 1)->text(), QStringLiteral("3.000"));
+    // The size of the fixed mode has its own range (0.010 .. 100.000).
+    LoadScalesDialog fixed(project.loadCases, project.nodalLoads.scales);
+    fixed.show();
+    fixed.activateWindow();
+    QTest::qWaitForWindowActive(&fixed);
+    fixed.sizeEdit()->setFocus();
+    fixed.sizeEdit()->setText(QStringLiteral("20000"));
+    shown.clear();
+    fixed.acceptButton()->setFocus();  // leaving the field towards Aceptar
+    ASSERT_EQ(shown.size(), 1u);
+    EXPECT_EQ(shown[0].text, QStringLiteral("El valor de 'Tamaño máximo para representación' debe estar entre 0.010 y 100.000."));
+    EXPECT_EQ(fixed.sizeEdit()->text(), QStringLiteral("0.500"));
+}
+
+// Visual comparison aid: CC_SNAPSHOT_DIR=<dir> writes PNGs (offscreen) to compare with docs/screenshots/vh_*.png.
+struct Nature {
+    LoadNature nature;
+    const char* reference;
+};
+
+TEST_F(NodalLoadToolTest, SnapshotsForVisualComparison) {
+    const QByteArray dir = qgetenv("CC_SNAPSHOT_DIR");
+    if (dir.isEmpty()) GTEST_SKIP() << "CC_SNAPSHOT_DIR not set";
+    const QString base = QString::fromLocal8Bit(dir);
+    const int cm1 = addCase();
+    const Nature natures[3] = {{LoadNature::Temperature, "T 1"}, {LoadNature::Shrinkage, "R 1"}, {LoadNature::Wind, "V 1"}};
+    int ids[3] = {};
+    for (int i = 0; i < 3; ++i) {
+        NewLoadCase c;
+        c.nature = natures[i].nature;
+        c.reference = natures[i].reference;
+        ASSERT_EQ(createLoadCase(project, undo, c, &ids[i]), LoadCaseError::None);
+    }
+    addLoad(1, 5.0, LoadDirection::MinusZ, 0);
+    addLoad(2, 5.0, LoadDirection::MinusZ, cm1);
+    addLoad(3, 5.0, LoadDirection::MinusZ, ids[0]);
+    addLoad(4, 5.0, LoadDirection::MinusZ, ids[2]);
+    tool->setView(0, true);
+    view->grab().save(base + "/vh_all.png");
+    ViewedCaseDialog viewed(project.loadCases, cm1, true);
+    viewed.grab().save(base + "/vh_dialog_view.png");
+    LoadScales scales = project.nodalLoads.scales;
+    scales.mode = LoadScaleMode::Proportional;
+    LoadScalesDialog proportional(project.loadCases, scales);
+    proportional.grab().save(base + "/vh_dialog_scales_prop.png");
+    LoadScalesDialog fixed(project.loadCases, project.nodalLoads.scales);
+    fixed.grab().save(base + "/vh_dialog_scales_fixed.png");
 }
 
 int main(int argc, char** argv) {

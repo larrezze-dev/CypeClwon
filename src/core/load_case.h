@@ -92,6 +92,10 @@ int loadCaseCreationIndex(const LoadCaseSet& set, int loadCaseId);
 /// loadCaseColour(loadCaseCreationIndex(set, id)).
 unsigned loadCaseColourOf(const LoadCaseSet& set, int loadCaseId);
 
+/// Order of the lists of hypotheses of the GUI (combos, «Escalas» table; measured, visualizacion_hipotesis_escalas 3): Peso propio first, then by
+/// nature (CM, Q, T, R, V, S, N, H, A = enum order) and, within a nature, by creation (number).
+std::vector<const LoadCase*> loadCasesInListOrder(const LoadCaseSet& set);
+
 /// Prefix of the proposed reference: "CM", "Q", "T", "R", "V", "S", "N", "H", "A"; empty for SelfWeight (not seen in the original).
 std::string loadNaturePrefix(LoadNature nature);
 /// True when the nature takes additional cases (every one but SelfWeight).

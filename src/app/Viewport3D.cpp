@@ -30,8 +30,6 @@ constexpr double kStubPixels = 12.0;  // half-length of the short guide stubs on
 const QColor kNodeBlue(QStringLiteral("#0066CC"));
 const QColor kHighlight(QStringLiteral("#DA8735"));
 const QColor kLoadYellow(QStringLiteral("#FFFF00"));      // measured: pure yellow lines and values of the nodal loads
-const QColor kShellCaseCyan(0, 191, 255);   // measured (cl4_f1): shell loads of a dead-load hypothesis (CM)
-const QColor kShellCaseGreen(0, 255, 0);    // measured (cl4_d1, cl4_k6): shell loads of a wind hypothesis (V)
 const QColor kPrescribedGreen(QStringLiteral("#008000"));  // measured (0,128,0): support symbol of a node with prescribed displacements
 
 // Eye-space position of a world point (the camera looks along -z).
@@ -1146,6 +1144,22 @@ void Viewport3D::setLoadViewCase(std::optional<int> loadCaseId) {
     update();
 }
 
+void Viewport3D::setLoadCases(const core::LoadCaseSet* cases) {
+    m_loadCases = cases;
+    update();
+}
+
+void Viewport3D::setFillLoads(bool on) {
+    if (m_fillLoads == on) return;
+    m_fillLoads = on;
+    update();
+}
+
+QColor Viewport3D::loadCaseColour(int loadCaseId) const {
+    const core::LoadCaseSet* set = m_loadCases ? m_loadCases : m_shellLoadCases;
+    return set ? QColor::fromRgb(core::loadCaseColourOf(*set, loadCaseId)) : kLoadYellow;
+}
+
 void Viewport3D::setLoadSelectionHighlight(bool on) {
     m_loadHighlight = on;
     update();
@@ -1194,7 +1208,7 @@ void Viewport3D::drawNodalLoads(QPainter& painter) const {
         QPointF start, tip;
         if (!nodalLoadSegment(load, start, tip)) continue;
         const bool selected = m_loadHighlight && m_selectionMode && m_selection.contains({core::ElementKind::Node, load.nodeId});
-        const QColor colour = selected ? kHighlight : kLoadYellow;
+        const QColor colour = selected ? kHighlight : loadCaseColour(load.loadCaseId);
         painter.setPen(QPen(colour, 1));
         painter.drawLine(start, tip);
         const double lengthPx = std::max(1e-9, std::hypot(tip.x() - start.x(), tip.y() - start.y()));
@@ -1249,14 +1263,13 @@ void Viewport3D::drawBarLoads(QPainter& painter) const {
     QFont font = painter.font();
     font.setPixelSize(std::clamp(static_cast<int>(std::lround(12.0 * m_textSizePercent / 100.0)), 6, 60));
     painter.setFont(font);
-    const QFontMetricsF metrics(font);
     const auto project = [&](const core::Point3& p, QPointF& out) {
         double x, y;
         if (!map.toScreen(p, x, y)) return false;
         out = QPointF(x, y);
         return true;
     };
-    const auto drawText = [&](const QPointF& at, double angleDeg, const QString& text, const QColor& colour) {
+    const auto drawText = [&](const QPointF& at, double angleDeg, const QString& text, const QColor& colour, const QFontMetricsF& metrics) {
         double angle = angleDeg;  // the text stays upright: it reads from left to right or from the bottom to the top
         if (angle > 90.0 + 1e-6) angle -= 180.0;
         if (angle < -90.0 + 1e-6) angle += 180.0;
@@ -1272,9 +1285,12 @@ void Viewport3D::drawBarLoads(QPainter& painter) const {
         if (!frame || !visibleAfterClipping({frame->origin.x, frame->origin.y, frame->origin.z})) return;
         const core::BarLoadDrawing drawing = core::barLoadDrawing(data, *frame, useScales);
         if (!drawing.valid) return;
-        const QColor line = selected ? kHighlight : kLoadYellow;
-        const QColor fill = selected ? QColor(218, 135, 53, 70) : QColor(255, 255, 150, 110);  // measured: pale yellow fill, yellow outline
-        painter.setBrush(fill);
+        const QColor caseColour = loadCaseColour(data.loadCaseId);
+        const QColor line = selected ? kHighlight : caseColour;
+        // Measured: pale yellow fill and yellow outline for the self weight; the other hypotheses fill with their own colour.
+        const QColor fill = selected ? QColor(218, 135, 53, 70)
+                                     : (caseColour == kLoadYellow ? QColor(255, 255, 150, 110) : QColor(caseColour.red(), caseColour.green(), caseColour.blue(), 50));
+        painter.setBrush(m_fillLoads ? QBrush(fill) : QBrush(Qt::NoBrush));  // «Dibujar las cargas con relleno» off: outline only
         painter.setPen(QPen(line, selected ? 2.5 : 1.0));
         double angle = 0.0;
         if (drawing.type == core::BarLoadType::Point) {
@@ -1314,10 +1330,25 @@ void Viewport3D::drawBarLoads(QPainter& painter) const {
                 angle = std::atan2(outline[1].y() - outline[0].y(), outline[1].x() - outline[0].x()) * 180.0 / std::numbers::pi;
         }
         if (!labels) return;
+        // Measured (visualizacion_hipotesis_escalas 5, vh_80c): the height of the text grows with the length of the load on screen (the height of
+        // the band, the length of the arrow); a moment (no such length) keeps the base size.
+        double refPx = 0.0;
+        if (drawing.type == core::BarLoadType::Point) {
+            QPointF a, b;
+            if (project(drawing.arrow.first, a) && project(drawing.arrow.second, b)) refPx = std::hypot(b.x() - a.x(), b.y() - a.y());
+        } else if (!drawing.ticks.empty()) {
+            QPointF a, b;
+            if (project(drawing.ticks.front().first, a) && project(drawing.ticks.front().second, b)) refPx = std::hypot(b.x() - a.x(), b.y() - a.y());
+        }
+        QFont labelFont = font;
+        if (refPx > 1.0) labelFont.setPixelSize(std::clamp(static_cast<int>(std::lround(0.6 * refPx * m_textSizePercent / 100.0)), 6, 400));
+        painter.setFont(labelFont);
+        const QFontMetricsF labelMetrics(labelFont);
         for (const core::BarLoadLabel& label : drawing.labels) {
             QPointF at;
-            if (project(label.anchor, at)) drawText(at, angle, QString::fromStdString(label.text), line);
+            if (project(label.anchor, at)) drawText(at, angle, QString::fromStdString(label.text), line, labelMetrics);
         }
+        painter.setFont(font);
     };
     for (const core::BarLoad& load : m_barLoads->items) {
         if (m_loadViewCase && load.loadCaseId != *m_loadViewCase) continue;
@@ -1358,7 +1389,6 @@ void Viewport3D::drawShellLoads(QPainter& painter) const {
     QFont font = painter.font();
     font.setPixelSize(std::clamp(static_cast<int>(std::lround(11.0 * m_textSizePercent / 100.0)), 6, 60));
     painter.setFont(font);
-    const QFontMetricsF metrics(font);
     const auto project = [&](const core::Point3& p, QPointF& out) {
         double x, y;
         if (!map.toScreen(p, x, y)) return false;
@@ -1396,12 +1426,7 @@ void Viewport3D::drawShellLoads(QPainter& painter) const {
             // Measured: pale yellow translucent fill with yellow edges and vertical lines; orange (thicker) when selected.
             // Measured (cargas_laminas.md 13.2): the colour belongs to the hypothesis (self weight yellow, CM cyan, V green); the natures that
             // were not measured keep the yellow.
-            QColor caseColour = kLoadYellow;
-            if (!isSelfWeight[i] && m_shellLoadCases)
-                if (const core::LoadCase* hypothesis = core::findLoadCase(*m_shellLoadCases, datas[i].loadCaseId)) {
-                    if (hypothesis->nature == core::LoadNature::DeadLoad) caseColour = kShellCaseCyan;
-                    else if (hypothesis->nature == core::LoadNature::Wind) caseColour = kShellCaseGreen;
-                }
+            const QColor caseColour = loadCaseColour(datas[i].loadCaseId);  // period-8 palette by creation index (self weight = index 0, yellow)
             const bool yellow = caseColour == kLoadYellow;
             const QColor line = selected ? kHighlight : caseColour;
             const QColor fill = selected ? QColor(218, 135, 53, 70) : (yellow ? QColor(255, 255, 150, 90) : QColor(caseColour.red(), caseColour.green(), caseColour.blue(), 50));
@@ -1409,7 +1434,7 @@ void Viewport3D::drawShellLoads(QPainter& painter) const {
             bool visible = true;
             for (std::size_t k = 0; k < drawing.base.size() && visible; ++k) visible = project(drawing.base[k], base[k]) && project(drawing.top[k], top[k]);
             if (!visible) continue;
-            painter.setBrush(fill);
+            painter.setBrush(m_fillLoads ? QBrush(fill) : QBrush(Qt::NoBrush));  // «Dibujar las cargas con relleno» off: edges only
             painter.setPen(QPen(line, selected ? 2.5 : 1.0));
             const std::size_t n = base.size();
             for (std::size_t k = 0; k < n; ++k) {
@@ -1433,11 +1458,17 @@ void Viewport3D::drawShellLoads(QPainter& painter) const {
                 if (angle > 90.0 + 1e-6) angle -= 180.0;
                 if (angle < -90.0 + 1e-6) angle += 180.0;
                 const QString text = QString::fromStdString(drawing.labels[k].text);
+                // The text height follows the length of the prism on screen (same rule as the nodal and bar loads, vh_80c).
+                const double edgePx = std::hypot(top[k].x() - base[k].x(), top[k].y() - base[k].y());
+                QFont labelFont = font;
+                if (edgePx > 1.0) labelFont.setPixelSize(std::clamp(static_cast<int>(std::lround(0.6 * edgePx * m_textSizePercent / 100.0)), 6, 400));
+                const QFontMetricsF labelMetrics(labelFont);
                 painter.save();
                 painter.setPen(line);
+                painter.setFont(labelFont);
                 painter.translate(at);
                 painter.rotate(angle);
-                painter.drawText(QPointF(-metrics.horizontalAdvance(text) / 2.0, -3.0), text);
+                painter.drawText(QPointF(-labelMetrics.horizontalAdvance(text) / 2.0, -3.0), text);
                 painter.restore();
             }
         }

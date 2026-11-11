@@ -153,6 +153,14 @@ public:
     void setLoadsVisible(bool on);
     bool loadsVisible() const { return m_loadsVisible; }
     void setLoadViewCase(std::optional<int> loadCaseId);
+    /// Hypotheses of the work (not owned): the colour of every load comes from its hypothesis (loadCaseColourOf, period 8). Without it the loads
+    /// are yellow (the shell loads keep their own pointer for compatibility).
+    void setLoadCases(const core::LoadCaseSet* cases);
+    /// «Dibujar las cargas con relleno»: false removes the translucent fill of the bands, prisms and arcs (outline, ticks and labels stay).
+    void setFillLoads(bool on);
+    bool fillLoads() const { return m_fillLoads; }
+    /// Colour (0xRRGGBB opaque) of the loads of a hypothesis as drawn now.
+    QColor loadCaseColour(int loadCaseId) const;
     const std::optional<int>& loadViewCase() const { return m_loadViewCase; }
     void setLoadSelectionHighlight(bool on);
     const core::NodalLoads* nodalLoads() const { return m_nodalLoads; }
@@ -549,6 +557,8 @@ private:
     TooltipPosition m_tooltipPosition = TooltipPosition::TopRightCorner;
     bool m_showElementInfo = true;
     bool m_fillShells = false;
+    bool m_fillLoads = true;
+    const core::LoadCaseSet* m_loadCases = nullptr;
     double m_nodeSizeCm = 15.0;
     double m_textSizePercent = 100.0;
     bool m_cursorInside = false;

@@ -103,6 +103,18 @@ std::string validateLoadCases(const LoadCaseSet& set) {
     return {};
 }
 
+std::vector<const LoadCase*> loadCasesInListOrder(const LoadCaseSet& set) {
+    std::vector<const LoadCase*> out;
+    out.reserve(set.cases.size());
+    for (const LoadCase& c : set.cases) out.push_back(&c);
+    std::stable_sort(out.begin(), out.end(), [](const LoadCase* a, const LoadCase* b) {
+        if ((a->id == 0) != (b->id == 0)) return a->id == 0;  // Peso propio first
+        if (a->nature != b->nature) return static_cast<int>(a->nature) < static_cast<int>(b->nature);
+        return a->id < b->id;
+    });
+    return out;
+}
+
 unsigned loadCaseColour(int creationIndex) {
     static const unsigned palette[kLoadCaseColourPeriod] = {0xFFFF00, 0x00BFFF, 0x00FF00, 0xFF00FF, 0xCC6600, 0x0000FF, 0x800080, 0x808080};
     const int i = creationIndex < 0 ? 0 : creationIndex;
