@@ -64,6 +64,9 @@ inline constexpr double kMaxTypeScale = 1000.0;
 /// -> 2 m; case 2.000 or "Puntual" 2.000 doubles it). Fixed mode: every load is `fixedSizeM` long whatever its value (0.5 m -> 50 px, 1.0 m -> 100 px
 /// at 100 px/m).
 inline constexpr double kLoadMetresPerKn = 0.1;
+/// Proportional mode, BAR temperatures, measured (10 degC, scales 1.000 -> band 10.1 m; Temperatura 0.1 -> 1 m; hypothesis x3 -> x3): 1.0 m per degC, i.e.
+/// ten times kLoadMetresPerKn, times the scale of the case and of "Temperatura". Shell temperatures are not measured.
+inline constexpr double kBarTemperatureMetresPerDegree = 1.0;
 
 struct LoadScales {
     LoadScaleMode mode = LoadScaleMode::Fixed;     ///< default: "Proporcionales a un valor fijo"

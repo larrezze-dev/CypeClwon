@@ -721,7 +721,10 @@ TEST(BarLoad, DrawingTemperatureHasConstantWidthAndT1T2Label) {
     LoadScales prop;
     prop.mode = LoadScaleMode::Proportional;
     g = barLoadDrawing(data(BarLoadType::VariableTemperature, 30, -30), frameAlongX(), prop);
-    EXPECT_NEAR(g.outline[2].z, 3.0, 1e-12);    // 0.1 m per degree, NOT MEASURED
+    EXPECT_NEAR(g.outline[2].z, 30.0, 1e-12);   // measured: 1.0 m per degree (10 degC x 1.000 x 1.000 -> 10.1 m in the original)
+    prop.perType[static_cast<std::size_t>(LoadScaleType::Temperature)] = 0.1;
+    prop.perCase[0] = 3.0;
+    EXPECT_NEAR(barLoadDrawing(data(BarLoadType::UniformTemperature, 10), frameAlongX(), prop).outline[2].z, 3.0, 1e-12);   // 10 x 1.0 x 0.1 x 3 (measured linear in both scales)
 }
 
 TEST(BarLoad, DrawingInGlobalAxesIgnoresTheBarOrientation) {

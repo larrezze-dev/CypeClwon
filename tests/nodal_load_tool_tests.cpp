@@ -732,7 +732,11 @@ TEST_F(NodalLoadToolTest, ComboListsPesoPropioThenByNatureAndNumber) {
     EXPECT_EQ(dialog.combo()->itemText(3), QStringLiteral("V 1"));
     LoadScalesDialog scales(project.loadCases, project.nodalLoads.scales);
     ASSERT_EQ(scales.table()->rowCount(), 4);
-    EXPECT_EQ(scales.table()->item(2, 0)->text(), QStringLiteral("T 1")) << "the table follows the order of the combo";
+    // measured (2026-11-11): the table of «Escalas» lists the hypotheses in CREATION order (here V 1, CM 1, T 1), unlike the combo
+    EXPECT_EQ(scales.table()->item(0, 0)->text(), QStringLiteral("Peso propio"));
+    EXPECT_EQ(scales.table()->item(1, 0)->text(), QStringLiteral("V 1"));
+    EXPECT_EQ(scales.table()->item(2, 0)->text(), QStringLiteral("CM 1"));
+    EXPECT_EQ(scales.table()->item(3, 0)->text(), QStringLiteral("T 1"));
 }
 
 TEST_F(NodalLoadToolTest, NodalLoadsTakeTheColourOfTheirHypothesis) {

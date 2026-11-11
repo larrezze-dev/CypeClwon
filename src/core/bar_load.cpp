@@ -433,6 +433,10 @@ LoadScaleType barLoadScaleType(BarLoadType type) {
 }
 
 double barLoadDrawSizeM(const LoadScales& scales, const BarLoadData& d, double value, double maxValue) {
+    if (isTemperatureLoad(d.type)) {
+        const LoadDrawSize r = resolveLoadDrawSize(scales, LoadScaleType::Temperature, d.loadCaseId);
+        if (!r.fixed) return kBarTemperatureMetresPerDegree * std::fabs(value) * r.factor;
+    }
     return loadDrawSizeM(scales, barLoadScaleType(d.type), d.loadCaseId, value, maxValue);
 }
 

@@ -46,9 +46,23 @@ TEST(LoadCase, ProposedReferenceFollowsCounterAndIsNotReused) {
     EXPECT_EQ(proposedLoadReference(p.loadCases, LoadNature::DeadLoad), "CM 2");
     EXPECT_EQ(proposedLoadReference(p.loadCases, LoadNature::Wind), "V 1");
     ASSERT_EQ(deleteLoadCase(p, stack, id), LoadCaseError::None);
-    EXPECT_EQ(proposedLoadReference(p.loadCases, LoadNature::DeadLoad), "CM 2");  // provisional: no reuse
-    ASSERT_EQ(createLoadCase(p, stack, make(LoadNature::DeadLoad, "CM 2"), &id), LoadCaseError::None);
+    EXPECT_EQ(proposedLoadReference(p.loadCases, LoadNature::DeadLoad), "CM 1");  // measured: the lowest free number is proposed again
+    ASSERT_EQ(createLoadCase(p, stack, make(LoadNature::DeadLoad, "CM 1"), &id), LoadCaseError::None);
     EXPECT_EQ(id, 2);  // ids are stable and not reused
+    int second = 0;
+    ASSERT_EQ(createLoadCase(p, stack, make(LoadNature::DeadLoad, "CM 2"), &second), LoadCaseError::None);
+    ASSERT_EQ(deleteLoadCase(p, stack, id), LoadCaseError::None);
+    EXPECT_EQ(proposedLoadReference(p.loadCases, LoadNature::DeadLoad), "CM 1");  // measured: CM 2 left after deleting CM 1 -> "CM 1"
+}
+
+TEST(LoadCase, ListOrderPutsAccidentalBeforeEarthPressure) {
+    Project p;
+    UndoStack stack;
+    for (LoadNature n : {LoadNature::EarthPressure, LoadNature::Accidental, LoadNature::Snow, LoadNature::Seismic, LoadNature::Temperature})
+        ASSERT_EQ(createLoadCase(p, stack, make(n, proposedLoadReference(p.loadCases, n)), nullptr), LoadCaseError::None);
+    std::string order;
+    for (const LoadCase* c : loadCasesInListOrder(p.loadCases)) order += (c->id == 0 ? std::string("PP") : c->reference) + ";";
+    EXPECT_EQ(order, "PP;T 1;S 1;N 1;A 1;H 1;") << "measured: Peso propio first, then T, S, N, A, H";
 }
 
 TEST(LoadCase, BlankReferenceIsRefused) {
@@ -227,7 +241,7 @@ TEST(LoadCase, JsonRoundTrip) {
     Project q;
     project_json::loadSection(q, "load_cases", text);
     EXPECT_EQ(q.loadCases, p.loadCases);
-    EXPECT_EQ(proposedLoadReference(q.loadCases, LoadNature::Snow), "N 2");
+    EXPECT_EQ(proposedLoadReference(q.loadCases, LoadNature::Snow), "N 1");  // measured: the lowest free number (N 1 was deleted)
 }
 
 TEST(LoadCase, OldFilesWithoutSectionKeepOnlySelfWeight) {

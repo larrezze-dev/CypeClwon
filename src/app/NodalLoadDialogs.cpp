@@ -448,7 +448,8 @@ LoadScalesDialog::LoadScalesDialog(const LoadCaseSet& cases, const LoadScales& i
     auto* proportionalColumn = new QVBoxLayout(m_proportionalBlock);
     proportionalColumn->setContentsMargins(0, 0, 0, 0);
     proportionalColumn->setSpacing(4);
-    const std::vector<const LoadCase*> ordered = loadCasesInListOrder(cases);  // same order as the combo of «Hipótesis vista», no sorting
+    std::vector<const LoadCase*> ordered;  // measured: creation order (Peso propio, then CM 1, R 1, S 1, T 1 when T 1 was recreated), NOT the order of the combos
+    for (const LoadCase& c : cases.cases) ordered.push_back(&c);
     m_table = new QTableWidget(static_cast<int>(ordered.size()), 2, m_proportionalBlock);
     m_table->setObjectName(QStringLiteral("scalesTable"));
     m_table->setHorizontalHeaderLabels({tr("Hipótesis"), tr("Escala")});

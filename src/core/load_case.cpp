@@ -48,9 +48,14 @@ std::string loadNaturePrefix(LoadNature nature) {
 bool loadNatureAcceptsAdditional(LoadNature nature) { return nature != LoadNature::SelfWeight; }
 
 std::string proposedLoadReference(const LoadCaseSet& set, LoadNature nature) {
-    const int index = static_cast<int>(nature);
-    const int counter = (index >= 0 && index < kLoadNatureCount) ? set.created[static_cast<std::size_t>(index)] : 0;
-    return loadNaturePrefix(nature) + " " + std::to_string(counter + 1);
+    // Measured: the proposal is the lowest number whose reference is free (after deleting the only R 1 the next proposal is "R 1" again; with
+    // CM 2 left after deleting CM 1 the proposal is "CM 1").
+    for (int n = 1;; ++n) {
+        const std::string candidate = loadNaturePrefix(nature) + " " + std::to_string(n);
+        const bool used = std::any_of(set.cases.begin(), set.cases.end(),
+                                      [&](const LoadCase& c) { return c.id != 0 && c.nature == nature && c.reference == candidate; });
+        if (!used) return candidate;
+    }
 }
 
 const LoadCase* findLoadCase(const LoadCaseSet& set, int id) {
@@ -107,9 +112,15 @@ std::vector<const LoadCase*> loadCasesInListOrder(const LoadCaseSet& set) {
     std::vector<const LoadCase*> out;
     out.reserve(set.cases.size());
     for (const LoadCase& c : set.cases) out.push_back(&c);
-    std::stable_sort(out.begin(), out.end(), [](const LoadCase* a, const LoadCase* b) {
+    // Measured: after Sismo and Nieve the list shows Accidental BEFORE Empujes del terreno (S 1, N 1, A 1, H 1), whatever the creation order.
+    const auto natureRank = [](LoadNature n) {
+        if (n == LoadNature::Accidental) return static_cast<int>(LoadNature::EarthPressure);
+        if (n == LoadNature::EarthPressure) return static_cast<int>(LoadNature::Accidental);
+        return static_cast<int>(n);
+    };
+    std::stable_sort(out.begin(), out.end(), [&](const LoadCase* a, const LoadCase* b) {
         if ((a->id == 0) != (b->id == 0)) return a->id == 0;  // Peso propio first
-        if (a->nature != b->nature) return static_cast<int>(a->nature) < static_cast<int>(b->nature);
+        if (a->nature != b->nature) return natureRank(a->nature) < natureRank(b->nature);
         return a->id < b->id;
     });
     return out;
