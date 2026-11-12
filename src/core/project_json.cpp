@@ -1148,6 +1148,53 @@ const std::vector<Section>& sections() {
                     p.surfaceLoads = std::move(loaded);
                 },
                 [](const Project& p) { return validateSurfaceLoads(p.surfaceLoads, p.loadCases).empty(); }},
+        Section{"nonlinear_combinations", "Combinaciones no lineales",
+                [](const Project& p) {
+                    // Versioned. Factors of load cases that no longer exist are not saved.
+                    const NonlinearCombinations& d = p.nonlinearCombinations;
+                    json items = json::array();
+                    for (const NonlinearCombination& c : d.items) {
+                        json factors = json::array();
+                        for (const auto& [id, coef] : c.factors)
+                            if (findLoadCase(p.loadCases, id)) factors.push_back({{"case", id}, {"coefficient", coef}});
+                        items.push_back({{"reference", c.reference}, {"acts", c.acts}, {"loadSteps", c.loadSteps}, {"factors", factors},
+                                         {"kinds", c.kinds}});
+                    }
+                    return json{{"version", 1}, {"items", items}, {"generateKinds", d.generateKinds}, {"updateAfterLinear", d.updateAfterLinear}}
+                        .dump(2);
+                },
+                [](Project& p, const std::string& text) {
+                    const json j = json::parse(text);
+                    NonlinearCombinations loaded;
+                    const auto kinds = [](const json& e) {
+                        NonlinearKinds k{};
+                        const std::vector<bool> v = e.get<std::vector<bool>>();
+                        for (std::size_t i = 0; i < v.size() && i < k.size(); ++i) k[i] = v[i];
+                        return k;
+                    };
+                    if (j.contains("items"))
+                        for (const json& e : j.at("items")) {
+                            NonlinearCombination c;
+                            c.reference = e.value("reference", std::string());
+                            c.acts = e.value("acts", true);
+                            c.loadSteps = std::max(1, e.value("loadSteps", kDefaultLoadSteps));
+                            if (e.contains("factors"))
+                                for (const json& f : e.at("factors")) {
+                                    const double coef = f.value("coefficient", 0.0);
+                                    if (coef != 0.0) c.factors[f.value("case", 0)] = coef;
+                                }
+                            if (e.contains("kinds")) c.kinds = kinds(e.at("kinds"));
+                            loaded.items.push_back(std::move(c));
+                        }
+                    if (j.contains("generateKinds")) loaded.generateKinds = kinds(j.at("generateKinds"));
+                    loaded.updateAfterLinear = j.value("updateAfterLinear", true);
+                    p.nonlinearCombinations = std::move(loaded);
+                },
+                [](const Project& p) {
+                    for (const NonlinearCombination& c : p.nonlinearCombinations.items)
+                        if (c.loadSteps < 1) return false;
+                    return true;
+                }},
     };
     return all;
 }

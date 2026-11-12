@@ -51,4 +51,9 @@ std::map<int, ShellForces> smoothedShellForces(const FrameModel& model, const Li
 std::optional<ShellForces> shellForcesAt(const FrameModel& model, const LinearResult& result, std::size_t caseIndex, int shellId, double x,
                                          double y, bool smoothed = true);
 
+/// Displacements (global Dx..Gz) at a local 2D point of a shell: quadratic interpolation of the six nodes of the triangle that contains the point
+/// (deformed shape of the shells; the interpolation is the clone's [N]). nullopt outside the shell or without results.
+std::optional<Dof6> shellDisplacementAt(const FrameModel& model, const LinearResult& result, std::size_t caseIndex, int shellId, double x,
+                                        double y);
+
 }  // namespace cc::fem

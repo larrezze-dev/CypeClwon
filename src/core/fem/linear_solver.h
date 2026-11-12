@@ -92,4 +92,18 @@ Dof6 removeSignConvention(const Dof6& convention);
 /// same bar and case (global loads are rotated with the bar axes). Thermal loads do not change the statics. For diagrams (T-P8-06).
 Dof6 sectionForcesAt(const FemBar& bar, double length, const BarEndForces& forces, std::span<const FemBarLoad> barLoads, double x);
 
+/// Section forces at `x` metres from nodeI inside the piece [x0, x1] of a bar of length `barLength` (a whole bar: 0, L, last = true), from the
+/// section forces at x1 (convention of applySignConvention) and the loads of the bar: loads at exactly x1 belong to the next piece unless `last`.
+/// fem/results.h uses it for bars split along shell edges (LoadCaseResult::barSegments).
+Dof6 pieceForcesAt(const FemBar& bar, double barLength, double x0, double x1, bool last, const Dof6& endForces,
+                   std::span<const FemBarLoad> barLoads, double x);
+
+/// Deformed shape: global displacements (Dx, Dy, Dz, Gx, Gy, Gz; m, rad) at `x` metres from nodeI inside the piece [x0, x1] of a bar. EXACT for
+/// the element of the solver (not a cubic interpolation): the displacement of the piece at x0 (element side, so a released / partially fixed
+/// end rotates with the bar) plus the integral of the strains of the section forces (N / EA, V / G Av when shear deformation is considered,
+/// T / G J, M / E I) and of the temperature loads, by the unit load method on the piece clamped at x0. At x1 it closes on the displacement of the
+/// other end.
+Dof6 pieceDisplacementAt(const FemBar& bar, double barLength, double x0, double x1, bool last, const Dof6& originDisplacement,
+                         const Dof6& endForces, std::span<const FemBarLoad> barLoads, double x, const SolverOptions& options = {});
+
 }  // namespace cc::fem

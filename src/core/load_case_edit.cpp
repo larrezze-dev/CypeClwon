@@ -95,14 +95,19 @@ LoadCaseDependents loadCaseDependents(const Project& project, int id) {
                 out.prescribedNodes.push_back(nodeId);
                 break;
             }
-    // TODO(T-P7-06): non-linear combinations and buckling combinations do not exist yet.
+    // Non-linear combinations with a non-zero factor for the case (index in the list); buckling combinations do not exist yet (T-P8-09).
+    for (std::size_t i = 0; i < project.nonlinearCombinations.items.size(); ++i) {
+        const auto& f = project.nonlinearCombinations.items[i].factors;
+        if (const auto it = f.find(id); it != f.end() && it->second != 0.0) out.nonlinearCombinations.push_back(static_cast<int>(i));
+    }
     return out;
 }
 
 DeleteLoadCaseCommand::DeleteLoadCaseCommand(Project& project, LoadCaseSet casesAfter, int loadCaseId)
     : m_project(project), m_caseId(loadCaseId), m_casesBefore(project.loadCases), m_casesAfter(std::move(casesAfter)),
       m_loadsBefore(project.nodalLoads), m_loadsAfter(project.nodalLoads), m_barLoadsBefore(project.barLoads), m_barLoadsAfter(project.barLoads), m_shellLoadsBefore(project.shellLoads), m_shellLoadsAfter(project.shellLoads), m_panelsBefore(project.panels), m_panelsAfter(project.panels), m_surfaceLoadsBefore(project.surfaceLoads), m_surfaceLoadsAfter(project.surfaceLoads), m_supportsBefore(project.nodeSupports),
-      m_supportsAfter(project.nodeSupports) {
+      m_supportsAfter(project.nodeSupports), m_nonlinearBefore(project.nonlinearCombinations), m_nonlinearAfter(project.nonlinearCombinations) {
+    applyNonlinearCombinationsCaseDeleted(m_nonlinearAfter, loadCaseId);
     applyNodalLoadsCaseDeleted(m_loadsAfter, loadCaseId);
     applyBarLoadsCaseDeleted(m_barLoadsAfter, loadCaseId);
     applyShellLoadsCaseDeleted(m_shellLoadsAfter, loadCaseId);
@@ -123,6 +128,7 @@ void DeleteLoadCaseCommand::redo() {
     restorePanels(m_project.panels, m_panelsAfter);
     restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsAfter);
     m_project.nodeSupports = m_supportsAfter;
+    m_project.nonlinearCombinations = m_nonlinearAfter;
 }
 
 void DeleteLoadCaseCommand::undo() {
@@ -135,6 +141,7 @@ void DeleteLoadCaseCommand::undo() {
     restorePanels(m_project.panels, m_panelsBefore);
     restoreSurfaceLoads(m_project.surfaceLoads, m_surfaceLoadsBefore);
     m_project.nodeSupports = m_supportsBefore;
+    m_project.nonlinearCombinations = m_nonlinearBefore;
 }
 
 LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id) {
@@ -144,7 +151,7 @@ LoadCaseError deleteLoadCase(Project& project, UndoStack& stack, int id) {
     if (it == after.cases.end()) return LoadCaseError::UnknownCase;
     if (after.viewedCaseId == id) after.viewedCaseId = 0;  // the viewed case falls back to Peso propio (FUN_1801941f0)
     after.cases.erase(it);  // the per-nature counter is kept: the numbers are not reused (PROVISIONAL)
-    // Nodal, bar, shell, panel and surface loads and prescribed sets of the case go with it (same command); TODO(T-P7-06): combinations.
+    // Nodal, bar, shell, panel and surface loads and prescribed sets of the case go with it (same command); non-linear combinations in which it takes part too (#380751).
     stack.push(std::make_unique<DeleteLoadCaseCommand>(project, std::move(after), id));
     return LoadCaseError::None;
 }

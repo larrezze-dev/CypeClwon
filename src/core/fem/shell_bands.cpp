@@ -304,6 +304,24 @@ std::optional<ShellForces> shellForcesAt(const FrameModel& model, const LinearRe
     return fieldAt(*v, P2{x, y}, smoothed);
 }
 
+std::optional<Dof6> shellDisplacementAt(const FrameModel& model, const LinearResult& result, std::size_t caseIndex, int shellId, double x,
+                                        double y) {
+    const std::optional<ShellView> v = viewOf(model, result, caseIndex, shellId);
+    if (!v || v->lc->meshDisplacements.size() != result.mesh.positions.size()) return std::nullopt;
+    int e = -1;
+    double r = 0, s = 0;
+    if (!locate(*v, P2{x, y}, e, r, s)) return std::nullopt;
+    // Quadratic interpolation of the six nodes of the triangle (corners, then mid-sides 01, 12, 20) [N: display interpolation of the clone].
+    const double l0 = 1.0 - r - s, l1 = r, l2 = s;
+    const double n[6] = {l0 * (2 * l0 - 1), l1 * (2 * l1 - 1), l2 * (2 * l2 - 1), 4 * l0 * l1, 4 * l1 * l2, 4 * l2 * l0};
+    Dof6 out{};
+    for (int k = 0; k < 6; ++k) {
+        const Dof6& d = v->lc->meshDisplacements[result.mesh.triangles[e].nodes[k]];
+        for (int q = 0; q < 6; ++q) out[q] += n[k] * d[q];
+    }
+    return out;
+}
+
 std::optional<BandPoint> bandForcesAt(const FrameModel& model, const LinearResult& result, std::size_t caseIndex, const BandSpec& band, double s,
                                       BandMethod method) {
     const std::optional<ShellView> v = viewOf(model, result, caseIndex, band.shell);

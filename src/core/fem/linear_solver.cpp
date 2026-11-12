@@ -422,7 +422,79 @@ struct NullMode {
     Eigen::VectorXd v;
 };
 
+/// Loads of a piece [x0, x1] of a bar, in local axes and measured from x0.
+std::vector<LocalLoad> pieceLoads(const FemBar& bar, double barLength, std::span<const FemBarLoad> barLoads, double x0, double x1, bool last) {
+    const Mat3 r = rotation(bar);
+    std::vector<LocalLoad> loads;
+    loads.reserve(barLoads.size());
+    for (const FemBarLoad& l : barLoads) loads.push_back(toLocal(l, r, barLength));
+    return segmentLoads(loads, x0, x1, last);
+}
+
+/// Canonical resultant at s (metres from the origin of the piece) from the canonical forces at its end (length len) and its loads.
+V6 pieceCanonicalAt(const std::vector<LocalLoad>& loads, double len, const Dof6& endConvention, double s) {
+    const Dof6 cj = removeSignConvention(endConvention);
+    const V3 fj(cj[0], cj[1], cj[2]), mj(cj[3], cj[4], cj[5]);
+    V3 f = fj, m = mj + (len - s) * crossX(fj);
+    addLoadsBeyond(loads, s, false, f, m);
+    V6 out;
+    out << f, m;
+    return out;
+}
+
 }  // namespace
+
+Dof6 pieceForcesAt(const FemBar& bar, double barLength, double x0, double x1, bool last, const Dof6& endForces,
+                   std::span<const FemBarLoad> barLoads, double x) {
+    const std::vector<LocalLoad> loads = pieceLoads(bar, barLength, barLoads, x0, x1, last);
+    const double len = x1 - x0, s = std::clamp(x - x0, 0.0, len);
+    const V6 c = pieceCanonicalAt(loads, len, endForces, s);
+    return applySignConvention({c(0), c(1), c(2), c(3), c(4), c(5)});
+}
+
+Dof6 pieceDisplacementAt(const FemBar& bar, double barLength, double x0, double x1, bool last, const Dof6& originDisplacement,
+                         const Dof6& endForces, std::span<const FemBarLoad> barLoads, double x, const SolverOptions& options) {
+    const std::vector<LocalLoad> loads = pieceLoads(bar, barLength, barLoads, x0, x1, last);
+    const double len = x1 - x0, s = std::clamp(x - x0, 0.0, len);
+    const SectionData& sec = bar.section;
+    const bool shearY = options.shearDeformation && sec.avy > 0.0, shearZ = options.shearDeformation && sec.avz > 0.0;
+    V6 flex;
+    flex << 1.0 / (bar.e * sec.area), shearY ? 1.0 / (bar.g * sec.avy) : 0.0, shearZ ? 1.0 / (bar.g * sec.avz) : 0.0, 1.0 / (bar.g * sec.torsion),
+        1.0 / (bar.e * sec.iy), 1.0 / (bar.e * sec.iz);
+    // Initial strains of the temperature loads, exactly as in fixedEndReactions().
+    V6 strain0 = V6::Zero();
+    std::vector<double> breaks{0.0, s};
+    for (const LocalLoad& l : loads) {
+        if (l.kind == BarLoadKind::Temperature) {
+            strain0(0) += bar.alpha * l.uniformTemperature;
+            if (sec.depthZ > 0.0) strain0(4) += bar.alpha * l.gradientZ / sec.depthZ;
+            if (sec.depthY > 0.0) strain0(5) -= bar.alpha * l.gradientY / sec.depthY;
+            continue;
+        }
+        if (l.x1 > 0.0 && l.x1 < s) breaks.push_back(l.x1);
+        if (l.kind == BarLoadKind::Distributed && l.x2 > 0.0 && l.x2 < s) breaks.push_back(l.x2);
+    }
+    std::sort(breaks.begin(), breaks.end());
+    // Unit load method on the piece clamped at its origin: displacement at s relative to the rigid motion of the origin.
+    V6 delta = V6::Zero();
+    for (std::size_t k = 0; k + 1 < breaks.size(); ++k) {
+        const double a = breaks[k], b = breaks[k + 1];
+        if (b - a <= 1e-14) continue;
+        for (int gp = 0; gp < 4; ++gp) {
+            const double t = 0.5 * (a + b) + 0.5 * (b - a) * kGaussX[gp];
+            const double w = 0.5 * (b - a) * kGaussW[gp];
+            const V6 strain = flex.cwiseProduct(pieceCanonicalAt(loads, len, endForces, t)) + strain0;
+            for (int q = 0; q < 6; ++q) delta(q) += w * strain.dot(unitResultant(q, s, t));
+        }
+    }
+    const Mat3 r = rotation(bar);
+    const V3 u0 = r * V3(originDisplacement[0], originDisplacement[1], originDisplacement[2]);
+    const V3 th0 = r * V3(originDisplacement[3], originDisplacement[4], originDisplacement[5]);
+    const V3 uLocal = u0 + th0.cross(V3(s, 0.0, 0.0)) + delta.head<3>();
+    const V3 thLocal = th0 + delta.tail<3>();
+    const V3 ug = r.transpose() * uLocal, thg = r.transpose() * thLocal;
+    return {ug.x(), ug.y(), ug.z(), thg.x(), thg.y(), thg.z()};
+}
 
 namespace detail {
 
@@ -1104,10 +1176,31 @@ LinearResult solveLinearImpl(const FrameModel& model, std::span<const LoadCaseIn
         }
         cr.barForces.resize(model.bars.size());
         cr.barDisplacements.resize(model.bars.size());
+        cr.barSegments.assign(model.bars.size(), {});
         for (std::size_t b = 0; b < model.bars.size(); ++b) {
             BarEndForces& bf = cr.barForces[b];
             BarEndDisplacements& bd = cr.barDisplacements[b];
             bf.bar = bd.bar = model.bars[b].id;
+            if (barSegments[b].size() > 1) {
+                for (const int si : barSegments[b]) {
+                    const Segment& seg = segments[si];
+                    Vec12 ug;
+                    for (int k = 0; k < 6; ++k) {
+                        ug(k) = u(6 * seg.nodes[0] + k);
+                        ug(6 + k) = u(6 * seg.nodes[1] + k);
+                    }
+                    const Vec12 ue = seg.el.elementDisplacements(seg.el.t * ug, fe[si]);
+                    const Vec12 s = seg.el.ke * ue - fe[si];
+                    const Vec12 ueGlobal = seg.el.t.transpose() * ue;
+                    BarSegmentResult piece;
+                    piece.x0 = seg.x0;
+                    piece.x1 = seg.x0 + seg.el.length;
+                    piece.originForces = applySignConvention({-s(0), -s(1), -s(2), -s(3), -s(4), -s(5)});
+                    piece.endForces = applySignConvention({s(6), s(7), s(8), s(9), s(10), s(11)});
+                    for (int k = 0; k < 6; ++k) piece.originDisplacement[k] = ueGlobal(k);
+                    cr.barSegments[b].push_back(piece);
+                }
+            }
             for (int which = 0; which < 2; ++which) {
                 const int si = which == 0 ? barSegments[b].front() : barSegments[b].back();
                 const Segment& seg = segments[si];

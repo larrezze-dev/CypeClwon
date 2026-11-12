@@ -44,6 +44,7 @@ private:
     Panels m_panelsBefore, m_panelsAfter;
     SurfaceLoads m_surfaceLoadsBefore, m_surfaceLoadsAfter;
     NodeSupports m_supportsBefore, m_supportsAfter;
+    NonlinearCombinations m_nonlinearBefore, m_nonlinearAfter;  ///< #380751: the non-linear combinations of the case go with it
 };
 
 enum class LoadCaseError {
@@ -76,8 +77,8 @@ LoadCaseError editLoadCase(Project& project, UndoStack& stack, int id, const std
 /// Clicking the "Actúa" cell.
 LoadCaseError toggleLoadCaseActs(Project& project, UndoStack& stack, int id);
 
-/// Dependents of a case in the project: nodal, bar, shell, panel and surface loads (T-P7-02..05) and prescribed displacement sets. TODO(T-P7-06): the
-/// non-linear / buckling combinations that use it.
+/// Dependents of a case in the project: nodal, bar, shell, panel and surface loads (T-P7-02..05) and prescribed displacement sets, non-linear
+/// combinations that use it (index in NonlinearCombinations::items). TODO(T-P8-09): buckling combinations.
 LoadCaseDependents loadCaseDependents(const Project& project, int id);
 /// "Borrar". Without dependents it is immediate (measured); the dependents are deleted with the case inside the same undoable command
 /// (nodal, bar, shell, panel and surface loads, their scale, prescribed sets; #64905 / #380751 / #380752: the GUI asks first when loadCaseDependents is

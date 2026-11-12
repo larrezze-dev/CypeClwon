@@ -198,25 +198,26 @@ Project projectWithStructure() {
 
 TEST(StructureProject, SectionsAreRegisteredAfterTheExistingOnes) {
     const auto& names = project_json::sectionNames();
-    ASSERT_GE(names.size(), 22u);
-    EXPECT_EQ(names[names.size() - 22], "nodes");
-    EXPECT_EQ(names[names.size() - 17], "pieces");
-    EXPECT_EQ(names[names.size() - 16], "layers");
-    EXPECT_EQ(names[names.size() - 15], "continuous_elements");
-    EXPECT_EQ(names[names.size() - 14], "bar_descriptions");
-    EXPECT_EQ(names[names.size() - 13], "node_supports");
-    EXPECT_EQ(names[names.size() - 12], "node_ties");
-    EXPECT_EQ(names[names.size() - 11], "diaphragms");
-    EXPECT_EQ(names[names.size() - 10], "bar_ends");
-    EXPECT_EQ(names[names.size() - 9], "buckling");
-    EXPECT_EQ(names[names.size() - 8], "deflection_groups");
-    EXPECT_EQ(names[names.size() - 7], "load_cases");
-    EXPECT_EQ(names[names.size() - 6], "nodal_loads");
-    EXPECT_EQ(names[names.size() - 5], "bar_loads");
-    EXPECT_EQ(names[names.size() - 4], "shell_properties");
-    EXPECT_EQ(names[names.size() - 3], "shell_loads");
-    EXPECT_EQ(names[names.size() - 2], "panels");
-    EXPECT_EQ(names.back(), "surface_loads");
+    ASSERT_GE(names.size(), 23u);
+    EXPECT_EQ(names[names.size() - 23], "nodes");
+    EXPECT_EQ(names[names.size() - 18], "pieces");
+    EXPECT_EQ(names[names.size() - 17], "layers");
+    EXPECT_EQ(names[names.size() - 16], "continuous_elements");
+    EXPECT_EQ(names[names.size() - 15], "bar_descriptions");
+    EXPECT_EQ(names[names.size() - 14], "node_supports");
+    EXPECT_EQ(names[names.size() - 13], "node_ties");
+    EXPECT_EQ(names[names.size() - 12], "diaphragms");
+    EXPECT_EQ(names[names.size() - 11], "bar_ends");
+    EXPECT_EQ(names[names.size() - 10], "buckling");
+    EXPECT_EQ(names[names.size() - 9], "deflection_groups");
+    EXPECT_EQ(names[names.size() - 8], "load_cases");
+    EXPECT_EQ(names[names.size() - 7], "nodal_loads");
+    EXPECT_EQ(names[names.size() - 6], "bar_loads");
+    EXPECT_EQ(names[names.size() - 5], "shell_properties");
+    EXPECT_EQ(names[names.size() - 4], "shell_loads");
+    EXPECT_EQ(names[names.size() - 3], "panels");
+    EXPECT_EQ(names[names.size() - 2], "surface_loads");
+    EXPECT_EQ(names.back(), "nonlinear_combinations");
     EXPECT_EQ(project_json::sectionTitle("cross_sections"), "Secciones");
 }
 

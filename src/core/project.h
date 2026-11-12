@@ -14,6 +14,7 @@
 #include "core/load_case.h"
 #include "core/node_diaphragm.h"
 #include "core/nodal_load.h"
+#include "core/nonlinear_combinations.h"
 #include "core/node_ligature.h"
 #include "core/node_support.h"
 #include "core/options_settings.h"
@@ -55,6 +56,7 @@ struct Project {
     BarEnds barEnds;  ///< articulations and partial fixity at the ends of bars (section bar_ends); empty in older files
     BucklingData buckling;  ///< member buckling coefficients and lateral buckling per bar (section buckling); empty in older files
     DeflectionData deflection;  ///< deflection groups that differ from "one secant group per bar" (section deflection_groups); empty in older files
+    NonlinearCombinations nonlinearCombinations;  ///< «Combinaciones no lineales» (section nonlinear_combinations); empty in older files
     LoadCaseSet loadCases;  ///< load cases "Hipótesis de carga": self weight plus additional cases and use categories (section load_cases); only the self weight in older files
     BarLoads barLoads;  ///< bar loads and the bars without automatic self weight (section bar_loads); empty in older files
     ShellLoads shellLoads;  ///< shell loads and the shells without automatic self weight (section shell_loads); empty in older files

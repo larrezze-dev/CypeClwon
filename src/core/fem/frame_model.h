@@ -184,6 +184,15 @@ struct BarEndDisplacements {
     Dof6 end{};     ///< at nodeJ
 };
 
+/// One piece of a bar split at the mesh nodes of a shell edge (ShellMesh::barSplits). The shell acts on the bar at the ends of every piece, so the
+/// section forces and the deformed shape inside such a bar follow from the piece that contains the point (fem/results.h).
+struct BarSegmentResult {
+    double x0 = 0.0, x1 = 0.0;    ///< metres from nodeI
+    Dof6 originForces{};          ///< section forces at x0 (convention of applySignConvention)
+    Dof6 endForces{};             ///< section forces at x1
+    Dof6 originDisplacement{};    ///< global displacements of the piece at x0 (element side)
+};
+
 struct LoadCaseResult {
     int id = 0;
     std::string name;
@@ -196,6 +205,9 @@ struct LoadCaseResult {
     std::map<int, Dof6> reactions;
     std::vector<BarEndForces> barForces; ///< per bar, in FrameModel::bars order
     std::vector<BarEndDisplacements> barDisplacements;  ///< per bar, in FrameModel::bars order
+    /// Per bar (FrameModel::bars order): the pieces of a bar split along a shell edge, from nodeI; EMPTY for a bar in one piece (then the bar end
+    /// forces and displacements describe it completely).
+    std::vector<std::vector<BarSegmentResult>> barSegments;
     // Shells (only when the model has shells):
     std::vector<Dof6> meshDisplacements;   ///< per mesh node (LinearResult::mesh.positions order; the first ones repeat `displacements`)
     std::map<int, Dof6> meshReactions;     ///< generated mesh node index -> reactions of the edge bonds (global)
