@@ -124,22 +124,65 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         fn.position = vec(n.position);
         if (const core::ExternalSupport* ext = core::externalSupportOf(sm, project.nodeSupports, n.id)) {
             const core::Restraint r = core::restraintOf(*ext);
-            for (int k = 0; k < 6; ++k) fn.fixed[k] = r.fixed[k] && !r.elastic[k];
-            bool elastic = false;
-            for (int k = 0; k < 6; ++k) elastic = elastic || (r.fixed[k] && r.elastic[k]);
-            if (elastic) out.unsupported.push_back("Nudo " + std::to_string(n.id) + ": apoyo elástico (pendiente, T-P8-03).");
-            if (r.oblique != core::Restraint::Oblique::None)
-                out.unsupported.push_back("Nudo " + std::to_string(n.id) + ": apoyo con dirección no alineada con los ejes globales (pendiente, T-P8-03).");
+            for (int k = 0; k < 6; ++k) {
+                fn.fixed[k] = r.fixed[k] && !r.elastic[k];
+                if (r.fixed[k] && r.elastic[k]) {
+                    // Elastic support: spring K (kN/m, kN.m/rad) to the ground with its "Sentido" [V, solver_diafragmas_ligaduras_apoyos.md 10.1/10.4].
+                    fn.spring[k] = ext->elasticConstants[k];
+                    fn.springSense[k] = ext->senses[k] == core::SupportSense::Positive   ? SpringSense::Positive
+                                        : ext->senses[k] == core::SupportSense::Negative ? SpringSense::Negative
+                                                                                         : SpringSense::Both;
+                }
+            }
+            if (r.oblique != core::Restraint::Oblique::None) {
+                // Oblique line / plane: exact relation on the translations (always rigid [V 10.4]); rotations follow `fixed`.
+                fn.oblique = r.oblique == core::Restraint::Oblique::LineFree ? ObliqueSupport::Line : ObliqueSupport::Plane;
+                fn.obliqueDirection = vec(r.direction);
+            }
         }
         out.model.nodes.push_back(fn);
     }
+    const auto inModel = [&](int nodeId) { return barNodes.count(nodeId) > 0 || shellNodes.count(nodeId) > 0; };
 
-    // --- data of later tasks ---
-    for (const auto& [nodeId, link] : project.nodeSupports.internal)
-        if (link.type != core::InternalLinkType::Fixed && (barNodes.count(nodeId) || shellNodes.count(nodeId)))
-            out.unsupported.push_back("Nudo " + std::to_string(nodeId) + ": vinculación interior (pendiente, T-P8-03).");
-    if (!project.ligatures.empty()) out.unsupported.push_back("Ligaduras de nudos (pendiente, T-P8-03).");
-    if (!project.diaphragms.empty()) out.unsupported.push_back("Diafragmas rígidos (pendiente, T-P8-03).");
+    // --- internal links of nodes (TK-106) ---
+    std::map<int, double> partialNodes;  // node id -> Coef.Emp.Parc. (kN.m/rad)
+    for (const auto& [nodeId, link] : project.nodeSupports.internal) {
+        if (link.type == core::InternalLinkType::Fixed || !inModel(nodeId)) continue;
+        if (link.type == core::InternalLinkType::PartialFixity && !shellNodes.count(nodeId)) {
+            partialNodes[nodeId] = link.partialCoefficient;
+            continue;
+        }
+        const char* what = link.type == core::InternalLinkType::PartialFixity ? "empotramiento parcial en un nudo con láminas"
+                           : link.type == core::InternalLinkType::Pinned      ? "nudo articulado"
+                                                                              : "nudo genérico";
+        out.unsupported.push_back("Nudo " + std::to_string(nodeId) + ": vinculación interior, " + what + " (pendiente, sin medir en el original).");
+    }
+
+    // --- ligatures (equalDOF) [V 10.3]: the first node of the tie present in the model is the master ---
+    for (int dir = 0; dir < 3; ++dir)
+        for (const core::Ligature& tie : project.ligatures.dirs[dir]) {
+            int master = -1;
+            for (int id : tie.nodeIds) {
+                if (!inModel(id)) continue;
+                if (master < 0) { master = id; continue; }
+                FemEqualDof e;
+                e.master = master;
+                e.slave = id;
+                e.dofs[dir] = true;
+                out.model.equalDofs.push_back(e);
+            }
+        }
+
+    // --- rigid diaphragms [REA 2, V 10.2] ---
+    for (const core::Diaphragm& d : project.diaphragms.items) {
+        FemDiaphragm fd;
+        fd.id = d.id;
+        for (int id : d.nodeIds)
+            if (inModel(id)) fd.nodes.push_back(id);
+        if (!d.shellIds.empty())
+            out.unsupported.push_back("Diafragma " + d.reference + ": láminas en el diafragma (pendiente, sin medir en el original).");
+        if (!fd.nodes.empty()) out.model.diaphragms.push_back(fd);
+    }
 
     // --- bars ---
     struct BarInfo { bool inverted = false; double length = 0.0; core::BarFrame frame; double gamma = 0.0; double depthY = 0.0, depthZ = 0.0; };
@@ -188,6 +231,18 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
             fb.releases[end][1] = releaseOf(fix.planes[core::kPlaneXZ], ky);
             fb.releases[end][2] = releaseOf(fix.planes[core::kPlaneXY], kz);
             if (fix.pinned) fb.releases[end][1] = fb.releases[end][2] = EndRelease{EndRelease::Kind::Free, 0.0};
+            // «Nudo empotrado con coeficiente de empotramiento parcial para todas las piezas» (TK-106): every bar end joins the node through a
+            // rotational spring c (kN.m/rad, used as typed), in series with its own release. Two pieces give c / 2 between them [V 10.5];
+            // the law with three or more pieces, the torsion (left rigid) and the plane xy (Gz, given the same c) are [N].
+            if (const auto pn = partialNodes.find(node); pn != partialNodes.end())
+                for (int k = 1; k <= 2; ++k) {
+                    EndRelease& rel = fb.releases[end][k];
+                    const double c = pn->second;
+                    if (rel.kind == EndRelease::Kind::Free) continue;
+                    if (!(c > 0.0)) { rel = EndRelease{EndRelease::Kind::Free, 0.0}; continue; }
+                    rel.stiffness = rel.kind == EndRelease::Kind::Spring ? rel.stiffness * c / (rel.stiffness + c) : c;
+                    rel.kind = EndRelease::Kind::Spring;
+                }
         }
         out.model.bars.push_back(fb);
         info[b.id] = BarInfo{fb.nodeI != b.startNode, length, *frame, mat->densityKnM3 * fb.section.area, fb.section.depthY, fb.section.depthZ};
@@ -342,6 +397,13 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
                     break;
             }
             in.shellLoads.push_back(fl);
+        }
+        for (const FemDiaphragm& fd : out.model.diaphragms) {
+            const core::Diaphragm* d = core::findDiaphragm(project.diaphragms, fd.id);
+            if (!d) continue;
+            for (const core::DiaphragmLoad& dl : d->loads)
+                if (dl.loadCaseId == lc.id && (dl.fxKn != 0.0 || dl.fyKn != 0.0))
+                    in.diaphragmLoads.push_back(FemDiaphragmLoad{fd.id, dl.fxKn, dl.fyKn, dl.xM, dl.yM});
         }
         if (lc.id == 0) {
             // Self weight of the shells: gamma * h per square metre of surface along global -Z, unless switched off [V, section 13.5].

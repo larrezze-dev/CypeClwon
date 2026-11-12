@@ -31,9 +31,13 @@ namespace cc::fem {
 ///
 /// Shells (T-P8-02): FrameModel::shells, meshed and solved with the bars (fem/shell_model.h).
 ///
-/// Hooks for later tasks (NOT implemented here, see .tickets.md TK-106): rigid end offsets / "tamaño de nudo" (-jntOffset), ligatures
-/// (equalDOF), rigid diaphragms, oblique supports, compression-only springs, internal links of nodes. `FemNode::spring`
-/// is already honoured by the solver as a linear spring to the ground but the project adapter does not fill it yet (T-P8-03).
+/// Relations between DOFs (T-P8-03, docs/research/solver_diafragmas_ligaduras_apoyos.md): ligatures (FrameModel::equalDofs), rigid
+/// diaphragms (FrameModel::diaphragms) and oblique supports (FemNode::oblique) are exact linear relations "slave = sum coef * master"
+/// eliminated by transformation (u = T u_r, K_r = T' K T), like the expanded dofRelation of the original. Springs to the ground with a
+/// "Sentido" (FemNode::springSense) are bilateral in solveLinear (the linear analysis of the original ignores the sense [V]) and unilateral
+/// in solveNonlinear (non-linear combinations, active set).
+///
+/// Hooks for later tasks (NOT implemented here, see .tickets.md TK-106): rigid end offsets / "tamaño de nudo" (-jntOffset).
 
 using Vec3 = std::array<double, 3>;
 using Dof6 = std::array<double, 6>;
@@ -59,11 +63,45 @@ struct EndRelease {
     double stiffness = 0.0;  ///< kN.m/rad, Spring only (> 0)
 };
 
+/// "Sentido" of a spring to the ground [V, solver_diafragmas_ligaduras_apoyos.md 10.1]: Positive acts only while the displacement of that
+/// global DOF is > 0, Negative only while it is < 0 (non-linear combinations only); Both = always (linear spring).
+enum class SpringSense { Both, Positive, Negative };
+
+/// Oblique support of the translations of a node (user line / plane not parallel to a global axis). Always rigid [V, 10.4].
+enum class ObliqueSupport { None, Line, Plane };
+
 struct FemNode {
     int id = 0;
     Vec3 position{};
     std::array<bool, 6> fixed{};  ///< blocked global DOFs (prescribed values per load case in LoadCaseInput::prescribed)
-    Dof6 spring{};                ///< linear springs to the ground, kN/m and kN.m/rad (0 = none). Hook: not filled by the adapter yet.
+    Dof6 spring{};                ///< springs to the ground, kN/m and kN.m/rad (0 = none) [V, 10.4]
+    std::array<SpringSense, 6> springSense{};  ///< per DOF; ignored by solveLinear (bilateral), honoured by solveNonlinear
+    /// Line: the translation is free only along `obliqueDirection` (u parallel to it); Plane: free in the plane normal to `obliqueDirection`
+    /// (n . u = 0). The translations of the node must not be `fixed` then; its rotations follow `fixed`.
+    ObliqueSupport oblique = ObliqueSupport::None;
+    Vec3 obliqueDirection{0, 0, 1};
+};
+
+/// Ligature ("equalDOF"): u_slave,k = u_master,k for every DOF k with dofs[k] [REA + V 10.3]. Which node is the master does not change the
+/// results (the solver swaps them when only the slave DOF is blocked).
+struct FemEqualDof {
+    int master = 0, slave = 0;  ///< node ids
+    std::array<bool, 6> dofs{};
+};
+
+/// Rigid diaphragm, horizontal (every node at the same Z within 1e-3 m) [REA 2]: for every node s other than the master m = nodes.front():
+/// Dx_s = Dx_m - (y_s - y_m) Gz_m, Dy_s = Dy_m + (x_s - x_m) Gz_m, Gz_s = Gz_m; Dz, Gx, Gy stay free [V 10.2]. A released bar end keeps its own
+/// rotation (internal DOF of the element), so it is not tied to Gz_m: the clone's choice, close to the rotation groups of the original [REA 2.5]
+/// but not measured (Gz of a pinned bar at a diaphragm node is [N], 10.6).
+struct FemDiaphragm {
+    int id = 0;
+    std::vector<int> nodes;  ///< node ids, the first one is the master (its position does not change the results [REA 2.6, V 10.2])
+};
+
+/// Load on a diaphragm: Fx, Fy (kN) at the plan point (x, y) (m); applied to the master as Fx, Fy and Mz = (x - xm) Fy - (y - ym) Fx [V 10.2].
+struct FemDiaphragmLoad {
+    int diaphragm = 0;  ///< FemDiaphragm::id
+    double fx = 0.0, fy = 0.0, x = 0.0, y = 0.0;
 };
 
 struct FemBar {
@@ -109,12 +147,15 @@ struct LoadCaseInput {
     std::vector<FemBarLoad> bars;
     std::map<int, Dof6> prescribed;  ///< node id -> values (only the blocked DOFs are used)
     std::vector<FemShellLoad> shellLoads;  ///< loads on shells (shell = FemShell::id)
+    std::vector<FemDiaphragmLoad> diaphragmLoads;
 };
 
 struct FrameModel {
     std::vector<FemNode> nodes;
     std::vector<FemBar> bars;
     std::vector<FemShell> shells;
+    std::vector<FemEqualDof> equalDofs;
+    std::vector<FemDiaphragm> diaphragms;
 };
 
 struct SolverOptions {
@@ -126,7 +167,8 @@ struct SolverOptions {
 };
 
 /// ExcessiveDisplacements: a node rotation exceeded pi/2 [V, solver_medidas_original.md 9.2]; the original then disables the results.
-enum class SolveStatus { Ok, Mechanism, Unstable, Error, ExcessiveDisplacements };
+/// NotConverged: the active set of the unilateral springs of a non-linear combination did not settle (#328573).
+enum class SolveStatus { Ok, Mechanism, Unstable, Error, ExcessiveDisplacements, NotConverged };
 
 /// Section forces at both ends of a bar, local axes, in the convention of applySignConvention(): N, Vy, Vz, T (Mx), My, Mz.
 struct BarEndForces {
@@ -150,7 +192,10 @@ struct LoadCaseResult {
     SolveStatus status = SolveStatus::Ok;
     std::string message;                 ///< es-ES message of the original for a failed case (empty when Ok)
     std::vector<Dof6> displacements;     ///< per node, in FrameModel::nodes order; m and rad, global
-    std::map<int, Dof6> reactions;       ///< node id -> forces of the supports on the structure (global; 0 on free DOFs)
+    /// node id -> forces of the supports on the structure (global; 0 on free DOFs). Blocked DOFs include the forces transmitted through
+    /// ligatures; an oblique support gives the force along its normal (plane) / across its line on Dx..Dz; a spring gives -K u (whether the
+    /// original lists spring forces among the reactions is [N]).
+    std::map<int, Dof6> reactions;
     std::vector<BarEndForces> barForces; ///< per bar, in FrameModel::bars order
     std::vector<BarEndDisplacements> barDisplacements;  ///< per bar, in FrameModel::bars order
     // Shells (only when the model has shells):

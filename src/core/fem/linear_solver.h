@@ -21,9 +21,33 @@ namespace cc::fem {
 ///     (LinearResult::nullModeDofs); a load case that does not excite it calculates without a warning, a case whose loads excite it is a
 ///     mechanism with the warning of the original (mechanismWarning / mechanismWarningZone) naming the DOF of largest amplitude of the mode.
 ///  4c. Shells (T-P8-02): meshed by meshShells(), bars along shell edges split at the mesh nodes, 6-node shell triangles assembled with the bars.
+///  4d. Relations (T-P8-03): ligatures, diaphragms and oblique supports become linear relations eliminated exactly by transformation
+///      (K_r = T' K T, f_r = T' f, u = T u_r); springs to the ground are linear (their "Sentido" is ignored here, as in the original's linear
+///      analysis [V]: see solveNonlinear). Diaphragm loads go to the master node with Mz = (x - xm) Fy - (y - ym) Fx.
 ///  5. Null pivot -> SolveStatus::Mechanism (#214001), negative pivot -> SolveStatus::Unstable (#380376), a loaded DOF without stiffness ->
 ///     Mechanism for that case. Results: nodal displacements, reactions, bar end forces.
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options = {});
+
+/// Combined load case: sum of coefficients[i] x cases[i] (nodal, bar, shell and diaphragm loads, temperatures and prescribed displacements;
+/// scaling the prescribed displacements is [N]). `coefficients` has one value per case (missing = 0).
+LoadCaseInput combineLoadCases(std::span<const LoadCaseInput> cases, std::span<const double> coefficients, int id, const std::string& name);
+
+/// True when some spring to the ground has a "Sentido" other than Both: the original then enables «Análisis no lineal» and generates one
+/// non-linear combination per combination [V, solver_diafragmas_ligaduras_apoyos.md 10.1].
+bool hasUnilateralSprings(const FrameModel& model);
+
+/// Non-linear combinations (T-P8-03): every input case is one combined case (see combineLoadCases; the original names them "[1] PP",
+/// "[2] 1.35·PP"). Each one is solved on its own (no superposition) with the springs that have a "Sentido" acting only while the
+/// displacement of their DOF has that sign [V 10.1]: active-set iteration starting with every spring active, re-solving (and refactorising)
+/// whenever the set changes. A final set that leaves a mechanism gives mechanismMessage(name) [V]; a set that does not settle within
+/// `maxIterations` (or repeats) gives SolveStatus::NotConverged with nonConvergenceMessage(name) (#328573). Without unilateral springs it
+/// equals solveLinear.
+LinearResult solveNonlinear(const FrameModel& model, std::span<const LoadCaseInput> combinedCases, const SolverOptions& options = {},
+                            int maxIterations = 50);
+
+/// «Con las condiciones impuestas, no se alcanza la convergencia para el caso de carga '%s'. Revise las condiciones del modelo.» (#328573,
+/// cyopensees.dll).
+std::string nonConvergenceMessage(const std::string& caseName);
 
 /// «No es posible calcular el caso de carga '%s'. La estructura es un mecanismo. Revise la definición de cargas y las condiciones de
 /// vinculación del modelo.» (#214001, cyopensees.dll).

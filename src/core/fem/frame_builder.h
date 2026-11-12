@@ -33,10 +33,14 @@ namespace cc::fem {
 ///  - Shells (T-P8-02): every shell with its material (concrete grade of the shell or of the general data; generic isotropic / orthotropic),
 ///    thickness, ballast, the record of Propiedades > Láminas (maximum triangle side, 8 stiffness factors) and the rigid exterior bonds of its
 ///    edges; shell loads (uniform / variable along local x or y / temperature / shrinkage).
-///  - Unsupported data for this task (T-P8-02 / T-P8-03, TK-106) are reported in `unsupported` and NOT modelled: elastic and oblique supports
-///    (those DOFs stay free), internal links other than "empotrado", ligatures, diaphragms, elastic / oblique edge bonds, interior edge bonds
-///    other than «Empotrada», compression-only ballast, eccentric shells and nodes inside a shell that are not its corners. Callers must not
-///    present results
+///  - T-P8-03 (docs/research/solver_diafragmas_ligaduras_apoyos.md): elastic supports -> FemNode::spring (K as typed, kN/m / kN.m/rad) and
+///    springSense (non-linear combinations, solveNonlinear); oblique user line / plane -> FemNode::oblique (exact relation); ligatures ->
+///    FrameModel::equalDofs (first node of the tie present in the model = master); diaphragms -> FrameModel::diaphragms (master = first node)
+///    and their loads per load case -> LoadCaseInput::diaphragmLoads; internal link «empotramiento parcial para todas las piezas» -> a
+///    rotational spring c in series with every bar end at the node (Gy and Gz; K = c / 2 between two pieces [V 10.5], 3+ pieces [N]).
+///  - Unsupported data are reported in `unsupported` and NOT modelled: internal links «articulado» / «genérico» and partial fixity at a node
+///    with shells (not measured), diaphragms with shells, elastic / oblique edge bonds, interior edge bonds other than «Empotrada»,
+///    compression-only ballast, eccentric shells and nodes inside a shell that are not its corners (TK-110). Callers must not present results
 ///    while `unsupported` is not empty.
 struct FrameBuild {
     FrameModel model;

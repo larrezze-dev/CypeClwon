@@ -601,7 +601,15 @@ TEST(FemBuilder, ReportsUndescribedBarsAndUnsupportedData) {
     const FrameBuild fb = buildFrameModel(p, kHonour);
     ASSERT_FALSE(fb.errors.empty());
     EXPECT_EQ(fb.errors.front(), "Existen barras sin describir.");
-    EXPECT_FALSE(fb.unsupported.empty());
+    EXPECT_TRUE(fb.unsupported.empty());  // elastic supports are modelled since T-P8-03
+    EXPECT_DOUBLE_EQ(fb.model.nodes[1].spring[0], cc::core::kDefaultElasticConstant);
+    EXPECT_TRUE(fb.model.nodes[1].fixed[1] && !fb.model.nodes[1].fixed[0]);
+    // Internal links not measured in the original (pinned / generic) stay unsupported.
+    cc::core::InternalLink pinned;
+    pinned.type = cc::core::InternalLinkType::Pinned;
+    p.nodeSupports.internal[1] = pinned;
+    EXPECT_FALSE(buildFrameModel(p, kHonour).unsupported.empty());
+    p.nodeSupports.internal.clear();
     p.structure.addNode({9, 9, 9});
     EXPECT_EQ(buildFrameModel(p, kHonour).warnings.front(), unconnectedNodeMessage());
 }

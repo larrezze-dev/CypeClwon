@@ -424,6 +424,82 @@ struct NullMode {
 
 }  // namespace
 
+namespace detail {
+
+/// Homogeneous linear relation sum(coef * u_dof) = 0; `preferred` = the DOF to eliminate when possible.
+struct DofRelation {
+    int preferred = -1;
+    std::vector<std::pair<int, double>> terms;
+};
+
+struct DofElimination {
+    std::vector<char> slave;          ///< eliminated DOFs
+    Eigen::SparseMatrix<double> t;    ///< nDof x nDof: u = T u_r (identity on the kept DOFs, slave rows = their expressions)
+    std::string error;
+};
+
+/// Gaussian elimination of the relations, one at a time: every relation is rewritten in terms of the DOFs kept so far, one of its DOFs (the
+/// preferred one when it is not blocked and its coefficient is not small, otherwise the free DOF of largest coefficient) becomes a slave
+/// and is substituted in the expressions of the previous slaves. Blocked DOFs (supports) may be masters (their prescribed values enter
+/// through u_r) but never slaves; a relation left with blocked DOFs only, or with nothing, is redundant and dropped [N: the original
+/// forbids those combinations in the GUI].
+DofElimination eliminateRelations(const std::vector<DofRelation>& rows, const std::vector<char>& fixed, int nDof) {
+    DofElimination out;
+    out.slave.assign(nDof, 0);
+    std::vector<std::vector<std::pair<int, double>>> expr(nDof);
+    std::vector<int> slaves;
+    for (const DofRelation& row : rows) {
+        std::map<int, double> acc;
+        for (const auto& [d, c] : row.terms) {
+            if (d < 0 || d >= nDof || !std::isfinite(c)) { out.error = "Relación entre grados de libertad no válida."; return out; }
+            if (out.slave[d])
+                for (const auto& [m, cm] : expr[d]) acc[m] += c * cm;
+            else acc[d] += c;
+        }
+        double big = 0.0;
+        for (const auto& [d, c] : acc) big = std::max(big, std::fabs(c));
+        int s = -1;
+        double bigFree = 0.0;
+        for (const auto& [d, c] : acc)
+            if (!fixed[d] && std::fabs(c) > 1e-12 * big && std::fabs(c) > bigFree) { bigFree = std::fabs(c); s = d; }
+        if (s < 0) continue;  // redundant or between blocked DOFs only
+        if (const auto it = acc.find(row.preferred); it != acc.end() && !fixed[row.preferred] && std::fabs(it->second) >= 0.1 * bigFree)
+            s = row.preferred;
+        const double cs = acc[s];
+        std::vector<std::pair<int, double>> e;
+        for (const auto& [d, c] : acc)
+            if (d != s && std::fabs(c) > 1e-12 * big) e.emplace_back(d, -c / cs);
+        for (int other : slaves) {
+            auto& ex = expr[other];
+            const auto hit = std::find_if(ex.begin(), ex.end(), [&](const auto& p) { return p.first == s; });
+            if (hit == ex.end()) continue;
+            const double k = hit->second;
+            ex.erase(hit);
+            for (const auto& [m, cm] : e) {
+                const auto same = std::find_if(ex.begin(), ex.end(), [&](const auto& p) { return p.first == m; });
+                if (same != ex.end()) same->second += k * cm;
+                else ex.emplace_back(m, k * cm);
+            }
+        }
+        expr[s] = std::move(e);
+        out.slave[s] = 1;
+        slaves.push_back(s);
+    }
+    std::vector<Eigen::Triplet<double>> tr;
+    tr.reserve(nDof + 3 * slaves.size());
+    for (int d = 0; d < nDof; ++d) {
+        if (!out.slave[d]) tr.emplace_back(d, d, 1.0);
+        else
+            for (const auto& [m, c] : expr[d])
+                if (c != 0.0) tr.emplace_back(d, m, c);
+    }
+    out.t = Eigen::SparseMatrix<double>(nDof, nDof);
+    out.t.setFromTriplets(tr.begin(), tr.end());
+    return out;
+}
+
+}  // namespace detail
+
 std::string mechanismWarningZone(int dof, double x1, double y1, double x2, double y2, double z) {
     std::string s = mechanismWarning(dof, {0, 0, 0});
     const std::size_t a = s.find("\nEl error se encuentra");
@@ -560,17 +636,92 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                 triplets.emplace_back(6 * i + k, 6 * i + k, s);
             }
         }
-    Eigen::SparseMatrix<double> kFull(nDof, nDof);
-    kFull.setFromTriplets(triplets.begin(), triplets.end());
-    const Eigen::VectorXd diag = kFull.diagonal();
-    const double maxDiag = diag.cwiseAbs().maxCoeff();
+    Eigen::SparseMatrix<double> kOrig(nDof, nDof);
+    kOrig.setFromTriplets(triplets.begin(), triplets.end());
 
-    // --- 4. constrained (supports and edge bonds), orphan (no stiffness) and free DOFs ---
     std::vector<char> fixed(nDof, 0), orphan(nDof, 0);
     for (int i = 0; i < nAll; ++i)
         for (int k = 0; k < 6; ++k) fixed[6 * i + k] = ((i < nNodes && model.nodes[i].fixed[k]) || mesh.edgeFixed[i][k]) ? 1 : 0;
+
+    // --- 3b. relations between DOFs (ligatures, diaphragms, oblique supports), eliminated by transformation: u = T u_r ---
+    // TODO(medir): the error texts of this block are the clone's, not the original's (e.g. the original reports diaphragm nodes at different
+    // levels with #375642, text unknown); the GUI forbids most of these situations before the calculation.
+    std::vector<char> slave(nDof, 0);
+    Eigen::SparseMatrix<double> tMat;
+    bool anyOblique = false;
+    std::unordered_map<int, int> diaphragmMaster;  // FemDiaphragm::id -> node index of its master
+    {
+        std::vector<detail::DofRelation> rows;
+        const auto badTie = [&](int a, int b) {
+            char buf[160];
+            std::snprintf(buf, sizeof buf, "La ligadura entre los nudos %d y %d no es válida.", a, b);
+            return failAll(SolveStatus::Error, buf);
+        };
+        for (const FemEqualDof& e : model.equalDofs) {
+            const auto im = nodeIndex.find(e.master), is = nodeIndex.find(e.slave);
+            if (im == nodeIndex.end() || is == nodeIndex.end() || e.master == e.slave) return badTie(e.master, e.slave);
+            for (int k = 0; k < 6; ++k)
+                if (e.dofs[k]) {
+                    const int m = 6 * im->second + k, s = 6 * is->second + k;
+                    rows.push_back({s, {{s, 1.0}, {m, -1.0}}});
+                }
+        }
+        for (const FemDiaphragm& dg : model.diaphragms) {
+            if (dg.nodes.empty()) continue;
+            std::vector<int> idx;
+            for (int id : dg.nodes) {
+                const auto it = nodeIndex.find(id);
+                if (it == nodeIndex.end()) return failAll(SolveStatus::Error, formatInt("El diafragma %d contiene nudos que no existen.", dg.id));
+                idx.push_back(it->second);
+            }
+            const int m = idx.front();
+            if (!diaphragmMaster.emplace(dg.id, m).second) return failAll(SolveStatus::Error, formatInt("Diafragma %d repetido.", dg.id));
+            const Vec3& pm = model.nodes[m].position;
+            for (std::size_t j = 1; j < idx.size(); ++j) {
+                const int s = idx[j];
+                const Vec3& ps = model.nodes[s].position;
+                // Assertion of the original: a diaphragm is horizontal, |z_m - z_s| < 1e-3 [REA 2].
+                if (std::fabs(ps[2] - pm[2]) >= 1e-3)
+                    return failAll(SolveStatus::Error, formatInt("Los nudos del diafragma %d no están a la misma cota.", dg.id));
+                const double dx = ps[0] - pm[0], dy = ps[1] - pm[1];
+                rows.push_back({6 * s + 0, {{6 * s + 0, 1.0}, {6 * m + 0, -1.0}, {6 * m + 5, dy}}});
+                rows.push_back({6 * s + 1, {{6 * s + 1, 1.0}, {6 * m + 1, -1.0}, {6 * m + 5, -dx}}});
+                rows.push_back({6 * s + 5, {{6 * s + 5, 1.0}, {6 * m + 5, -1.0}}});
+            }
+        }
+        for (int i = 0; i < nNodes; ++i) {
+            const FemNode& n = model.nodes[i];
+            if (n.oblique == ObliqueSupport::None) continue;
+            const V3 v = toEigen(n.obliqueDirection);
+            if (!v.allFinite() || v.norm() < 1e-12 || fixed[6 * i] || fixed[6 * i + 1] || fixed[6 * i + 2])
+                return failAll(SolveStatus::Error, formatInt("El apoyo oblicuo del nudo %d no es válido.", n.id));
+            anyOblique = true;
+            int km = 0;
+            for (int k = 1; k < 3; ++k)
+                if (std::fabs(v(k)) > std::fabs(v(km))) km = k;
+            if (n.oblique == ObliqueSupport::Plane) {
+                rows.push_back({6 * i + km, {{6 * i, v(0)}, {6 * i + 1, v(1)}, {6 * i + 2, v(2)}}});  // n . u = 0
+            } else {
+                for (int k = 0; k < 3; ++k)  // u parallel to d: d_km u_k - d_k u_km = 0
+                    if (k != km) rows.push_back({6 * i + k, {{6 * i + k, v(km)}, {6 * i + km, -v(k)}}});
+            }
+        }
+        if (!rows.empty()) {
+            const detail::DofElimination elim = detail::eliminateRelations(rows, fixed, nDof);
+            if (!elim.error.empty()) return failAll(SolveStatus::Error, elim.error);
+            slave = elim.slave;
+            tMat = elim.t;
+        }
+    }
+    const bool hasRelations = tMat.rows() > 0;
+    Eigen::SparseMatrix<double> kFull = hasRelations ? Eigen::SparseMatrix<double>(tMat.transpose() * kOrig * tMat) : kOrig;
+    if (hasRelations) kFull.prune(0.0);
+    const Eigen::VectorXd diag = kFull.diagonal();
+    const double maxDiag = diag.cwiseAbs().maxCoeff();
+
+    // --- 4. constrained (supports and edge bonds), eliminated (slaves of relations), orphan (no stiffness) and free DOFs ---
     for (int d = 0; d < nDof; ++d) {
-        if (!fixed[d] && std::fabs(diag(d)) <= options.orphanTolerance * maxDiag) {
+        if (!fixed[d] && !slave[d] && std::fabs(diag(d)) <= options.orphanTolerance * maxDiag) {
             orphan[d] = 1;
             if (d / 6 < nNodes) result.lockedDofs[model.nodes[d / 6].id][d % 6] = true;
         }
@@ -583,7 +734,7 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         std::fill(freeIndex.begin(), freeIndex.end(), -1);
         freeDofs.clear();
         for (int d = 0; d < nDof; ++d)
-            if (!fixed[d] && !orphan[d] && !nullFixed[d]) {
+            if (!fixed[d] && !slave[d] && !orphan[d] && !nullFixed[d]) {
                 freeIndex[d] = static_cast<int>(freeDofs.size());
                 freeDofs.push_back(d);
             }
@@ -747,6 +898,20 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                 for (int p = 0; p < 36; ++p) f(6 * mesh.triangles[e].nodes[p / 6] + p % 6) += v(p);
             }
         }
+        // Diaphragm loads: Fx, Fy at (x, y) -> the master with Mz = (x - xm) Fy - (y - ym) Fx [V 10.2].
+        for (const FemDiaphragmLoad& dl : lc.diaphragmLoads) {
+            if (bad) break;
+            const auto it = diaphragmMaster.find(dl.diaphragm);
+            if (it == diaphragmMaster.end()) { bad = true; break; }
+            const int m = it->second;
+            const Vec3& pm = model.nodes[m].position;
+            f(6 * m + 0) += dl.fx;
+            f(6 * m + 1) += dl.fy;
+            f(6 * m + 5) += (dl.x - pm[0]) * dl.fy - (dl.y - pm[1]) * dl.fx;
+        }
+        // Loads in the reduced numbering (slaves carry nothing: their loads go to their masters).
+        const Eigen::VectorXd fNodal = f;
+        if (hasRelations) f = tMat.transpose() * fNodal;
         Eigen::VectorXd u = Eigen::VectorXd::Zero(nDof);
         for (const auto& [nodeId, values] : lc.prescribed) {
             const auto it = nodeIndex.find(nodeId);
@@ -802,6 +967,8 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             if (ldlt.info() != Eigen::Success || !uf.allFinite()) { failCase(SolveStatus::Mechanism); continue; }
             for (int i = 0; i < nFree; ++i) u(freeDofs[i]) = uf(i);
         }
+        const Eigen::VectorXd ur = u;  // reduced numbering (slaves 0)
+        if (hasRelations) u = tMat * ur;
 
         if (options.maxNodeRotation > 0.0) {
             bool excessive = false;
@@ -822,7 +989,12 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         cr.displacements.assign(nNodes, Dof6{});
         for (int i = 0; i < nNodes; ++i)
             for (int k = 0; k < 6; ++k) cr.displacements[i][k] = u(6 * i + k);
-        const Eigen::VectorXd ku = kFull * u;
+        // Blocked DOFs: residual of the reduced system (includes the forces transmitted by the relations to a blocked master). Oblique
+        // supports: residual of the unreduced system on the translations of the node (the force of the support, along its normal / across
+        // its line). Springs: -K u.
+        const Eigen::VectorXd ku = kFull * ur;
+        Eigen::VectorXd kuNodal;
+        if (anyOblique) kuNodal = kOrig * u;
         for (int i = 0; i < nAll; ++i) {
             bool supported = false;
             Dof6 r{};
@@ -831,6 +1003,18 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                     supported = true;
                     r[k] = ku(6 * i + k) - f(6 * i + k);
                 }
+            if (i < nNodes) {
+                const FemNode& n = model.nodes[i];
+                if (n.oblique != ObliqueSupport::None) {
+                    supported = true;
+                    for (int k = 0; k < 3; ++k) r[k] = kuNodal(6 * i + k) - fNodal(6 * i + k);
+                }
+                for (int k = 0; k < 6; ++k)
+                    if (n.spring[k] > 0.0 && !fixed[6 * i + k]) {
+                        supported = true;
+                        r[k] = -n.spring[k] * u(6 * i + k);
+                    }
+            }
             if (!supported) continue;
             if (i < nNodes) cr.reactions[model.nodes[i].id] = r;
             else cr.meshReactions[i] = r;
@@ -875,6 +1059,125 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                 for (int p = 0; p < 36; ++p) cr.triangleForces[e].nodalForces[p] = nodal(p);
             }
         }
+    }
+    return result;
+}
+
+std::string nonConvergenceMessage(const std::string& caseName) {
+    return format("Con las condiciones impuestas, no se alcanza la convergencia para el caso de carga '%s'. Revise las condiciones del modelo.",
+                  caseName);
+}
+
+LoadCaseInput combineLoadCases(std::span<const LoadCaseInput> cases, std::span<const double> coefficients, int id, const std::string& name) {
+    LoadCaseInput out;
+    out.id = id;
+    out.name = name;
+    const auto scale3 = [](Vec3 v, double c) { return Vec3{c * v[0], c * v[1], c * v[2]}; };
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+        const double c = i < coefficients.size() ? coefficients[i] : 0.0;
+        if (c == 0.0) continue;
+        const LoadCaseInput& lc = cases[i];
+        for (FemNodalLoad nl : lc.nodal) {
+            for (double& v : nl.values) v *= c;
+            out.nodal.push_back(nl);
+        }
+        for (FemBarLoad bl : lc.bars) {
+            bl.w1 = scale3(bl.w1, c);
+            bl.w2 = scale3(bl.w2, c);
+            bl.uniformTemperature *= c;
+            bl.gradientY *= c;
+            bl.gradientZ *= c;
+            out.bars.push_back(bl);
+        }
+        for (FemShellLoad sl : lc.shellLoads) {
+            sl.p0 *= c;
+            sl.px *= c;
+            sl.py *= c;
+            sl.value *= c;
+            out.shellLoads.push_back(sl);
+        }
+        for (FemDiaphragmLoad dl : lc.diaphragmLoads) {
+            dl.fx *= c;
+            dl.fy *= c;
+            out.diaphragmLoads.push_back(dl);
+        }
+        for (const auto& [node, values] : lc.prescribed) {
+            Dof6& acc = out.prescribed[node];
+            for (int k = 0; k < 6; ++k) acc[k] += c * values[k];
+        }
+    }
+    return out;
+}
+
+bool hasUnilateralSprings(const FrameModel& model) {
+    for (const FemNode& n : model.nodes)
+        for (int k = 0; k < 6; ++k)
+            if (n.spring[k] > 0.0 && n.springSense[k] != SpringSense::Both) return true;
+    return false;
+}
+
+LinearResult solveNonlinear(const FrameModel& model, std::span<const LoadCaseInput> combinedCases, const SolverOptions& options, int maxIterations) {
+    if (!hasUnilateralSprings(model)) return solveLinear(model, combinedCases, options);
+    struct Spring { int node; int dof; double sign; };
+    std::vector<Spring> springs;
+    for (std::size_t i = 0; i < model.nodes.size(); ++i)
+        for (int k = 0; k < 6; ++k) {
+            const FemNode& n = model.nodes[i];
+            if (n.spring[k] > 0.0 && n.springSense[k] != SpringSense::Both)
+                springs.push_back({static_cast<int>(i), k, n.springSense[k] == SpringSense::Positive ? 1.0 : -1.0});
+        }
+    LinearResult result;
+    result.cases.resize(combinedCases.size());
+    const auto worsen = [&](const LoadCaseResult& cr) {
+        if (result.status == SolveStatus::Ok && cr.status != SolveStatus::Ok) {
+            result.status = cr.status;
+            result.message = cr.message;
+        }
+    };
+    for (std::size_t c = 0; c < combinedCases.size(); ++c) {
+        const LoadCaseInput& lc = combinedCases[c];
+        std::vector<char> active(springs.size(), 1);
+        std::vector<std::vector<char>> seen;
+        LoadCaseResult& out = result.cases[c];
+        bool done = false;
+        for (int it = 0; it < std::max(1, maxIterations) && !done; ++it) {
+            seen.push_back(active);
+            FrameModel m = model;
+            for (std::size_t s = 0; s < springs.size(); ++s)
+                if (!active[s]) m.nodes[springs[s].node].spring[springs[s].dof] = 0.0;
+            LinearResult r = solveLinear(m, std::span<const LoadCaseInput>(&lc, 1), options);
+            for (const auto& [id, mask] : r.lockedDofs)
+                for (int k = 0; k < 6; ++k) result.lockedDofs[id][k] = result.lockedDofs[id][k] || mask[k];
+            if (result.mesh.positions.empty()) result.mesh = std::move(r.mesh);
+            LoadCaseResult& cr = r.cases.front();
+            if (cr.status != SolveStatus::Ok) {
+                out = std::move(cr);
+                if (out.status == SolveStatus::Mechanism) out.message = mechanismMessage(lc.name);  // text measured for "[1] PP" [V 10.1]
+                done = true;
+                break;
+            }
+            // A spring acts while the displacement has the sign of its sense; a dead band of 1e-12 m (rad) avoids flip-flop at u = 0.
+            std::vector<char> next(springs.size(), 0);
+            for (std::size_t s = 0; s < springs.size(); ++s) {
+                const double v = springs[s].sign * cr.displacements[springs[s].node][springs[s].dof];
+                next[s] = active[s] ? (v > -1e-12) : (v > 1e-12);
+            }
+            if (next == active) {
+                out = std::move(cr);
+                done = true;
+                break;
+            }
+            if (std::find(seen.begin(), seen.end(), next) != seen.end()) break;  // the set cycles
+            active = std::move(next);
+        }
+        if (!done) {
+            out = LoadCaseResult{};
+            out.status = SolveStatus::NotConverged;
+            out.message = nonConvergenceMessage(lc.name);
+        }
+        out.id = lc.id;
+        out.name = lc.name;
+        worsen(out);
     }
     return result;
 }
