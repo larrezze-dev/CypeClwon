@@ -1,4 +1,4 @@
-﻿<RCC>
+<RCC>
   <qresource prefix="/">
     <file>icons/app_logo.svg</file>
     <file>icons/check_white.svg</file>
@@ -155,5 +155,38 @@
     <file>icons/view_search.svg</file>
     <file>icons/select_pointer.svg</file>
     <file>icons/select_window.svg</file>
+    <file>icons/calc_nonlinear.svg</file>
+    <file>icons/calc_run.svg</file>
+    <file>icons/calc_design.svg</file>
+    <file>icons/calc_displacements.svg</file>
+    <file>icons/calc_reactions.svg</file>
+    <file>icons/calc_forces.svg</file>
+    <file>icons/calc_isovalues.svg</file>
+    <file>icons/calc_lacing.svg</file>
+    <file>icons/calc_seismic.svg</file>
+    <file>icons/calc_check.svg</file>
+    <file>icons/calc_uls.svg</file>
+    <file>icons/buckling_groups.svg</file>
+    <file>icons/buckling_combinations.svg</file>
+    <file>icons/buckling_calc.svg</file>
+    <file>icons/buckling_modes.svg</file>
+    <file>icons/buckling_coefficients.svg</file>
+    <file>icons/modal_cases.svg</file>
+    <file>icons/modal_calc.svg</file>
+    <file>icons/modal_modes.svg</file>
+    <file>icons/modal_list.svg</file>
+    <file>icons/pushover_cases.svg</file>
+    <file>icons/pushover_control.svg</file>
+    <file>icons/pushover_calc.svg</file>
+    <file>icons/pushover_capacity.svg</file>
+    <file>icons/pushover_hinges.svg</file>
+    <file>icons/incidences.svg</file>
+    <file>icons/report_error.svg</file>
+    <file>icons/report_warning.svg</file>
+    <file>icons/report_info.svg</file>
+    <file>icons/arrow_up.svg</file>
+    <file>icons/arrow_down.svg</file>
+    <file>icons/delete_marked.svg</file>
+    <file>icons/brush.svg</file>
   </qresource>
 </RCC>

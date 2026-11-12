@@ -112,6 +112,8 @@ private:
     void buildObraTab();
     /// Builds the groups of the Geometria tab built so far ("Planos", "Nudos"; the rest arrives with the bars).
     void buildGeometryTab();
+    /// Builds the Cálculo tab (orig_re03_ribbon_calculo.png, s_5.png): Tensión / Deformación (T-P8-06), Pandeo, Modal, Pushover, Incidencias.
+    void buildCalculationTab();
     /// Geometria > Planos > Rejilla / Niveles / Visibilidad (each edit is one undoable step).
     void editGrid();
     void editLevels();
@@ -156,6 +158,7 @@ private:
     ReferenceTool* m_referenceTool = nullptr;  ///< Geometria > Herramientas (T-P5-10)
     ImportTool* m_importTool = nullptr;        ///< Geometria > Importar (T-P5-11)
     BarTool* m_barTool = nullptr;    ///< Geometria > Barras (Barra / Pilar / Viga)
+    class CalculationTool* m_calculationTool = nullptr;  ///< Cálculo > Tensión / Deformación (T-P8-06)
     QAction* m_previousViewAction = nullptr;
     QAction* m_fullViewAction = nullptr;
     QAction* m_doubleViewAction = nullptr;

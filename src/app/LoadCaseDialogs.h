@@ -41,12 +41,17 @@ struct LoadCaseState {
     core::Panels panels;
     core::SurfaceLoads surfaceLoads;
     core::NodeSupports nodeSupports;
+    core::NonlinearCombinations nonlinearCombinations;  ///< deleting a hypothesis deletes the non-linear combinations in which it takes part (#380751)
     static LoadCaseState capture(const core::Project& project);
     void restoreTo(core::Project& project) const;
 };
 
 /// Question shown before deleting a hypothesis that has loads (#64905; the «.:» is literal, as measured in the original).
 QString deleteLoadCaseQuestion(const QString& label);
+/// Question before deleting a hypothesis, chosen from what goes with it (T-P8-06): loads only #64905 (measured format), non-linear combinations
+/// only #380751, both #380752. The wrapper «text: 'label'. ¿Desea continuar?» of #380751 / #380752 is copied from #64905 [N: not seen].
+/// Empty when nothing goes with it (the deletion is immediate, measured).
+QString deleteLoadCaseQuestion(const core::LoadCaseDependents& dependents, const QString& label);
 
 /// The two combos of a use category with their norm headings ("Hormigón: Eurocódigo 2" ...). Shared by "Categoría" and "Categorías de uso".
 class UseCategoryChoicesPanel : public QWidget {

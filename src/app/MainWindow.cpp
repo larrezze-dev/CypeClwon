@@ -61,6 +61,7 @@
 #include "ShellPropertiesTool.h"
 #include "NodalLoadTool.h"
 #include "BarLoadTool.h"
+#include "CalculationTool.h"
 #include "PanelTool.h"
 #include "ShellLoadTool.h"
 #include "UserMessages.h"
@@ -569,6 +570,51 @@ void MainWindow::createWorkArea() {
     stopLoadsWhen(m_bucklingTool);
     stopLoadsWhen(m_deflectionTool);
     stopLoadsWhen(m_shellPropsTool);
+    // Cálculo > Tensión / Deformación (T-P8-06): its result modes exclude every other viewport tool.
+    m_calculationTool->setDialogParent(this);
+    connect(m_calculationTool, &CalculationTool::statusChanged, this, [this](const QString& text) { statusBar()->showMessage(text); });
+    connect(m_calculationTool, &CalculationTool::aboutToActivate, this, [this, stopOthers] {
+        stopOthers();
+        m_generateTool->deactivate();
+        m_referenceTool->deactivate();
+        m_supportTool->deactivate();
+        m_ligatureTool->deactivate();
+        m_diaphragmTool->deactivate();
+        m_barEndsTool->deactivate();
+        m_bucklingTool->deactivate();
+        m_deflectionTool->deactivate();
+        m_shellPropsTool->deactivate();
+        m_nodalLoadTool->deactivate();
+        m_barLoadTool->deactivate();
+        m_shellLoadTool->deactivate();
+        m_panelTool->deactivate();
+    });
+    const auto stopResultsWhen = [this](auto* tool) {
+        connect(tool, &std::remove_pointer_t<decltype(tool)>::aboutToActivate, m_calculationTool, &CalculationTool::deactivate);
+    };
+    stopResultsWhen(m_nodeTool);
+    stopResultsWhen(m_barTool);
+    stopResultsWhen(m_pieceTool);
+    stopResultsWhen(m_describeTool);
+    stopResultsWhen(m_continuousTool);
+    stopResultsWhen(m_shellTool);
+    stopResultsWhen(m_transformTool);
+    stopResultsWhen(m_generateTool);
+    stopResultsWhen(m_referenceTool);
+    stopResultsWhen(m_supportTool);
+    stopResultsWhen(m_ligatureTool);
+    stopResultsWhen(m_diaphragmTool);
+    stopResultsWhen(m_barEndsTool);
+    stopResultsWhen(m_bucklingTool);
+    stopResultsWhen(m_deflectionTool);
+    stopResultsWhen(m_shellPropsTool);
+    stopResultsWhen(m_nodalLoadTool);
+    stopResultsWhen(m_barLoadTool);
+    stopResultsWhen(m_shellLoadTool);
+    stopResultsWhen(m_panelTool);
+    connect(m_leftPanel->layersPanel(), &LayersPanel::assignToolToggled, m_calculationTool, [this](bool on) {
+        if (on) m_calculationTool->deactivate();
+    });
     // The nodal loads are drawn only while the ribbon tab «Carga» is current (cargas_nudos.md 2.3).
     connect(ribbonBar(), &SARibbonBar::currentRibbonTabChanged, this, [this](int index) { m_nodalLoadTool->setLoadsVisible(index == 3); });
     connect(m_nodeTool, &NodeTool::aboutToActivate, m_shellPropsTool, &ShellPropertiesTool::deactivate);
@@ -728,6 +774,7 @@ void MainWindow::createWorkArea() {
             m_barLoadTool->structureChanged();
             m_shellLoadTool->structureChanged();
             m_panelTool->structureChanged();
+            m_calculationTool->structureChanged();
             // The viewports follow the history (grouped planes are cleared by an import).
         }  // every push / undo / redo: node buttons and 3D windows follow
     });
@@ -974,6 +1021,7 @@ void MainWindow::setProjectOpen(bool open) {
     m_barLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_shellLoadTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_panelTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
+    m_calculationTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_importTool->setProject(m_document ? &m_document->project : nullptr, &m_undo);
     m_leftPanel->layersPanel()->setStructure(m_document ? &m_document->project.structure : nullptr);
     m_undo.clear();  // every project starts with an empty history
@@ -1021,6 +1069,7 @@ void MainWindow::setProjectOpen(bool open) {
         m_barLoadTool->addViewport(viewport);
         m_shellLoadTool->addViewport(viewport);
         m_panelTool->addViewport(viewport);
+        m_calculationTool->addViewport(viewport);
         m_workArea->addDocumentWindow(tr("3D"), frame);
     } else if (!open) {
         m_workArea->mdiArea()->closeAllSubWindows();
@@ -1606,6 +1655,65 @@ void MainWindow::buildRibbonTabs() {
     }
     buildObraTab();
     buildGeometryTab();
+    buildCalculationTab();
+}
+
+void MainWindow::buildCalculationTab() {
+    SARibbonCategory* tab = ribbonBar()->categoryPages().at(5);
+    const auto notYet = [this] { statusBar()->showMessage(tr("Esta función aún no está disponible."), 4000); };
+    // `enabled` = state of the original on a calculated work without checks (s_5.png / rp_02_postcalc.png); the buttons of later tasks report
+    // that they are not available yet.
+    const auto make = [&](const QString& icon, const QString& text, bool enabled) {
+        auto* action = new QAction(themedIcon(icon), text, this);
+        action->setEnabled(enabled);
+        if (enabled) connect(action, &QAction::triggered, this, notYet);
+        return action;
+    };
+    m_calculationTool = new CalculationTool(this);
+    m_calculationTool->nonlinearAction()->setIcon(themedIcon(QStringLiteral("calc_nonlinear")));
+    m_calculationTool->calculateAction()->setIcon(themedIcon(QStringLiteral("calc_run")));
+    m_calculationTool->displacementsAction()->setIcon(themedIcon(QStringLiteral("calc_displacements")));
+    m_calculationTool->reactionsAction()->setIcon(themedIcon(QStringLiteral("calc_reactions")));
+    m_calculationTool->forcesAction()->setIcon(themedIcon(QStringLiteral("calc_forces")));
+    SARibbonPanel* stress = tab->addPanel(tr("Tensión / Deformación"));
+    stress->addLargeAction(m_calculationTool->nonlinearAction());
+    stress->addLargeAction(m_calculationTool->calculateAction());
+    stress->addLargeAction(make(QStringLiteral("calc_design"), tr("Dimensionar"), false));
+    stress->addSmallAction(m_calculationTool->displacementsAction());
+    stress->addSmallAction(m_calculationTool->reactionsAction());
+    stress->addSmallAction(m_calculationTool->forcesAction());
+    stress->addSmallAction(make(QStringLiteral("calc_isovalues"), tr("Isovalores"), false));    // T-P8-07
+    stress->addSmallAction(make(QStringLiteral("calc_lacing"), tr("Empresillado"), false));     // T-P8-07
+    stress->addLargeAction(make(QStringLiteral("calc_seismic"), tr("Sismo dinámico"), false));  // phase 10
+    stress->addLargeAction(make(QStringLiteral("calc_check"), tr("Comprobar elementos"), false));       // phase 9
+    stress->addLargeAction(make(QStringLiteral("calc_uls"), tr("Comprobaciones E.L.U."), false));      // phase 9
+
+    SARibbonPanel* buckling = tab->addPanel(tr("Pandeo"));
+    buckling->addLargeAction(make(QStringLiteral("buckling_groups"), tr("Grupos de análisis"), true));
+    buckling->addLargeAction(make(QStringLiteral("buckling_combinations"), tr("Combinaciones"), true));
+    buckling->addLargeAction(make(QStringLiteral("buckling_calc"), tr("Calcular"), true));
+    buckling->addSmallAction(make(QStringLiteral("buckling_modes"), tr("Modos de pandeo"), false));
+    buckling->addSmallAction(make(QStringLiteral("calc_isovalues"), tr("Isovalores"), false));
+    buckling->addSmallAction(make(QStringLiteral("buckling_coefficients"), tr("Asignar coeficientes"), false));
+
+    SARibbonPanel* modal = tab->addPanel(tr("Modal"));
+    modal->addLargeAction(make(QStringLiteral("modal_cases"), tr("Casos de carga"), true));
+    modal->addLargeAction(make(QStringLiteral("modal_calc"), tr("Calcular"), true));
+    modal->addLargeAction(make(QStringLiteral("modal_modes"), tr("Modos de vibración"), false));
+    modal->addLargeAction(make(QStringLiteral("modal_list"), tr("Listado"), false));
+
+    SARibbonPanel* pushover = tab->addPanel(tr("Pushover"));
+    pushover->addLargeAction(make(QStringLiteral("pushover_cases"), tr("Casos de carga"), true));
+    pushover->addLargeAction(make(QStringLiteral("pushover_control"), tr("Nudo de control"), true));
+    pushover->addLargeAction(make(QStringLiteral("pushover_calc"), tr("Calcular"), true));
+    pushover->addSmallAction(make(QStringLiteral("calc_displacements"), tr("Desplazamientos"), false));
+    pushover->addSmallAction(make(QStringLiteral("calc_reactions"), tr("Reacciones"), false));
+    pushover->addSmallAction(make(QStringLiteral("calc_forces"), tr("Esfuerzos"), false));
+    pushover->addSmallAction(make(QStringLiteral("calc_isovalues"), tr("Isovalores"), false));
+    pushover->addSmallAction(make(QStringLiteral("pushover_capacity"), tr("Capacidad"), false));
+    pushover->addSmallAction(make(QStringLiteral("pushover_hinges"), tr("Rótulas plásticas"), false));
+
+    tab->addPanel(QString())->addLargeAction(make(QStringLiteral("incidences"), tr("Incidencias"), true));
 }
 
 }  // namespace cc::app

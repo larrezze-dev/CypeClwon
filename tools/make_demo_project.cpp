@@ -17,6 +17,43 @@ int main(int argc, char** argv) {
     const bool steel = argc > 2 && std::string(argv[2]) == "steel";  // bars with a steel material (steel variant of the Pandeo dialog)
     using namespace cc::core;
     ProjectDocument doc;
+    if (argc > 2 && std::string(argv[2]) == "results") {  // T-P8-06 smoke test: the measured cantilever C1 plus a portal leg, calculable
+        auto& st = doc.project.structure;
+        Material mat;
+        mat.name = "ref";
+        mat.kind = MaterialKind::Steel;
+        mat.elasticModulusMPa = 210000.0;
+        mat.poissonRatio = 0.3;
+        mat.densityKnM3 = 77.01;
+        const int m = st.addMaterial(mat);
+        CrossSection cs;
+        cs.name = "ref";
+        cs.areaM2 = 0.01;
+        cs.inertiaYM4 = 1e-4;
+        cs.inertiaZM4 = 5e-5;
+        cs.torsionM4 = 8e-5;
+        cs.shearAreaYM2 = 0.004;
+        cs.shearAreaZM2 = 0.004;
+        const int s = st.addSection(cs);
+        const int n1 = st.addNode({0, 0, 0}), n2 = st.addNode({0, 0, 4}), n3 = st.addNode({6, 0, 4}), n4 = st.addNode({6, 0, 0});
+        st.addBar(n1, n2, m, s);
+        st.addBar(n2, n3, m, s);
+        st.addBar(n3, n4, m, s);
+        ExternalSupport fixed;
+        fixed.type = ExternalSupportType::Fixed;
+        doc.project.nodeSupports.external[n1] = fixed;
+        doc.project.nodeSupports.external[n4] = fixed;
+        NodalLoad load;
+        load.id = doc.project.nodalLoads.nextId++;
+        load.nodeId = n2;
+        load.loadCaseId = 0;
+        load.magnitude = 20.0;
+        load.direction = LoadDirection::PlusX;
+        doc.project.nodalLoads.items.push_back(load);
+        const auto saved = saveProjectFile(argv[1], doc);
+        if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
+        return 0;
+    }
     if (argc > 2 && std::string(argv[2]).rfind("shellonly", 0) == 0) {  // T-P7-04 visual checks: one 4 x 4 m shell (100 mm) alone, with or without loads
         auto& st = doc.project.structure;
         const int n1 = st.addNode({0, 0, 0}), n2 = st.addNode({4, 0, 0}), n3 = st.addNode({4, 4, 0}), n4 = st.addNode({0, 4, 0});
