@@ -1,5 +1,7 @@
 # Solver lineal de pórtico 3D de CYPE 3D: investigación para T-P8-01
 
+> Actualización 2026-11-12: con la licencia activada se midió el solver en el original; ver `solver_medidas_original.md` (Timoshenko confirmado, convenio de signos, empotramiento parcial, carga por longitud, temperatura). Las afirmaciones [N] de las secciones 4.1, 4.4, 6 y 7 sobre estos puntos quedan superadas por ese documento.
+
 Fecha: 2026-11-12. Vía principal: REA (cyopensees.dll, cyopenseesbas.dll, ed3dlib.dll, calcmef.dll, calcmallad3d.dll). El original **no se lanzó**: Calcular y Dimensionar están bloqueados por la barrera de licencia «Permisos necesarios» (módulo M3D, ver `ui/t_re_03_cierre_huecos.md` §5) y no se elude. Por tanto no hay valores de referencia medidos en el original: los de la sección 8 son analíticos o de un solver independiente, y T-P8-05 (validación cruzada) queda bloqueada (ticket sugerido al final).
 
 Marcas: **[V]** verificado en código o cadenas del original (REA); **[N]** no verificado (inferencia, hipótesis o hueco).
