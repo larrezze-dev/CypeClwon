@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "core/fem/shell_model.h"
+
 namespace cc::fem {
 
 /// Linear static analysis of 3D frames (T-P8-01). Behaviour source: docs/research/solver_lineal_portico.md.
@@ -27,8 +29,10 @@ namespace cc::fem {
 ///  - Torsion: St. Venant (G J / L); warping is not part of the linear element (verified: Iw is not passed to the element).
 ///  - Section forces: see applySignConvention() in fem/linear_solver.h (the ONLY place where the sign convention is decided).
 ///
+/// Shells (T-P8-02): FrameModel::shells, meshed and solved with the bars (fem/shell_model.h).
+///
 /// Hooks for later tasks (NOT implemented here, see .tickets.md TK-106): rigid end offsets / "tamaño de nudo" (-jntOffset), ligatures
-/// (equalDOF), rigid diaphragms, oblique supports, compression-only springs, internal links of nodes and shells (T-P8-02). `FemNode::spring`
+/// (equalDOF), rigid diaphragms, oblique supports, compression-only springs, internal links of nodes. `FemNode::spring`
 /// is already honoured by the solver as a linear spring to the ground but the project adapter does not fill it yet (T-P8-03).
 
 using Vec3 = std::array<double, 3>;
@@ -104,11 +108,13 @@ struct LoadCaseInput {
     std::vector<FemNodalLoad> nodal;
     std::vector<FemBarLoad> bars;
     std::map<int, Dof6> prescribed;  ///< node id -> values (only the blocked DOFs are used)
+    std::vector<FemShellLoad> shellLoads;  ///< loads on shells (shell = FemShell::id)
 };
 
 struct FrameModel {
     std::vector<FemNode> nodes;
     std::vector<FemBar> bars;
+    std::vector<FemShell> shells;
 };
 
 struct SolverOptions {
@@ -116,7 +122,7 @@ struct SolverOptions {
     double pivotTolerance = 1e-11;     ///< a pivot below tolerance * K_ii means a mechanism
     double orphanTolerance = 1e-13;    ///< a diagonal below tolerance * max diagonal means a DOF without stiffness
     double nullModeTolerance = 1e-9;   ///< relative residual below which a collinear-chain twist is an exact null mode (fixed to 0)
-    double maxNodeRotation = 1.5707963267948966;  ///< rad; a node rotation above it gives ExcessiveDisplacements [V], 0 = no check
+    double maxNodeRotation = 1.5707963267948966;  ///< rad; a rotation of a bar node above it gives ExcessiveDisplacements [V] (shell-only nodes not checked [N]), 0 = no check
 };
 
 /// ExcessiveDisplacements: a node rotation exceeded pi/2 [V, solver_medidas_original.md 9.2]; the original then disables the results.
@@ -147,6 +153,10 @@ struct LoadCaseResult {
     std::map<int, Dof6> reactions;       ///< node id -> forces of the supports on the structure (global; 0 on free DOFs)
     std::vector<BarEndForces> barForces; ///< per bar, in FrameModel::bars order
     std::vector<BarEndDisplacements> barDisplacements;  ///< per bar, in FrameModel::bars order
+    // Shells (only when the model has shells):
+    std::vector<Dof6> meshDisplacements;   ///< per mesh node (LinearResult::mesh.positions order; the first ones repeat `displacements`)
+    std::map<int, Dof6> meshReactions;     ///< generated mesh node index -> reactions of the edge bonds (global)
+    std::vector<TriangleForces> triangleForces;  ///< per mesh triangle
 };
 
 struct LinearResult {
@@ -158,9 +168,11 @@ struct LinearResult {
     /// DOFs without any stiffness (every element released there, e.g. the rotations of a node where all bar ends are pinned) that were
     /// locked automatically, as node id -> mask. The original avoids them with springs of stiffness 1e-3 (cyosrelac_cte_infima).
     std::map<int, std::array<bool, 6>> lockedDofs;
-    /// Rigid twist modes of collinear bar chains that no load or coupling excites (rule [R] of TK-108): one DOF per chain was fixed to 0
-    /// without any warning (node id -> mask), like the original, which returns Gx = 0.000 along the chain.
+    /// Null modes of the stiffness that no load excites (rule [R] of TK-108, refined in solver_medidas_original.md 10.3): one DOF per mode was
+    /// fixed to 0 without any warning (node id -> mask; generated mesh nodes are not listed), like the original (Gx = 0.000 along a chain of
+    /// collinear bars; a bar pinned at its base with an axial load). A load case that excites a null mode is a mechanism.
     std::map<int, std::array<bool, 6>> nullModeDofs;
+    ShellMesh mesh;                         ///< mesh of the shells (empty without shells)
 };
 
 }  // namespace cc::fem

@@ -326,9 +326,13 @@ std::optional<BarFrame> barLocalAxes(const StructuralModel& model, int barId) {
     if (f.length < 1e-12) return std::nullopt;
     f.x = geom::unit(axis);
     if (bar->xAxisInverted) f.x = geom::scale(f.x, -1.0);
+    f.along = f.x;
     Point3 z0;
     if (std::fabs(f.x.z) > 1.0 - 1e-9) {
-        z0 = {0, 1, 0};  // vertical bar going up: y = +X, z = +Y (drawn axes of the original, solver_medidas_original.md 3.1)
+        // Vertical bar: x = +Z, y = +X, z = +Y whatever the direction of definition (drawn axes of the original for a bar going up and for one
+        // going down, solver_medidas_original.md 3.1 and 10.2 [V]). [N] whether "invertir eje x" can flip a vertical bar.
+        f.x = {0, 0, 1};
+        z0 = {0, 1, 0};
     } else {
         z0 = geom::unit(geom::sub(Point3{0, 0, 1}, geom::scale(f.x, f.x.z)));
     }
@@ -465,7 +469,7 @@ BarLoadDrawing barLoadDrawing(const BarLoadData& d, const BarFrame& f, const Loa
     out.type = d.type;
     if (!(f.length > 0.0)) return out;
     const BarLoadExtent e = barLoadExtent(d, f.length);
-    const auto at = [&](double x) { return add(f.origin, scale(f.x, x)); };
+    const auto at = [&](double x) { return add(f.origin, scale(f.along, x)); };
 
     if (isPointLikeLoad(d.type)) {
         const Point3 dir = barLoadDirection(d, f);

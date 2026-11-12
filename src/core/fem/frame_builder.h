@@ -27,10 +27,16 @@ namespace cc::fem {
 ///    the chosen direction (Y+, Z+ or an angle: +z rotated about local x, 90 degrees = -y), T2 on the face towards it; the mean (T1 + T2) / 2 is
 ///    also applied as a uniform increment; the direction is split into the gradient across hy = left + right width (y) and hz = lower + upper
 ///    depth (z) of the section envelope.
-///  - Self weight (case id 0): uniform load gamma * A_average along global -Z for every bar (the per-bar switch only with
-///    FrameBuildOptions::honourSelfWeightSwitch, see there; the original has no per-bar switch at all [V, TK-105h]).
+///  - Self weight (case id 0): uniform load gamma * A_average along global -Z for every bar whose generation is active (per-bar switch [V,
+///    TK-105h]); shells: gamma * h per m2 of surface along global -Z unless switched off.
+///  - nodeI: the node from which the local x axis points (core::barLocalAxes; a vertical bar always has x = +Z [V, TK-105f]).
+///  - Shells (T-P8-02): every shell with its material (concrete grade of the shell or of the general data; generic isotropic / orthotropic),
+///    thickness, ballast, the record of Propiedades > Láminas (maximum triangle side, 8 stiffness factors) and the rigid exterior bonds of its
+///    edges; shell loads (uniform / variable along local x or y / temperature / shrinkage).
 ///  - Unsupported data for this task (T-P8-02 / T-P8-03, TK-106) are reported in `unsupported` and NOT modelled: elastic and oblique supports
-///    (those DOFs stay free), internal links other than "empotrado", ligatures, diaphragms and shells. Callers must not present results
+///    (those DOFs stay free), internal links other than "empotrado", ligatures, diaphragms, elastic / oblique edge bonds, interior edge bonds
+///    other than «Empotrada», compression-only ballast, eccentric shells and nodes inside a shell that are not its corners. Callers must not
+///    present results
 ///    while `unsupported` is not empty.
 struct FrameBuild {
     FrameModel model;
@@ -42,10 +48,10 @@ struct FrameBuild {
 
 /// Options of the adapter.
 struct FrameBuildOptions {
-    /// The original ALWAYS includes the self weight of the bars: «Generación de cargas > Desactivar» (Carga > Barras > Peso propio) did not
-    /// remove it from the results [V, docs/research/solver_medidas_original.md section 4]. The per-bar switch of the clone
-    /// (BarLoads::selfWeightOff, #64002) is therefore ignored unless this is set (kept for the GUI and as a documented deviation hook).
-    bool honourSelfWeightSwitch = false;
+    /// Per-bar self weight switch (BarLoads::selfWeightOff, «Carga > Barras > Peso propio > Desactivar» + window selection + right button):
+    /// honoured by the original [V, solver_medidas_original.md 10.1: Rz = 0 at the bar switched off]. Shells always honour theirs
+    /// (ShellLoads::selfWeightOff [V, elemento_lamina_bandas.md 13.5]). Kept as an option only for tests.
+    bool honourSelfWeightSwitch = true;
 };
 
 FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options = {});

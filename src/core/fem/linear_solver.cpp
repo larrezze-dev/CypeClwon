@@ -8,6 +8,9 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
+#include "core/fem/shell_analysis.h"
+#include "core/fem/shell_element.h"
+
 namespace cc::fem {
 
 namespace {
@@ -374,96 +377,61 @@ int locateMechanismDof(const Eigen::SparseMatrix<double>& kff, const std::vector
     return freeDofs[best];
 }
 
-/// A rigid twist of a chain of collinear bars: rotation about the common axis at every node of the chain.
-struct TwistMode {
-    std::vector<std::pair<int, double>> dofs;  ///< global DOF, component of the mode
-    int dropped = -1;                          ///< the DOF fixed to 0 to remove the mode
+/// Part of a bar between two mesh nodes (a bar along a shell edge is split at the mesh nodes of the edge; other bars are one segment).
+struct Segment {
+    int bar = 0;          ///< index into FrameModel::bars
+    double x0 = 0.0;      ///< distance of the segment origin from nodeI of the bar
+    ElementData el;
+    std::array<int, 2> nodes{};  ///< mesh node indices
 };
 
-/// Rule [R] of TK-108 (docs/research/solver_medidas_original.md 9.1): a null mode whose support is only the rotation about the axis of a chain of
-/// collinear bars (the bars joined through torsion-transmitting ends) is fixed to 0 without a warning; any other null mode is a mechanism.
-/// Candidate modes are tested exactly: K v must vanish (relative residual below `tolerance`), so a chain coupled to anything else is not a mode.
-std::vector<TwistMode> findTwistModes(const FrameModel& model, const std::vector<std::array<int, 2>>& barNodes, const Eigen::SparseMatrix<double>& k,
-                                      const std::vector<char>& fixed, const std::vector<char>& orphan, double tolerance) {
-    const int nBars = static_cast<int>(model.bars.size());
-    std::vector<int> parent(nBars);
-    for (int b = 0; b < nBars; ++b) parent[b] = b;
-    const auto find = [&](int a) {
-        while (parent[a] != a) a = parent[a] = parent[parent[a]];
-        return a;
-    };
-    const auto transmitsTwist = [&](int b) {
-        return model.bars[b].releases[0][0].kind != EndRelease::Kind::Free && model.bars[b].releases[1][0].kind != EndRelease::Kind::Free;
-    };
-    std::unordered_map<int, std::vector<int>> atNode;
-    for (int b = 0; b < nBars; ++b)
-        if (transmitsTwist(b)) {
-            atNode[barNodes[b][0]].push_back(b);
-            atNode[barNodes[b][1]].push_back(b);
+/// The loads of a bar restricted to the segment [a, b] and measured from a.
+std::vector<LocalLoad> segmentLoads(const std::vector<LocalLoad>& loads, double a, double b, bool last) {
+    std::vector<LocalLoad> out;
+    for (const LocalLoad& l : loads) {
+        switch (l.kind) {
+            case BarLoadKind::Temperature: out.push_back(l); break;
+            case BarLoadKind::PointForce:
+            case BarLoadKind::PointMoment:
+                if (l.x1 >= a - 1e-12 && (l.x1 < b - 1e-12 || (last && l.x1 <= b + 1e-12))) {
+                    LocalLoad s = l;
+                    s.x1 = std::clamp(l.x1 - a, 0.0, b - a);
+                    out.push_back(s);
+                }
+                break;
+            case BarLoadKind::Distributed: {
+                const double p = std::max(l.x1, a), q = std::min(l.x2, b);
+                if (q - p <= 1e-12 || l.x2 - l.x1 <= 0.0) break;
+                const auto w = [&](double x) -> V3 { return l.w1 + (l.w2 - l.w1) * ((x - l.x1) / (l.x2 - l.x1)); };
+                LocalLoad s = l;
+                s.x1 = p - a;
+                s.x2 = q - a;
+                s.w1 = w(p);
+                s.w2 = w(q);
+                out.push_back(s);
+                break;
+            }
         }
-    for (const auto& [node, bars] : atNode)
-        for (std::size_t i = 0; i < bars.size(); ++i)
-            for (std::size_t j = i + 1; j < bars.size(); ++j) {
-                const V3 a = toEigen(model.bars[bars[i]].ex), c = toEigen(model.bars[bars[j]].ex);
-                if (std::fabs(a.dot(c)) > 1.0 - 1e-9) parent[find(bars[i])] = find(bars[j]);
-            }
-    std::map<int, std::vector<int>> components;
-    for (int b = 0; b < nBars; ++b)
-        if (transmitsTwist(b)) components[find(b)].push_back(b);
-
-    std::vector<TwistMode> modes;
-    std::vector<double> acc(static_cast<std::size_t>(k.rows()), 0.0);
-    for (const auto& [root, bars] : components) {
-        (void)root;
-        std::vector<int> nodes;
-        for (int b : bars) {
-            nodes.push_back(barNodes[b][0]);
-            nodes.push_back(barNodes[b][1]);
-        }
-        std::sort(nodes.begin(), nodes.end());
-        nodes.erase(std::unique(nodes.begin(), nodes.end()), nodes.end());
-        const V3 axis = toEigen(model.bars[bars.front()].ex);
-        TwistMode mode;
-        bool admissible = true;
-        for (int n : nodes)
-            for (int c = 0; c < 3; ++c) {
-                if (std::fabs(axis(c)) < 1e-9) continue;
-                const int d = 6 * n + 3 + c;
-                if (fixed[d] || orphan[d]) admissible = false;
-                mode.dofs.emplace_back(d, axis(c));
-            }
-        if (!admissible || mode.dofs.empty()) continue;
-        // K v = sum of the columns of the DOFs of the mode.
-        std::vector<int> touched;
-        std::vector<char> seen(acc.size(), 0);
-        double scale = 0.0;
-        for (const auto& [d, v] : mode.dofs)
-            for (Eigen::SparseMatrix<double>::InnerIterator it(k, d); it; ++it) {
-                const int row = static_cast<int>(it.row());
-                if (!seen[row]) { seen[row] = 1; touched.push_back(row); }
-                acc[row] += it.value() * v;
-                scale = std::max(scale, std::fabs(it.value() * v));
-            }
-        double residual = 0.0;
-        for (int row : touched) {
-            residual = std::max(residual, std::fabs(acc[row]));
-            acc[row] = 0.0;
-        }
-        if (scale <= 0.0 || residual > tolerance * scale) continue;
-        // Remove the mode by fixing the largest component of the first node of the chain.
-        mode.dropped = mode.dofs.front().first;
-        double best = -1.0;
-        for (const auto& [d, v] : mode.dofs)
-            if (d / 6 == nodes.front() && std::fabs(v) > best) {
-                best = std::fabs(v);
-                mode.dropped = d;
-            }
-        modes.push_back(std::move(mode));
     }
-    return modes;
+    return out;
 }
 
+/// A null mode of the stiffness found by a null pivot: the DOF fixed to remove it and the mode itself (full DOF vector).
+struct NullMode {
+    int dof = -1;
+    Eigen::VectorXd v;
+};
+
 }  // namespace
+
+std::string mechanismWarningZone(int dof, double x1, double y1, double x2, double y2, double z) {
+    std::string s = mechanismWarning(dof, {0, 0, 0});
+    const std::size_t a = s.find("\nEl error se encuentra");
+    const std::size_t b = s.find("\nAlguna de las barras");
+    char zone[200];
+    std::snprintf(zone, sizeof zone, "\nEl error se encuentra en la zona de coordenadas:\n (%.6f,%.6f) a (%.6f,%.6f), en la cota %.6f", x1, y1, x2, y2, z);
+    return s.substr(0, a) + zone + s.substr(b);
+}
 
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options) {
     LinearResult result;
@@ -484,20 +452,35 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         return result;
     };
 
-    // --- 1. nodes and DOFs ---
+    // --- 1. nodes, shell mesh and DOFs ---
     const int nNodes = static_cast<int>(model.nodes.size());
     std::unordered_map<int, int> nodeIndex;
     for (int i = 0; i < nNodes; ++i) {
         if (!nodeIndex.emplace(model.nodes[i].id, i).second) return failAll(SolveStatus::Error, formatInt("Nudo %d repetido.", model.nodes[i].id));
     }
-    const int nDof = 6 * nNodes;
+    std::unordered_map<int, int> shellIndex;
+    for (std::size_t s = 0; s < model.shells.size(); ++s) {
+        const FemShell& sh = model.shells[s];
+        if (!shellIndex.emplace(sh.id, static_cast<int>(s)).second) return failAll(SolveStatus::Error, formatInt("Lámina %d repetida.", sh.id));
+        const auto bad = [](double v) { return !std::isfinite(v) || v <= 0.0; };
+        const bool material = sh.orthotropic ? !(bad(sh.e1) || bad(sh.e2) || bad(sh.g12) || bad(sh.g13) || bad(sh.g23))
+                                             : !(bad(sh.e) || !std::isfinite(sh.nu) || sh.nu <= -1.0 || sh.nu >= 0.5);
+        bool factors = true;
+        for (double f : sh.factors) factors = factors && std::isfinite(f) && f >= 0.0;
+        if (bad(sh.thickness) || !material || !factors || !std::isfinite(sh.ballast) || sh.ballast < 0.0)
+            return failAll(SolveStatus::Error, formatInt("La lámina %d no tiene una sección válida.", sh.id));
+    }
+    ShellMesh mesh = meshShells(model);
+    const int nAll = static_cast<int>(mesh.positions.size());
+    const int nDof = 6 * nAll;
     if (nDof == 0) return failAll(SolveStatus::Error, "No hay nudos que calcular.");
+    const bool hasShells = !model.shells.empty();
 
-    // --- 2. elements ---
+    // --- 2. bar elements (segments) ---
     std::unordered_map<int, int> barIndex;
-    std::vector<ElementData> elements;
-    elements.reserve(model.bars.size());
-    std::vector<std::array<int, 2>> barNodes;
+    std::vector<Segment> segments;
+    std::vector<std::vector<int>> barSegments(model.bars.size());
+    std::vector<double> barLength(model.bars.size(), 0.0);
     for (std::size_t b = 0; b < model.bars.size(); ++b) {
         const FemBar& bar = model.bars[b];
         const auto ni = nodeIndex.find(bar.nodeI), nj = nodeIndex.find(bar.nodeJ);
@@ -507,23 +490,67 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         const Vec3 &pi = model.nodes[ni->second].position, &pj = model.nodes[nj->second].position;
         const double length = std::sqrt((pj[0] - pi[0]) * (pj[0] - pi[0]) + (pj[1] - pi[1]) * (pj[1] - pi[1]) + (pj[2] - pi[2]) * (pj[2] - pi[2]));
         if (const std::string err = checkBar(bar, length); !err.empty()) return failAll(SolveStatus::Error, err);
-        elements.push_back(buildElement(bar, length, options));
-        barNodes.push_back({ni->second, nj->second});
+        barLength[b] = length;
+        std::vector<std::pair<int, double>> chain{{ni->second, 0.0}, {nj->second, length}};
+        if (const auto it = mesh.barSplits.find(static_cast<int>(b)); it != mesh.barSplits.end()) chain = it->second;
+        for (std::size_t k = 0; k + 1 < chain.size(); ++k) {
+            FemBar part = bar;
+            for (int e = 0; e < 2; ++e) {
+                const bool outer = (e == 0 && k == 0) || (e == 1 && k + 2 == chain.size());
+                if (!outer) part.releases[e] = {};
+            }
+            Segment seg;
+            seg.bar = static_cast<int>(b);
+            seg.x0 = chain[k].second;
+            seg.el = buildElement(part, chain[k + 1].second - chain[k].second, options);
+            seg.nodes = {chain[k].first, chain[k + 1].first};
+            barSegments[b].push_back(static_cast<int>(segments.size()));
+            segments.push_back(std::move(seg));
+        }
     }
+
+    // --- 2b. shell elements ---
+    std::vector<detail::ShellElement> shellElements;
+    shellElements.reserve(mesh.triangles.size());
+    for (const ShellMesh::Triangle& t : mesh.triangles) {
+        std::array<Vec3S, 6> pos;
+        for (int k = 0; k < 6; ++k) pos[k] = mesh.positions[t.nodes[k]];
+        shellElements.push_back(detail::buildShellElement(model.shells[t.shell], pos));
+        if (!shellElements.back().valid) return failAll(SolveStatus::Error, formatInt("La lámina %d tiene elementos degenerados.", model.shells[t.shell].id));
+    }
+    // Local 2D coordinates of the nodes of every triangle in the system of its shell (pressure fields, bands).
+    const auto shellXY = [&](const ShellMesh::Triangle& t) {
+        const FemShell& sh = model.shells[t.shell];
+        const Vec3S& o = mesh.positions[nodeIndex.at(sh.nodes.front())];
+        std::array<std::array<double, 2>, 6> xy{};
+        for (int k = 0; k < 6; ++k) {
+            const Vec3S& p = mesh.positions[t.nodes[k]];
+            const double d[3] = {p[0] - o[0], p[1] - o[1], p[2] - o[2]};
+            xy[k] = {d[0] * sh.ex[0] + d[1] * sh.ex[1] + d[2] * sh.ex[2], d[0] * sh.ey[0] + d[1] * sh.ey[1] + d[2] * sh.ey[2]};
+        }
+        return xy;
+    };
 
     // --- 3. global stiffness (all DOFs) ---
     std::vector<Eigen::Triplet<double>> triplets;
-    triplets.reserve(elements.size() * 144 + nDof);
-    for (std::size_t b = 0; b < elements.size(); ++b) {
+    triplets.reserve(segments.size() * 144 + shellElements.size() * 1296 + nDof);
+    for (const Segment& seg : segments) {
         int dof[12];
         for (int k = 0; k < 6; ++k) {
-            dof[k] = 6 * barNodes[b][0] + k;
-            dof[6 + k] = 6 * barNodes[b][1] + k;
+            dof[k] = 6 * seg.nodes[0] + k;
+            dof[6 + k] = 6 * seg.nodes[1] + k;
         }
-        const Mat12& kg = elements[b].kg;
+        const Mat12& kg = seg.el.kg;
         for (int p = 0; p < 12; ++p)
             for (int q = 0; q < 12; ++q)
                 if (kg(p, q) != 0.0) triplets.emplace_back(dof[p], dof[q], kg(p, q));
+    }
+    for (std::size_t e = 0; e < shellElements.size(); ++e) {
+        const auto& kg = shellElements[e].kGlobal;
+        const auto& nodes = mesh.triangles[e].nodes;
+        for (int p = 0; p < 36; ++p)
+            for (int q = 0; q < 36; ++q)
+                if (kg(p, q) != 0.0) triplets.emplace_back(6 * nodes[p / 6] + p % 6, 6 * nodes[q / 6] + q % 6, kg(p, q));
     }
     for (int i = 0; i < nNodes; ++i)
         for (int k = 0; k < 6; ++k) {
@@ -538,69 +565,126 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
     const Eigen::VectorXd diag = kFull.diagonal();
     const double maxDiag = diag.cwiseAbs().maxCoeff();
 
-    // --- 4. constrained (supports), orphan (no stiffness) and free DOFs ---
+    // --- 4. constrained (supports and edge bonds), orphan (no stiffness) and free DOFs ---
     std::vector<char> fixed(nDof, 0), orphan(nDof, 0);
-    for (int i = 0; i < nNodes; ++i)
-        for (int k = 0; k < 6; ++k) fixed[6 * i + k] = model.nodes[i].fixed[k] ? 1 : 0;
+    for (int i = 0; i < nAll; ++i)
+        for (int k = 0; k < 6; ++k) fixed[6 * i + k] = ((i < nNodes && model.nodes[i].fixed[k]) || mesh.edgeFixed[i][k]) ? 1 : 0;
     for (int d = 0; d < nDof; ++d) {
         if (!fixed[d] && std::fabs(diag(d)) <= options.orphanTolerance * maxDiag) {
             orphan[d] = 1;
-            result.lockedDofs[model.nodes[d / 6].id][d % 6] = true;
+            if (d / 6 < nNodes) result.lockedDofs[model.nodes[d / 6].id][d % 6] = true;
         }
     }
-    // Rigid twists of collinear chains that nothing excites: one DOF each is fixed to 0 (rule [R], TK-108). Other null modes stay and are
-    // reported as a mechanism by the pivot check.
-    const std::vector<TwistMode> twistModes = findTwistModes(model, barNodes, kFull, fixed, orphan, options.nullModeTolerance);
     std::vector<char> nullFixed(nDof, 0);
-    for (const TwistMode& m : twistModes) {
-        nullFixed[m.dropped] = 1;
-        result.nullModeDofs[model.nodes[m.dropped / 6].id][m.dropped % 6] = true;
-    }
     std::vector<int> freeIndex(nDof, -1);
     std::vector<int> freeDofs;
-    for (int d = 0; d < nDof; ++d)
-        if (!fixed[d] && !orphan[d] && !nullFixed[d]) {
-            freeIndex[d] = static_cast<int>(freeDofs.size());
-            freeDofs.push_back(d);
-        }
-    const int nFree = static_cast<int>(freeDofs.size());
+    Eigen::SparseMatrix<double> kff, kfc;
+    const auto partition = [&]() {
+        std::fill(freeIndex.begin(), freeIndex.end(), -1);
+        freeDofs.clear();
+        for (int d = 0; d < nDof; ++d)
+            if (!fixed[d] && !orphan[d] && !nullFixed[d]) {
+                freeIndex[d] = static_cast<int>(freeDofs.size());
+                freeDofs.push_back(d);
+            }
+        const int nf = static_cast<int>(freeDofs.size());
+        std::vector<Eigen::Triplet<double>> tff, tfc;
+        for (int col = 0; col < kFull.outerSize(); ++col)
+            for (Eigen::SparseMatrix<double>::InnerIterator it(kFull, col); it; ++it) {
+                const int row = static_cast<int>(it.row());
+                if (freeIndex[row] < 0) continue;
+                if (freeIndex[col] >= 0) tff.emplace_back(freeIndex[row], freeIndex[col], it.value());
+                else tfc.emplace_back(freeIndex[row], col, it.value());
+            }
+        kff = Eigen::SparseMatrix<double>(nf, nf);
+        kfc = Eigen::SparseMatrix<double>(nf, nDof);
+        kff.setFromTriplets(tff.begin(), tff.end());
+        kfc.setFromTriplets(tfc.begin(), tfc.end());
+    };
 
-    // K_ff and K_fc (columns of constrained DOFs in their global numbering).
-    std::vector<Eigen::Triplet<double>> tff, tfc;
-    for (int col = 0; col < kFull.outerSize(); ++col)
-        for (Eigen::SparseMatrix<double>::InnerIterator it(kFull, col); it; ++it) {
-            const int row = static_cast<int>(it.row());
-            if (freeIndex[row] < 0) continue;
-            if (freeIndex[col] >= 0) tff.emplace_back(freeIndex[row], freeIndex[col], it.value());
-            else tfc.emplace_back(freeIndex[row], col, it.value());
-        }
-    Eigen::SparseMatrix<double> kff(nFree, nFree), kfc(nFree, nDof);
-    kff.setFromTriplets(tff.begin(), tff.end());
-    kfc.setFromTriplets(tfc.begin(), tfc.end());
-
+    const auto nameMechanism = [&](int dof) {
+        const int node = dof / 6;
+        result.mechanismNode = node < nNodes ? model.nodes[node].id : -1;
+        result.mechanismDof = dof % 6;
+        // A node of a vertical bar is located by the zone of the bar (plan coordinates of its ends and the level of the node) [V, 10.3].
+        if (node < nNodes)
+            for (const Segment& seg : segments) {
+                const FemBar& bar = model.bars[seg.bar];
+                if (std::fabs(bar.ex[2]) < 1.0 - 1e-9 || (seg.nodes[0] != node && seg.nodes[1] != node)) continue;
+                const Vec3S &a = mesh.positions[seg.nodes[0]], &b = mesh.positions[seg.nodes[1]];
+                return mechanismWarningZone(dof % 6, a[0], a[1], b[0], b[1], mesh.positions[node][2]);
+            }
+        return mechanismWarning(dof % 6, mesh.positions[node]);
+    };
     const auto mechanismFailure = [&]() {
         const int dof = locateMechanismDof(kff, freeDofs, diag);
         if (dof < 0) return failAll(SolveStatus::Mechanism, {});
-        result.mechanismNode = model.nodes[dof / 6].id;
-        result.mechanismDof = dof % 6;
-        return failAll(SolveStatus::Mechanism, mechanismWarning(dof % 6, model.nodes[dof / 6].position));
+        return failAll(SolveStatus::Mechanism, nameMechanism(dof));
     };
 
-    // --- 5. factorisation (once) and pivot check ---
+    // --- 5. factorisation and null pivots ---
+    // A null pivot is a null mode of the stiffness. Rule [R] (solver_medidas_original.md 10.3): a mode that the loads of a case do not excite
+    // is fixed to 0 without a warning; a case whose loads excite it is a mechanism (warning of the original naming a DOF of the mode).
+    // The stiffness is positive semi-definite, so every null pivot of one factorisation is fixed at once and the matrix factorised again.
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
-    if (nFree > 0) {
-        ldlt.compute(kff);
+    for (int pass = 0;; ++pass) {
+        partition();
+        const int nf = static_cast<int>(freeDofs.size());
+        if (nf == 0) break;
+        // Detection on the matrix shifted by 1e-3 x the pivot tolerance (positive definite): a null mode gives a pivot of about the shift instead of
+        // an exact zero, which would stop the factorisation (e.g. the twist of identical collinear bars).
+        Eigen::SparseMatrix<double> shifted = kff;
+        for (int i = 0; i < nf; ++i) shifted.coeffRef(i, i) += 1e-3 * options.pivotTolerance * std::fabs(diag(freeDofs[i]));
+        ldlt.compute(shifted);
         if (ldlt.info() != Eigen::Success) return mechanismFailure();
         const Eigen::VectorXd d = ldlt.vectorD();
-        Eigen::VectorXd kd(nFree);
-        for (int i = 0; i < nFree; ++i) kd(i) = diag(freeDofs[i]);
+        Eigen::VectorXd kd(nf);
+        for (int i = 0; i < nf; ++i) kd(i) = diag(freeDofs[i]);
         const Eigen::VectorXd kdPermuted = ldlt.permutationP() * kd;
-        for (int i = 0; i < nFree; ++i) {
+        std::vector<int> original(nf);
+        for (int j = 0; j < nf; ++j) original[ldlt.permutationP().indices()(j)] = j;
+        std::vector<int> nullPivots;
+        for (int i = 0; i < nf; ++i) {
             if (!std::isfinite(d(i))) return mechanismFailure();
             if (d(i) < -options.pivotTolerance * std::fabs(kdPermuted(i))) return failAll(SolveStatus::Unstable, {});
-            if (d(i) <= options.pivotTolerance * std::fabs(kdPermuted(i))) return mechanismFailure();
+            if (d(i) <= options.pivotTolerance * std::fabs(kdPermuted(i))) nullPivots.push_back(freeDofs[original[i]]);
         }
+        if (nullPivots.empty()) {
+            ldlt.compute(kff);  // the factorisation used for the solution is the unshifted one
+            if (ldlt.info() != Eigen::Success) return mechanismFailure();
+            break;
+        }
+        if (pass >= 20) return mechanismFailure();
+        for (int dof : nullPivots) nullFixed[dof] = 1;
     }
+    const int nFree = static_cast<int>(freeDofs.size());
+    std::vector<NullMode> nullModes;
+    for (int d = 0; d < nDof; ++d) {
+        if (!nullFixed[d]) continue;
+        NullMode m;
+        m.dof = d;
+        m.v = Eigen::VectorXd::Zero(nDof);
+        m.v(d) = 1.0;
+        if (nFree > 0) {
+            Eigen::VectorXd rhs = Eigen::VectorXd::Zero(nFree);
+            for (Eigen::SparseMatrix<double>::InnerIterator it(kFull, d); it; ++it)
+                if (freeIndex[it.row()] >= 0) rhs(freeIndex[it.row()]) = -it.value();
+            const Eigen::VectorXd x = ldlt.solve(rhs);
+            for (int i = 0; i < nFree; ++i) m.v(freeDofs[i]) = x(i);
+        }
+        // The mode must be exact (K v = 0 also on the fixed rows); otherwise the pivot was only small: a mechanism.
+        const Eigen::VectorXd kv = kFull * m.v;
+        double residual = 0.0, scale = 0.0;
+        for (int r = 0; r < nDof; ++r)
+            if (!fixed[r]) residual = std::max(residual, std::fabs(kv(r)));
+        for (int c = 0; c < kFull.outerSize(); ++c)
+            for (Eigen::SparseMatrix<double>::InnerIterator it(kFull, c); it; ++it) scale = std::max(scale, std::fabs(it.value() * m.v(c)));
+        if (!(residual <= 1e-6 * scale)) return mechanismFailure();
+        if (d / 6 < nNodes) result.nullModeDofs[model.nodes[d / 6].id][d % 6] = true;
+        nullModes.push_back(std::move(m));
+    }
+
+    if (hasShells) result.mesh = mesh;
 
     // --- 6. load cases ---
     for (std::size_t c = 0; c < cases.size(); ++c) {
@@ -618,24 +702,49 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             if (it == nodeIndex.end()) { bad = true; break; }
             for (int k = 0; k < 6; ++k) f(6 * it->second + k) += nl.values[k];
         }
-        // Bar loads -> equivalent nodal loads (local, unreleased) kept for the end force recovery.
+        // Bar loads -> equivalent nodal loads (local, unreleased) of every segment, kept for the end force recovery.
         std::vector<std::vector<LocalLoad>> local(model.bars.size());
         for (const FemBarLoad& bl : lc.bars) {
             const auto it = barIndex.find(bl.bar);
             if (it == barIndex.end()) { bad = true; break; }
             const int b = it->second;
-            local[b].push_back(toLocal(bl, rotation(model.bars[b]), elements[b].length));
+            local[b].push_back(toLocal(bl, rotation(model.bars[b]), barLength[b]));
         }
-        std::vector<Vec12> fe(model.bars.size(), Vec12::Zero());
+        std::vector<Vec12> fe(segments.size(), Vec12::Zero());
         if (!bad) {
             for (std::size_t b = 0; b < model.bars.size(); ++b) {
                 if (local[b].empty()) continue;
-                fe[b] = -fixedEndReactions(elements[b], local[b]);
-                const Vec12 fg = elements[b].t.transpose() * elements[b].condenseLoad(fe[b]);
-                for (int k = 0; k < 6; ++k) {
-                    f(6 * barNodes[b][0] + k) += fg(k);
-                    f(6 * barNodes[b][1] + k) += fg(6 + k);
+                for (std::size_t k = 0; k < barSegments[b].size(); ++k) {
+                    const int si = barSegments[b][k];
+                    const Segment& seg = segments[si];
+                    const std::vector<LocalLoad> loads =
+                        barSegments[b].size() == 1 ? local[b] : segmentLoads(local[b], seg.x0, seg.x0 + seg.el.length, k + 1 == barSegments[b].size());
+                    if (loads.empty()) continue;
+                    fe[si] = -fixedEndReactions(seg.el, loads);
+                    const Vec12 fg = seg.el.t.transpose() * seg.el.condenseLoad(fe[si]);
+                    for (int q = 0; q < 6; ++q) {
+                        f(6 * seg.nodes[0] + q) += fg(q);
+                        f(6 * seg.nodes[1] + q) += fg(6 + q);
+                    }
                 }
+            }
+        }
+        // Shell loads.
+        std::vector<detail::Vec36> shellFe(mesh.triangles.size(), detail::Vec36::Zero());
+        std::vector<std::array<double, 2>> strain0(mesh.triangles.size(), {0.0, 0.0});
+        for (const FemShellLoad& sl : lc.shellLoads) {
+            if (bad) break;
+            const auto it = shellIndex.find(sl.shell);
+            if (it == shellIndex.end()) { bad = true; break; }
+            const FemShell& sh = model.shells[it->second];
+            const std::array<double, 2> e0 = detail::initialStrain(sh, sl);
+            for (std::size_t e = 0; e < mesh.triangles.size(); ++e) {
+                if (mesh.triangles[e].shell != it->second) continue;
+                const detail::Vec36 v = detail::shellLoadVector(shellElements[e], sh, sl, shellXY(mesh.triangles[e]));
+                shellFe[e] += v;
+                strain0[e][0] += e0[0];
+                strain0[e][1] += e0[1];
+                for (int p = 0; p < 36; ++p) f(6 * mesh.triangles[e].nodes[p / 6] + p % 6) += v(p);
             }
         }
         Eigen::VectorXd u = Eigen::VectorXd::Zero(nDof);
@@ -652,14 +761,38 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         for (int d = 0; d < nDof; ++d)
             if (orphan[d] && std::fabs(f(d)) > 1e-9 * fScale) orphanLoaded = true;
         if (orphanLoaded) { failCase(SolveStatus::Mechanism); continue; }
-        // A load with a component along a fixed null mode cannot be equilibrated either.
-        bool twistLoaded = false;
-        for (const TwistMode& m : twistModes) {
-            double work = 0.0;
-            for (const auto& [d, v] : m.dofs) work += v * f(d);
-            if (std::fabs(work) > options.nullModeTolerance * fScale) twistLoaded = true;
+        // A load with a component along a null mode is a mechanism (warning of the original naming the largest DOF of the mode).
+        if (!nullModes.empty()) {
+            const Eigen::VectorXd g = f - kFull * u;
+            double gNorm = 0.0;
+            for (int d = 0; d < nDof; ++d)
+                if (!fixed[d]) gNorm += g(d) * g(d);
+            gNorm = std::sqrt(gNorm);
+            const NullMode* excited = nullptr;
+            for (const NullMode& m : nullModes) {
+                double work = 0.0;
+                for (int d = 0; d < nDof; ++d)
+                    if (!fixed[d]) work += m.v(d) * g(d);
+                if (std::fabs(work) > options.nullModeTolerance * gNorm * m.v.norm()) { excited = &m; break; }
+            }
+            if (excited) {
+                int best = excited->dof;
+                for (int d = 0; d < nDof; ++d)
+                    if (!fixed[d] && std::fabs(excited->v(d)) > std::fabs(excited->v(best)) * (1.0 + 1e-9)) best = d;
+                const int savedNode = result.mechanismNode, savedDof = result.mechanismDof;
+                const std::string warning = nameMechanism(best);
+                cr.status = SolveStatus::Mechanism;
+                cr.message = warning;
+                if (result.status == SolveStatus::Ok) {
+                    result.status = SolveStatus::Mechanism;
+                    result.message = warning;
+                } else {
+                    result.mechanismNode = savedNode;
+                    result.mechanismDof = savedDof;
+                }
+                continue;
+            }
         }
-        if (twistLoaded) { failCase(SolveStatus::Mechanism); continue; }
 
         if (nFree > 0) {
             Eigen::VectorXd rhs(nFree);
@@ -672,8 +805,12 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
 
         if (options.maxNodeRotation > 0.0) {
             bool excessive = false;
-            for (int i = 0; i < nNodes && !excessive; ++i)
-                for (int k = 3; k < 6; ++k)
+            // Nodes of the bars only: nodes reached only by shells are not checked (a plate with every out-of-plane stiffness factor 0
+            // reaches 9.6e8 mm without any warning in the original [V, elemento_lamina_bandas.md 15.4]; the exact rule is [N]).
+            std::vector<char> barNode(nAll, 0);
+            for (const Segment& seg : segments) barNode[seg.nodes[0]] = barNode[seg.nodes[1]] = 1;
+            for (int i = 0; i < nAll && !excessive; ++i)
+                for (int k = 3; k < 6 && barNode[i]; ++k)
                     if (std::fabs(u(6 * i + k)) > options.maxNodeRotation) { excessive = true; break; }
             if (excessive) {
                 cr.status = SolveStatus::ExcessiveDisplacements;
@@ -686,7 +823,7 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         for (int i = 0; i < nNodes; ++i)
             for (int k = 0; k < 6; ++k) cr.displacements[i][k] = u(6 * i + k);
         const Eigen::VectorXd ku = kFull * u;
-        for (int i = 0; i < nNodes; ++i) {
+        for (int i = 0; i < nAll; ++i) {
             bool supported = false;
             Dof6 r{};
             for (int k = 0; k < 6; ++k)
@@ -694,28 +831,48 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                     supported = true;
                     r[k] = ku(6 * i + k) - f(6 * i + k);
                 }
-            if (supported) cr.reactions[model.nodes[i].id] = r;
+            if (!supported) continue;
+            if (i < nNodes) cr.reactions[model.nodes[i].id] = r;
+            else cr.meshReactions[i] = r;
         }
         cr.barForces.resize(model.bars.size());
+        cr.barDisplacements.resize(model.bars.size());
         for (std::size_t b = 0; b < model.bars.size(); ++b) {
-            Vec12 ug;
-            for (int k = 0; k < 6; ++k) {
-                ug(k) = u(6 * barNodes[b][0] + k);
-                ug(6 + k) = u(6 * barNodes[b][1] + k);
-            }
-            const ElementData& el = elements[b];
-            const Vec12 ue = el.elementDisplacements(el.t * ug, fe[b]);
-            const Vec12 s = el.ke * ue - fe[b];  // forces of the nodes on the element, local
             BarEndForces& bf = cr.barForces[b];
-            bf.bar = model.bars[b].id;
-            bf.origin = applySignConvention({-s(0), -s(1), -s(2), -s(3), -s(4), -s(5)});
-            bf.end = applySignConvention({s(6), s(7), s(8), s(9), s(10), s(11)});
-            const Vec12 ueGlobal = el.t.transpose() * ue;
-            BarEndDisplacements& bd = cr.barDisplacements.emplace_back();
-            bd.bar = model.bars[b].id;
-            for (int k = 0; k < 6; ++k) {
-                bd.origin[k] = ueGlobal(k);
-                bd.end[k] = ueGlobal(6 + k);
+            BarEndDisplacements& bd = cr.barDisplacements[b];
+            bf.bar = bd.bar = model.bars[b].id;
+            for (int which = 0; which < 2; ++which) {
+                const int si = which == 0 ? barSegments[b].front() : barSegments[b].back();
+                const Segment& seg = segments[si];
+                Vec12 ug;
+                for (int k = 0; k < 6; ++k) {
+                    ug(k) = u(6 * seg.nodes[0] + k);
+                    ug(6 + k) = u(6 * seg.nodes[1] + k);
+                }
+                const Vec12 ue = seg.el.elementDisplacements(seg.el.t * ug, fe[si]);
+                const Vec12 s = seg.el.ke * ue - fe[si];  // forces of the nodes on the element, local
+                const Vec12 ueGlobal = seg.el.t.transpose() * ue;
+                if (which == 0) {
+                    bf.origin = applySignConvention({-s(0), -s(1), -s(2), -s(3), -s(4), -s(5)});
+                    for (int k = 0; k < 6; ++k) bd.origin[k] = ueGlobal(k);
+                } else {
+                    bf.end = applySignConvention({s(6), s(7), s(8), s(9), s(10), s(11)});
+                    for (int k = 0; k < 6; ++k) bd.end[k] = ueGlobal(6 + k);
+                }
+            }
+        }
+        if (hasShells) {
+            cr.meshDisplacements.assign(nAll, Dof6{});
+            for (int i = 0; i < nAll; ++i)
+                for (int k = 0; k < 6; ++k) cr.meshDisplacements[i][k] = u(6 * i + k);
+            cr.triangleForces.resize(mesh.triangles.size());
+            for (std::size_t e = 0; e < mesh.triangles.size(); ++e) {
+                detail::Vec36 ue;
+                for (int p = 0; p < 36; ++p) ue(p) = u(6 * mesh.triangles[e].nodes[p / 6] + p % 6);
+                cr.triangleForces[e].atNodes = detail::shellForcesAtNodes(shellElements[e], ue, strain0[e]);
+                cr.triangleForces[e].atGauss = detail::shellForcesAtGauss(shellElements[e], ue, strain0[e]);
+                const detail::Vec36 nodal = shellElements[e].kGlobal * ue - shellFe[e];
+                for (int p = 0; p < 36; ++p) cr.triangleForces[e].nodalForces[p] = nodal(p);
             }
         }
     }

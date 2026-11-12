@@ -204,10 +204,13 @@ struct BarLoadSession {
 
 // --- geometry ---
 
-/// Local frame of a bar (unit vectors in global axes). x = start -> end (inverted when xAxisInverted); z = projection of the global Z (vertical
-/// bars going up: global Y, so y = +X: drawn axes measured in the original; going down: continuation of the formula, NOT MEASURED); y = z x x; then rolled about x by rollAngleDeg (sign NOT MEASURED).
+/// Local frame of a bar (unit vectors in global axes). x = start -> end (inverted when xAxisInverted), except vertical bars, whose x is always +Z
+/// with y = +X and z = +Y (drawn axes measured in the original for bars going up and going down, solver_medidas_original.md 10.2); otherwise
+/// z = projection of the global Z; y = z x x; then rolled about x by rollAngleDeg (sign NOT MEASURED). `along` = start -> end flipped by
+/// xAxisInverted (the direction in which load positions are laid out from `origin` = start node, unchanged by the vertical rule).
 struct BarFrame {
     Point3 origin, x, y, z;
+    Point3 along;
     double length = 0.0;
 };
 std::optional<BarFrame> barLocalAxes(const StructuralModel& model, int barId);

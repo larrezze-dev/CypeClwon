@@ -12,7 +12,8 @@ add_library(cc_core STATIC version.cpp standards.cpp standards.h project_setting
   node_diaphragm.cpp node_diaphragm.h node_diaphragm_edit.cpp node_diaphragm_edit.h bar_ends.cpp bar_ends.h bar_ends_edit.cpp bar_ends_edit.h buckling.cpp buckling.h buckling_edit.cpp buckling_edit.h deflection_group.cpp deflection_group.h deflection_group_edit.cpp deflection_group_edit.h bar_load.cpp bar_load.h bar_load_edit.cpp bar_load_edit.h shell_load.cpp shell_load.h shell_load_edit.cpp shell_load_edit.h panel.cpp panel.h panel_distribution.cpp panel_distribution.h panel_edit.cpp panel_edit.h nodal_load.cpp nodal_load.h nodal_load_edit.cpp nodal_load_edit.h load_case.cpp load_case.h load_case_edit.cpp load_case_edit.h shell_properties.cpp shell_properties.h shell_properties_edit.cpp shell_properties_edit.h
   predefined_profiles.cpp predefined_profiles.h profile_catalogue_data.inc
   describir_catalogue.cpp describir_catalogue.h describir_catalogue_data.inc describir_tie_data.inc describir_concrete_data.inc describir_timber_data.inc tie_document_data.inc
-  fem/frame_model.h fem/linear_solver.cpp fem/linear_solver.h fem/frame_builder.cpp fem/frame_builder.h)
+  fem/frame_model.h fem/linear_solver.cpp fem/linear_solver.h fem/frame_builder.cpp fem/frame_builder.h
+  fem/shell_model.h fem/shell_analysis.h fem/shell_element.h fem/shell_element.cpp fem/shell_mesh.cpp fem/shell_bands.cpp)
 target_link_libraries(cc_core PRIVATE miniz::miniz nlohmann_json::nlohmann_json Eigen3::Eigen)
 target_include_directories(cc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(cc_core PUBLIC cxx_std_20)

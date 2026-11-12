@@ -6,6 +6,10 @@
 #include "core/bar_description.h"
 #include "core/deflection_group.h"
 #include "core/section_properties.h"
+#include "core/shell_edit.h"
+#include "core/shell_load.h"
+#include "core/shell_properties.h"
+#include "core/fem/shell_analysis.h"
 
 namespace cc::fem {
 
@@ -59,6 +63,37 @@ EndRelease releaseOf(const core::EndPlaneFixity& fixity, double diagonalStiffnes
     return r;
 }
 
+/// Elastic data of a shell material (kN/m2). Concrete: the grade of the shell or of the general data (Eurocode 2 table, nu 0.2, alpha 1e-5);
+/// steel and aluminium: the default values of the bars [N for shells]; generic: the typed values.
+void shellMaterial(const core::Project& project, const core::ShellMaterial& m, FemShell& out) {
+    core::MaterialData d;
+    switch (m.kind) {
+        case core::ShellMaterialKind::Concrete:
+            d = core::concreteMaterialData(m.useGeneralData || m.grade.empty() ? project.profiles.concrete : m.grade);
+            break;
+        case core::ShellMaterialKind::RolledSteel:
+        case core::ShellMaterialKind::ColdFormedSteel: d = core::defaultMaterialData(core::BarMaterialIcon::RolledSteel); break;
+        case core::ShellMaterialKind::Aluminium: d = core::defaultMaterialData(core::BarMaterialIcon::ExtrudedAluminium); break;
+        case core::ShellMaterialKind::GenericIsotropic:
+            d = {m.isoElasticModulusMPa, m.isoPoissonRatio, m.isoThermalExpansion, m.isoDensityKnM3};
+            break;
+        case core::ShellMaterialKind::GenericOrthotropic:
+            out.orthotropic = true;
+            out.e1 = m.orthoElasticModulusXMPa * 1000.0;
+            out.e2 = m.orthoElasticModulusYMPa * 1000.0;
+            out.nu12 = m.orthoPoissonRatioXY;
+            out.g12 = m.orthoShearModulusXYMPa * 1000.0;
+            out.g13 = m.orthoShearModulusXZMPa * 1000.0;
+            out.g23 = m.orthoShearModulusYZMPa * 1000.0;
+            out.alpha1 = m.orthoThermalExpansionX;
+            out.alpha2 = m.orthoThermalExpansionY;
+            return;
+    }
+    out.e = d.elasticModulusMPa * 1000.0;
+    out.nu = d.poissonRatio;
+    out.alpha1 = out.alpha2 = d.thermalExpansion;
+}
+
 }  // namespace
 
 std::string undescribedBarsMessage() { return "Existen barras sin describir."; }
@@ -77,8 +112,8 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
     for (const core::Shell& s : sm.shells) shellNodes.insert(s.nodeIds.begin(), s.nodeIds.end());
     bool unconnectedWarned = false;
     for (const core::Node& n : sm.nodes) {
-        if (!barNodes.count(n.id)) {
-            if (!shellNodes.count(n.id) && !unconnectedWarned) {
+        if (!barNodes.count(n.id) && !shellNodes.count(n.id)) {
+            if (!unconnectedWarned) {
                 out.warnings.push_back(unconnectedNodeMessage());
                 unconnectedWarned = true;
             }
@@ -101,11 +136,10 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
 
     // --- data of later tasks ---
     for (const auto& [nodeId, link] : project.nodeSupports.internal)
-        if (link.type != core::InternalLinkType::Fixed && barNodes.count(nodeId))
+        if (link.type != core::InternalLinkType::Fixed && (barNodes.count(nodeId) || shellNodes.count(nodeId)))
             out.unsupported.push_back("Nudo " + std::to_string(nodeId) + ": vinculación interior (pendiente, T-P8-03).");
     if (!project.ligatures.empty()) out.unsupported.push_back("Ligaduras de nudos (pendiente, T-P8-03).");
     if (!project.diaphragms.empty()) out.unsupported.push_back("Diafragmas rígidos (pendiente, T-P8-03).");
-    if (!sm.shells.empty()) out.unsupported.push_back("Láminas (pendiente, T-P8-02).");
 
     // --- bars ---
     struct BarInfo { bool inverted = false; double length = 0.0; core::BarFrame frame; double gamma = 0.0; double depthY = 0.0, depthZ = 0.0; };
@@ -127,7 +161,14 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         }
         FemBar fb;
         fb.id = b.id;
-        fb.nodeI = core::barXOrigin(b);
+        // Origin of the local x axis: the node from which x points (a vertical bar always has x = +Z, whatever its definition [V, TK-105f]).
+        {
+            const core::Node* a = sm.findNode(b.startNode);
+            const core::Node* c = sm.findNode(b.endNode);
+            const bool forward = !a || !c || dot(frame->x, Point3{c->position.x - a->position.x, c->position.y - a->position.y,
+                                                                  c->position.z - a->position.z}) > 0.0;
+            fb.nodeI = forward ? b.startNode : b.endNode;
+        }
         fb.nodeJ = fb.nodeI == b.startNode ? b.endNode : b.startNode;
         fb.e = mat->elasticModulusMPa * 1000.0;
         fb.g = mat->shearModulusMPa() * 1000.0;
@@ -149,9 +190,54 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
             if (fix.pinned) fb.releases[end][1] = fb.releases[end][2] = EndRelease{EndRelease::Kind::Free, 0.0};
         }
         out.model.bars.push_back(fb);
-        info[b.id] = BarInfo{b.xAxisInverted, length, *frame, mat->densityKnM3 * fb.section.area, fb.section.depthY, fb.section.depthZ};
+        info[b.id] = BarInfo{fb.nodeI != b.startNode, length, *frame, mat->densityKnM3 * fb.section.area, fb.section.depthY, fb.section.depthZ};
     }
     if (undescribed) out.errors.insert(out.errors.begin(), undescribedBarsMessage());
+
+    // --- shells (T-P8-02) ---
+    std::map<int, std::vector<core::Point2>> shellContours;
+    for (const core::Shell& sh : sm.shells) {
+        const auto axes = core::shellLocalAxes(sm, sh);
+        if (!axes || sh.nodeIds.size() < 3) { out.errors.push_back("La lámina " + std::to_string(sh.id) + " no tiene un contorno válido."); continue; }
+        const std::string tag = "Lámina " + std::to_string(sh.id) + ": ";
+        FemShell fs;
+        fs.id = sh.id;
+        fs.nodes = sh.nodeIds;
+        fs.ex = vec(axes->x);
+        fs.ey = vec(axes->y);
+        fs.ez = vec(axes->z);
+        fs.thickness = sh.thicknessM;
+        shellMaterial(project, sh.material, fs);
+        const core::ShellRecord rec = core::shellRecordOf(project.shellProps, sh.id);
+        fs.maxSide = rec.maxTriangleSideM;
+        for (int k = 0; k < core::kStiffnessFactorCount; ++k) fs.factors[k] = rec.stiffness.value(k);
+        if (sh.ballastEnabled) {
+            fs.ballast = sh.ballastKnM3;
+            if (sh.ballastBehaviour == core::BallastBehaviour::CompressionOnly)
+                out.unsupported.push_back(tag + "balasto «Sólo compresión» (cálculo no lineal, pendiente).");
+        }
+        if (sh.layout.considerEccentricity && std::fabs(sh.layout.centralPlaneOffsetM) > 1e-9)
+            out.unsupported.push_back(tag + "excentricidad del plano central (pendiente).");
+        for (const core::ShellEdgeKey& key : core::shellEdges(sm, sh.id)) {
+            std::array<bool, 6> mask{};
+            const core::Restraint r = core::restraintOf(core::edgeExteriorOf(project.shellProps, key));
+            bool elastic = false;
+            for (int k = 0; k < 6; ++k) {
+                mask[k] = r.fixed[k] && !r.elastic[k];
+                elastic = elastic || (r.fixed[k] && r.elastic[k]);
+            }
+            if (elastic) out.unsupported.push_back(tag + "vinculación exterior elástica de arista (pendiente, T-P8-03).");
+            if (r.oblique != core::Restraint::Oblique::None)
+                out.unsupported.push_back(tag + "vinculación exterior de arista no alineada con los ejes globales (pendiente, T-P8-03).");
+            if (!core::isDefaultEdgeInterior(core::edgeInteriorOf(project.shellProps, key)))
+                out.unsupported.push_back(tag + "vinculación interior de arista distinta de «Empotrada» (pendiente, T-P8-03).");
+            fs.edgeFixed.push_back(mask);
+        }
+        out.model.shells.push_back(fs);
+        shellContours[sh.id] = core::shellContour2D(sm, sh);
+    }
+    if (!out.model.shells.empty())
+        for (const std::string& issue : meshShells(out.model).issues) out.unsupported.push_back(issue);
 
     // --- load cases ---
     for (const core::LoadCase& lc : project.loadCases.cases) {
@@ -159,7 +245,7 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         in.id = lc.id;
         in.name = core::loadCaseLabel(lc);
         for (const core::NodalLoad& nl : project.nodalLoads.items) {
-            if (nl.loadCaseId != lc.id || !barNodes.count(nl.nodeId)) continue;
+            if (nl.loadCaseId != lc.id || (!barNodes.count(nl.nodeId) && !shellNodes.count(nl.nodeId))) continue;
             const Point3 f = core::nodalLoadForce(nl);
             in.nodal.push_back(FemNodalLoad{nl.nodeId, {f.x, f.y, f.z, 0.0, 0.0, 0.0}});
         }
@@ -220,7 +306,55 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
             }
             in.bars.push_back(fl);
         }
+        for (const core::ShellLoad& sl : project.shellLoads.items) {
+            if (sl.loadCaseId != lc.id || !shellContours.count(sl.shellId)) continue;
+            FemShellLoad fl;
+            fl.shell = sl.shellId;
+            switch (sl.type) {
+                case core::ShellLoadType::Uniform:
+                case core::ShellLoadType::VariableX:
+                case core::ShellLoadType::VariableY: {
+                    fl.kind = ShellLoadKind::Pressure;
+                    fl.global = sl.axes == core::ShellLoadAxes::Global;
+                    fl.direction = {0.0, 0.0, sl.sense == core::ShellLoadSense::PlusZ ? 1.0 : -1.0};
+                    fl.p0 = sl.value1;
+                    if (sl.type != core::ShellLoadType::Uniform) {
+                        // Linear along local x (y) from value1 at the smallest coordinate of the contour to value2 at the largest (shell_load.h).
+                        const bool alongX = sl.type == core::ShellLoadType::VariableX;
+                        double lo = 1e300, hi = -1e300;
+                        for (const core::Point2& q : shellContours[sl.shellId]) {
+                            lo = std::min(lo, alongX ? q.x : q.y);
+                            hi = std::max(hi, alongX ? q.x : q.y);
+                        }
+                        const double slope = hi - lo > 1e-12 ? (sl.value2 - sl.value1) / (hi - lo) : 0.0;
+                        fl.p0 = sl.value1 - slope * lo;
+                        (alongX ? fl.px : fl.py) = slope;
+                    }
+                    break;
+                }
+                case core::ShellLoadType::UniformTemperature:
+                    fl.kind = ShellLoadKind::Temperature;
+                    fl.value = sl.value1;
+                    break;
+                case core::ShellLoadType::Shrinkage:
+                    fl.kind = ShellLoadKind::Shrinkage;
+                    fl.value = sl.value1;
+                    break;
+            }
+            in.shellLoads.push_back(fl);
+        }
         if (lc.id == 0) {
+            // Self weight of the shells: gamma * h per square metre of surface along global -Z, unless switched off [V, section 13.5].
+            for (const core::Shell& sh : sm.shells) {
+                if (!shellContours.count(sh.id) || !core::shellSelfWeightActive(project.shellLoads, sh.id)) continue;
+                FemShellLoad fl;
+                fl.shell = sh.id;
+                fl.kind = ShellLoadKind::Pressure;
+                fl.global = true;
+                fl.direction = {0.0, 0.0, -1.0};
+                fl.p0 = core::shellSelfWeightKnM2(sh);
+                in.shellLoads.push_back(fl);
+            }
             for (const FemBar& fb : out.model.bars) {
                 if (options.honourSelfWeightSwitch && !core::barSelfWeightActive(project.barLoads, fb.id)) continue;
                 const BarInfo& bi = info[fb.id];
@@ -235,7 +369,7 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
             }
         }
         for (const auto& [nodeId, ext] : project.nodeSupports.external) {
-            if (!barNodes.count(nodeId)) continue;
+            if (!barNodes.count(nodeId) && !shellNodes.count(nodeId)) continue;
             for (const core::PrescribedDisplacement& pd : core::effectivePrescribed(ext)) {
                 if (pd.loadCaseId != lc.id) continue;
                 Dof6 v{};

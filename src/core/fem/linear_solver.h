@@ -17,8 +17,10 @@ namespace cc::fem {
 ///     shear flexibility included), condensed like the stiffness. Temperature as initial strains.
 ///  4. Global sparse assembly, DOFs without stiffness locked (LinearResult::lockedDofs), supports eliminated, prescribed displacements moved
 ///     to the right-hand side, one sparse LDLT factorisation for every load case.
-///  4b. Rule [R] of TK-108: the rigid twist of a chain of collinear bars that is a null mode on its own is fixed to 0 without a warning
-///     (LinearResult::nullModeDofs); every other null mode is a mechanism, with or without load.
+///  4b. Rule [R] of TK-108 refined (solver_medidas_original.md 10.3): every null mode of the stiffness (null pivot) is fixed to 0
+///     (LinearResult::nullModeDofs); a load case that does not excite it calculates without a warning, a case whose loads excite it is a
+///     mechanism with the warning of the original (mechanismWarning / mechanismWarningZone) naming the DOF of largest amplitude of the mode.
+///  4c. Shells (T-P8-02): meshed by meshShells(), bars along shell edges split at the mesh nodes, 6-node shell triangles assembled with the bars.
 ///  5. Null pivot -> SolveStatus::Mechanism (#214001), negative pivot -> SolveStatus::Unstable (#380376), a loaded DOF without stiffness ->
 ///     Mechanism for that case. Results: nodal displacements, reactions, bar end forces.
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options = {});
@@ -34,7 +36,7 @@ std::string caseErrorMessage(const std::string& caseName);
 
 /// «Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción
 /// 'Mostrar/Oculta incidencias' del menú 'Cálculo'.» Text shown by the original (measured, solver_medidas_original.md 9.2; the resource id was not
-/// located [N]). Raised when a node rotation exceeds SolverOptions::maxNodeRotation (pi/2 [V]); which component or norm is checked is [N].
+/// located [N]). Raised when a rotation component of a node of a bar exceeds SolverOptions::maxNodeRotation (pi/2 [V]); which component or norm is checked is [N], and nodes reached only by shells are not checked [N, elemento_lamina_bandas.md 17.2].
 std::string excessiveDisplacementsMessage();
 
 /// «Esta estructura es un mecanismo. Revise los datos introducidos. / Giro alrededor del eje Y / El error se encuentra en el punto de
@@ -42,6 +44,9 @@ std::string excessiveDisplacementsMessage();
 /// extremos, es decir, no es estable.» (lines separated by a newline; measured in the original; the DOF names are frontlib.dll ids 153556..153561).
 /// `dof` 0..5 = Dx, Dy, Dz, Gx, Gy, Gz. This is what the user sees for a null pivot (not the #214001 text of mechanismMessage()).
 std::string mechanismWarning(int dof, const Vec3& position);
+/// Variant of mechanismWarning() measured for a node of a vertical bar [V, solver_medidas_original.md 10.3]: «... / El error se encuentra en la
+/// zona de coordenadas: (x1,y1) a (x2,y2), en la cota z / ...» (plan coordinates of the ends of the bar and the level of the node).
+std::string mechanismWarningZone(int dof, double x1, double y1, double x2, double y2, double z);
 
 /// THE sign convention of section forces, MEASURED in the original (TK-107, docs/research/solver_medidas_original.md section 3.2). Input: the
 /// canonical internal resultant at a cut, i.e. the force and moment exerted on the part [0, x] of the bar by the part [x, L], in local axes

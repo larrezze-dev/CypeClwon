@@ -450,16 +450,16 @@ TEST(FemBuilder, SelfWeightOfTheLoadCasePesoPropio) {
     expectRel(r.cases[0].reactions.at(1)[4], -w * 16.0 / 2.0);
     expectRel(r.cases[0].displacements[1][2], -w * 256.0 / (8.0 * kE * 1e-4));
 
-    // Measured in the original: switching the generation off does not remove the self weight; the clone ignores the per-bar switch by default.
+    // Measured in the original (solver_medidas_original.md 10.1): switching the generation of a bar off removes its self weight.
     p.barLoads.selfWeightOff.insert(1);
     fb = buildFrameModel(p);
     r = solveLinear(fb.model, fb.cases);
-    expectRel(r.cases[0].reactions.at(1)[2], w * 4.0);
-    FrameBuildOptions honour;
-    honour.honourSelfWeightSwitch = true;
-    fb = buildFrameModel(p, honour);
-    r = solveLinear(fb.model, fb.cases);
     EXPECT_NEAR(r.cases[0].reactions.at(1)[2], 0.0, 1e-12);
+    FrameBuildOptions ignore;
+    ignore.honourSelfWeightSwitch = false;
+    fb = buildFrameModel(p, ignore);
+    r = solveLinear(fb.model, fb.cases);
+    expectRel(r.cases[0].reactions.at(1)[2], w * 4.0);
 }
 
 TEST(FemBuilder, RollAngleBendsAboutLocalZ) {

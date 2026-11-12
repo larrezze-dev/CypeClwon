@@ -599,7 +599,7 @@ namespace {
 BarFrame frameAlongX(double length = 4.0) {
     BarFrame f;
     f.origin = {0, 0, 0};
-    f.x = {1, 0, 0};
+    f.x = f.along = {1, 0, 0};
     f.y = {0, 1, 0};
     f.z = {0, 0, 1};
     f.length = length;

@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "core/bar_ends.h"
+#include "core/bar_load.h"
 #include "core/bar_description.h"
 #include "core/fem/frame_builder.h"
 #include "core/fem/linear_solver.h"
@@ -521,7 +522,7 @@ TEST(FemOriginalMeasured, LShapeWithApoyoFijoIsAMechanismWithOrWithoutLoad) {
         EXPECT_EQ(r.message, mechanismWarning(2, {4, 2, 0}));
         EXPECT_NE(r.message.find("Desplazamiento según el eje Z"), std::string::npos);
         EXPECT_NE(r.message.find("(x = 4.000000, y = 2.000000, z = 0.000000)"), std::string::npos);
-        EXPECT_TRUE(r.nullModeDofs.empty());
+        // Without the load of N3 the tiny self weight (0.01 kN/m3) still excites the mode (rule [R], solver_medidas_original.md 10.3).
     }
 }
 
@@ -617,4 +618,89 @@ TEST(FemOriginalMeasured, ShearAreaZeroIsRejectedByTheBuilder) {
     EXPECT_TRUE(buildFrameModel(f.project).errors.empty());
     cs->shearAreaZM2 = 1000001.0e-4;
     EXPECT_FALSE(buildFrameModel(f.project).errors.empty());
+}
+
+// --- third pass (solver_medidas_original.md section 10): per-bar self weight switch, descending vertical bar, refined mechanism rule ---
+namespace {
+/// Work c7: N1 (0,0,0)-N2 (0,0,-4) descending, N3 (3,0,0)-N4 (3,0,4) ascending, gamma 77.01, bases N1 and N3 with `base`.
+Fixture c7(core::ExternalSupportType base) {
+    Fixture f = makeFixture(77.01);
+    const int n1 = addNode(f, 0, 0, 0), n2 = addNode(f, 0, 0, -4), n3 = addNode(f, 3, 0, 0), n4 = addNode(f, 3, 0, 4);
+    addBar(f, n1, n2);
+    addBar(f, n3, n4);
+    core::ExternalSupport s;
+    s.type = base;
+    f.project.nodeSupports.external[n1] = s;
+    f.project.nodeSupports.external[n3] = s;
+    return f;
+}
+}  // namespace
+
+TEST(FemOriginalMeasured, PerBarSelfWeightSwitchIsHonoured) {
+    Fixture f = c7(core::ExternalSupportType::Fixed);
+    f.project.barLoads.selfWeightOff.insert(1);
+    const Solved s = solve(f.project);
+    expectRead(s.c().reactions.at(1)[2], 0.000, 1e-3, "Rz N1 (bar 1 switched off)");
+    expectRead(s.c().reactions.at(3)[2], 3.080, 1e-3, "Rz N3 (gamma A L)");
+}
+
+TEST(FemOriginalMeasured, DescendingVerticalBarHasTheTriadOfTheAscendingOne) {
+    const Fixture f = c7(core::ExternalSupportType::Fixed);
+    for (int bar : {1, 2}) {
+        const auto frame = core::barLocalAxes(f.project.structure, bar);
+        ASSERT_TRUE(frame.has_value());
+        EXPECT_NEAR(frame->x.z, 1.0, 1e-12) << bar;  // x = +Z
+        EXPECT_NEAR(frame->y.x, 1.0, 1e-12) << bar;  // y = +X
+        EXPECT_NEAR(frame->z.y, 1.0, 1e-12) << bar;  // z = +Y
+    }
+    const FrameBuild fb = buildFrameModel(f.project);
+    EXPECT_EQ(fb.model.bars[0].nodeI, 2);  // the lower node is the origin of the local x axis
+    EXPECT_EQ(fb.model.bars[1].nodeI, 3);
+}
+
+TEST(FemOriginalMeasured, UnexcitedNullModeCalculatesAndExcitedOneWarnsWithTheZone) {
+    // "Apoyo fijo" bases and only the axial self weight: every bar can rotate about its support, but nothing excites it [V: no warning].
+    Fixture f = c7(core::ExternalSupportType::Pinned);
+    const Solved s = solve(f.project);
+    EXPECT_FALSE(s.result.nullModeDofs.empty());
+    expectRead(s.c().reactions.at(3)[2], 3.080, 1e-3, "Rz N3");
+    // +X 9.81 kN at N2 excites the rotation of bar 1: warning naming N2 / Dx with the zone of the vertical bar [V].
+    nodalLoad(f, 2, core::LoadDirection::PlusX, 9.81);
+    const FrameBuild fb = buildFrameModel(f.project);
+    const LinearResult r = solveLinear(fb.model, fb.cases);
+    ASSERT_EQ(r.status, SolveStatus::Mechanism);
+    EXPECT_EQ(r.mechanismNode, 2);
+    EXPECT_EQ(r.mechanismDof, 0);
+    EXPECT_EQ(r.message, mechanismWarningZone(0, 0, 0, 0, 0, -4));
+    EXPECT_NE(r.message.find("Desplazamiento según el eje X"), std::string::npos);
+    EXPECT_NE(r.message.find("en la zona de coordenadas:\n (0.000000,0.000000) a (0.000000,0.000000), en la cota -4.000000"), std::string::npos);
+}
+
+TEST(FemOriginalMeasured, DescendingBarLoadPositionsStayMeasuredFromTheStartNode) {
+    // Point load +X 10 kN at 25 % from the START node of each bar: the descending bar 1 (start N1 at z = 0) and its ascending mirror bar 2
+    // (start N3 at z = 0) give the same reactions (My with the opposite sign: the arm is below / above the base), and the drawing stays on the bar.
+    Fixture f = c7(core::ExternalSupportType::Fixed);
+    f.project.barLoads.selfWeightOff = {1, 2};
+    for (int bar : {1, 2}) {
+        core::BarLoad bl;
+        bl.id = f.project.barLoads.nextId++;
+        bl.barId = bar;
+        bl.loadCaseId = 0;
+        bl.type = core::BarLoadType::Point;
+        bl.axes = core::BarLoadAxes::Global;
+        bl.direction = core::LoadDirection::PlusX;
+        bl.start = 0.25;
+        bl.value1 = 10.0;
+        f.project.barLoads.items.push_back(bl);
+        const auto frame = core::barLocalAxes(f.project.structure, bar);
+        const core::BarLoadDrawing g = core::barLoadDrawing(bl, *frame, f.project.nodalLoads.scales);
+        const double z = g.arrow.second.z;
+        EXPECT_TRUE(bar == 1 ? (z <= 0.0 && z >= -4.0) : (z >= 0.0 && z <= 4.0)) << bar << " z " << z;
+    }
+    const Solved s = solve(f.project);
+    const Dof6 &r1 = s.c().reactions.at(1), &r3 = s.c().reactions.at(3);
+    EXPECT_NEAR(r1[0], -10.0, 1e-9);
+    EXPECT_NEAR(r3[0], -10.0, 1e-9);
+    EXPECT_NEAR(r1[4], -r3[4], 1e-9);
+    EXPECT_GT(std::fabs(r1[4]), 1e-3);
 }
