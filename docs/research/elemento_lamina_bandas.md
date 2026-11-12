@@ -131,9 +131,50 @@ Voladizo de pared: longitud L = 4 m, canto H = 2 m, espesor t = 0,2 m, E = 30e6 
 - Equilibrio de nudo con láminas y barras comunes (una viga de borde con losa): el desplazamiento en la zona común coincide en barra y lámina.
 - Banda de integración: integrar el campo de momentos de Navier sobre una franja y comparar con la suma de elementos (el momento total de la sección central de la placa de §8.1 es la integral de Mx a lo largo del eje y; no se da valor cerrado aquí [N]).
 
-## 9. Pendiente de medir en el original (otro agente lo tiene en uso)
+## 9. Medido en el original (2026-11-12, CYPE 3D v2027.a, licencia activada) y pendiente
 
-No lanzar el original desde este análisis. Mediciones a anotar cuando se pueda (obra de prueba en `docs/sample_project/`):
+### 9.0 Resultados de la medición [V]
+
+Obra de prueba: `m6_lam.txt` (lámina 4x4 m) importada en obra vacía, **barras borradas** (solo lámina), material «Genérico, isótropo» E = 30000 MPa, ν = 0,30, espesor 200 mm, Vinculación exterior de las 4 aristas = «Articulación» (icono fila 2, 1.º: en aristas solo Dx, Dy, Dz fijos), carga uniforme de lámina (Carga > Láminas > Nueva, ejes locales, icono de sentido 1 = **+z local**) con **Q = 10000 kN/m²** para obtener 5 cifras (la lectura da 2 decimales; con Q = 10 solo salía «0,26 mm»). El peso propio de la lámina sigue activo (γ = 24,53 kN/m³ por defecto, **0,2 · 24,53 = 4,906 kN/m² en −z**, hipótesis «Peso propio»; la carga del diálogo se creó en esa misma hipótesis porque el combo no es operable por script), de modo que **Q neto = 10000 − 4,906 = 9995,094 kN/m²**. Capturas `docs/screenshots/lam_*`.
+
+**Referencias exactas** (serie de Navier, a = 4, D = 21978,0, Q neto): w_K = 472,95 mm, Mx = My = 7658,1 kN·m/m (centro); con cortante Mindlin (κ = 5/6, G = E/2(1+ν)) w = 479,08 mm.
+
+| Malla (lado máx.) | w máx (Dz) mm | Mx máx kN·m/m | My máx | Mxy mín / máx | Nota |
+|---|---|---|---|---|---|
+| 2,0 m | 537,65 | 8022,8 | 7992,1 | −4232 / 3800 | malla muy basta |
+| 1,0 m (defecto) | 501,16 | 7887,5 | 7881,1 | −5015 / 4220 | |
+| 0,5 m | 501,73 | 7927,1 | 7893,3 | −5153 / 4917 | |
+| 0,25 m | 498,09 (punto central: 496,44) | 7886,9 (centro: 7857,5) | 7879,7 (centro: 7867,5) | −4905 / 4851 | en el centro Mxy = 18, Qx = −304, Qy = 627: ruido de malla no estructurada (deberían ser 0) |
+
+Los extremos son los de la leyenda con «esfuerzos alisados» activo (valores nodales alisados).
+
+Lectura:
+- **Signo coherente con la carga**: carga +z ⇒ Dz > 0 y Mx, My > 0 en el centro (Mx positivo = `M = −D·∂²w/∂x²`, convenio estándar de placas). El peso propio solo da Dz mín = −0,24 mm (Q = 4,906; referencia Mindlin 0,235 mm). La correspondencia con tracción en la cara superior (§6) no se comprobó en pantalla.
+- **Converge rápido con la malla** (1,0 m → 0,25 m: −0,6 % en w, ≈ 0 en Mx; con 2,0 m +7 % en w), pero **converge a un valor ≈ 4 % por encima de Navier–Mindlin en w (498 frente a 479) y ≈ 2,7 % por encima en M (7860–7890 frente a 7658)**, también con otro ν: con ν = 0,01 (malla 1,0) w = 545, Mx = 6178,6, My = 6157,9 frente a 524,5 y 5949,8 de la teoría (+3,9 % y +3,8 %). No es error de discretización ni depende de ν; **la causa no está resuelta** (hipótesis sin prueba: rigidez de cortante menor, o área/carga efectiva ligeramente mayor). Para el clon: objetivo exacto = estas cifras; tolerancias propuestas ±6 % en w y ±3,5 % en M frente a la teoría.
+- **Mallado**: lado máximo 1,00 m por defecto (diálogo «Discretización»: «Las láminas se discretizan mediante una malla de triángulos, teniendo en cuenta las condiciones de contorno de cada lámina... realiza la compatibilidad entre mallas en las aristas de las láminas»; campo «Tamaño máximo de los lados de un triángulo», m). La malla es una **triangulación no estructurada** no simétrica; con 1,0 m en 4x4 m se ven del orden de 40–50 triángulos (visual, `lam_m10_full.png`, sin contar con exactitud).
+
+**Factores de rigidez** (Propiedades > Láminas > «Factores de rigidez»; orden de los campos del diálogo: Membrana Fxx, Fxy, Fyy, Flexión Mxx, Mxy, Myy, Cortante Vxz, Vyz; el tooltip de la lámina los lista en el orden Fxx, Fyy, Fxy, Mxx, Myy, Mxy, Vxz, Vyz; defecto 1,000): con **Flexión Mxx = 0,5** (ν = 0,01, malla 1,0): w máx 545 → **626,41 mm (×1,149)**, Mx máx 6178,6 → **3457,8 (×0,56)**, My máx 6157,9 → 6992,9 (×1,136), Mxy ±7100–8100 (antes ±~4200). El factor multiplica la rigidez de flexión Dxx (no es un factor global) y los momentos se reparten hacia el eje y. Fxx = 0, los demás factores y el mensaje con 0 no se midieron.
+
+**Parámetro X de la sección = módulo de balasto en Z local [V]**: con la casilla «Módulo de balasto en Z local» marcada y K = 1 000 000 kN/m³ (máximo del diálogo, rango 0,01–1 000 000) se obtiene w máx = **10,96 mm ≈ Q/K = 9,995 mm** (más la flexión residual) y Mx máx 333,6 (mín −175,1): cimentación Winkler en z local, en kN/m³ (defecto 29430,00, desactivada). «Sólo compresión» no medido.
+
+**Esfuerzos y tensiones disponibles [V]**: Cálculo > Isovalores abre una **ventana propia** «3D v2027.a - [Desplazamiento total: Peso propio]» con menús Archivo (Terminar), Ver (Opciones), Esfuerzos (Consultar) y Ventana, panel «Opciones» y barra de leyenda inferior con los extremos. Modos «Deformada» (factor de escala 0–100000, defecto 10; «Valor máximo»; «Ver la estructura») e «Isovalores», con tres familias:
+- **Desplazamientos**: Desplazamiento X, Y, Z, total; Giro X, Y, Z (mm, mRad).
+- **Esfuerzos**: Axil X, Axil Y, Axil XY (kN/m); Flector X, Flector Y, Flector XY (kN·m/m); Cortante total, Cortante X, Cortante Y (kN/m).
+- **Tensiones** (MPa): primer combo Cara superior, Cara inferior, Máxima de ambas caras, Mínima de ambas caras, Máxima absoluta de ambas caras; segundo combo Normal X, Normal Y, Tangencial XY, Tangencial XZ, Tangencial YZ, Tensión máxima, Tensión mínima, Tensión de Von Mises, Tensión tangencial máxima.
+
+Casillas: «Mostrar esfuerzos alisados» (marcada por defecto; deshabilitada en desplazamientos), «Discretización» (dibuja la malla, marcada), «Dibujar los ejes de las láminas» (marcada), «Valor máximo/mínimo» (límites del colormap; defecto ±98100 en kN/m, kN·m/m y MPa; ±1 000 000 mm). Combo «Comb. seleccionada»: Hipótesis simple + hipótesis. **Esfuerzos > Consultar** (clic en un punto) da el valor en un globo con 2–3 decimales; con factor de escala > 0 el dibujo se deforma y el clic cae sobre el punto deformado (usar 0 para consultar). Axil X, Y, XY = 0 constante (placa sin membrana). Cortante total máx 84 498 (Q = 10000): en las esquinas (singularidad), no es el cortante de borde de Navier 0,338·Q·a = 13 520.
+
+**Peso propio de láminas [V]**: carga superficial γ·h en −z (4,906 kN/m²): Dz = −0,24 mm (malla 0,25). El comando Carga > Láminas > «Peso propio» (diálogo «Generación de cargas»: Activar / Desactivar; luego selección + botón derecho) no pudo comprobarse: tras «Desactivar» el volumen amarillo de peso propio seguía dibujado y el cálculo lo seguía incluyendo.
+
+**Bandas de integración [V parcial]**: Propiedades > Láminas > «Bandas de integración» (ayuda: «...definen líneas sobre las que, para un ancho de banda dado, se integran los esfuerzos de la lámina para obtener esfuerzos de barra... Puede consultar los esfuerzos en cada banda de integración como si se tratase de los esfuerzos sobre una barra de la estructura.»; solo se usa la geometría de la primera lámina seleccionada) abre el diálogo «Bandas de integración» (redimensionable): barra de herramientas con deshacer/rehacer, un icono de curva, **«Generar bandas de integración en zona»** (4 puntos que definen la zona), **«Nueva»** («Seleccione dos puntos dentro de la lámina y, a continuación, pulse el botón derecho»; al marcar el segundo punto se abre el diálogo «Nueva» con **«Anchura» = 15,0 cm** por defecto), tres iconos de editar/mover/borrar, tres de unir/dividir, un icono de aviso, y vista (zoom, ventana, ajustar, mano); opciones «Referencias de bandas» (cotas magenta) y panel «Isovalores» («Mostrar», Desplazamientos/Esfuerzos, hipótesis) con la leyenda sobre el plano de la lámina. **No se consiguió que la banda quedara creada** (tras Aceptar en «Nueva» no se dibuja ninguna banda y deshacer sigue inactivo): el valor integrado por banda queda sin medir.
+
+**No medido**: viga pared (voladizo), método/suavizado de bandas, mensaje con factor de rigidez = 0, nº exacto de triángulos (TK-109).
+
+**Notas de conducción nuevas**: la ventana Isovalores es otra ventana del proceso: `aclick` (clic absoluto) abre sus menús, `click` no; sus combos **sí** aceptan clic en la entrada de la lista (a diferencia de la ventana principal); en una obra sin barras el diálogo «Cálculo» no tiene «Comprobar las barras» y Aceptar está en (843,601), y no aparece informe; el panel «Hipótesis vista» aparece al tocar Carga (maximizado la primera vez: `sv_panel`) y hay que cerrarlo (507,249) antes de clicar la lámina; la lámina se selecciona clicando su interior (1491,520), las aristas en su punto medio. Helpers: `tools/lam_lib.sh` (lam_calc, lam_view, lam_sel, lam_q, lam_cap, lam_run).
+
+### 9.1 Lista original de mediciones (referencia)
+
+Obra de prueba en `docs/sample_project/`:
 1. Placa cuadrada 4×4 m, h = 0,2 m, hormigón, apoyo simple en el contorno, q = 10 kN/m²: flecha y Mx, My en el centro (comparar con §8.1) con lado de triángulo 1 m y 0,25 m. Ayuda a decidir si el elemento es tipo MITC/DKT-like con cortante.
 2. Misma placa con banda de 15 cm a lo largo del eje x en y = 2 m: valor integrado (kN·m/m o kN·m total) con método «tensiones internas» suavizado y sin suavizar y con método «esfuerzos nodales».
 3. Efecto de cada uno de los 8 factores de rigidez (p. ej. Mxx = 0,5 → flecha cambia, Fxx = 0 → ¿error de matriz singular?).
