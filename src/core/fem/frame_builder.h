@@ -20,13 +20,15 @@ namespace cc::fem {
 ///    otherwise the CrossSection values (depth unknown = 0).
 ///  - BarEnds: plane xy -> Gz, plane xz -> Gy, plane yz -> Gx (torsion). `pinned` frees Gy and Gz (not the torsion). Coefficient 1 = rigid,
 ///    0 = free, in between a rotational spring K = c / (1 - c) k_ii [V] with k_ii = (4 + phi) E I / ((1 + phi) L), phi = 12 E I / (G Av L^2)
-///    of that plane (measured for the xz plane at the origin end; other planes / the final end assumed equal [N]); a rotational stiffness is used as is
-///    (0 = free).
-///  - Global bar loads act per metre of bar length [N]. Point moment: value x direction. Variable temperature [N]: T1 on the face towards
-///    the chosen direction, T2 on the opposite one; the mean (T1 + T2) / 2 is also applied as a uniform increment; an angled direction is
-///    split into the y and z gradients (cos -> z, sin -> y).
+///    of that plane (measured in the planes xy and xz and at both ends); the mode "Rigidez rotacional" is K in kN.m/rad used as is [V] (0 = free).
+///    The torsion plane only admits coefficients 0 and 1 in the original (checked by core::bar_ends).
+///  - Shear areas: Avy and Avz of every bar must lie in 0.01..1000000 cm2 [V]; outside it `errors` gets the message of the original.
+///  - Global bar loads act per metre of bar length [N]. Point moment: value x direction. Variable temperature [V]: T1 on the face opposite to
+///    the chosen direction (Y+, Z+ or an angle: +z rotated about local x, 90 degrees = -y), T2 on the face towards it; the mean (T1 + T2) / 2 is
+///    also applied as a uniform increment; the direction is split into the gradient across hy = left + right width (y) and hz = lower + upper
+///    depth (z) of the section envelope.
 ///  - Self weight (case id 0): uniform load gamma * A_average along global -Z for every bar (the per-bar switch only with
-///    FrameBuildOptions::honourSelfWeightSwitch, see there).
+///    FrameBuildOptions::honourSelfWeightSwitch, see there; the original has no per-bar switch at all [V, TK-105h]).
 ///  - Unsupported data for this task (T-P8-02 / T-P8-03, TK-106) are reported in `unsupported` and NOT modelled: elastic and oblique supports
 ///    (those DOFs stay free), internal links other than "empotrado", ligatures, diaphragms and shells. Callers must not present results
 ///    while `unsupported` is not empty.
@@ -48,6 +50,10 @@ struct FrameBuildOptions {
 
 FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options = {});
 
+/// Admitted range of the shear areas Avy / Avz in the original: 0.01 .. 1000000 cm2 (0 is refused, there is no "ignore" option) [V, TK-105g].
+inline constexpr double kMinShearAreaM2 = 0.01e-4, kMaxShearAreaM2 = 1000000.0e-4;
+/// «El valor de 'Área de cortante (Avz)' debe estar entre 0.01 y 1000000.00.» (`name` = "Avy" or "Avz"), the text of the original.
+std::string shearAreaRangeMessage(const char* name);
 /// «Existen barras sin describir.» (text of the original quoted in TK-101).
 std::string undescribedBarsMessage();
 /// «Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina.» (#64010, ed3dlib.dll).

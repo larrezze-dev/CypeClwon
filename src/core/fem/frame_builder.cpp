@@ -62,6 +62,9 @@ EndRelease releaseOf(const core::EndPlaneFixity& fixity, double diagonalStiffnes
 }  // namespace
 
 std::string undescribedBarsMessage() { return "Existen barras sin describir."; }
+std::string shearAreaRangeMessage(const char* name) {
+    return std::string("El valor de 'Área de cortante (") + name + ")' debe estar entre 0.01 y 1000000.00.";
+}
 std::string unconnectedNodeMessage() { return "Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina."; }
 
 FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options) {
@@ -114,6 +117,14 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         const std::optional<core::BarFrame> frame = core::barLocalAxes(sm, b.id);
         if (!mat || !cs) { undescribed = true; continue; }
         if (!frame) { out.errors.push_back("La barra " + std::to_string(b.id) + " tiene longitud nula."); continue; }
+        // The original always applies shear deformation and does not admit a shear area of 0 (range 0.01..1000000 cm2) [V, TK-105g]: report it
+        // instead of silently falling back to Euler-Bernoulli (use 1e6 cm2 for pure bending).
+        {
+            const SectionData probe = sectionOf(project, *cs);
+            const auto outside = [](double m2) { return !(m2 >= kMinShearAreaM2 * (1.0 - 1e-9) && m2 <= kMaxShearAreaM2 * (1.0 + 1e-9)); };
+            if (outside(probe.avy)) { out.errors.push_back("Barra " + std::to_string(b.id) + ": " + shearAreaRangeMessage("Avy")); continue; }
+            if (outside(probe.avz)) { out.errors.push_back("Barra " + std::to_string(b.id) + ": " + shearAreaRangeMessage("Avz")); continue; }
+        }
         FemBar fb;
         fb.id = b.id;
         fb.nodeI = core::barXOrigin(b);

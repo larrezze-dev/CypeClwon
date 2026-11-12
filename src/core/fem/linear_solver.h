@@ -17,6 +17,8 @@ namespace cc::fem {
 ///     shear flexibility included), condensed like the stiffness. Temperature as initial strains.
 ///  4. Global sparse assembly, DOFs without stiffness locked (LinearResult::lockedDofs), supports eliminated, prescribed displacements moved
 ///     to the right-hand side, one sparse LDLT factorisation for every load case.
+///  4b. Rule [R] of TK-108: the rigid twist of a chain of collinear bars that is a null mode on its own is fixed to 0 without a warning
+///     (LinearResult::nullModeDofs); every other null mode is a mechanism, with or without load.
 ///  5. Null pivot -> SolveStatus::Mechanism (#214001), negative pivot -> SolveStatus::Unstable (#380376), a loaded DOF without stiffness ->
 ///     Mechanism for that case. Results: nodal displacements, reactions, bar end forces.
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options = {});
@@ -29,6 +31,11 @@ std::string mechanismMessage(const std::string& caseName);
 std::string unstableMessage(const std::string& caseName);
 /// «Se ha producido un error calculando el caso de carga '%s'. Revise las condiciones del modelo.» (#214000, cyopensees.dll).
 std::string caseErrorMessage(const std::string& caseName);
+
+/// «Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción
+/// 'Mostrar/Oculta incidencias' del menú 'Cálculo'.» Text shown by the original (measured, solver_medidas_original.md 9.2; the resource id was not
+/// located [N]). Raised when a node rotation exceeds SolverOptions::maxNodeRotation (pi/2 [V]); which component or norm is checked is [N].
+std::string excessiveDisplacementsMessage();
 
 /// «Esta estructura es un mecanismo. Revise los datos introducidos. / Giro alrededor del eje Y / El error se encuentra en el punto de
 /// coordenadas: / (x = 0.000000, y = 0.000000, z = 0.000000) / Alguna de las barras de la estructura no está vinculada correctamente en sus

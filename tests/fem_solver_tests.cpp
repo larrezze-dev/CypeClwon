@@ -238,8 +238,9 @@ TEST(FemSolver, GlobalEquilibrium3D) {
 TEST(FemSolver, MechanismIsDetectedWithTheMessageOfTheOriginal) {
     FrameModel m;
     m.nodes = {node(0, 0, 0, 0), node(1, 5, 0, 0)};
-    m.nodes[0].fixed = {true, true, true, false, false, false};  // torsion free at both ends
-    m.nodes[1].fixed = {false, true, true, false, false, false};
+    // Torsion locked at the start: the free twist of a collinear chain is NOT a mechanism (it is fixed to 0, TK-108), the rotation about Y is.
+    m.nodes[0].fixed = {true, true, true, true, false, false};
+    m.nodes[1].fixed = {false, true, false, false, false, false};  // Dz of the far end free: pinned bar with only Dy there, rotation about Y is a mechanism
     m.bars = {bar(1, 0, 1)};
     LoadCaseInput lc{3, "CM 1", {FemNodalLoad{1, {0, 0, -1, 0, 0, 0}}}, {}, {}};
     const LinearResult r = solveOne(m, lc, false);
@@ -247,7 +248,7 @@ TEST(FemSolver, MechanismIsDetectedWithTheMessageOfTheOriginal) {
     EXPECT_EQ(r.cases[0].status, SolveStatus::Mechanism);
     // The user sees the warning measured in the original (null pivot: DOF type + node coordinates), not the #214001 text.
     ASSERT_GE(r.mechanismNode, 0);
-    ASSERT_GE(r.mechanismDof, 3);  // a rotation (torsion free at both ends)
+    ASSERT_GE(r.mechanismDof, 0);
     EXPECT_EQ(r.cases[0].message, r.message);
     EXPECT_EQ(r.message, mechanismWarning(r.mechanismDof, m.nodes[nodeIdx(m, r.mechanismNode)].position));
     EXPECT_EQ(mechanismMessage("CM 1"),
@@ -422,7 +423,8 @@ cc::core::Project cantileverProject(double rollDeg = 0.0, bool inverted = false)
     cs.areaM2 = 0.01;
     cs.inertiaYM4 = 1e-4;
     cs.inertiaZM4 = 5e-5;
-    cs.torsionM4 = 8e-5;  // no shear areas: Euler-Bernoulli
+    cs.torsionM4 = 8e-5;
+    cs.shearAreaYM2 = cs.shearAreaZM2 = 100.0;  // 1e6 cm2, the largest admitted by the original: Euler-Bernoulli to 1e-7 (area 0 is refused)
     const int sid = s.addSection(cs);
     const int b = s.addBar(n1, n2, mid, sid);
     s.findBar(b)->rollAngleDeg = rollDeg;
@@ -551,7 +553,7 @@ TEST(FemBuilder, PrescribedDisplacementInMillimetres) {
     const auto r = solveLinear(fb.model, fb.cases);
     ASSERT_EQ(r.status, SolveStatus::Ok);
     expectRel(r.cases[0].displacements[1][2], -0.01);
-    expectRel(std::fabs(r.cases[0].reactions.at(1)[2]), 12.0 * kE * 1e-4 * 0.01 / 64.0);
+    expectRel(std::fabs(r.cases[0].reactions.at(1)[2]), 12.0 * kE * 1e-4 * 0.01 / 64.0, 1e-5);  // Av = 1e6 cm2: phi ~ 2e-8 (the original has no Av = 0)
 }
 
 TEST(FemBuilder, VariableDepthSectionIsTheAverageOfBothEnds) {

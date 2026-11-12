@@ -161,3 +161,12 @@ Conclusión: **la ley K = c/(1−c)·k_ii con k_ii de Timoshenko (con el área d
 - Teclear un número con el foco en la vista 3D abre la «Calculadora» de coordenadas; cerrarla (X) y no seguir tecleando.
 - Borrar una carga de barra: «Carga > Barras > Borrar» + clic en el dibujo de la carga (cada plano de temperatura se borra pinchando dentro de su plano) + RMB; `Ctrl+Z` deshace borrados anteriores.
 - Los tooltips de nudo de «Vinculación exterior» muestran el apoyo con K redondeado a entero (K = 1,5 se ve «2 kN/m»).
+
+### 9.8 Aplicación en el clon (2026-11-12)
+
+- **TK-108**: `findTwistModes` (`src/core/fem/linear_solver.cpp`) implementa la regla [R]; resultado en `LinearResult::nullModeDofs`. El aviso nombra el gdl de mayor amplitud del modo nulo (obra en L: N3 / Dz, punto (4, 2, 0), como el original; el voladizo del §6 nombra en el clon N2 / Dz en lugar de N1 / Gy, **[N]** regla abierta).
+- **TK-105a**: `SolverOptions::maxNodeRotation = π/2`, `SolveStatus::ExcessiveDisplacements`; texto del aviso copiado de la GUI del original (id de recurso no localizado [N]); se comprueba cada componente de giro (la medición solo distingue Gy).
+- **TK-105c**: `barLoadDirection` (ángulo libre) = cos θ · z − sen θ · y.
+- **TK-105d**: sin cambios de lógica en el builder (k_ii de Timoshenko y K directo ya estaban); lo que muestra el original como giro del nudo con un extremo parcialmente empotrado es el giro del **extremo de la barra** (nudo empotrado con c = 0,5: Gz = 3,879 mRad; Gy(N2) = +0,855 es el giro del extremo de la barra 1, mientras el nudo gira −0,855 con la barra 2 rígida). El solver lo expone en `LoadCaseResult::barDisplacements`.
+- **TK-105g**: el builder y la validación de la descripción genérica exigen Avy, Avz entre 0,01 y 1 000 000 cm² con el texto del original.
+- **TK-105h**: el interruptor de peso propio por barra del clon (`selfWeightOff`) sigue ignorado en el cálculo (decisión documentada); el original no lo tiene.

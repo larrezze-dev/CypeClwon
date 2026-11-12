@@ -115,12 +115,24 @@ struct SolverOptions {
     bool shearDeformation = true;      ///< default on = behaviour of the original [V]; shear area 0 ("ignore") not measured
     double pivotTolerance = 1e-11;     ///< a pivot below tolerance * K_ii means a mechanism
     double orphanTolerance = 1e-13;    ///< a diagonal below tolerance * max diagonal means a DOF without stiffness
+    double nullModeTolerance = 1e-9;   ///< relative residual below which a collinear-chain twist is an exact null mode (fixed to 0)
+    double maxNodeRotation = 1.5707963267948966;  ///< rad; a node rotation above it gives ExcessiveDisplacements [V], 0 = no check
 };
 
-enum class SolveStatus { Ok, Mechanism, Unstable, Error };
+/// ExcessiveDisplacements: a node rotation exceeded pi/2 [V, solver_medidas_original.md 9.2]; the original then disables the results.
+enum class SolveStatus { Ok, Mechanism, Unstable, Error, ExcessiveDisplacements };
 
 /// Section forces at both ends of a bar, local axes, in the convention of applySignConvention(): N, Vy, Vz, T (Mx), My, Mz.
 struct BarEndForces {
+    int bar = 0;
+    Dof6 origin{};  ///< at nodeI
+    Dof6 end{};     ///< at nodeJ
+};
+
+/// Displacements of the two ends of a bar (global axes, m / rad) including the rotation of a released / partially fixed end, which differs from
+/// the rotation of its node. The original shows THIS value at a node with a partially fixed bar end: with the base node clamped and c = 0.5 it
+/// reads Gz(N1) = theta of the spring [V, solver_medidas_original.md 9.4]; which bar it shows at a node with several bars is [N].
+struct BarEndDisplacements {
     int bar = 0;
     Dof6 origin{};  ///< at nodeI
     Dof6 end{};     ///< at nodeJ
@@ -134,6 +146,7 @@ struct LoadCaseResult {
     std::vector<Dof6> displacements;     ///< per node, in FrameModel::nodes order; m and rad, global
     std::map<int, Dof6> reactions;       ///< node id -> forces of the supports on the structure (global; 0 on free DOFs)
     std::vector<BarEndForces> barForces; ///< per bar, in FrameModel::bars order
+    std::vector<BarEndDisplacements> barDisplacements;  ///< per bar, in FrameModel::bars order
 };
 
 struct LinearResult {
@@ -145,6 +158,9 @@ struct LinearResult {
     /// DOFs without any stiffness (every element released there, e.g. the rotations of a node where all bar ends are pinned) that were
     /// locked automatically, as node id -> mask. The original avoids them with springs of stiffness 1e-3 (cyosrelac_cte_infima).
     std::map<int, std::array<bool, 6>> lockedDofs;
+    /// Rigid twist modes of collinear bar chains that no load or coupling excites (rule [R] of TK-108): one DOF per chain was fixed to 0
+    /// without any warning (node id -> mask), like the original, which returns Gx = 0.000 along the chain.
+    std::map<int, std::array<bool, 6>> nullModeDofs;
 };
 
 }  // namespace cc::fem

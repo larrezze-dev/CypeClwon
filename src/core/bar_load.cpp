@@ -348,7 +348,8 @@ Point3 barLoadDirection(const BarLoadData& d, const BarFrame& f) {
             case TemperatureDirection::PlusZ: return f.z;
             case TemperatureDirection::Angle: {
                 const double a = d.temperatureAngle * kPi / 180.0;
-                return unit(add(scale(f.z, std::cos(a)), scale(f.y, std::sin(a))));
+                // Measured [V] (TK-105c): the direction is +z rotated about the local x axis by the angle (90 degrees points to -y).
+                return unit(add(scale(f.z, std::cos(a)), scale(f.y, -std::sin(a))));
             }
         }
         return {};

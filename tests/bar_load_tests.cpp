@@ -522,7 +522,9 @@ TEST(BarLoad, LocalAxesAndDirections) {
     EXPECT_NEAR(barLoadDirection(d, *f).z, 1.0, 1e-12);
     d.temperatureDirection = TemperatureDirection::Angle;
     d.temperatureAngle = 90;
-    EXPECT_NEAR(barLoadDirection(d, *f).y, 1.0, 1e-12);
+    EXPECT_NEAR(barLoadDirection(d, *f).y, -1.0, 1e-12);  // measured: +z rotated about x, 90 degrees points to -y (TK-105c)
+    d.temperatureAngle = 0;
+    EXPECT_NEAR(barLoadDirection(d, *f).z, 1.0, 1e-12);
     EXPECT_EQ(barLoadDirection(data(BarLoadType::UniformTemperature, 20), *f), Point3{});
 
     // Roll and x inversion.

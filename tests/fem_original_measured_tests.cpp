@@ -7,7 +7,9 @@
 // (80 cm2 in C6), alpha = 1.2e-5, gamma = 77.01 kN/m3 (C1) or 0.01 kN/m3 (the minimum of the original, C2..C6).
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cmath>
+#include <span>
 #include <vector>
 
 #include "core/bar_ends.h"
@@ -138,7 +140,7 @@ TEST(FemOriginalMeasured, C2SimplySupportedBeam) {
         n.position = {3.0 * i, 0, 0};
         m.nodes.push_back(n);
     }
-    m.nodes[0].fixed = {true, true, true, true, false, false};   // torsion locked: see the ticket on unexcited rigid modes
+    m.nodes[0].fixed = {true, true, true, false, false, false};  // torsion NOT locked: the isolated twist mode is fixed to 0 (TK-108 rule [R])
     m.nodes[2].fixed = {false, true, true, false, false, false};
     for (int i = 0; i < 2; ++i) {
         FemBar b;
@@ -156,6 +158,8 @@ TEST(FemOriginalMeasured, C2SimplySupportedBeam) {
     const LinearResult r = solveLinear(m, std::span<const LoadCaseInput>(&lc, 1));
     ASSERT_EQ(r.status, SolveStatus::Ok);
     const LoadCaseResult& c = r.cases[0];
+    EXPECT_FALSE(r.nullModeDofs.empty());                      // the twist of the collinear chain was fixed silently
+    for (int i = 0; i < 3; ++i) EXPECT_NEAR(c.displacements[i][3], 0.0, 1e-12) << "Gx of node " << i + 1;   // measured: Gx = 0.000 at N1, N2, N3
     expectRead(c.displacements[1][2] * 1e3, -8.175, 1e-3, "Dz N2 mm");  // Timoshenko 8.175000, Euler-Bernoulli 8.036
     expectRead(c.displacements[0][4] * 1e3, 4.286, 1e-3, "Gy N1 mRad");
     expectRead(c.reactions.at(1)[2], 30.000, 1e-3, "Rz N1");
@@ -276,7 +280,9 @@ TEST(FemOriginalMeasured, PartialFixityLawWithShearTerm) {
 
 // --- temperature ---
 namespace {
-core::Project temperatureCantilever(core::BarLoadType type, double t1, double t2, bool generic) {
+core::Project temperatureCantilever(core::BarLoadType type, double t1, double t2, bool generic,
+                                    core::TemperatureDirection direction = core::TemperatureDirection::PlusZ, double angle = 0.0,
+                                    std::array<double, 4> dims = {0.025, 0.025, 0.025, 0.025}) {
     Fixture f = makeFixture(0.01);
     const int n1 = addNode(f, 0, 0, 0), n2 = addNode(f, 4, 0, 0);
     const int bar = addBar(f, n1, n2);
@@ -284,7 +290,7 @@ core::Project temperatureCantilever(core::BarLoadType type, double t1, double t2
     if (generic) {
         core::BarDescription d = core::defaultDescription(core::BarMaterialIcon::Concrete);
         d.id = 1;
-        core::Section sec{"gen", core::ShapeKind::Generic, {0.025, 0.025, 0.025, 0.025}, {}};   // lower 25 + upper 25 mm: h = 50 mm
+        core::Section sec{"gen", core::ShapeKind::Generic, {dims[0], dims[1], dims[2], dims[3]}, {}};   // default 25 + 25 mm: h = 50 mm
         sec.tabulated.area = 0.01;
         sec.tabulated.iy = 1e-4;
         sec.tabulated.iz = 5e-5;
@@ -299,6 +305,8 @@ core::Project temperatureCantilever(core::BarLoadType type, double t1, double t2
     }
     core::BarLoad& bl = barLoad(f, bar, type, t1, t2);
     bl.axes = core::BarLoadAxes::Local;
+    bl.temperatureDirection = direction;
+    bl.temperatureAngle = angle;
     return f.project;
 }
 }  // namespace
@@ -351,4 +359,262 @@ TEST(FemOriginalMeasured, SignConventionInvertsOnlyMy) {
     const Dof6 conv = applySignConvention(canonical);
     EXPECT_EQ(conv, (Dof6{1, 2, 3, 4, -5, 6}));
     EXPECT_EQ(removeSignConvention(conv), canonical);
+}
+
+// --- TK-105c: variable temperature along Y+ and with a free angle (hy = left + right width, hz = lower + upper depth) ---
+TEST(FemOriginalMeasured, VariableTemperatureYPlusUsesTheWidth) {
+    // Widths 50 + 50 = 100 mm, depths 25 + 25 = 50 mm: Dy = 19.2 mm and Gz = +9.6 mRad (with widths 25 + 25 it is 38.4 / 19.2).
+    Solved s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::PlusY, 0.0,
+                                           {0.05, 0.05, 0.025, 0.025}));
+    expectRead(s.d(2, 1) * 1e3, 19.200, 1e-3, "Dy (width 100 mm)", 2e-3);
+    expectRead(s.d(2, 5) * 1e3, 9.600, 1e-3, "Gz mRad", 2e-3);
+    expectRead(s.d(2, 0) * 1e3, 0.480, 1e-3, "Dx");
+    s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::PlusY));
+    expectRead(s.d(2, 1) * 1e3, 38.400, 1e-3, "Dy (width 50 mm)", 2e-3);
+    expectRead(s.d(2, 5) * 1e3, 19.200, 1e-3, "Gz mRad", 2e-3);
+}
+
+TEST(FemOriginalMeasured, VariableTemperatureAngleRotatesPlusZAboutX) {
+    // Angle 0 equals the Z+ icon.
+    Solved s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::Angle, 0.0));
+    expectRead(s.d(2, 2) * 1e3, 38.400, 1e-3, "Dz at 0 degrees", 2e-3);
+    // Angle 90: Dy = -38.4 mm, Gz = -19.2 mRad (widths 50, depths 50).
+    s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::Angle, 90.0));
+    expectRead(s.d(2, 1) * 1e3, -38.400, 1e-3, "Dy at 90 degrees", 2e-3);
+    expectRead(s.d(2, 5) * 1e3, -19.200, 1e-3, "Gz at 90 degrees", 2e-3);
+    EXPECT_NEAR(s.d(2, 2) * 1e3, 0.0, 2e-3);
+    // Angle 45, widths 100 mm and depths 50 mm: Dz = +27.153, Dy = -13.576 mm, Gy = -13.577, Gz = -6.788 mRad.
+    s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::Angle, 45.0,
+                                    {0.05, 0.05, 0.025, 0.025}));
+    expectRead(s.d(2, 2) * 1e3, 27.153, 1e-3, "Dz at 45 degrees", 2e-3);
+    expectRead(s.d(2, 1) * 1e3, -13.576, 1e-3, "Dy at 45 degrees", 2e-3);
+    expectRead(s.d(2, 4) * 1e3, -13.577, 1e-3, "Gy at 45 degrees", 2e-3);
+    expectRead(s.d(2, 5) * 1e3, -6.788, 1e-3, "Gz at 45 degrees", 2e-3);
+    // A negative angle mirrors the y component.
+    s = solve(temperatureCantilever(core::BarLoadType::VariableTemperature, 20.0, 0.0, true, core::TemperatureDirection::Angle, -90.0));
+    expectRead(s.d(2, 1) * 1e3, 38.400, 1e-3, "Dy at -90 degrees", 2e-3);
+}
+
+// --- TK-105d: partial fixity in the xy plane, at the final end, and the "Rigidez rotacional" mode (K used directly) ---
+namespace {
+Fixture c1Cantilever(double gamma = 0.01) {
+    Fixture f = makeFixture(gamma);
+    const int n1 = addNode(f, 0, 0, 0), n2 = addNode(f, 4, 0, 0);
+    addBar(f, n1, n2);
+    clamp(f, n1);
+    nodalLoad(f, n2, core::LoadDirection::PlusY, 10.0);
+    return f;
+}
+}  // namespace
+
+TEST(FemOriginalMeasured, PartialFixityXyPlaneOrigin) {
+    Fixture f = c1Cantilever();
+    core::BarEndsRecord rec;
+    rec.ends[core::kBarOrigin].planes[core::kPlaneXY].coefficient = 0.5;
+    core::setBarEnds(f.project.barEnds, 1, rec);
+    const Solved s = solve(f.project);
+    expectRead(s.d(2, 1) * 1e3, 35.956, 1e-3, "Dy", 2e-3);          // with 4 E I / L it would be 35.679
+    // The original reads the rotation of the bar end at the clamped node (the spring rotation theta = 40 / 10312); the node itself does not rotate.
+    expectRead(s.c().barDisplacements[0].origin[5] * 1e3, 3.879, 1e-3, "Gz N1 mRad (bar end)", 2e-3);
+    EXPECT_NEAR(s.d(1, 5), 0.0, 1e-15);
+}
+
+TEST(FemOriginalMeasured, RotationalStiffnessIsUsedDirectly) {
+    Fixture f = c1Cantilever();
+    core::BarEndsRecord rec;
+    core::EndPlaneFixity& pl = rec.ends[core::kBarOrigin].planes[core::kPlaneXY];
+    pl.kind = core::EndFixityKind::Rotational;
+    pl.stiffnessKnMPerRad = 5000.0;
+    core::setBarEnds(f.project.barEnds, 1, rec);
+    const Solved s = solve(f.project);
+    expectRead(s.d(2, 1) * 1e3, 52.441, 1e-3, "Dy", 2e-3);
+    expectRead(s.c().barDisplacements[0].origin[5] * 1e3, 8.000, 1e-3, "Gz N1 mRad (bar end)", 2e-3);
+}
+
+namespace {
+/// C2 through the project adapter: 2 bars of 3 m, N1 "Apoyo fijo" (Pinned), N3 "recta X articulada" (LineXPinned), q = 10 kN/m along -Z.
+Fixture c2Project() {
+    Fixture f = makeFixture(0.01);
+    const int n1 = addNode(f, 0, 0, 0), n2 = addNode(f, 3, 0, 0), n3 = addNode(f, 6, 0, 0);
+    const int b1 = addBar(f, n1, n2), b2 = addBar(f, n2, n3);
+    core::ExternalSupport pinned, line;
+    pinned.type = core::ExternalSupportType::Pinned;
+    line.type = core::ExternalSupportType::LineXPinned;
+    f.project.nodeSupports.external[n1] = pinned;
+    f.project.nodeSupports.external[n3] = line;
+    barLoad(f, b1, core::BarLoadType::Uniform, 10.0);
+    barLoad(f, b2, core::BarLoadType::Uniform, 10.0);
+    return f;
+}
+}  // namespace
+
+TEST(FemOriginalMeasured, PartialFixityAtTheFinalEndOfBar1) {
+    Fixture f = c2Project();
+    core::BarEndsRecord rec;
+    rec.ends[core::kBarFinal].planes[core::kPlaneXZ].coefficient = 0.5;
+    core::setBarEnds(f.project.barEnds, 1, rec);
+    const Solved s = solve(f.project);
+    expectRead(s.d(2, 2) * 1e3, -10.739, 1e-3, "Dz N2", 2e-3);       // with 4 E I / L: -10.586
+    expectRead(s.d(1, 4) * 1e3, 5.140, 1e-3, "Gy N1 mRad", 2e-3);
+    // The original shows the rotation of the bar-1 end at N2 (the node rotates -0.855 with bar 2 rigidly attached).
+    expectRead(s.c().barDisplacements[0].end[4] * 1e3, 0.855, 1e-3, "Gy N2 mRad (end of bar 1)", 3e-3);
+    EXPECT_NEAR(s.d(2, 4) * 1e3, -0.855, 4e-3);
+}
+
+// --- TK-108: unexcited rigid twist (fixed to 0 without a warning) versus coupled null modes (mechanism, with or without load) ---
+TEST(FemOriginalMeasured, C2WithoutFixingTheTwistCalculatesWithZeroGx) {
+    const Fixture f = c2Project();     // N1 Apoyo fijo, N3 recta X articulada: the twist of the 3 collinear nodes is a null mode
+    const Solved s = solve(f.project);
+    EXPECT_FALSE(s.result.nullModeDofs.empty());
+    for (int n = 1; n <= 3; ++n) EXPECT_NEAR(s.d(n, 3), 0.0, 1e-12) << "Gx N" << n;
+    expectRead(s.d(2, 2) * 1e3, -8.175, 1e-3, "Dz N2");
+    expectRead(s.d(1, 4) * 1e3, 4.286, 1e-3, "Gy N1");
+    expectRead(s.d(3, 4) * 1e3, -4.286, 1e-3, "Gy N3");
+}
+
+TEST(FemOriginalMeasured, C2BothEndsApoyoFijoAlsoCalculates) {
+    Fixture f = c2Project();
+    core::ExternalSupport pinned;
+    pinned.type = core::ExternalSupportType::Pinned;
+    f.project.nodeSupports.external[3] = pinned;
+    const Solved s = solve(f.project);
+    for (int n = 1; n <= 3; ++n) EXPECT_NEAR(s.d(n, 3), 0.0, 1e-12);
+    expectRead(s.d(2, 2) * 1e3, -8.175, 1e-3, "Dz N2");
+}
+
+namespace {
+/// L-shaped work: N1 (0,0,0), N2 (4,0,0), N3 (4,2,0); bar 1 along X, bar 2 along Y; N2 loaded +X 10 and +Y 10, N3 -Z 10 kN.
+Fixture lShape(core::ExternalSupportType n1Type, bool loadN3 = true) {
+    Fixture f = makeFixture(0.01, 0.008, 0.004);
+    const int n1 = addNode(f, 0, 0, 0), n2 = addNode(f, 4, 0, 0), n3 = addNode(f, 4, 2, 0);
+    addBar(f, n1, n2);
+    addBar(f, n2, n3);
+    core::ExternalSupport a, b;
+    a.type = n1Type;
+    b.type = core::ExternalSupportType::LineXPinned;
+    f.project.nodeSupports.external[n1] = a;
+    f.project.nodeSupports.external[n2] = b;
+    nodalLoad(f, n2, core::LoadDirection::PlusX, 10.0);
+    nodalLoad(f, n2, core::LoadDirection::PlusY, 10.0);
+    if (loadN3) nodalLoad(f, n3, core::LoadDirection::MinusZ, 10.0);
+    return f;
+}
+}  // namespace
+
+TEST(FemOriginalMeasured, LShapeFixedAtN1CalculatesWithoutWarning) {
+    const Fixture f = lShape(core::ExternalSupportType::Fixed);
+    const Solved s = solve(f.project);
+    expectRead(s.d(2, 0) * 1e3, 0.019, 1e-3, "Dx N2");
+    expectRead(s.d(2, 3) * 1e3, -12.381, 1e-3, "Gx N2 mRad");
+    EXPECT_TRUE(s.result.nullModeDofs.empty());
+}
+
+TEST(FemOriginalMeasured, LShapeWithApoyoFijoIsAMechanismWithOrWithoutLoad) {
+    for (const bool loadN3 : {true, false}) {
+        const Fixture f = lShape(core::ExternalSupportType::Pinned, loadN3);
+        const FrameBuild fb = buildFrameModel(f.project);
+        ASSERT_TRUE(fb.errors.empty());
+        const LinearResult r = solveLinear(fb.model, fb.cases);
+        ASSERT_EQ(r.status, SolveStatus::Mechanism) << "loadN3 " << loadN3;
+        EXPECT_EQ(r.mechanismNode, 3);          // measured: N3, "Desplazamiento según el eje Z", point (4, 2, 0)
+        EXPECT_EQ(r.mechanismDof, 2);
+        EXPECT_EQ(r.message, mechanismWarning(2, {4, 2, 0}));
+        EXPECT_NE(r.message.find("Desplazamiento según el eje Z"), std::string::npos);
+        EXPECT_NE(r.message.find("(x = 4.000000, y = 2.000000, z = 0.000000)"), std::string::npos);
+        EXPECT_TRUE(r.nullModeDofs.empty());
+    }
+}
+
+TEST(FemOriginalMeasured, TwistModeLoadedByATorqueIsAMechanismForThatCase) {
+    FrameModel m;
+    for (int i = 0; i < 2; ++i) {
+        FemNode n;
+        n.id = i + 1;
+        n.position = {4.0 * i, 0, 0};
+        m.nodes.push_back(n);
+    }
+    m.nodes[0].fixed = {true, true, true, false, false, false};
+    m.nodes[1].fixed = {false, true, true, false, false, false};
+    FemBar b;
+    b.id = 1;
+    b.nodeI = 1;
+    b.nodeJ = 2;
+    b.e = 210e6;
+    b.g = 210e6 / 2.6;
+    b.section = SectionData{0.01, 1e-4, 5e-5, 8e-5, 0.004, 0.004, 0.0, 0.0};
+    m.bars.push_back(b);
+    LoadCaseInput torque{1, "T", {FemNodalLoad{2, {0, 0, 0, 5.0, 0, 0}}}, {}, {}};
+    LoadCaseInput balanced{2, "B", {FemNodalLoad{2, {0, 0, -1.0, 0, 0, 0}}}, {}, {}};
+    const LoadCaseInput cases[] = {torque, balanced};
+    const LinearResult r = solveLinear(m, cases);
+    EXPECT_EQ(r.cases[0].status, SolveStatus::Mechanism);
+    EXPECT_EQ(r.cases[1].status, SolveStatus::Ok);
+}
+
+// --- TK-105a: a node rotation above pi/2 gives "desplazamientos demasiado grandes" (K = 25.6 calculates, K = 25.4 warns) ---
+namespace {
+LinearResult elasticBaseCantilever(double k) {
+    FrameModel m;
+    for (int i = 0; i < 2; ++i) {
+        FemNode n;
+        n.id = i + 1;
+        n.position = {4.0 * i, 0, 0};
+        m.nodes.push_back(n);
+    }
+    m.nodes[0].fixed = {true, true, true, true, false, true};
+    m.nodes[0].spring[4] = k;     // Gy elastic, kN.m/rad
+    FemBar b;
+    b.id = 1;
+    b.nodeI = 1;
+    b.nodeJ = 2;
+    b.e = 210e6;
+    b.g = 210e6 / 2.6;
+    b.section = SectionData{0.01, 1e-4, 5e-5, 8e-5, 0.004, 0.004, 0.0, 0.0};
+    m.bars.push_back(b);
+    LoadCaseInput lc{1, "CM 1", {FemNodalLoad{2, {0, 0, -10.0, 0, 0, 0}}}, {}, {}};
+    return solveLinear(m, std::span<const LoadCaseInput>(&lc, 1));
+}
+}  // namespace
+
+TEST(FemOriginalMeasured, ExcessiveRotationThresholdIsPiOverTwo) {
+    for (const double k : {100.0, 30.0, 27.0, 26.8, 26.7, 26.6, 25.6}) {
+        const LinearResult r = elasticBaseCantilever(k);
+        EXPECT_EQ(r.status, SolveStatus::Ok) << "K = " << k;
+    }
+    for (const double k : {25.4, 25.0, 20.0, 10.0, 1.0}) {
+        const LinearResult r = elasticBaseCantilever(k);
+        EXPECT_EQ(r.status, SolveStatus::ExcessiveDisplacements) << "K = " << k;
+        EXPECT_EQ(r.cases[0].status, SolveStatus::ExcessiveDisplacements);
+        EXPECT_EQ(r.cases[0].message, excessiveDisplacementsMessage());
+        EXPECT_TRUE(r.cases[0].displacements.empty());
+    }
+    // K = 30 measured: Dz = -5343.723 mm, Gy(N2) = 1337.170 mRad (rotation of N2 = base rotation + bending).
+    const LinearResult r = elasticBaseCantilever(30.0);
+    expectRead(r.cases[0].displacements[1][2] * 1e3, -5343.723, 1e-3, "Dz K=30", 2e-3);
+    expectRead(r.cases[0].displacements[1][4] * 1e3, 1337.170, 1e-3, "Gy K=30", 2e-3);
+    EXPECT_EQ(excessiveDisplacementsMessage(),
+              "Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción "
+              "'Mostrar/Oculta incidencias' del menú 'Cálculo'.");
+    // A pure translation of 6.67 m does not warn: only rotations are checked.
+}
+
+// --- TK-105g: shear area outside 0.01..1000000 cm2 is an error, never a silent Euler-Bernoulli fallback ---
+TEST(FemOriginalMeasured, ShearAreaZeroIsRejectedByTheBuilder) {
+    for (const bool yPlane : {true, false}) {
+        Fixture f = c1Cantilever();
+        core::CrossSection* cs = &f.project.structure.sections.back();
+        (yPlane ? cs->shearAreaYM2 : cs->shearAreaZM2) = 0.0;
+        const FrameBuild fb = buildFrameModel(f.project);
+        ASSERT_FALSE(fb.errors.empty());
+        EXPECT_EQ(fb.errors.front(), std::string("Barra 1: ") + shearAreaRangeMessage(yPlane ? "Avy" : "Avz"));
+        EXPECT_EQ(shearAreaRangeMessage("Avz"), "El valor de 'Área de cortante (Avz)' debe estar entre 0.01 y 1000000.00.");
+    }
+    Fixture f = c1Cantilever();
+    core::CrossSection* cs = &f.project.structure.sections.back();
+    cs->shearAreaYM2 = cs->shearAreaZM2 = kMinShearAreaM2;     // 0.01 cm2 is the smallest admitted
+    EXPECT_TRUE(buildFrameModel(f.project).errors.empty());
+    cs->shearAreaYM2 = cs->shearAreaZM2 = 1000000.0e-4;        // 1e6 cm2: pure bending
+    EXPECT_TRUE(buildFrameModel(f.project).errors.empty());
+    cs->shearAreaZM2 = 1000001.0e-4;
+    EXPECT_FALSE(buildFrameModel(f.project).errors.empty());
 }

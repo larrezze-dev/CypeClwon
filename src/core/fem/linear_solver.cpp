@@ -306,6 +306,11 @@ std::string unstableMessage(const std::string& caseName) {
                   caseName);
 }
 
+std::string excessiveDisplacementsMessage() {
+    return "Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción "
+           "'Mostrar/Oculta incidencias' del menú 'Cálculo'.";
+}
+
 std::string caseErrorMessage(const std::string& caseName) {
     return format("Se ha producido un error calculando el caso de carga '%s'. Revise las condiciones del modelo.", caseName);
 }
@@ -343,8 +348,9 @@ Dof6 sectionForcesAt(const FemBar& bar, double length, const BarEndForces& force
 
 namespace {
 
-/// Free DOF (global numbering) with the smallest relative pivot of the matrix regularised with 1e-6 K_ii: the DOF the mechanism warning names
-/// (the original names the DOF of the null pivot; which one of several candidates it picks is [N]). -1 if the factorisation fails.
+/// Free DOF (global numbering) with the largest amplitude in the null mode of the matrix: inverse iteration on the matrix regularised with
+/// 1e-6 K_ii. The original names the DOF of its null pivot, which depends on its elimination order [N]; the largest amplitude reproduces the
+/// measured L-shaped case (N3, Dz) and is deterministic. -1 if the factorisation fails.
 int locateMechanismDof(const Eigen::SparseMatrix<double>& kff, const std::vector<int>& freeDofs, const Eigen::VectorXd& diag) {
     const int n = static_cast<int>(freeDofs.size());
     if (n == 0) return -1;
@@ -352,17 +358,109 @@ int locateMechanismDof(const Eigen::SparseMatrix<double>& kff, const std::vector
     for (int i = 0; i < n; ++i) reg.coeffRef(i, i) += 1e-6 * std::max(std::fabs(diag(freeDofs[i])), 1e-300);
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> f(reg);
     if (f.info() != Eigen::Success) return -1;
-    const Eigen::VectorXd d = f.vectorD();
-    Eigen::VectorXd kd(n);
-    for (int i = 0; i < n; ++i) kd(i) = std::max(std::fabs(diag(freeDofs[i])), 1e-300);
-    const Eigen::VectorXd kdp = f.permutationP() * kd;
-    int best = 0;
-    double bestRatio = 1e300;
-    for (int j = 0; j < n; ++j) {
-        const double ratio = d(j) / kdp(j);
-        if (ratio < bestRatio) { bestRatio = ratio; best = j; }
+    Eigen::VectorXd x(n);
+    for (int i = 0; i < n; ++i) x(i) = 1.0 + 0.1 * std::sin(1.0 + i);
+    for (int it = 0; it < 3; ++it) {
+        x = f.solve(x);
+        if (f.info() != Eigen::Success || !x.allFinite()) return -1;
+        const double m = x.cwiseAbs().maxCoeff();
+        if (m <= 0.0) return -1;
+        x /= m;
     }
-    return freeDofs[f.permutationPinv().indices()(best)];
+    int best = 0;
+    double bestAmp = -1.0;
+    for (int i = 0; i < n; ++i)
+        if (std::fabs(x(i)) > bestAmp * (1.0 + 1e-9)) { bestAmp = std::fabs(x(i)); best = i; }
+    return freeDofs[best];
+}
+
+/// A rigid twist of a chain of collinear bars: rotation about the common axis at every node of the chain.
+struct TwistMode {
+    std::vector<std::pair<int, double>> dofs;  ///< global DOF, component of the mode
+    int dropped = -1;                          ///< the DOF fixed to 0 to remove the mode
+};
+
+/// Rule [R] of TK-108 (docs/research/solver_medidas_original.md 9.1): a null mode whose support is only the rotation about the axis of a chain of
+/// collinear bars (the bars joined through torsion-transmitting ends) is fixed to 0 without a warning; any other null mode is a mechanism.
+/// Candidate modes are tested exactly: K v must vanish (relative residual below `tolerance`), so a chain coupled to anything else is not a mode.
+std::vector<TwistMode> findTwistModes(const FrameModel& model, const std::vector<std::array<int, 2>>& barNodes, const Eigen::SparseMatrix<double>& k,
+                                      const std::vector<char>& fixed, const std::vector<char>& orphan, double tolerance) {
+    const int nBars = static_cast<int>(model.bars.size());
+    std::vector<int> parent(nBars);
+    for (int b = 0; b < nBars; ++b) parent[b] = b;
+    const auto find = [&](int a) {
+        while (parent[a] != a) a = parent[a] = parent[parent[a]];
+        return a;
+    };
+    const auto transmitsTwist = [&](int b) {
+        return model.bars[b].releases[0][0].kind != EndRelease::Kind::Free && model.bars[b].releases[1][0].kind != EndRelease::Kind::Free;
+    };
+    std::unordered_map<int, std::vector<int>> atNode;
+    for (int b = 0; b < nBars; ++b)
+        if (transmitsTwist(b)) {
+            atNode[barNodes[b][0]].push_back(b);
+            atNode[barNodes[b][1]].push_back(b);
+        }
+    for (const auto& [node, bars] : atNode)
+        for (std::size_t i = 0; i < bars.size(); ++i)
+            for (std::size_t j = i + 1; j < bars.size(); ++j) {
+                const V3 a = toEigen(model.bars[bars[i]].ex), c = toEigen(model.bars[bars[j]].ex);
+                if (std::fabs(a.dot(c)) > 1.0 - 1e-9) parent[find(bars[i])] = find(bars[j]);
+            }
+    std::map<int, std::vector<int>> components;
+    for (int b = 0; b < nBars; ++b)
+        if (transmitsTwist(b)) components[find(b)].push_back(b);
+
+    std::vector<TwistMode> modes;
+    std::vector<double> acc(static_cast<std::size_t>(k.rows()), 0.0);
+    for (const auto& [root, bars] : components) {
+        (void)root;
+        std::vector<int> nodes;
+        for (int b : bars) {
+            nodes.push_back(barNodes[b][0]);
+            nodes.push_back(barNodes[b][1]);
+        }
+        std::sort(nodes.begin(), nodes.end());
+        nodes.erase(std::unique(nodes.begin(), nodes.end()), nodes.end());
+        const V3 axis = toEigen(model.bars[bars.front()].ex);
+        TwistMode mode;
+        bool admissible = true;
+        for (int n : nodes)
+            for (int c = 0; c < 3; ++c) {
+                if (std::fabs(axis(c)) < 1e-9) continue;
+                const int d = 6 * n + 3 + c;
+                if (fixed[d] || orphan[d]) admissible = false;
+                mode.dofs.emplace_back(d, axis(c));
+            }
+        if (!admissible || mode.dofs.empty()) continue;
+        // K v = sum of the columns of the DOFs of the mode.
+        std::vector<int> touched;
+        std::vector<char> seen(acc.size(), 0);
+        double scale = 0.0;
+        for (const auto& [d, v] : mode.dofs)
+            for (Eigen::SparseMatrix<double>::InnerIterator it(k, d); it; ++it) {
+                const int row = static_cast<int>(it.row());
+                if (!seen[row]) { seen[row] = 1; touched.push_back(row); }
+                acc[row] += it.value() * v;
+                scale = std::max(scale, std::fabs(it.value() * v));
+            }
+        double residual = 0.0;
+        for (int row : touched) {
+            residual = std::max(residual, std::fabs(acc[row]));
+            acc[row] = 0.0;
+        }
+        if (scale <= 0.0 || residual > tolerance * scale) continue;
+        // Remove the mode by fixing the largest component of the first node of the chain.
+        mode.dropped = mode.dofs.front().first;
+        double best = -1.0;
+        for (const auto& [d, v] : mode.dofs)
+            if (d / 6 == nodes.front() && std::fabs(v) > best) {
+                best = std::fabs(v);
+                mode.dropped = d;
+            }
+        modes.push_back(std::move(mode));
+    }
+    return modes;
 }
 
 }  // namespace
@@ -450,10 +548,18 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             result.lockedDofs[model.nodes[d / 6].id][d % 6] = true;
         }
     }
+    // Rigid twists of collinear chains that nothing excites: one DOF each is fixed to 0 (rule [R], TK-108). Other null modes stay and are
+    // reported as a mechanism by the pivot check.
+    const std::vector<TwistMode> twistModes = findTwistModes(model, barNodes, kFull, fixed, orphan, options.nullModeTolerance);
+    std::vector<char> nullFixed(nDof, 0);
+    for (const TwistMode& m : twistModes) {
+        nullFixed[m.dropped] = 1;
+        result.nullModeDofs[model.nodes[m.dropped / 6].id][m.dropped % 6] = true;
+    }
     std::vector<int> freeIndex(nDof, -1);
     std::vector<int> freeDofs;
     for (int d = 0; d < nDof; ++d)
-        if (!fixed[d] && !orphan[d]) {
+        if (!fixed[d] && !orphan[d] && !nullFixed[d]) {
             freeIndex[d] = static_cast<int>(freeDofs.size());
             freeDofs.push_back(d);
         }
@@ -546,6 +652,14 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         for (int d = 0; d < nDof; ++d)
             if (orphan[d] && std::fabs(f(d)) > 1e-9 * fScale) orphanLoaded = true;
         if (orphanLoaded) { failCase(SolveStatus::Mechanism); continue; }
+        // A load with a component along a fixed null mode cannot be equilibrated either.
+        bool twistLoaded = false;
+        for (const TwistMode& m : twistModes) {
+            double work = 0.0;
+            for (const auto& [d, v] : m.dofs) work += v * f(d);
+            if (std::fabs(work) > options.nullModeTolerance * fScale) twistLoaded = true;
+        }
+        if (twistLoaded) { failCase(SolveStatus::Mechanism); continue; }
 
         if (nFree > 0) {
             Eigen::VectorXd rhs(nFree);
@@ -556,6 +670,18 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             for (int i = 0; i < nFree; ++i) u(freeDofs[i]) = uf(i);
         }
 
+        if (options.maxNodeRotation > 0.0) {
+            bool excessive = false;
+            for (int i = 0; i < nNodes && !excessive; ++i)
+                for (int k = 3; k < 6; ++k)
+                    if (std::fabs(u(6 * i + k)) > options.maxNodeRotation) { excessive = true; break; }
+            if (excessive) {
+                cr.status = SolveStatus::ExcessiveDisplacements;
+                cr.message = excessiveDisplacementsMessage();
+                if (result.status == SolveStatus::Ok) { result.status = cr.status; result.message = cr.message; }
+                continue;
+            }
+        }
         cr.displacements.assign(nNodes, Dof6{});
         for (int i = 0; i < nNodes; ++i)
             for (int k = 0; k < 6; ++k) cr.displacements[i][k] = u(6 * i + k);
@@ -584,6 +710,13 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             bf.bar = model.bars[b].id;
             bf.origin = applySignConvention({-s(0), -s(1), -s(2), -s(3), -s(4), -s(5)});
             bf.end = applySignConvention({s(6), s(7), s(8), s(9), s(10), s(11)});
+            const Vec12 ueGlobal = el.t.transpose() * ue;
+            BarEndDisplacements& bd = cr.barDisplacements.emplace_back();
+            bd.bar = model.bars[b].id;
+            for (int k = 0; k < 6; ++k) {
+                bd.origin[k] = ueGlobal(k);
+                bd.end[k] = ueGlobal(6 + k);
+            }
         }
     }
     return result;

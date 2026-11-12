@@ -540,8 +540,10 @@ std::string validateResolved(const BarDescription& d, const ProfileLibrary& libr
         if (!problem.empty()) return problem;
         const GenericSectionData& g = d.generic;
         if (!finitePositive(g.torsionM4)) return "La inercia a torsión debe ser mayor que cero.";
-        if (!finitePositive(g.shearAreaYM2) || !finitePositive(g.shearAreaZM2))
-            return "Los valores de las áreas de cortante deben ser mayores que cero.";
+        // The original refuses a shear area of 0 (no "ignore" option): range 0.01..1000000 cm2 [V, TK-105g].
+        const auto outside = [](double m2) { return !std::isfinite(m2) || m2 < 0.01e-4 * (1.0 - 1e-9) || m2 > 1000000.0e-4 * (1.0 + 1e-9); };
+        if (outside(g.shearAreaYM2)) return "El valor de 'Área de cortante (Avy)' debe estar entre 0.01 y 1000000.00.";
+        if (outside(g.shearAreaZM2)) return "El valor de 'Área de cortante (Avz)' debe estar entre 0.01 y 1000000.00.";
         return {};
     }
     const auto section = resolveSection(d, library);

@@ -67,7 +67,7 @@ std::optional<EndFixityIssue> checkEndFixityEdit(const EndFixityEdit& edit) {
             if (f.kind == EndFixityKind::Coefficient) {
                 const double c = f.coefficient;
                 if (!std::isfinite(c) || c < 0.0 || c > 1.0) return EndFixityIssue{0, endFixityRangeMessage()};
-                // TODO(medir): the original offers a binary popup 0.000 / 1.000 for the torsion plane.
+                // [V, TK-105d] the original only offers 0.000 / 1.000 for the torsion plane (a rotational stiffness there was not measured).
                 if (pl == kPlaneYZ && c != 0.0 && c != 1.0) return EndFixityIssue{0, endFixityRangeMessage()};
             } else if (!std::isfinite(f.stiffnessKnMPerRad) || f.stiffnessKnMPerRad < kMinEndRotationalStiffness ||
                        f.stiffnessKnMPerRad > kMaxEndRotationalStiffness) {
