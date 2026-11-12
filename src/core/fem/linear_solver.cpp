@@ -509,7 +509,42 @@ std::string mechanismWarningZone(int dof, double x1, double y1, double x2, doubl
     return s.substr(0, a) + zone + s.substr(b);
 }
 
+std::string detachedNodeMessage() { return "Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina."; }
+
+namespace {
+
+/// A spring to the ground of the analysis: the springs of the FemNodes first (model order, DOF order), then those of the elastic edge bonds
+/// (ShellMesh::edgeSprings order). The order is deterministic, so solveNonlinear switches them off by index.
+struct GroundSpring {
+    int node = 0;  ///< mesh node index
+    int dof = 0;
+    double k = 0.0;
+    SpringSense sense = SpringSense::Both;
+};
+
+std::vector<GroundSpring> groundSprings(const FrameModel& model, const ShellMesh& mesh) {
+    std::vector<GroundSpring> out;
+    for (std::size_t i = 0; i < model.nodes.size(); ++i)
+        for (int k = 0; k < 6; ++k)
+            if (model.nodes[i].spring[k] != 0.0) out.push_back({static_cast<int>(i), k, model.nodes[i].spring[k], model.nodes[i].springSense[k]});
+    for (const ShellMesh::GroundSpring& s : mesh.edgeSprings) out.push_back({s.node, s.dof, s.k, s.sense});
+    return out;
+}
+
+/// solveLinear with some springs switched off (`inactive[i]` != 0 for groundSprings()[i]); nullptr = every spring acts.
+LinearResult solveLinearImpl(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options,
+                             const std::vector<char>* inactive);
+
+}  // namespace
+
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options) {
+    return solveLinearImpl(model, cases, options, nullptr);
+}
+
+namespace {
+
+LinearResult solveLinearImpl(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options,
+                             const std::vector<char>* inactive) {
     LinearResult result;
     result.cases.resize(cases.size());
     for (std::size_t c = 0; c < cases.size(); ++c) {
@@ -551,6 +586,8 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
     const int nDof = 6 * nAll;
     if (nDof == 0) return failAll(SolveStatus::Error, "No hay nudos que calcular.");
     const bool hasShells = !model.shells.empty();
+    if (!mesh.orphanModelNodes.empty()) return failAll(SolveStatus::Error, detachedNodeMessage());
+    const std::vector<GroundSpring> springs = groundSprings(model, mesh);
 
     // --- 2. bar elements (segments) ---
     std::unordered_map<int, int> barIndex;
@@ -628,14 +665,30 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             for (int q = 0; q < 36; ++q)
                 if (kg(p, q) != 0.0) triplets.emplace_back(6 * nodes[p / 6] + p % 6, 6 * nodes[q / 6] + q % 6, kg(p, q));
     }
-    for (int i = 0; i < nNodes; ++i)
-        for (int k = 0; k < 6; ++k) {
-            const double s = model.nodes[i].spring[k];
-            if (s != 0.0) {
-                if (!std::isfinite(s) || s < 0.0) return failAll(SolveStatus::Error, formatInt("El muelle del nudo %d no es válido.", model.nodes[i].id));
-                triplets.emplace_back(6 * i + k, 6 * i + k, s);
+    std::vector<double> springK(nDof, 0.0);  // active springs to the ground per DOF (reactions)
+    for (std::size_t s = 0; s < springs.size(); ++s) {
+        const GroundSpring& g = springs[s];
+        if (!std::isfinite(g.k) || g.k < 0.0)
+            return failAll(SolveStatus::Error, g.node < nNodes ? formatInt("El muelle del nudo %d no es válido.", model.nodes[g.node].id)
+                                                               : std::string("El muelle de una arista de lámina no es válido."));
+        if (inactive && s < inactive->size() && (*inactive)[s]) continue;
+        triplets.emplace_back(6 * g.node + g.dof, 6 * g.node + g.dof, g.k);
+        springK[6 * g.node + g.dof] += g.k;
+    }
+    // Two-node springs of the interior edge bonds: k a a' on the block (translations or rotations) of both nodes, with opposite signs.
+    for (const ShellMesh::Link& l : mesh.links) {
+        if (!std::isfinite(l.k) || l.k < 0.0) return failAll(SolveStatus::Error, "El muelle de una vinculación interior de lámina no es válido.");
+        const int off = l.rotation ? 3 : 0;
+        for (int p = 0; p < 3; ++p)
+            for (int q = 0; q < 3; ++q) {
+                const double v = l.k * l.axis[p] * l.axis[q];
+                if (v == 0.0) continue;
+                triplets.emplace_back(6 * l.a + off + p, 6 * l.a + off + q, v);
+                triplets.emplace_back(6 * l.b + off + p, 6 * l.b + off + q, v);
+                triplets.emplace_back(6 * l.a + off + p, 6 * l.b + off + q, -v);
+                triplets.emplace_back(6 * l.b + off + p, 6 * l.a + off + q, -v);
             }
-        }
+    }
     Eigen::SparseMatrix<double> kOrig(nDof, nDof);
     kOrig.setFromTriplets(triplets.begin(), triplets.end());
 
@@ -667,19 +720,31 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                 }
         }
         for (const FemDiaphragm& dg : model.diaphragms) {
-            if (dg.nodes.empty()) continue;
             std::vector<int> idx;
             for (int id : dg.nodes) {
                 const auto it = nodeIndex.find(id);
                 if (it == nodeIndex.end()) return failAll(SolveStatus::Error, formatInt("El diafragma %d contiene nudos que no existen.", dg.id));
-                idx.push_back(it->second);
+                if (std::find(idx.begin(), idx.end(), it->second) == idx.end()) idx.push_back(it->second);
             }
+            // Shells of the diaphragm: every mesh node of their triangles (copies included) [N].
+            for (int sid : dg.shells) {
+                const auto it = shellIndex.find(sid);
+                if (it == shellIndex.end()) return failAll(SolveStatus::Error, formatInt("El diafragma %d contiene láminas que no existen.", dg.id));
+                std::vector<int> nodes;
+                for (const ShellMesh::Triangle& t : mesh.triangles)
+                    if (t.shell == it->second) nodes.insert(nodes.end(), t.nodes.begin(), t.nodes.end());
+                std::sort(nodes.begin(), nodes.end());
+                nodes.erase(std::unique(nodes.begin(), nodes.end()), nodes.end());
+                for (int n : nodes)
+                    if (std::find(idx.begin(), idx.end(), n) == idx.end()) idx.push_back(n);
+            }
+            if (idx.empty()) continue;
             const int m = idx.front();
             if (!diaphragmMaster.emplace(dg.id, m).second) return failAll(SolveStatus::Error, formatInt("Diafragma %d repetido.", dg.id));
-            const Vec3& pm = model.nodes[m].position;
+            const Vec3S& pm = mesh.positions[m];
             for (std::size_t j = 1; j < idx.size(); ++j) {
                 const int s = idx[j];
-                const Vec3& ps = model.nodes[s].position;
+                const Vec3S& ps = mesh.positions[s];
                 // Assertion of the original: a diaphragm is horizontal, |z_m - z_s| < 1e-3 [REA 2].
                 if (std::fabs(ps[2] - pm[2]) >= 1e-3)
                     return failAll(SolveStatus::Error, formatInt("Los nudos del diafragma %d no están a la misma cota.", dg.id));
@@ -706,6 +771,25 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                     if (k != km) rows.push_back({6 * i + k, {{6 * i + k, v(km)}, {6 * i + km, -v(k)}}});
             }
         }
+        // Oblique edge bonds [V 11.3]: the same relations on every mesh node of the edge. A node that already has an oblique support of its
+        // own keeps it; blocked translations are absorbed by the elimination (a relation between blocked DOFs only is dropped).
+        for (int i = 0; i < nAll && i < static_cast<int>(mesh.oblique.size()); ++i) {
+            if (mesh.oblique[i] == ObliqueSupport::None || (i < nNodes && model.nodes[i].oblique != ObliqueSupport::None)) continue;
+            const V3 v(mesh.obliqueDirection[i][0], mesh.obliqueDirection[i][1], mesh.obliqueDirection[i][2]);
+            if (!v.allFinite() || v.norm() < 1e-12) return failAll(SolveStatus::Error, "El apoyo oblicuo de una arista de lámina no es válido.");
+            anyOblique = true;
+            int km = 0;
+            for (int k = 1; k < 3; ++k)
+                if (std::fabs(v(k)) > std::fabs(v(km))) km = k;
+            if (mesh.oblique[i] == ObliqueSupport::Plane) {
+                rows.push_back({6 * i + km, {{6 * i, v(0)}, {6 * i + 1, v(1)}, {6 * i + 2, v(2)}}});
+            } else {
+                for (int k = 0; k < 3; ++k)
+                    if (k != km) rows.push_back({6 * i + k, {{6 * i + k, v(km)}, {6 * i + km, -v(k)}}});
+            }
+        }
+        // Interior edge bonds and partially fixed shell corners: copies tied to their original nodes.
+        for (const ShellMesh::Relation& r : mesh.relations) rows.push_back({r.preferred, r.terms});
         if (!rows.empty()) {
             const detail::DofElimination elim = detail::eliminateRelations(rows, fixed, nDof);
             if (!elim.error.empty()) return failAll(SolveStatus::Error, elim.error);
@@ -904,7 +988,7 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
             const auto it = diaphragmMaster.find(dl.diaphragm);
             if (it == diaphragmMaster.end()) { bad = true; break; }
             const int m = it->second;
-            const Vec3& pm = model.nodes[m].position;
+            const Vec3S& pm = mesh.positions[m];
             f(6 * m + 0) += dl.fx;
             f(6 * m + 1) += dl.fy;
             f(6 * m + 5) += (dl.x - pm[0]) * dl.fy - (dl.y - pm[1]) * dl.fx;
@@ -1003,18 +1087,17 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
                     supported = true;
                     r[k] = ku(6 * i + k) - f(6 * i + k);
                 }
-            if (i < nNodes) {
-                const FemNode& n = model.nodes[i];
-                if (n.oblique != ObliqueSupport::None) {
-                    supported = true;
-                    for (int k = 0; k < 3; ++k) r[k] = kuNodal(6 * i + k) - fNodal(6 * i + k);
-                }
-                for (int k = 0; k < 6; ++k)
-                    if (n.spring[k] > 0.0 && !fixed[6 * i + k]) {
-                        supported = true;
-                        r[k] = -n.spring[k] * u(6 * i + k);
-                    }
+            if ((i < nNodes && model.nodes[i].oblique != ObliqueSupport::None) ||
+                (i < static_cast<int>(mesh.oblique.size()) && mesh.oblique[i] != ObliqueSupport::None)) {
+                supported = true;
+                for (int k = 0; k < 3; ++k)
+                    if (!fixed[6 * i + k]) r[k] = kuNodal(6 * i + k) - fNodal(6 * i + k);
             }
+            for (int k = 0; k < 6; ++k)
+                if (springK[6 * i + k] > 0.0 && !fixed[6 * i + k]) {
+                    supported = true;
+                    r[k] = -springK[6 * i + k] * u(6 * i + k);
+                }
             if (!supported) continue;
             if (i < nNodes) cr.reactions[model.nodes[i].id] = r;
             else cr.meshReactions[i] = r;
@@ -1062,6 +1145,8 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
     }
     return result;
 }
+
+}  // namespace
 
 std::string nonConvergenceMessage(const std::string& caseName) {
     return format("Con las condiciones impuestas, no se alcanza la convergencia para el caso de carga '%s'. Revise las condiciones del modelo.",
@@ -1113,19 +1198,23 @@ bool hasUnilateralSprings(const FrameModel& model) {
     for (const FemNode& n : model.nodes)
         for (int k = 0; k < 6; ++k)
             if (n.spring[k] > 0.0 && n.springSense[k] != SpringSense::Both) return true;
+    for (const FemShell& sh : model.shells)
+        for (std::size_t e = 0; e < sh.edgeSpring.size() && e < sh.edgeSpringSense.size(); ++e)
+            for (int k = 0; k < 6; ++k)
+                if (sh.edgeSpring[e][k] > 0.0 && sh.edgeSpringSense[e][k] != SpringSense::Both) return true;
     return false;
 }
 
 LinearResult solveNonlinear(const FrameModel& model, std::span<const LoadCaseInput> combinedCases, const SolverOptions& options, int maxIterations) {
     if (!hasUnilateralSprings(model)) return solveLinear(model, combinedCases, options);
-    struct Spring { int node; int dof; double sign; };
+    // Unilateral springs: those of the FemNodes and of the elastic shell edges (indices into groundSprings(), whose order is deterministic).
+    const std::vector<GroundSpring> all = groundSprings(model, meshShells(model));
+    struct Spring { std::size_t index; int node; int dof; double sign; };
     std::vector<Spring> springs;
-    for (std::size_t i = 0; i < model.nodes.size(); ++i)
-        for (int k = 0; k < 6; ++k) {
-            const FemNode& n = model.nodes[i];
-            if (n.spring[k] > 0.0 && n.springSense[k] != SpringSense::Both)
-                springs.push_back({static_cast<int>(i), k, n.springSense[k] == SpringSense::Positive ? 1.0 : -1.0});
-        }
+    for (std::size_t i = 0; i < all.size(); ++i)
+        if (all[i].k > 0.0 && all[i].sense != SpringSense::Both)
+            springs.push_back({i, all[i].node, all[i].dof, all[i].sense == SpringSense::Positive ? 1.0 : -1.0});
+    const bool hasShells = !model.shells.empty();
     LinearResult result;
     result.cases.resize(combinedCases.size());
     const auto worsen = [&](const LoadCaseResult& cr) {
@@ -1142,10 +1231,10 @@ LinearResult solveNonlinear(const FrameModel& model, std::span<const LoadCaseInp
         bool done = false;
         for (int it = 0; it < std::max(1, maxIterations) && !done; ++it) {
             seen.push_back(active);
-            FrameModel m = model;
+            std::vector<char> inactive(all.size(), 0);
             for (std::size_t s = 0; s < springs.size(); ++s)
-                if (!active[s]) m.nodes[springs[s].node].spring[springs[s].dof] = 0.0;
-            LinearResult r = solveLinear(m, std::span<const LoadCaseInput>(&lc, 1), options);
+                if (!active[s]) inactive[springs[s].index] = 1;
+            LinearResult r = solveLinearImpl(model, std::span<const LoadCaseInput>(&lc, 1), options, &inactive);
             for (const auto& [id, mask] : r.lockedDofs)
                 for (int k = 0; k < 6; ++k) result.lockedDofs[id][k] = result.lockedDofs[id][k] || mask[k];
             if (result.mesh.positions.empty()) result.mesh = std::move(r.mesh);
@@ -1159,7 +1248,8 @@ LinearResult solveNonlinear(const FrameModel& model, std::span<const LoadCaseInp
             // A spring acts while the displacement has the sign of its sense; a dead band of 1e-12 m (rad) avoids flip-flop at u = 0.
             std::vector<char> next(springs.size(), 0);
             for (std::size_t s = 0; s < springs.size(); ++s) {
-                const double v = springs[s].sign * cr.displacements[springs[s].node][springs[s].dof];
+                const double u = hasShells ? cr.meshDisplacements[springs[s].node][springs[s].dof] : cr.displacements[springs[s].node][springs[s].dof];
+                const double v = springs[s].sign * u;
                 next[s] = active[s] ? (v > -1e-12) : (v > 1e-12);
             }
             if (next == active) {

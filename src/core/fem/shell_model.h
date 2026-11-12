@@ -38,6 +38,30 @@ using Vec3S = std::array<double, 3>;
 /// Indices of the eight stiffness factors in dialog order (Membrana Fxx, Fxy, Fyy; Flexión Mxx, Mxy, Myy; Cortante Vxz, Vyz).
 enum ShellFactor { kFxx = 0, kFxy, kFyy, kMxx, kMxy, kMyy, kVxz, kVyz };
 
+/// "Sentido" of a spring to the ground [V, solver_diafragmas_ligaduras_apoyos.md 10.1]: Positive acts only while the displacement of that
+/// global DOF is > 0, Negative only while it is < 0 (non-linear combinations only); Both = always (linear spring).
+enum class SpringSense { Both, Positive, Negative };
+
+/// Oblique support of the translations of a node or of an edge (user line / plane not parallel to a global axis). Always rigid [V, 10.4, 11.3].
+enum class ObliqueSupport { None, Line, Plane };
+
+/// Interior bond of one side of a shell edge (Propiedades > Láminas > Vinculación interior [V 11.4]). It only acts on an edge shared with another
+/// shell or with a bar; the shell side with a bond other than Fixed gets its own copy of the mesh nodes of the edge, joined to the original
+/// nodes (which stay with the other elements of the edge):
+///  - Fixed («Empotrada», default): no copy, full continuity.
+///  - Free («Libre»): no joint at all. When every element leaves an original node of the edge, that node is reported as unconnected
+///    (ShellMesh::orphanModelNodes) like the original («Se ha encontrado un nudo que no está conectado...» [V]).
+///  - Pinned («Articulada»): translations tied, rotations free [V 11.4: -0.96 / -0.71 mm].
+///  - Generic («Genérica»): per DOF in the local axes of the edge (x along the edge from nodes[i] to nodes[i+1], z = shell z, y = z x x):
+///    Fixed = tied, Elastic = spring k per metre of edge (kN/m2 displacements, kN.m/rad.m rotations), Free = nothing [N law, not measured].
+enum class EdgeLinkMode { Free, Fixed, Elastic };
+struct FemEdgeInterior {
+    enum class Kind { Fixed, Free, Pinned, Generic };
+    Kind kind = Kind::Fixed;
+    std::array<EdgeLinkMode, 6> mode{};  ///< Generic only
+    std::array<double, 6> k{};           ///< Generic, Elastic DOFs only
+};
+
 struct FemShell {
     int id = 0;
     std::vector<int> nodes;         ///< 3 or 4 FemNode ids in contour order
@@ -52,6 +76,19 @@ struct FemShell {
     double maxSide = 1.0;           ///< "Tamaño máximo de los lados de un triángulo", m
     /// Exterior bond of each contour edge (edge i joins nodes[i] and nodes[i+1]): blocked GLOBAL DOFs of the mesh nodes of the edge.
     std::vector<std::array<bool, 6>> edgeFixed;
+    /// Elastic exterior bond of each edge (optional, same indexing; missing = none): springs to the ground per metre of edge, global axes,
+    /// kN/m2 (displacements) and kN.m/rad.m (rotations) [V 11.2: K per metre, independent of the mesh], and their "Sentido".
+    std::vector<std::array<double, 6>> edgeSpring;
+    std::vector<std::array<SpringSense, 6>> edgeSpringSense;
+    /// Oblique exterior bond of each edge (optional; missing = None): rigid relation on the translations of its mesh nodes [V 11.3].
+    std::vector<ObliqueSupport> edgeOblique;
+    std::vector<Vec3S> edgeObliqueDirection;
+    /// Interior bond of each edge of this shell (optional; missing = Fixed).
+    std::vector<FemEdgeInterior> edgeInterior;
+    /// Corner nodes (FemNode id) where the shell joins the node through rotational springs (kN.m/rad) about its local x and y axes, the
+    /// translations and the rotation about its normal being tied: the shell as one "piece" of a node with «empotramiento parcial para todas
+    /// las piezas» (TK-106) [N for shells: measured with bars only].
+    std::map<int, double> cornerRotationSpring;
 };
 
 enum class ShellLoadKind { Pressure, Temperature, Shrinkage };
@@ -82,6 +119,40 @@ struct ShellMesh {
     /// Bars split along shell edges: bar index -> mesh nodes from nodeI to nodeJ (both ends included) and their distances from nodeI.
     std::map<int, std::vector<std::pair<int, double>>> barSplits;
     std::vector<std::string> issues;   ///< es-ES descriptions of geometry that could not be connected (bar nodes inside a shell, ...)
+
+    /// Springs to the ground of the elastic edge bonds, already integrated over the edge: K per metre x tributary length of the node. Each
+    /// quadratic segment of length h gives h/6, 4h/6, h/6 to its vertex, mid-side and vertex nodes (row sums of the consistent edge matrix) [N
+    /// distribution; the total K x L is measured, V 11.2].
+    struct GroundSpring {
+        int node = 0;  ///< mesh node
+        int dof = 0;   ///< 0..5, global
+        double k = 0.0;
+        SpringSense sense = SpringSense::Both;
+    };
+    std::vector<GroundSpring> edgeSprings;
+    /// Oblique edge bonds per mesh node (None for the others).
+    std::vector<ObliqueSupport> oblique;
+    std::vector<Vec3S> obliqueDirection;
+    /// Homogeneous relations sum(coef * u_dof) = 0 between mesh DOFs (dof = 6 * node + k) created by the interior edge bonds and the partial
+    /// fixity of shell corners; `preferred` = the DOF of the copy, eliminated when possible.
+    struct Relation {
+        int preferred = -1;
+        std::vector<std::pair<int, double>> terms;
+    };
+    std::vector<Relation> relations;
+    /// Two-node springs between a copy and its original node: stiffness k along the unit vector `axis` of the translations (rotation = false)
+    /// or of the rotations (rotation = true).
+    struct Link {
+        int a = 0, b = 0;
+        bool rotation = false;
+        Vec3S axis{1, 0, 0};
+        double k = 0.0;
+    };
+    std::vector<Link> links;
+    /// Copy -> original mesh node of every node duplicated by an interior edge bond or a partially fixed corner.
+    std::map<int, int> copies;
+    /// FrameModel::nodes indices that were shell corners but are left without any element (interior bonds «Libre» on every side).
+    std::vector<int> orphanModelNodes;
 };
 
 /// Shell forces at the six nodes of a triangle, shell local axes: Nx, Ny, Nxy, Mx, My, Mxy, Qx, Qy.

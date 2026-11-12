@@ -24,6 +24,10 @@ namespace cc::fem {
 ///  4d. Relations (T-P8-03): ligatures, diaphragms and oblique supports become linear relations eliminated exactly by transformation
 ///      (K_r = T' K T, f_r = T' f, u = T u_r); springs to the ground are linear (their "Sentido" is ignored here, as in the original's linear
 ///      analysis [V]: see solveNonlinear). Diaphragm loads go to the master node with Mz = (x - xm) Fy - (y - ym) Fx.
+///  4e. Shell edge bonds (T-P8-03, TK-110): elastic edges = springs per metre integrated over the tributary length of every mesh node of the
+///      edge (ShellMesh::edgeSprings, with their "Sentido" in solveNonlinear); oblique edges = the same exact relation as oblique nodes on every
+///      mesh node of the edge; interior bonds and partially fixed corners = copies of the mesh nodes joined by relations / two-node springs
+///      (ShellMesh::relations / links). Diaphragms with shells tie every mesh node of those shells.
 ///  5. Null pivot -> SolveStatus::Mechanism (#214001), negative pivot -> SolveStatus::Unstable (#380376), a loaded DOF without stiffness ->
 ///     Mechanism for that case. Results: nodal displacements, reactions, bar end forces.
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options = {});
@@ -57,6 +61,9 @@ std::string mechanismMessage(const std::string& caseName);
 std::string unstableMessage(const std::string& caseName);
 /// «Se ha producido un error calculando el caso de carga '%s'. Revise las condiciones del modelo.» (#214000, cyopensees.dll).
 std::string caseErrorMessage(const std::string& caseName);
+/// «Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina.» (#64010, ed3dlib.dll): solveLinear fails with it when
+/// interior edge bonds «Libre» leave a shell corner without any element (ShellMesh::orphanModelNodes) [V 11.4].
+std::string detachedNodeMessage();
 
 /// «Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción
 /// 'Mostrar/Oculta incidencias' del menú 'Cálculo'.» Text shown by the original (measured, solver_medidas_original.md 9.2; the resource id was not

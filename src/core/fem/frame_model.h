@@ -63,12 +63,7 @@ struct EndRelease {
     double stiffness = 0.0;  ///< kN.m/rad, Spring only (> 0)
 };
 
-/// "Sentido" of a spring to the ground [V, solver_diafragmas_ligaduras_apoyos.md 10.1]: Positive acts only while the displacement of that
-/// global DOF is > 0, Negative only while it is < 0 (non-linear combinations only); Both = always (linear spring).
-enum class SpringSense { Both, Positive, Negative };
-
-/// Oblique support of the translations of a node (user line / plane not parallel to a global axis). Always rigid [V, 10.4].
-enum class ObliqueSupport { None, Line, Plane };
+// SpringSense and ObliqueSupport are declared in fem/shell_model.h (shared with the edge bonds of the shells).
 
 struct FemNode {
     int id = 0;
@@ -96,6 +91,9 @@ struct FemEqualDof {
 struct FemDiaphragm {
     int id = 0;
     std::vector<int> nodes;  ///< node ids, the first one is the master (its position does not change the results [REA 2.6, V 10.2])
+    /// FemShell ids: every mesh node of these shells is a slave of the diaphragm with the same relations [N: not measured]. Without `nodes`
+    /// the master is the first mesh node of the first shell.
+    std::vector<int> shells;
 };
 
 /// Load on a diaphragm: Fx, Fy (kN) at the plan point (x, y) (m); applied to the master as Fx, Fy and Mz = (x - xm) Fy - (y - ym) Fx [V 10.2].

@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -36,10 +37,14 @@ namespace cc::fem {
 ///  - T-P8-03 (docs/research/solver_diafragmas_ligaduras_apoyos.md): elastic supports -> FemNode::spring (K as typed, kN/m / kN.m/rad) and
 ///    springSense (non-linear combinations, solveNonlinear); oblique user line / plane -> FemNode::oblique (exact relation); ligatures ->
 ///    FrameModel::equalDofs (first node of the tie present in the model = master); diaphragms -> FrameModel::diaphragms (master = first node)
-///    and their loads per load case -> LoadCaseInput::diaphragmLoads; internal link «empotramiento parcial para todas las piezas» -> a
-///    rotational spring c in series with every bar end at the node (Gy and Gz; K = c / 2 between two pieces [V 10.5], 3+ pieces [N]).
-///  - Unsupported data are reported in `unsupported` and NOT modelled: internal links «articulado» / «genérico» and partial fixity at a node
-///    with shells (not measured), diaphragms with shells, elastic / oblique edge bonds, interior edge bonds other than «Empotrada»,
+///    and their loads per load case -> LoadCaseInput::diaphragmLoads, shells of a diaphragm -> FemDiaphragm::shells (every mesh node, [N]);
+///    internal link «empotramiento parcial para todas las piezas» -> a rotational spring k = partialFixityPieceStiffness(c, pieces) in series
+///    with every bar end at the node (Gy and Gz) and between every shell and the node (FemShell::cornerRotationSpring, [N]); K = c / 2 between
+///    two pieces [V 10.5], 3+ pieces [N].
+///  - Shell edges (TK-110): exterior bond -> FemShell::edgeFixed / edgeSpring (K per metre of edge as typed, kN/m2 / kN.m/rad.m [V 11.2]) /
+///    edgeSpringSense / edgeOblique; interior bond -> FemShell::edgeInterior. Interior «Libre» on every side of an edge -> `errors` gets
+///    unconnectedNodeMessage() [V 11.4].
+///  - Unsupported data are reported in `unsupported` and NOT modelled: internal links «articulado» / «genérico» of nodes (not measured),
 ///    compression-only ballast, eccentric shells and nodes inside a shell that are not its corners (TK-110). Callers must not present results
 ///    while `unsupported` is not empty.
 struct FrameBuild {
@@ -56,6 +61,10 @@ struct FrameBuildOptions {
     /// honoured by the original [V, solver_medidas_original.md 10.1: Rz = 0 at the bar switched off]. Shells always honour theirs
     /// (ShellLoads::selfWeightOff [V, elemento_lamina_bandas.md 13.5]). Kept as an option only for tests.
     bool honourSelfWeightSwitch = true;
+    /// Law of «empotramiento parcial para todas las piezas»: the rotational spring (kN.m/rad) that joins EVERY piece (bar end, shell) to the
+    /// node, from the typed coefficient c and the number of pieces at the node. Empty = c for every piece (star of springs: c / 2 between two
+    /// pieces, measured [V 10.5]); the law with three or more pieces is [N] (TK-106) and can be changed here when it is measured.
+    std::function<double(double coefficient, int pieces)> partialFixityPieceStiffness;
 };
 
 FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options = {});

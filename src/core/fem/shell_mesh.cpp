@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <set>
+#include <tuple>
 #include <unordered_map>
 
 #include "core/fem/shell_analysis.h"
@@ -689,25 +691,244 @@ ShellMesh meshShells(const FrameModel& model) {
         }
     }
 
-    // --- exterior bonds of the edges ---
-    // Inner nodes of an edge take its restraint. A corner takes it only when every bonded edge that meets there has the same restraint
-    // (#64886: edges with different exterior bonds leave the node without restraint [V text; free edges are ignored here, N]).
-    std::map<int, std::vector<std::array<bool, 6>>> atCorner;
-    for (int s = 0; s < nShells; ++s) {
-        const std::vector<int>& c = corners[s];
-        const FemShell& sh = model.shells[s];
-        for (std::size_t i = 0; i < c.size() && i < sh.edgeFixed.size(); ++i) {
-            const std::array<bool, 6>& mask = sh.edgeFixed[i];
-            if (std::none_of(mask.begin(), mask.end(), [](bool b) { return b; })) continue;
-            const std::vector<int> nodes = chain(c[i], c[(i + 1) % c.size()]);
-            for (std::size_t k = 1; k + 1 < nodes.size(); ++k)
-                for (int d = 0; d < 6; ++d) mesh.edgeFixed[nodes[k]][d] = mesh.edgeFixed[nodes[k]][d] || mask[d];
-            atCorner[nodes.front()].push_back(mask);
-            atCorner[nodes.back()].push_back(mask);
+    // Tributary length of every node of a contour chain (vertex, mid-side, vertex, ...): each quadratic segment of length h gives h/6, 4h/6,
+    // h/6 (row sums of the consistent matrix of a uniform line spring on a 3-node edge).
+    const auto chainWeights = [&](const std::vector<int>& nodes) {
+        std::vector<double> w(nodes.size(), 0.0);
+        for (std::size_t j = 0; j + 2 < nodes.size(); j += 2) {
+            const double h = norm(sub(mesh.positions[nodes[j + 2]], mesh.positions[nodes[j]]));
+            w[j] += h / 6.0;
+            w[j + 1] += 4.0 * h / 6.0;
+            w[j + 2] += h / 6.0;
+        }
+        return w;
+    };
+
+    // --- interior bonds of the edges (Vinculación interior de lámina [V 11.4]) and partially fixed corners (TK-106) ---
+    // A bond other than «Empotrada» acts only on an edge shared with another shell or with a bar (on an isolated edge it has no effect [V]).
+    // The shell side with such a bond gets its own copy of every node of the edge chain (corners and mid-side nodes included); the original
+    // nodes stay with the other elements. A corner is copied only when no shared «Empotrada» edge of the same shell meets there [N rule].
+    std::map<EdgeKey, int> edgeUsers;  // shells and bars on each edge
+    for (int s = 0; s < nShells; ++s)
+        for (std::size_t i = 0; i < corners[s].size(); ++i) ++edgeUsers[key(corners[s][i], corners[s][(i + 1) % corners[s].size()])];
+    for (const FemBar& bar : model.bars) {
+        const auto ni = index.find(bar.nodeI), nj = index.find(bar.nodeJ);
+        if (ni != index.end() && nj != index.end() && edgeNodes.count(key(ni->second, nj->second))) ++edgeUsers[key(ni->second, nj->second)];
+    }
+    std::vector<std::map<int, int>> copyOf(nShells);  // per shell: original mesh node -> its copy
+    {
+        const auto interiorOf = [&](int s, std::size_t i) {
+            const FemShell& sh = model.shells[s];
+            return i < sh.edgeInterior.size() ? sh.edgeInterior[i] : FemEdgeInterior{};
+        };
+        std::set<std::pair<int, int>> tiedDof;  // (copy, dof) already tied to its original
+        const auto tie = [&](int copy, int orig, int d) {
+            if (!tiedDof.insert({copy, d}).second) return;
+            mesh.relations.push_back({6 * copy + d, {{6 * copy + d, 1.0}, {6 * orig + d, -1.0}}});
+        };
+        const auto tieAlong = [&](int copy, int orig, int offset, const V& axis) {
+            ShellMesh::Relation r;
+            int best = 0;
+            for (int m = 0; m < 3; ++m) {
+                if (std::fabs(axis[m]) < 1e-12) continue;
+                r.terms.emplace_back(6 * copy + offset + m, axis[m]);
+                r.terms.emplace_back(6 * orig + offset + m, -axis[m]);
+                if (std::fabs(axis[m]) > std::fabs(axis[best])) best = m;
+            }
+            r.preferred = 6 * copy + offset + best;
+            mesh.relations.push_back(std::move(r));
+        };
+        for (int s = 0; s < nShells; ++s) {
+            const std::vector<int>& c = corners[s];
+            if (c.empty() || failed[s]) continue;
+            const FemShell& sh = model.shells[s];
+            std::vector<char> bonded(c.size(), 0);
+            std::set<int> rigidCorner;  // corners on a shared «Empotrada» edge of this shell
+            for (std::size_t i = 0; i < c.size(); ++i) {
+                const int p = c[i], q = c[(i + 1) % c.size()];
+                if (edgeUsers[key(p, q)] < 2) continue;
+                if (interiorOf(s, i).kind != FemEdgeInterior::Kind::Fixed) bonded[i] = 1;
+                else { rigidCorner.insert(p); rigidCorner.insert(q); }
+            }
+            std::set<int> partialCorners;
+            for (const auto& [nodeId, k] : sh.cornerRotationSpring) {
+                const auto it = index.find(nodeId);
+                if (it == index.end() || std::find(c.begin(), c.end(), it->second) == c.end() || rigidCorner.count(it->second)) continue;
+                partialCorners.insert(it->second);
+            }
+            if (std::none_of(bonded.begin(), bonded.end(), [](char b) { return b != 0; }) && partialCorners.empty()) continue;
+            std::map<int, int>& copies = copyOf[s];
+            const auto copyNode = [&](int orig) {
+                if (const auto it = copies.find(orig); it != copies.end()) return it->second;
+                const int n = newNode(mesh.positions[orig]);
+                copies[orig] = n;
+                mesh.copies[n] = orig;
+                return n;
+            };
+            for (std::size_t i = 0; i < c.size(); ++i) {
+                if (!bonded[i]) continue;
+                const std::vector<int> nodes = chain(c[i], c[(i + 1) % c.size()]);
+                for (std::size_t j = 0; j < nodes.size(); ++j)
+                    if ((j != 0 && j + 1 != nodes.size()) || !rigidCorner.count(nodes[j])) copyNode(nodes[j]);
+            }
+            for (int corner : partialCorners) copyNode(corner);
+            for (ShellMesh::Triangle& t : mesh.triangles)
+                if (t.shell == s)
+                    for (int& n : t.nodes)
+                        if (const auto it = copies.find(n); it != copies.end()) n = it->second;
+            // Joints between the copies and the original nodes.
+            for (std::size_t i = 0; i < c.size(); ++i) {
+                if (!bonded[i]) continue;
+                const FemEdgeInterior bond = interiorOf(s, i);
+                const std::vector<int> nodes = chain(c[i], c[(i + 1) % c.size()]);
+                const std::vector<double> w = chainWeights(nodes);
+                const V ex = scale(sub(mesh.positions[nodes.back()], mesh.positions[nodes.front()]),
+                                   1.0 / norm(sub(mesh.positions[nodes.back()], mesh.positions[nodes.front()])));
+                const V ez = sh.ez;
+                const V ey{ez[1] * ex[2] - ez[2] * ex[1], ez[2] * ex[0] - ez[0] * ex[2], ez[0] * ex[1] - ez[1] * ex[0]};
+                const std::array<V, 3> axes{ex, ey, ez};
+                for (std::size_t j = 0; j < nodes.size(); ++j) {
+                    const auto it = copies.find(nodes[j]);
+                    if (it == copies.end()) continue;
+                    const int copy = it->second, orig = nodes[j];
+                    if (bond.kind == FemEdgeInterior::Kind::Pinned) {
+                        for (int d = 0; d < 3; ++d) tie(copy, orig, d);
+                    } else if (bond.kind == FemEdgeInterior::Kind::Generic) {
+                        for (int d = 0; d < 6; ++d) {
+                            const V& axis = axes[d % 3];
+                            if (bond.mode[d] == EdgeLinkMode::Fixed) tieAlong(copy, orig, d < 3 ? 0 : 3, axis);
+                            else if (bond.mode[d] == EdgeLinkMode::Elastic && bond.k[d] > 0.0 && w[j] > 0.0)
+                                mesh.links.push_back({copy, orig, d >= 3, axis, bond.k[d] * w[j]});
+                        }
+                    }
+                }
+            }
+            // A partially fixed corner: translations and the rotation about the shell normal tied, springs about the shell x and y axes.
+            for (int corner : partialCorners) {
+                const int copy = copies.at(corner);
+                const double k = sh.cornerRotationSpring.at(model.nodes[corner].id);
+                for (int d = 0; d < 3; ++d) tie(copy, corner, d);
+                tieAlong(copy, corner, 3, sh.ez);
+                if (k > 0.0) {
+                    mesh.links.push_back({copy, corner, true, sh.ex, k});
+                    mesh.links.push_back({copy, corner, true, sh.ey, k});
+                }
+            }
         }
     }
-    for (const auto& [node, masks] : atCorner)
-        if (std::all_of(masks.begin(), masks.end(), [&](const std::array<bool, 6>& m) { return m == masks.front(); })) mesh.edgeFixed[node] = masks.front();
+    const auto mapped = [&](int s, int n) {
+        const auto it = copyOf[s].find(n);
+        return it == copyOf[s].end() ? n : it->second;
+    };
+
+    // --- exterior bonds of the edges ---
+    // Inner nodes of an edge take its restraint (blocked DOFs, springs per metre x tributary length, oblique relation). A corner takes it only
+    // when every bonded edge that meets there has the same restraint (#64886: edges with different exterior bonds leave the node without
+    // restraint [V text; free edges are ignored here, N]). An edge whose chain of mesh nodes is shared by several shells (no interior copies)
+    // gets one merged bond (see ChainBond) [N: the original applies the selected shell's bond to the shared edge too, V 11.1].
+    mesh.oblique.assign(mesh.positions.size(), ObliqueSupport::None);
+    mesh.obliqueDirection.assign(mesh.positions.size(), V{0, 0, 1});
+    mesh.edgeFixed.resize(mesh.positions.size());
+    struct EdgeBond {
+        std::array<bool, 6> mask{};
+        std::array<double, 6> spring{};
+        std::array<SpringSense, 6> sense{};
+        ObliqueSupport oblique = ObliqueSupport::None;
+        V direction{0, 0, 1};
+        bool operator==(const EdgeBond&) const = default;
+    };
+    struct CornerShare {
+        EdgeBond bond;
+        double weight = 0.0;
+    };
+    std::map<int, std::vector<CornerShare>> atCorner;
+    std::map<std::tuple<int, int, int>, double> springSum;  // (node, dof, sense) -> k
+    const auto applyBond = [&](int node, const EdgeBond& b, double weight) {
+        for (int d = 0; d < 6; ++d) {
+            mesh.edgeFixed[node][d] = mesh.edgeFixed[node][d] || b.mask[d];
+            if (b.spring[d] > 0.0 && weight > 0.0) springSum[{node, d, static_cast<int>(b.sense[d])}] += b.spring[d] * weight;
+        }
+        if (b.oblique != ObliqueSupport::None && mesh.oblique[node] == ObliqueSupport::None) {
+            mesh.oblique[node] = b.oblique;
+            mesh.obliqueDirection[node] = b.direction;
+        }
+    };
+    // One merged bond per chain of mesh nodes: blocked DOFs ORed over every shell that declares the chain, springs / sense / oblique from the
+    // first one (a shared edge declared by two shells does not get K twice) [N].
+    struct ChainBond {
+        std::vector<int> nodes;
+        EdgeBond bond;
+    };
+    std::map<std::vector<int>, ChainBond> chains;
+    std::vector<std::vector<int>> chainOrder;
+    for (int s = 0; s < nShells; ++s) {
+        const std::vector<int>& c = corners[s];
+        if (c.empty()) continue;
+        const FemShell& sh = model.shells[s];
+        for (std::size_t i = 0; i < c.size(); ++i) {
+            EdgeBond b;
+            if (i < sh.edgeFixed.size()) b.mask = sh.edgeFixed[i];
+            if (i < sh.edgeSpring.size()) b.spring = sh.edgeSpring[i];
+            if (i < sh.edgeSpringSense.size()) b.sense = sh.edgeSpringSense[i];
+            if (i < sh.edgeOblique.size()) b.oblique = sh.edgeOblique[i];
+            if (b.oblique != ObliqueSupport::None && i < sh.edgeObliqueDirection.size()) {
+                const double l = norm(sh.edgeObliqueDirection[i]);
+                if (l > 1e-12) b.direction = scale(sh.edgeObliqueDirection[i], 1.0 / l);
+                else b.oblique = ObliqueSupport::None;
+            }
+            for (int d = 0; d < 6; ++d)
+                if (b.mask[d] || !(b.spring[d] > 0.0)) { b.spring[d] = 0.0; b.sense[d] = SpringSense::Both; }
+            const bool anything = std::any_of(b.mask.begin(), b.mask.end(), [](bool x) { return x; }) ||
+                                  std::any_of(b.spring.begin(), b.spring.end(), [](double x) { return x > 0.0; }) || b.oblique != ObliqueSupport::None;
+            if (!anything) continue;
+            std::vector<int> nodes = chain(c[i], c[(i + 1) % c.size()]);
+            for (int& n : nodes) n = mapped(s, n);
+            std::vector<int> sorted = nodes;
+            std::sort(sorted.begin(), sorted.end());
+            const auto it = chains.find(sorted);
+            if (it == chains.end()) {
+                chains[sorted] = ChainBond{nodes, b};
+                chainOrder.push_back(sorted);
+            } else {
+                for (int d = 0; d < 6; ++d) it->second.bond.mask[d] = it->second.bond.mask[d] || b.mask[d];
+            }
+        }
+    }
+    for (const std::vector<int>& k : chainOrder) {
+        ChainBond& cb = chains.at(k);
+        for (int d = 0; d < 6; ++d)
+            if (cb.bond.mask[d]) { cb.bond.spring[d] = 0.0; cb.bond.sense[d] = SpringSense::Both; }
+        const std::vector<int>& nodes = cb.nodes;
+        const std::vector<double> w = chainWeights(nodes);
+        for (std::size_t j = 1; j + 1 < nodes.size(); ++j) applyBond(nodes[j], cb.bond, w[j]);
+        atCorner[nodes.front()].push_back({cb.bond, w.front()});
+        atCorner[nodes.back()].push_back({cb.bond, w.back()});
+    }
+    for (const auto& [node, shares] : atCorner) {
+        if (!std::all_of(shares.begin(), shares.end(), [&](const CornerShare& x) { return x.bond == shares.front().bond; })) continue;
+        double weight = 0.0;
+        for (const CornerShare& x : shares) weight += x.weight;
+        applyBond(node, shares.front().bond, weight);
+    }
+    for (const auto& [k, value] : springSum)
+        mesh.edgeSprings.push_back({std::get<0>(k), std::get<1>(k), value, static_cast<SpringSense>(std::get<2>(k))});
+
+    // --- model nodes that were shell corners and are left without any element («Libre» on every side) ---
+    {
+        std::vector<char> used(mesh.positions.size(), 0), corner(nNodes, 0);
+        for (const ShellMesh::Triangle& t : mesh.triangles)
+            for (int n : t.nodes) used[n] = 1;
+        for (const FemBar& bar : model.bars)
+            for (int id : {bar.nodeI, bar.nodeJ})
+                if (const auto it = index.find(id); it != index.end()) used[it->second] = 1;
+        for (const ShellMesh::Relation& r : mesh.relations)
+            for (const auto& [d, coef] : r.terms) used[d / 6] = 1;
+        for (const ShellMesh::Link& l : mesh.links) used[l.a] = used[l.b] = 1;
+        for (int s = 0; s < nShells; ++s)
+            for (int k : corners[s]) corner[k] = 1;
+        for (int k = 0; k < nNodes; ++k)
+            if (corner[k] && !used[k]) mesh.orphanModelNodes.push_back(k);
+    }
 
     // --- bars along shell edges ---
     for (std::size_t b = 0; b < model.bars.size(); ++b) {

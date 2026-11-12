@@ -9,6 +9,7 @@
 #include "core/shell_edit.h"
 #include "core/shell_load.h"
 #include "core/shell_properties.h"
+#include "core/fem/linear_solver.h"
 #include "core/fem/shell_analysis.h"
 
 namespace cc::fem {
@@ -100,7 +101,7 @@ std::string undescribedBarsMessage() { return "Existen barras sin describir."; }
 std::string shearAreaRangeMessage(const char* name) {
     return std::string("El valor de 'Área de cortante (") + name + ")' debe estar entre 0.01 y 1000000.00.";
 }
-std::string unconnectedNodeMessage() { return "Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina."; }
+std::string unconnectedNodeMessage() { return detachedNodeMessage(); }
 
 FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options) {
     FrameBuild out;
@@ -145,16 +146,21 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
     const auto inModel = [&](int nodeId) { return barNodes.count(nodeId) > 0 || shellNodes.count(nodeId) > 0; };
 
     // --- internal links of nodes (TK-106) ---
-    std::map<int, double> partialNodes;  // node id -> Coef.Emp.Parc. (kN.m/rad)
+    // «Empotramiento parcial para todas las piezas»: every piece (bar end or shell corner) joins the node through a rotational spring
+    // k = partialFixityPieceStiffness(c, pieces); the default k = c gives c / 2 between two pieces [V 10.5].
+    std::map<int, int> pieces;  // node id -> bars and shells that meet there
+    for (const core::Bar& b : sm.bars) { ++pieces[b.startNode]; ++pieces[b.endNode]; }
+    for (const core::Shell& s : sm.shells)
+        for (int id : std::set<int>(s.nodeIds.begin(), s.nodeIds.end())) ++pieces[id];
+    std::map<int, double> partialNodes;  // node id -> spring of every piece (kN.m/rad)
     for (const auto& [nodeId, link] : project.nodeSupports.internal) {
         if (link.type == core::InternalLinkType::Fixed || !inModel(nodeId)) continue;
-        if (link.type == core::InternalLinkType::PartialFixity && !shellNodes.count(nodeId)) {
-            partialNodes[nodeId] = link.partialCoefficient;
+        if (link.type == core::InternalLinkType::PartialFixity) {
+            const double c = link.partialCoefficient;
+            partialNodes[nodeId] = options.partialFixityPieceStiffness ? options.partialFixityPieceStiffness(c, pieces[nodeId]) : c;
             continue;
         }
-        const char* what = link.type == core::InternalLinkType::PartialFixity ? "empotramiento parcial en un nudo con láminas"
-                           : link.type == core::InternalLinkType::Pinned      ? "nudo articulado"
-                                                                              : "nudo genérico";
+        const char* what = link.type == core::InternalLinkType::Pinned ? "nudo articulado" : "nudo genérico";
         out.unsupported.push_back("Nudo " + std::to_string(nodeId) + ": vinculación interior, " + what + " (pendiente, sin medir en el original).");
     }
 
@@ -179,9 +185,9 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         fd.id = d.id;
         for (int id : d.nodeIds)
             if (inModel(id)) fd.nodes.push_back(id);
-        if (!d.shellIds.empty())
-            out.unsupported.push_back("Diafragma " + d.reference + ": láminas en el diafragma (pendiente, sin medir en el original).");
-        if (!fd.nodes.empty()) out.model.diaphragms.push_back(fd);
+        for (int id : d.shellIds)
+            if (sm.findShell(id)) fd.shells.push_back(id);
+        if (!fd.nodes.empty() || !fd.shells.empty()) out.model.diaphragms.push_back(fd);
     }
 
     // --- bars ---
@@ -232,8 +238,9 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
             fb.releases[end][2] = releaseOf(fix.planes[core::kPlaneXY], kz);
             if (fix.pinned) fb.releases[end][1] = fb.releases[end][2] = EndRelease{EndRelease::Kind::Free, 0.0};
             // «Nudo empotrado con coeficiente de empotramiento parcial para todas las piezas» (TK-106): every bar end joins the node through a
-            // rotational spring c (kN.m/rad, used as typed), in series with its own release. Two pieces give c / 2 between them [V 10.5];
-            // the law with three or more pieces, the torsion (left rigid) and the plane xy (Gz, given the same c) are [N].
+            // rotational spring k = partialFixityPieceStiffness(c, pieces) (default c, kN.m/rad as typed), in series with its own release. Two
+            // pieces give c / 2 between them [V 10.5]; the law with three or more pieces, the torsion (left rigid) and the plane xy (Gz, given
+            // the same k) are [N].
             if (const auto pn = partialNodes.find(node); pn != partialNodes.end())
                 for (int k = 1; k <= 2; ++k) {
                     EndRelease& rel = fb.releases[end][k];
@@ -274,25 +281,59 @@ FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions
         if (sh.layout.considerEccentricity && std::fabs(sh.layout.centralPlaneOffsetM) > 1e-9)
             out.unsupported.push_back(tag + "excentricidad del plano central (pendiente).");
         for (const core::ShellEdgeKey& key : core::shellEdges(sm, sh.id)) {
+            // Exterior bond: blocked DOFs, springs per metre of edge with their "Sentido" [V 11.1-11.2], oblique line / plane (rigid [V 11.3]).
+            const core::ExternalSupport ext = core::edgeExteriorOf(project.shellProps, key);
+            const core::Restraint r = core::restraintOf(ext);
             std::array<bool, 6> mask{};
-            const core::Restraint r = core::restraintOf(core::edgeExteriorOf(project.shellProps, key));
-            bool elastic = false;
+            std::array<double, 6> spring{};
+            std::array<SpringSense, 6> sense{};
             for (int k = 0; k < 6; ++k) {
                 mask[k] = r.fixed[k] && !r.elastic[k];
-                elastic = elastic || (r.fixed[k] && r.elastic[k]);
+                if (r.fixed[k] && r.elastic[k]) {
+                    spring[k] = ext.elasticConstants[k];
+                    sense[k] = ext.senses[k] == core::SupportSense::Positive   ? SpringSense::Positive
+                               : ext.senses[k] == core::SupportSense::Negative ? SpringSense::Negative
+                                                                                : SpringSense::Both;
+                }
             }
-            if (elastic) out.unsupported.push_back(tag + "vinculación exterior elástica de arista (pendiente, T-P8-03).");
-            if (r.oblique != core::Restraint::Oblique::None)
-                out.unsupported.push_back(tag + "vinculación exterior de arista no alineada con los ejes globales (pendiente, T-P8-03).");
-            if (!core::isDefaultEdgeInterior(core::edgeInteriorOf(project.shellProps, key)))
-                out.unsupported.push_back(tag + "vinculación interior de arista distinta de «Empotrada» (pendiente, T-P8-03).");
             fs.edgeFixed.push_back(mask);
+            fs.edgeSpring.push_back(spring);
+            fs.edgeSpringSense.push_back(sense);
+            fs.edgeOblique.push_back(r.oblique == core::Restraint::Oblique::None       ? ObliqueSupport::None
+                                     : r.oblique == core::Restraint::Oblique::LineFree ? ObliqueSupport::Line
+                                                                                       : ObliqueSupport::Plane);
+            fs.edgeObliqueDirection.push_back(vec(r.direction));
+            // Interior bond of this side of the edge [V 11.4].
+            const core::EdgeInteriorBond bond = core::edgeInteriorOf(project.shellProps, key);
+            FemEdgeInterior fi;
+            switch (bond.kind) {
+                case core::EdgeInteriorKind::Fixed: fi.kind = FemEdgeInterior::Kind::Fixed; break;
+                case core::EdgeInteriorKind::Free: fi.kind = FemEdgeInterior::Kind::Free; break;
+                case core::EdgeInteriorKind::Pinned: fi.kind = FemEdgeInterior::Kind::Pinned; break;
+                case core::EdgeInteriorKind::Generic:
+                    fi.kind = FemEdgeInterior::Kind::Generic;
+                    for (int k = 0; k < 6; ++k) {
+                        fi.mode[k] = bond.dof[k] == core::DofMode::Fixed     ? EdgeLinkMode::Fixed
+                                     : bond.dof[k] == core::DofMode::Elastic ? EdgeLinkMode::Elastic
+                                                                             : EdgeLinkMode::Free;
+                        fi.k[k] = bond.k[k];
+                    }
+                    break;
+            }
+            fs.edgeInterior.push_back(fi);
         }
+        // The shell as one piece of a node with «empotramiento parcial para todas las piezas» (TK-106) [N for shells].
+        for (int id : sh.nodeIds)
+            if (const auto pn = partialNodes.find(id); pn != partialNodes.end()) fs.cornerRotationSpring[id] = pn->second;
         out.model.shells.push_back(fs);
         shellContours[sh.id] = core::shellContour2D(sm, sh);
     }
-    if (!out.model.shells.empty())
-        for (const std::string& issue : meshShells(out.model).issues) out.unsupported.push_back(issue);
+    if (!out.model.shells.empty()) {
+        const ShellMesh mesh = meshShells(out.model);
+        for (const std::string& issue : mesh.issues) out.unsupported.push_back(issue);
+        // Interior bonds «Libre» on every side of an edge leave its nodes without any element: the original does not calculate [V 11.4].
+        if (!mesh.orphanModelNodes.empty()) out.errors.push_back(unconnectedNodeMessage());
+    }
 
     // --- load cases ---
     for (const core::LoadCase& lc : project.loadCases.cases) {
