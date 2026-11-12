@@ -83,3 +83,81 @@ con EI = 21000 kN·m², L = 5 m, φ = 12EI/(G Av L²) = 0,0312 (Avz = 40 cm²). 
 ## 8. Capturas (docs/screenshots, añadidas con `git add -f`)
 
 `sv_e5.png` C1 desplazamientos; `sv_e7.png` C1 reacciones; `sv_f4.png` C1 esfuerzos; `sv_g5.png` temperatura uniforme; `sv_h3.png` temperatura variable; `sv_l4.png` C2 desplazamientos; `sv_m2.png` C2 esfuerzos; `sv_n5.png`, `sv_n6.png`, `sv_n7.png`, `sv_o2.png` C3; `sv_p5.png`, `sv_p6.png`, `sv_p7.png` C6; `sv_q3.png`, `sv_q4.png` (inclinada, sin empotramiento parcial); `sv_r3.png` (c = 0,5); `sv_s3.png` (c = 0,8); `sv_r4.png` diálogo «Empotramiento en extremos»; `sv_t1.png` aviso de mecanismo; `sv_k5.png` diálogo «Generación de cargas».
+
+## 9. Segunda pasada de medición (2026-11-12): TK-108 y pendientes de TK-105
+
+Original CYPE 3D v2027.a con la licencia activada por el usuario (sin barrera de licencia). Obras (copias en `docs/sample_project/`; el original **guarda la obra al calcular y al aceptar diálogos**, por eso `sv_c1.ed3`, `sv_c2.ed3` y `sv_c6.ed3` han cambiado respecto a §1). Scripts nuevos: `tools/tk_lib.sh` (apoyos, cálculo, lectura de nudos). Marcas: **[V]** medido, **[N]** no medido, **[R]** regla deducida que encaja con todos los puntos medidos (no verificada con código).
+
+### 9.1 TK-108: modos rígidos no excitados y aviso de mecanismo
+
+Lectura de resultados: panel «Desplazamientos», clic en el nudo = tooltip con Dx..Gz (0,001 mm / 0,001 mRad). Diálogo «Vinculación exterior» (iconos fila 1: «?», empotrado, …; fila 2: libre/«Apoyo fijo» (751,421), «recta X articulada» (797,421) …). **«Apoyo fijo» = Dx, Dy, Dz fijos y giros libres; «recta X articulada» = Dy, Dz fijos, Dx libre sobre la recta X y giros libres** (tooltip: «Desplazamiento libre sobre una recta en la dirección X con giros sin coacción»).
+
+| Caso | Resultado [V] |
+|---|---|
+| C2 (2 barras X de 3 m, q = 10 kN/m global −Z): N1 «Apoyo fijo», N3 «recta X articulada» | **Calcula sin aviso.** N2: Dz = −8,175 mm, Gx = 0,000; N1 Gy = +4,286, N3 Gy = −4,286 mRad. El giro de torsión (modo nulo) sale **exactamente 0,000** en N1, N2 y N3 |
+| C2 con N3 también «Apoyo fijo» | Igual: sin aviso, mismos valores, Gx = 0,000 en los tres nudos (capturas `tk108_E2.png`, `tk108_E3.png`) |
+| Obra en L (N1 (0,0,0), N2 (4,0,0), N3 (4,2,0); barra 1 en X, barra 2 en Y; cargas en N2 +X 10 y +Y 10 kN, en N3 −Z 10 kN): N1 **empotrado**, N2 «recta X articulada» | Calcula sin aviso: N2 Dx = 0,019 mm, Gx = −12,381 mRad (como en §2 C6) |
+| Misma obra en L: N1 **«Apoyo fijo»**, N2 «recta X articulada» (el giro de toda la estructura alrededor del eje N1–N2 es un modo nulo acoplado con el voladizo N2–N3) | **Aviso**: «Esta estructura es un mecanismo. Revise los datos introducidos. / **Desplazamiento según el eje Z** / El error se encuentra en el punto de coordenadas: (x = 4.000000, y = 2.000000, z = 0.000000) / Alguna de las barras de la estructura no está vinculada correctamente en sus extremos, es decir, no es estable.» El «Informe final de cálculo» dice «Esta estructura es un mecanismo. Revise los datos introducidos.» y los botones de resultados quedan inactivos (`tk108_B1.png`, `tk108_B2.png`) |
+| La misma, **borrando la carga de N3** (sin carga que excite el modo; las cargas de N2 no lo excitan) | **Igual aviso, mismo gdl (N3, Dz)** (`tk108_D2.png`) |
+
+Conclusiones:
+1. **El aviso no depende de que la carga excite el modo**: el modo de giro acoplado avisa con y sin carga torsora; el modo de torsión aislado (barras colineales, solo rigidez GJ/L) **no** avisa y devuelve giros 0.
+2. **[R]** Regla compatible con los cuatro puntos: tras factorizar, un modo nulo cuyo soporte son solo giros alrededor del eje común de barras colineales (Gx de los nudos de una cadena recta) se **fija a cero sin aviso**; cualquier otro modo nulo (acoplado a desplazamientos o a otros giros) da «Esta estructura es un mecanismo». Para el clon: `solveLinear` debe regularizar el torsor aislado (no `Mechanism`) y mantener `Mechanism` para el resto, con carga o sin ella. (El solver del original es dispersivo directo: mensajes «Displacement on null pivot…», «pfsfct(): The diagonal entry is zero»; la fijación a 0 del caso aislado es coherente con una detección de pivote nulo con «ignorar» para esos grados de libertad, pero **no se ha leído en el código**.)
+3. **Qué gdl nombra el aviso (TK-105 e)**: puntos medidos: voladizo con base «Apoyo fijo» y carga en la punta → **N1 / Giro alrededor de Y** (§6); obra en L anterior → **N3 / Desplazamiento según Z** (N3 = nudo libre del voladizo de 2 m). Ninguna regla simple los reproduce: «gdl de mayor amplitud del modo» daría N2/Dz en el voladizo; «primer nudo» daría N1/Gx en la L. Depende del orden de eliminación del solver (**[N]**, regla abierta; el clon puede nombrar cualquier gdl del modo, el texto es el mismo).
+
+### 9.2 TK-105 a) Umbral de «desplazamientos excesivos» [V]
+
+Voladizo de 4 m (N1 con Gy «Elástico», K variable en kN·m/rad; todo lo demás fijo; carga P = 10 kN en −Z en el extremo ⇒ giro del nudo N1 ≈ 40/K rad, Dz del extremo ≈ 160/K m). Aviso mostrado en el informe: «Se han obtenido desplazamientos demasiado grandes. Puede consultar los mensajes de aviso correspondientes mediante la opción 'Mostrar/Oculta incidencias' del menú 'Cálculo'.» (los botones de resultados quedan inactivos).
+
+| K (kN·m/rad) | Giro N1 (rad) | Dz extremo (m) | Resultado |
+|---|---|---|---|
+| 100; 30 (leído: Dz = −5343,723 mm, Gy(N2) = 1337,170 mRad); 27; 26,8; 26,7; 26,6; **25,6** | 0,40 … **1,5625** | 1,6 … 6,25 | **Calcula** |
+| **25,4**; 25; 20; 10; 1 | **1,5748** … 40 | 6,30 … 160 | **«Desplazamientos demasiado grandes»** |
+| Dx elástico K = 1,5 kN/m (carga X 10 kN, Dx ≈ 6,67 m) | 0 | – | **Calcula** (un desplazamiento de 6,67 m no avisa) |
+
+El umbral está entre 1,5625 y 1,5748 rad (nudo N2: 1,5663–1,5786) y encierra **π/2 = 1,5708 rad**: **[V] el aviso salta cuando algún giro de nudo supera π/2 (90°)**; la traslación Dx = 6,67 m no avisa, por lo que no hay un límite de desplazamiento lineal del orden de 6 m (límite lineal mayor: **[N]**, la prueba con K = 0,01 kN/m no se pudo completar porque el diálogo no admite ese valor). Capturas `thr_K*.png`.
+
+### 9.3 TK-105 c) Temperatura variable con dirección Y+ y ángulo libre [V]
+
+Diálogo «Incremento de temperatura variable»: Valor 1 (T1) y Valor 2 (T2) en ºC, «Ejes locales de la barra», tres iconos de «Dirección y sentido de la variación»: (1) T1|T2 a lo largo del eje y local (**Y+**), (2) T2 arriba / T1 abajo, a lo largo de z (**Z+**, por defecto), (3) **ángulo libre**: aparece el campo «Ángulo» (grados, defecto 0,000, rango −180..180). Voladizo de 4 m, T1 = 20, T2 = 0, α = 1,2e-5 (todas las lecturas son la contribución de esta carga sola, resta de la base conocida):
+
+| Caso | Extremo | Giro |
+|---|---|---|
+| Icono Z+ (ya medido) y **ángulo 0°** | Dz = **+38,400** mm | Gy = −19,200 mRad |
+| Icono **Y+**, ancho = 100 mm (ancho izq. 50 + dcha. 50), canto = 50 mm | Dy = **+19,200** mm | Gz = +9,600 mRad |
+| Icono Y+, anchos 25 + 25 (= 50 mm) | Dy = +38,400 mm | Gz = +19,200 mRad |
+| **Ángulo 90°** | Dy = **−38,400** mm | Gz = −19,200 mRad |
+| **Ángulo 45°** (anchos 100 mm, cantos 50 mm) | **Dz = +27,153, Dy = −13,576 mm** | Gy = −13,577 mRad (lectura −9,767 menos 3,810 de P), Gz = −6,788 mRad |
+
+Reglas: la curvatura en el plano xz es κz = α (T1 − T2) cos θ / hz con **hz = Canto inferior (3) + Canto superior (4)**; en el plano xy κy = α (T1 − T2) · (±sin θ) / hy con **hy = Ancho izquierda (1) + Ancho derecha (2)** (comprobado con anchos distintos de los cantos: Dy se reduce a la mitad al duplicar el ancho). Con el icono Y+ el extremo se mueve hacia +Y (T1 en −y); con ángulo θ la dirección es la rotación de **+z alrededor del eje x local** un ángulo θ (θ = 90° lleva a −y): Dz = α ΔT L²/(2 hz) cos θ y Dy = −α ΔT L²/(2 hy) sin θ (45°: 38,4·cos 45° = 27,153 y 19,2·sin 45° = 13,576, exactos). La media (T1+T2)/2 se sigue aplicando como incremento uniforme (Dx +0,480 mm por cada carga variable de 20/0 °C, como en §4).
+
+### 9.4 TK-105 d) Empotramiento parcial: planos xy/xz, extremo final, «Rigidez rotacional» [V]
+
+Diálogo «Empotramiento en extremos» (sin cambios de §5). Voladizo C1 (EIz = 10500 kN·m², Avy = 40 cm², G = 80769 MPa, L = 4 m, φ = 12EI/(G·Av·L²) = 0,02438, k_ii = (4+φ)/(1+φ)·EI/L = 10312 kN·m/rad):
+
+| Ensayo | Predicción | Original [V] |
+|---|---|---|
+| Plano **xy**, Origen, c = 0,5, carga Y 10 kN en el extremo: K = c/(1−c)·k_ii | Dy = 20,317 + 0,124 + 15,515 = **35,956 mm** (con 4EI/L: 35,679) | Dy = **35,956 mm**, Gz(N1) = 3,879 mRad (θ = 40/10312) ✓ |
+| «**Rigidez rotacional**» K = 5000 kN·m/rad en xy Origen | K directo: Dy = 20,441 + 4·8 rad = **52,441 mm** | Dy = **52,441 mm**, Gz(N1) = 8,000 mRad ✓ (el valor por defecto que muestra el campo es **500000,00 kN·m/rad**) |
+| **Extremo final**, plano xz, c = 0,5 en la barra 1 de C2 (el muelle queda en el extremo de la barra 1 junto al nudo N2; resolución independiente con vigas de Timoshenko y muelle K = c/(1−c) k_ii) | N2 Dz = −10,739; Gy(N1) = 5,140; Gy(N2) = 0,855 (con 4EI/L: −10,586; 5,089; 0,804) | Dz(N2) = **−10,739 mm**, Gy(N1) = **5,140**, Gy(N2) = **0,855 mRad** ✓ |
+
+Conclusión: **la ley K = c/(1−c)·k_ii con k_ii de Timoshenko (con el área de cortante del plano correspondiente) vale en los planos xy y xz y en ambos extremos**; «Rigidez rotacional» es K directo en kN·m/rad. Plano **yz** (torsión): el desplegable solo ofrece **0,000 o 1,000** (articulado/empotrado; no hay valores intermedios para c; «Rigidez rotacional» y su valor en yz: [N]). Cálculo analítico usado (Timoshenko + muelle): `docs/research/data/chk_spring.py`.
+
+### 9.5 TK-105 g) y h)
+
+- **Área de cortante 0 no es admisible**: «El valor de 'Área de cortante (Avz)' debe estar entre 0.01 y 1000000.00.» (cm²; igual para Avy). No existe la opción «ignorar»: el original siempre aplica Timoshenko; para flexión pura se puede introducir 1 000 000 cm² (mín. 0,01). Rangos vistos en el diálogo Describir: ancho izquierda/derecha «entre 0.1 y 10000.0» mm; carga de nudo 0,01..49000 kN. `avz_tip.png`, `avz_c.png`.
+- **Interruptor de peso propio por barra**: no se encuentra en la GUI (revisados Describir, Carga > Barras > Peso propio = diálogo global «Generación de cargas», Propiedades > Editar es de diafragmas). El peso se anula en la práctica con peso específico mínimo 0,01 kN/m³. `sv_k5.png`.
+
+### 9.6 Pendiente de esta pasada
+
+- **TK-105 b)** peso propio con áreas medias por tramo (sección variable) y **f)** barra vertical descendente / signo del ángulo de giro: no medidos (requieren una obra nueva con sección variable y otra con barra hacia −Z; ver `.tickets.md`).
+- Aviso de mecanismo: regla de nombre del gdl (§9.1.3).
+- **Láminas** (`elemento_lamina_bandas.md` §9): no medidas en esta pasada (ver `.tickets.md`).
+
+### 9.7 Notas de conducción (original)
+
+- El panel flotante de resultados/«Hipótesis vista» aparece **maximizado solo la primera vez**; `sv_panel` (clic en 1848,13) solo sirve entonces. Si el panel ya está en la franja izquierda, ese clic cae en el botón «restaurar» de la **ventana principal** y la desmaximiza (se recupera con su botón de maximizar en la barra de título de la ventana, que queda a la derecha). Comprobar con una captura antes de usar `sv_panel`.
+- El diálogo «Cálculo» recuerda «Comprobar las barras» desmarcado solo mientras todos los cálculos terminan bien; tras un aviso grave vuelve a marcarse y hay que desmarcarlo (817,565) antes de Aceptar.
+- Teclear un número con el foco en la vista 3D abre la «Calculadora» de coordenadas; cerrarla (X) y no seguir tecleando.
+- Borrar una carga de barra: «Carga > Barras > Borrar» + clic en el dibujo de la carga (cada plano de temperatura se borra pinchando dentro de su plano) + RMB; `Ctrl+Z` deshace borrados anteriores.
+- Los tooltips de nudo de «Vinculación exterior» muestran el apoyo con K redondeado a entero (K = 1,5 se ve «2 kN/m»).
