@@ -310,8 +310,23 @@ std::string caseErrorMessage(const std::string& caseName) {
     return format("Se ha producido un error calculando el caso de carga '%s'. Revise las condiciones del modelo.", caseName);
 }
 
-Dof6 applySignConvention(const Dof6& canonical) { return canonical; }
-Dof6 removeSignConvention(const Dof6& convention) { return convention; }
+// Measured in the original (docs/research/solver_medidas_original.md section 3.2): only My is the opposite of the canonical resultant.
+Dof6 applySignConvention(const Dof6& canonical) {
+    Dof6 r = canonical;
+    r[4] = -r[4];
+    return r;
+}
+Dof6 removeSignConvention(const Dof6& convention) { return applySignConvention(convention); }  // an involution
+
+std::string mechanismWarning(int dof, const Vec3& position) {
+    static const char* const kTexts[6] = {"Desplazamiento según el eje X", "Desplazamiento según el eje Y", "Desplazamiento según el eje Z",
+                                          "Giro alrededor del eje X", "Giro alrededor del eje Y", "Giro alrededor del eje Z"};
+    char coords[160];
+    std::snprintf(coords, sizeof coords, " (x = %.6f, y = %.6f, z = %.6f)", position[0], position[1], position[2]);
+    return std::string("Esta estructura es un mecanismo. Revise los datos introducidos.\n") + kTexts[std::clamp(dof, 0, 5)] +
+           "\nEl error se encuentra en el punto de coordenadas:\n" + coords +
+           "\nAlguna de las barras de la estructura no está vinculada correctamente en sus extremos, es decir, no es estable.";
+}
 
 Dof6 sectionForcesAt(const FemBar& bar, double length, const BarEndForces& forces, std::span<const FemBarLoad> barLoads, double x) {
     const Mat3 r = rotation(bar);
@@ -326,6 +341,32 @@ Dof6 sectionForcesAt(const FemBar& bar, double length, const BarEndForces& force
     return applySignConvention({f.x(), f.y(), f.z(), m.x(), m.y(), m.z()});
 }
 
+namespace {
+
+/// Free DOF (global numbering) with the smallest relative pivot of the matrix regularised with 1e-6 K_ii: the DOF the mechanism warning names
+/// (the original names the DOF of the null pivot; which one of several candidates it picks is [N]). -1 if the factorisation fails.
+int locateMechanismDof(const Eigen::SparseMatrix<double>& kff, const std::vector<int>& freeDofs, const Eigen::VectorXd& diag) {
+    const int n = static_cast<int>(freeDofs.size());
+    if (n == 0) return -1;
+    Eigen::SparseMatrix<double> reg = kff;
+    for (int i = 0; i < n; ++i) reg.coeffRef(i, i) += 1e-6 * std::max(std::fabs(diag(freeDofs[i])), 1e-300);
+    Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> f(reg);
+    if (f.info() != Eigen::Success) return -1;
+    const Eigen::VectorXd d = f.vectorD();
+    Eigen::VectorXd kd(n);
+    for (int i = 0; i < n; ++i) kd(i) = std::max(std::fabs(diag(freeDofs[i])), 1e-300);
+    const Eigen::VectorXd kdp = f.permutationP() * kd;
+    int best = 0;
+    double bestRatio = 1e300;
+    for (int j = 0; j < n; ++j) {
+        const double ratio = d(j) / kdp(j);
+        if (ratio < bestRatio) { bestRatio = ratio; best = j; }
+    }
+    return freeDofs[f.permutationPinv().indices()(best)];
+}
+
+}  // namespace
+
 LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput> cases, const SolverOptions& options) {
     LinearResult result;
     result.cases.resize(cases.size());
@@ -338,7 +379,7 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
         result.message = modelMessage;
         for (LoadCaseResult& cr : result.cases) {
             cr.status = status;
-            cr.message = status == SolveStatus::Mechanism ? mechanismMessage(cr.name)
+            cr.message = status == SolveStatus::Mechanism ? (modelMessage.empty() ? mechanismMessage(cr.name) : modelMessage)
                          : status == SolveStatus::Unstable ? unstableMessage(cr.name)
                                                             : caseErrorMessage(cr.name);
         }
@@ -431,19 +472,27 @@ LinearResult solveLinear(const FrameModel& model, std::span<const LoadCaseInput>
     kff.setFromTriplets(tff.begin(), tff.end());
     kfc.setFromTriplets(tfc.begin(), tfc.end());
 
+    const auto mechanismFailure = [&]() {
+        const int dof = locateMechanismDof(kff, freeDofs, diag);
+        if (dof < 0) return failAll(SolveStatus::Mechanism, {});
+        result.mechanismNode = model.nodes[dof / 6].id;
+        result.mechanismDof = dof % 6;
+        return failAll(SolveStatus::Mechanism, mechanismWarning(dof % 6, model.nodes[dof / 6].position));
+    };
+
     // --- 5. factorisation (once) and pivot check ---
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
     if (nFree > 0) {
         ldlt.compute(kff);
-        if (ldlt.info() != Eigen::Success) return failAll(SolveStatus::Mechanism, {});
+        if (ldlt.info() != Eigen::Success) return mechanismFailure();
         const Eigen::VectorXd d = ldlt.vectorD();
         Eigen::VectorXd kd(nFree);
         for (int i = 0; i < nFree; ++i) kd(i) = diag(freeDofs[i]);
         const Eigen::VectorXd kdPermuted = ldlt.permutationP() * kd;
         for (int i = 0; i < nFree; ++i) {
-            if (!std::isfinite(d(i))) return failAll(SolveStatus::Mechanism, {});
+            if (!std::isfinite(d(i))) return mechanismFailure();
             if (d(i) < -options.pivotTolerance * std::fabs(kdPermuted(i))) return failAll(SolveStatus::Unstable, {});
-            if (d(i) <= options.pivotTolerance * std::fabs(kdPermuted(i))) return failAll(SolveStatus::Mechanism, {});
+            if (d(i) <= options.pivotTolerance * std::fabs(kdPermuted(i))) return mechanismFailure();
         }
     }
 

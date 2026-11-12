@@ -328,7 +328,7 @@ std::optional<BarFrame> barLocalAxes(const StructuralModel& model, int barId) {
     if (bar->xAxisInverted) f.x = geom::scale(f.x, -1.0);
     Point3 z0;
     if (std::fabs(f.x.z) > 1.0 - 1e-9) {
-        z0 = {1, 0, 0};
+        z0 = {0, 1, 0};  // vertical bar going up: y = +X, z = +Y (drawn axes of the original, solver_medidas_original.md 3.1)
     } else {
         z0 = geom::unit(geom::sub(Point3{0, 0, 1}, geom::scale(f.x, f.x.z)));
     }

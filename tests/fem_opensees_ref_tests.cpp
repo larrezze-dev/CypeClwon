@@ -333,8 +333,9 @@ void compare(const std::string& label, const LoadCaseResult& c, const FrameModel
         ASSERT_LT(idx, fm.bars.size());
         for (int k = 0; k < 6; ++k) {
             const double sc = k < 3 ? bF : bM;
-            check(c.barForces[idx].origin[k], b.f[k], sc, "bar " + std::to_string(b.id) + " origin " + std::to_string(k));
-            check(c.barForces[idx].end[k], b.f[6 + k], sc, "bar " + std::to_string(b.id) + " end " + std::to_string(k));
+            // OpenSees reports the canonical resultant; the clone returns the convention measured in the original (My inverted).
+            check(removeSignConvention(c.barForces[idx].origin)[k], b.f[k], sc, "bar " + std::to_string(b.id) + " origin " + std::to_string(k));
+            check(removeSignConvention(c.barForces[idx].end)[k], b.f[6 + k], sc, "bar " + std::to_string(b.id) + " end " + std::to_string(k));
         }
     }
 }

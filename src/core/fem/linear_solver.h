@@ -30,11 +30,17 @@ std::string unstableMessage(const std::string& caseName);
 /// «Se ha producido un error calculando el caso de carga '%s'. Revise las condiciones del modelo.» (#214000, cyopensees.dll).
 std::string caseErrorMessage(const std::string& caseName);
 
-/// THE sign convention of section forces (the original's convention is not verified: TK-107). Input: the canonical internal resultant at a
-/// cut, i.e. the force and moment exerted on the part [0, x] of the bar by the part [x, L], in local axes (N, Vy, Vz, T, My, Mz). With the
-/// identity chosen here: N > 0 is tension; Vy, Vz, T, My, Mz are the components along the local axes of the action of the far part
-/// (a simply supported beam loaded downwards along -z has My < 0 at midspan). Every section force the solver returns goes through this
-/// function, so changing the convention means changing only its body.
+/// «Esta estructura es un mecanismo. Revise los datos introducidos. / Giro alrededor del eje Y / El error se encuentra en el punto de
+/// coordenadas: / (x = 0.000000, y = 0.000000, z = 0.000000) / Alguna de las barras de la estructura no está vinculada correctamente en sus
+/// extremos, es decir, no es estable.» (lines separated by a newline; measured in the original; the DOF names are frontlib.dll ids 153556..153561).
+/// `dof` 0..5 = Dx, Dy, Dz, Gx, Gy, Gz. This is what the user sees for a null pivot (not the #214001 text of mechanismMessage()).
+std::string mechanismWarning(int dof, const Vec3& position);
+
+/// THE sign convention of section forces, MEASURED in the original (TK-107, docs/research/solver_medidas_original.md section 3.2). Input: the
+/// canonical internal resultant at a cut, i.e. the force and moment exerted on the part [0, x] of the bar by the part [x, L], in local axes
+/// (N, Vy, Vz, T, My, Mz). N, Vy, Vz, T and Mz are kept (N > 0 is tension) and ONLY My is inverted: a simply supported beam loaded
+/// downwards along -z has My > 0 at midspan, a cantilever loaded along -z has My < 0 at the clamp (dMy/dx = -Vz). Every section force the
+/// solver returns goes through this function, so changing the convention means changing only its body.
 Dof6 applySignConvention(const Dof6& canonical);
 /// Inverse of applySignConvention().
 Dof6 removeSignConvention(const Dof6& convention);

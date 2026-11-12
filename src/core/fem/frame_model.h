@@ -23,7 +23,7 @@ namespace cc::fem {
 ///    forces are in those local axes unless a load says it is global; positions along the bar are metres from nodeI.
 ///  - Bending about local y (plane xz: Dz, Gy) uses Iy and Avz; bending about local z (plane xy: Dy, Gz) uses Iz and Avy.
 ///  - Shear deformation (Timoshenko, phi = 12 E I / (G Av L^2)) when SolverOptions::shearDeformation is on and the shear area of that
-///    plane is > 0; otherwise Euler-Bernoulli for that plane. [N] whether ElasticBeam3dCype applies it is not verified (TK-105).
+///    plane is > 0; otherwise Euler-Bernoulli for that plane. [V] the original applies it with the section shear areas (measured: C1, C2, C3, C6).
 ///  - Torsion: St. Venant (G J / L); warping is not part of the linear element (verified: Iw is not passed to the element).
 ///  - Section forces: see applySignConvention() in fem/linear_solver.h (the ONLY place where the sign convention is decided).
 ///
@@ -112,7 +112,7 @@ struct FrameModel {
 };
 
 struct SolverOptions {
-    bool shearDeformation = true;      ///< default on: the sections carry Avy / Avz ([N] original unverified, TK-105)
+    bool shearDeformation = true;      ///< default on = behaviour of the original [V]; shear area 0 ("ignore") not measured
     double pivotTolerance = 1e-11;     ///< a pivot below tolerance * K_ii means a mechanism
     double orphanTolerance = 1e-13;    ///< a diagonal below tolerance * max diagonal means a DOF without stiffness
 };
@@ -138,7 +138,9 @@ struct LoadCaseResult {
 
 struct LinearResult {
     SolveStatus status = SolveStatus::Ok;   ///< worst status of the model (Error / Mechanism of the stiffness, or Ok)
-    std::string message;                    ///< model level error text (invalid input), es-ES
+    std::string message;                    ///< model level error text (invalid input, or the mechanism warning of the original), es-ES
+    int mechanismNode = -1;                 ///< Mechanism by a null pivot: node id and DOF (0..5 = Dx..Gz) named by the warning, else -1
+    int mechanismDof = -1;
     std::vector<LoadCaseResult> cases;      ///< one per input case, same order
     /// DOFs without any stiffness (every element released there, e.g. the rotations of a node where all bar ends are pinned) that were
     /// locked automatically, as node id -> mask. The original avoids them with springs of stiffness 1e-3 (cyosrelac_cte_infima).

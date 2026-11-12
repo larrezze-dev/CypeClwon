@@ -205,7 +205,7 @@ struct BarLoadSession {
 // --- geometry ---
 
 /// Local frame of a bar (unit vectors in global axes). x = start -> end (inverted when xAxisInverted); z = projection of the global Z (vertical
-/// bars: global X, NOT MEASURED); y = z x x; then rolled about x by rollAngleDeg (sign NOT MEASURED).
+/// bars going up: global Y, so y = +X: drawn axes measured in the original; going down: continuation of the formula, NOT MEASURED); y = z x x; then rolled about x by rollAngleDeg (sign NOT MEASURED).
 struct BarFrame {
     Point3 origin, x, y, z;
     double length = 0.0;

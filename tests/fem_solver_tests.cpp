@@ -75,9 +75,9 @@ TEST(FemSolver, C1CantileverEulerBernoulliAndTimoshenko) {
     expectRel(c.displacements[1][4], 3.809523810e-3);
     expectRel(c.reactions.at(0)[2], 10.0);
     expectRel(c.reactions.at(0)[4], -40.0);
-    // Section forces at the clamp (canonical convention: action of the far part on [0, x]).
+    // Section forces at the clamp (convention measured in the original: canonical resultant with My inverted).
     expectRel(c.barForces[0].origin[2], -10.0);
-    expectRel(c.barForces[0].origin[4], 40.0);
+    expectRel(c.barForces[0].origin[4], -40.0);
     EXPECT_NEAR(c.barForces[0].end[4], 0.0, 1e-9);
 
     const LinearResult ti = solveOne(m, lc, true);
@@ -110,8 +110,8 @@ TEST(FemSolver, C2SimplySupportedUniformLoadAsBarLoads) {
         expectRel(c.displacements[6][2], shear ? -8.175e-3 : -8.035714286e-3);
         expectRel(c.reactions.at(0)[2], 30.0);
         expectRel(c.reactions.at(12)[2], 30.0);
-        expectRel(c.barForces[5].end[4], -45.0);    // midspan bending moment qL^2/8 (sign: canonical convention)
-        expectRel(c.barForces[6].origin[4], -45.0);
+        expectRel(c.barForces[5].end[4], 45.0);    // midspan bending moment qL^2/8 (sign measured in the original: My > 0 in the span)
+        expectRel(c.barForces[6].origin[4], 45.0);
     }
 }
 
@@ -136,10 +136,10 @@ TEST(FemSolver, C2SingleElementSectionForcesAlongTheBar) {
     const LinearResult r = solveOne(m, lc, true);
     ASSERT_EQ(r.status, SolveStatus::Ok);
     const BarEndForces& f = r.cases[0].barForces[0];
-    expectRel(sectionForcesAt(m.bars[0], 6.0, f, loads, 3.0)[4], -45.0);
+    expectRel(sectionForcesAt(m.bars[0], 6.0, f, loads, 3.0)[4], 45.0);
     EXPECT_NEAR(sectionForcesAt(m.bars[0], 6.0, f, loads, 3.0)[2], 0.0, 1e-9);
     expectRel(sectionForcesAt(m.bars[0], 6.0, f, loads, 0.0)[2], -30.0);
-    expectRel(sectionForcesAt(m.bars[0], 6.0, f, loads, 1.5)[4], -(30.0 * 1.5 - 10.0 * 1.5 * 0.75));
+    expectRel(sectionForcesAt(m.bars[0], 6.0, f, loads, 1.5)[4], 30.0 * 1.5 - 10.0 * 1.5 * 0.75);
     EXPECT_NEAR(f.origin[4], 0.0, 1e-9);
 }
 
@@ -245,7 +245,12 @@ TEST(FemSolver, MechanismIsDetectedWithTheMessageOfTheOriginal) {
     const LinearResult r = solveOne(m, lc, false);
     EXPECT_EQ(r.status, SolveStatus::Mechanism);
     EXPECT_EQ(r.cases[0].status, SolveStatus::Mechanism);
-    EXPECT_EQ(r.cases[0].message,
+    // The user sees the warning measured in the original (null pivot: DOF type + node coordinates), not the #214001 text.
+    ASSERT_GE(r.mechanismNode, 0);
+    ASSERT_GE(r.mechanismDof, 3);  // a rotation (torsion free at both ends)
+    EXPECT_EQ(r.cases[0].message, r.message);
+    EXPECT_EQ(r.message, mechanismWarning(r.mechanismDof, m.nodes[nodeIdx(m, r.mechanismNode)].position));
+    EXPECT_EQ(mechanismMessage("CM 1"),
               "No es posible calcular el caso de carga 'CM 1'. La estructura es un mecanismo. Revise la definición de cargas y las condiciones "
               "de vinculación del modelo.");
     EXPECT_EQ(unstableMessage("Q 2"),
@@ -313,7 +318,7 @@ TEST(FemSolver, RotationalSpringAtTheClamp) {
         ASSERT_EQ(r.status, SolveStatus::Ok);
         const double expected = -(1.015873016e-2 + 10.0 * 16.0 / 1e4 + (shear ? 4.0 * 10.0 / (kG * 0.004) : 0.0));
         expectRel(r.cases[0].displacements[1][2], expected);
-        expectRel(r.cases[0].barForces[0].origin[4], 40.0);
+        expectRel(r.cases[0].barForces[0].origin[4], -40.0);
     }
 }
 
@@ -402,6 +407,8 @@ TEST(FemSolver, PrescribedSettlementOfAClampedBeam) {
 
 // --- the project adapter ---
 namespace {
+const FrameBuildOptions kHonour{true};  // the tests below switch the self weight off per bar
+
 cc::core::Project cantileverProject(double rollDeg = 0.0, bool inverted = false) {
     cc::core::Project p;
     auto& s = p.structure;
@@ -441,8 +448,14 @@ TEST(FemBuilder, SelfWeightOfTheLoadCasePesoPropio) {
     expectRel(r.cases[0].reactions.at(1)[4], -w * 16.0 / 2.0);
     expectRel(r.cases[0].displacements[1][2], -w * 256.0 / (8.0 * kE * 1e-4));
 
+    // Measured in the original: switching the generation off does not remove the self weight; the clone ignores the per-bar switch by default.
     p.barLoads.selfWeightOff.insert(1);
     fb = buildFrameModel(p);
+    r = solveLinear(fb.model, fb.cases);
+    expectRel(r.cases[0].reactions.at(1)[2], w * 4.0);
+    FrameBuildOptions honour;
+    honour.honourSelfWeightSwitch = true;
+    fb = buildFrameModel(p, honour);
     r = solveLinear(fb.model, fb.cases);
     EXPECT_NEAR(r.cases[0].reactions.at(1)[2], 0.0, 1e-12);
 }
@@ -458,7 +471,7 @@ TEST(FemBuilder, RollAngleBendsAboutLocalZ) {
     nl.direction = cc::core::LoadDirection::MinusZ;
     p.nodalLoads.items.push_back(nl);
     p.nodalLoads.nextId = 2;
-    const FrameBuild fb = buildFrameModel(p);
+    const FrameBuild fb = buildFrameModel(p, kHonour);
     const auto r = solveLinear(fb.model, fb.cases);
     ASSERT_EQ(r.status, SolveStatus::Ok);
     expectRel(r.cases[0].displacements[1][2], -10.0 * 64.0 / (3.0 * kE * 5e-5));
@@ -466,7 +479,7 @@ TEST(FemBuilder, RollAngleBendsAboutLocalZ) {
     cc::core::Project q = cantileverProject(0.0);
     q.barLoads.selfWeightOff.insert(1);
     q.nodalLoads = p.nodalLoads;
-    const FrameBuild fq = buildFrameModel(q);
+    const FrameBuild fq = buildFrameModel(q, kHonour);
     expectRel(solveLinear(fq.model, fq.cases).cases[0].displacements[1][2], -10.0 * 64.0 / (3.0 * kE * 1e-4));
 }
 
@@ -478,7 +491,7 @@ TEST(FemBuilder, PartialFixityCoefficientAndPinnedEnd) {
     cc::core::BarEndsRecord rec;
     rec.ends[cc::core::kBarOrigin].planes[cc::core::kPlaneXZ].coefficient = 0.5;
     cc::core::setBarEnds(p.barEnds, 1, rec);
-    FrameBuild fb = buildFrameModel(p);
+    FrameBuild fb = buildFrameModel(p, kHonour);
     auto r = solveLinear(fb.model, fb.cases);
     ASSERT_EQ(r.status, SolveStatus::Ok);
     const double k = 4.0 * kE * 1e-4 / 4.0;
@@ -488,10 +501,11 @@ TEST(FemBuilder, PartialFixityCoefficientAndPinnedEnd) {
     rec = {};
     rec.ends[cc::core::kBarOrigin].pinned = true;
     cc::core::setBarEnds(p.barEnds, 1, rec);
-    fb = buildFrameModel(p);
+    fb = buildFrameModel(p, kHonour);
     r = solveLinear(fb.model, fb.cases);
     EXPECT_EQ(r.cases[0].status, SolveStatus::Mechanism);
-    EXPECT_EQ(r.cases[0].message, mechanismMessage("Peso propio"));
+    EXPECT_EQ(r.cases[0].message, r.message);
+    EXPECT_EQ(r.message.rfind("Esta estructura es un mecanismo. Revise los datos introducidos.\n", 0), 0u);  // warning measured in the original
 }
 
 TEST(FemBuilder, InvertedAxisKeepsLoadPositionsFromTheStartNode) {
@@ -517,7 +531,7 @@ TEST(FemBuilder, InvertedAxisKeepsLoadPositionsFromTheStartNode) {
         tr.value1 = 2.0;
         tr.value2 = 6.0;
         p.barLoads.items.push_back(tr);
-        const FrameBuild fb = buildFrameModel(p);
+        const FrameBuild fb = buildFrameModel(p, kHonour);
         return solveLinear(fb.model, fb.cases).cases[0].reactions;
     };
     const auto a = reactions(false), b = reactions(true);
@@ -533,7 +547,7 @@ TEST(FemBuilder, PrescribedDisplacementInMillimetres) {
     fixed.type = cc::core::ExternalSupportType::Fixed;
     fixed.prescribed.push_back(cc::core::PrescribedDisplacement{0, {0, 0, -10.0, 0, 0, 0}});
     p.nodeSupports.external[2] = fixed;
-    const FrameBuild fb = buildFrameModel(p);
+    const FrameBuild fb = buildFrameModel(p, kHonour);
     const auto r = solveLinear(fb.model, fb.cases);
     ASSERT_EQ(r.status, SolveStatus::Ok);
     expectRel(r.cases[0].displacements[1][2], -0.01);
@@ -552,7 +566,7 @@ TEST(FemBuilder, VariableDepthSectionIsTheAverageOfBothEnds) {
     const auto p0 = cc::core::propertiesAt(*d.inlineSection, 0.0), p1 = cc::core::propertiesAt(*d.inlineSection, 1.0),
                pm = cc::core::propertiesAt(*d.inlineSection, 0.5);
     ASSERT_TRUE(p0 && p1 && pm);
-    const FrameBuild fb = buildFrameModel(p);
+    const FrameBuild fb = buildFrameModel(p, kHonour);
     ASSERT_EQ(fb.model.bars.size(), 1u);
     const SectionData& s = fb.model.bars[0].section;
     expectRel(s.area, 0.5 * (p0->area + p1->area));
@@ -572,7 +586,7 @@ TEST(FemBuilder, VariableDepthSectionIsTheAverageOfBothEnds) {
     t.value1 = 20.0;
     t.value2 = 0.0;
     q.barLoads.items.push_back(t);
-    EXPECT_FALSE(buildFrameModel(q).warnings.empty());
+    EXPECT_FALSE(buildFrameModel(q, kHonour).warnings.empty());
 }
 
 TEST(FemBuilder, ReportsUndescribedBarsAndUnsupportedData) {
@@ -582,10 +596,10 @@ TEST(FemBuilder, ReportsUndescribedBarsAndUnsupportedData) {
     elastic.type = cc::core::ExternalSupportType::Generic;
     elastic.generic.translations = {cc::core::DofMode::Elastic, cc::core::DofMode::Fixed, cc::core::DofMode::Fixed};
     p.nodeSupports.external[2] = elastic;
-    const FrameBuild fb = buildFrameModel(p);
+    const FrameBuild fb = buildFrameModel(p, kHonour);
     ASSERT_FALSE(fb.errors.empty());
     EXPECT_EQ(fb.errors.front(), "Existen barras sin describir.");
     EXPECT_FALSE(fb.unsupported.empty());
     p.structure.addNode({9, 9, 9});
-    EXPECT_EQ(buildFrameModel(p).warnings.front(), unconnectedNodeMessage());
+    EXPECT_EQ(buildFrameModel(p, kHonour).warnings.front(), unconnectedNodeMessage());
 }

@@ -19,11 +19,14 @@ namespace cc::fem {
 ///    propertiesAt(1) (like the original's stretches: (start + end) * 0.5) and the depths come from the envelope (yNeg + yPos, zNeg + zPos);
 ///    otherwise the CrossSection values (depth unknown = 0).
 ///  - BarEnds: plane xy -> Gz, plane xz -> Gy, plane yz -> Gx (torsion). `pinned` frees Gy and Gz (not the torsion). Coefficient 1 = rigid,
-///    0 = free, in between a rotational spring k = c / (1 - c) * 4 E I / L [N]; a rotational stiffness is used as is (0 = free).
+///    0 = free, in between a rotational spring K = c / (1 - c) k_ii [V] with k_ii = (4 + phi) E I / ((1 + phi) L), phi = 12 E I / (G Av L^2)
+///    of that plane (measured for the xz plane at the origin end; other planes / the final end assumed equal [N]); a rotational stiffness is used as is
+///    (0 = free).
 ///  - Global bar loads act per metre of bar length [N]. Point moment: value x direction. Variable temperature [N]: T1 on the face towards
 ///    the chosen direction, T2 on the opposite one; the mean (T1 + T2) / 2 is also applied as a uniform increment; an angled direction is
 ///    split into the y and z gradients (cos -> z, sin -> y).
-///  - Self weight (case id 0): uniform load gamma * A_average along global -Z for every bar with barSelfWeightActive().
+///  - Self weight (case id 0): uniform load gamma * A_average along global -Z for every bar (the per-bar switch only with
+///    FrameBuildOptions::honourSelfWeightSwitch, see there).
 ///  - Unsupported data for this task (T-P8-02 / T-P8-03, TK-106) are reported in `unsupported` and NOT modelled: elastic and oblique supports
 ///    (those DOFs stay free), internal links other than "empotrado", ligatures, diaphragms and shells. Callers must not present results
 ///    while `unsupported` is not empty.
@@ -35,7 +38,15 @@ struct FrameBuild {
     std::vector<std::string> unsupported;  ///< es-ES descriptions of data not modelled yet
 };
 
-FrameBuild buildFrameModel(const core::Project& project);
+/// Options of the adapter.
+struct FrameBuildOptions {
+    /// The original ALWAYS includes the self weight of the bars: «Generación de cargas > Desactivar» (Carga > Barras > Peso propio) did not
+    /// remove it from the results [V, docs/research/solver_medidas_original.md section 4]. The per-bar switch of the clone
+    /// (BarLoads::selfWeightOff, #64002) is therefore ignored unless this is set (kept for the GUI and as a documented deviation hook).
+    bool honourSelfWeightSwitch = false;
+};
+
+FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options = {});
 
 /// «Existen barras sin describir.» (text of the original quoted in TK-101).
 std::string undescribedBarsMessage();

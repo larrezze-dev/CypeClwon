@@ -37,7 +37,14 @@ SectionData sectionOf(const core::Project& project, const core::CrossSection& cs
     return s;
 }
 
-EndRelease releaseOf(const core::EndPlaneFixity& fixity, double flexuralStiffness4EIoverL) {
+/// Diagonal rotational stiffness of the bar element at one end, the base of the partial fixity law of the original [V, TK-105]:
+/// k_ii = (4 + phi) E I / ((1 + phi) L) with phi = 12 E I / (G Av L^2) (phi = 0 without shear area). For torsion (plane yz) it is G J / L [N].
+double flexuralDiagonal(double e, double g, double inertia, double shearArea, double length) {
+    const double phi = shearArea > 0.0 ? 12.0 * e * inertia / (g * shearArea * length * length) : 0.0;
+    return (4.0 + phi) * e * inertia / ((1.0 + phi) * length);
+}
+
+EndRelease releaseOf(const core::EndPlaneFixity& fixity, double diagonalStiffness) {
     EndRelease r;
     if (fixity.kind == core::EndFixityKind::Rotational) {
         if (fixity.stiffnessKnMPerRad <= 0.0) r.kind = EndRelease::Kind::Free;
@@ -48,7 +55,7 @@ EndRelease releaseOf(const core::EndPlaneFixity& fixity, double flexuralStiffnes
     if (c >= 1.0 - 1e-9) return r;  // rigid
     if (c <= 1e-9) { r.kind = EndRelease::Kind::Free; return r; }
     r.kind = EndRelease::Kind::Spring;
-    r.stiffness = c / (1.0 - c) * flexuralStiffness4EIoverL;  // [N] law of the original not verified (TK-105)
+    r.stiffness = c / (1.0 - c) * diagonalStiffness;  // K = c / (1 - c) k_ii, measured with two coefficients (TK-105)
     return r;
 }
 
@@ -57,7 +64,7 @@ EndRelease releaseOf(const core::EndPlaneFixity& fixity, double flexuralStiffnes
 std::string undescribedBarsMessage() { return "Existen barras sin describir."; }
 std::string unconnectedNodeMessage() { return "Se ha encontrado un nudo que no está conectado a ninguna barra ni a ninguna lámina."; }
 
-FrameBuild buildFrameModel(const core::Project& project) {
+FrameBuild buildFrameModel(const core::Project& project, const FrameBuildOptions& options) {
     FrameBuild out;
     const core::StructuralModel& sm = project.structure;
 
@@ -123,8 +130,9 @@ FrameBuild buildFrameModel(const core::Project& project) {
         for (int end = 0; end < 2; ++end) {
             const int node = end == 0 ? fb.nodeI : fb.nodeJ;
             const core::BarEndFixity& fix = record.ends[node == b.startNode ? core::kBarOrigin : core::kBarFinal];
-            const double kz = 4.0 * fb.e * fb.section.iz / length, ky = 4.0 * fb.e * fb.section.iy / length;
-            fb.releases[end][0] = releaseOf(fix.planes[core::kPlaneYZ], 4.0 * fb.g * fb.section.torsion / length);
+            const double kz = flexuralDiagonal(fb.e, fb.g, fb.section.iz, fb.section.avy, length);   // plane xy: Iz, Avy
+            const double ky = flexuralDiagonal(fb.e, fb.g, fb.section.iy, fb.section.avz, length);   // plane xz: Iy, Avz
+            fb.releases[end][0] = releaseOf(fix.planes[core::kPlaneYZ], fb.g * fb.section.torsion / length);
             fb.releases[end][1] = releaseOf(fix.planes[core::kPlaneXZ], ky);
             fb.releases[end][2] = releaseOf(fix.planes[core::kPlaneXY], kz);
             if (fix.pinned) fb.releases[end][1] = fb.releases[end][2] = EndRelease{EndRelease::Kind::Free, 0.0};
@@ -187,7 +195,9 @@ FrameBuild buildFrameModel(const core::Project& project) {
                 case core::BarLoadType::VariableTemperature: {
                     fl.kind = BarLoadKind::Temperature;
                     fl.global = false;
-                    const double grad = bl.value1 - bl.value2;
+                    // Measured [V]: T1 acts on the face opposite to the chosen direction, T2 on the face towards it
+                    // (direction Z+: T1 on the -z face; T1 = 20, T2 = 0 lifts the tip of a cantilever by alpha (T1 - T2) L^2 / (2 h)).
+                    const double grad = bl.value2 - bl.value1;  // T(face towards dir) - T(opposite face)
                     fl.uniformTemperature = 0.5 * (bl.value1 + bl.value2);
                     fl.gradientY = grad * dot(dir, bi.frame.y);
                     fl.gradientZ = grad * dot(dir, bi.frame.z);
@@ -201,7 +211,7 @@ FrameBuild buildFrameModel(const core::Project& project) {
         }
         if (lc.id == 0) {
             for (const FemBar& fb : out.model.bars) {
-                if (!core::barSelfWeightActive(project.barLoads, fb.id)) continue;
+                if (options.honourSelfWeightSwitch && !core::barSelfWeightActive(project.barLoads, fb.id)) continue;
                 const BarInfo& bi = info[fb.id];
                 FemBarLoad fl;
                 fl.bar = fb.id;
