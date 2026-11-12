@@ -235,19 +235,19 @@ TEST(ShellLoad, NormaliseToCanonicalForm) {
 TEST(ShellLoad, SelfWeightIsThicknessTimesSpecificWeight) {
     Project p = baseProject();
     const Shell& s = *p.structure.findShell(1);
-    EXPECT_DOUBLE_EQ(shellSpecificWeightKnM3(s.material), 25.0);
-    EXPECT_NEAR(shellSelfWeightKnM2(s), 2.5, 1e-12);   // 100 mm of C25/30 (measured)
+    EXPECT_DOUBLE_EQ(shellSpecificWeightKnM3(s.material), 2.5 * 9.81);
+    EXPECT_NEAR(shellSelfWeightKnM2(s), 0.1 * 2.5 * 9.81, 1e-12);   // 100 mm of C25/30 (measured)
     const auto load = shellSelfWeightLoad(s);
     ASSERT_TRUE(load.has_value());
     EXPECT_EQ(load->type, ShellLoadType::Uniform);
     EXPECT_EQ(load->sense, ShellLoadSense::MinusZ);
     EXPECT_EQ(load->axes, ShellLoadAxes::Global);
     EXPECT_EQ(load->loadCaseId, 0);
-    EXPECT_NEAR(load->value1, 2.5, 1e-12);
+    EXPECT_NEAR(load->value1, 0.1 * 2.5 * 9.81, 1e-12);
 
     Shell thick = s;
     thick.thicknessM = 0.25;
-    EXPECT_NEAR(shellSelfWeightKnM2(thick), 6.25, 1e-12);
+    EXPECT_NEAR(shellSelfWeightKnM2(thick), 0.25 * 2.5 * 9.81, 1e-12);
     thick.material.kind = ShellMaterialKind::GenericIsotropic;
     thick.material.isoDensityKnM3 = 10.0;
     EXPECT_NEAR(shellSelfWeightKnM2(thick), 2.5, 1e-12);
@@ -837,6 +837,6 @@ TEST(ShellLoad, SelfWeightDrawingIsAPrismOnTheShellInProportionalMode) {
     ASSERT_TRUE(load.has_value());
     const ShellLoadDrawing dr = shellLoadDrawing(*load, f, prop);
     ASSERT_TRUE(dr.valid);
-    for (const Point3& t : dr.top) EXPECT_NEAR(t.z, 0.25, 1e-9);   // 0.1 m x 2.5 kN/m2, above the shell (acts towards -Z)
-    EXPECT_EQ(dr.labels[0].text, "2.5 kN/m²");
+    for (const Point3& t : dr.top) EXPECT_NEAR(t.z, 0.1 * 2.4525, 1e-9);   // 0.1 m x 2.5 kN/m2, above the shell (acts towards -Z)
+    EXPECT_EQ(dr.labels[0].text, "2.453 kN/m²");
 }

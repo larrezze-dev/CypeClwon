@@ -111,10 +111,6 @@ ResultsPanel::ResultsPanel(Kind kind, QWidget* parent) : CypeDialog(title(kind),
             line->addWidget(box, 1);
             line->addWidget(swatch);
             line->addWidget(edit);
-            if (r > kDeformedRow) {  // deflections: not wired yet
-                box->setEnabled(false);
-                edit->setEnabled(false);
-            }
             connect(box, &QCheckBox::toggled, swatch, &QLabel::setVisible);
             connect(box, &QCheckBox::toggled, this, emitChanged);
             connect(edit, &QLineEdit::editingFinished, this, emitChanged);
@@ -132,7 +128,6 @@ ResultsPanel::ResultsPanel(Kind kind, QWidget* parent) : CypeDialog(title(kind),
         m_fill->setChecked(true);
         m_structure = new QCheckBox(tr("Ver la estructura"), body);
         m_structure->setChecked(true);
-        m_axesOnWindow->setEnabled(false);  // not wired yet
         connect(m_drawExtremes, &QCheckBox::toggled, m_viewExtremes, &QCheckBox::setEnabled);
         for (QCheckBox* box : {m_axesOnWindow, m_drawExtremes, m_viewExtremes, m_fill, m_structure}) {
             column->addWidget(box);
@@ -258,6 +253,18 @@ bool ResultsPanel::queryValues() const { return m_query && m_query->isEnabled() 
 bool ResultsPanel::fillLaws() const { return !m_fill || m_fill->isChecked(); }
 bool ResultsPanel::drawExtremes() const { return m_drawExtremes && m_drawExtremes->isChecked(); }
 bool ResultsPanel::showStructure() const { return !m_structure || m_structure->isChecked(); }
+bool ResultsPanel::viewExtremes() const { return m_viewExtremes && m_viewExtremes->isEnabled() && m_viewExtremes->isChecked() && !selectedOnly(); }
+bool ResultsPanel::axesOnWindow() const { return m_axesOnWindow && m_axesOnWindow->isChecked() && !selectedOnly(); }
+bool ResultsPanel::rowChecked(int row) const {
+    if (m_kind != Kind::Forces || row < 0 || row >= kForceRows) return false;
+    if (row == kDeformedRow) return deformed();
+    return m_rows[static_cast<std::size_t>(row)]->isChecked();
+}
+bool ResultsPanel::anyRowChecked() const {
+    for (int r = 0; r < kForceRows; ++r)
+        if (rowChecked(r)) return true;
+    return false;
+}
 
 double ResultsPanel::scale(int row) const {
     if (row < 0 || row >= kForceRows || !m_scales[static_cast<std::size_t>(row)]) return 0.0;

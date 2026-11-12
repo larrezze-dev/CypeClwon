@@ -151,7 +151,7 @@ struct BarDescription {
 };
 
 /// Default material values of an icon: steel 210000 MPa / 0.3 / 77.01 kN/m3 / 1.2e-5; aluminium (EN 1999-1-1) 70000 / 0.3 / 27 /
-/// 2.3e-5; concrete C25/30 of the original (31476 MPa, 0.2, 1e-5, 25 kN/m3); timber provisional (11000 MPa, 4.2 kN/m3, 5e-6, TK-063);
+/// 2.3e-5; concrete C25/30 of the original (31476 MPa, 0.2, 1e-5, 2.5*9.81 kN/m3); timber provisional (11000 MPa, 4.2 kN/m3, 5e-6, TK-063);
 /// generic: the dialog defaults (206010 / 0.3 / 77.01 / 1.2e-5).
 MaterialData defaultMaterialData(BarMaterialIcon icon);
 MaterialKind materialKindOf(BarMaterialIcon icon);

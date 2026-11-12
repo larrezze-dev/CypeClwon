@@ -540,6 +540,17 @@ void Viewport3D::setPickMode(bool on) {
     update();
 }
 
+void Viewport3D::setBarsHidden(bool hidden) {
+    if (m_barsHidden == hidden) return;
+    m_barsHidden = hidden;
+    update();
+}
+
+void Viewport3D::setSupportColour(std::function<std::optional<QColor>(int nodeId)> colour) {
+    m_supportColour = std::move(colour);
+    update();
+}
+
 void Viewport3D::setOverlay(std::function<void(QPainter&)> overlay) {
     m_overlay = std::move(overlay);
     update();
@@ -1097,7 +1108,7 @@ void Viewport3D::drawStructure(QPainter& painter) const {
     }
     painter.setBrush(Qt::NoBrush);
     for (const core::Bar& bar : m_structure->bars) {
-        if (!m_categories.barsDrawn()) break;
+        if (!m_categories.barsDrawn() || m_barsHidden) break;
         if (!m_structure->elementVisible(bar.layerIds)) continue;
         const core::Node* a = m_structure->findNode(bar.startNode);
         const core::Node* b = m_structure->findNode(bar.endNode);
@@ -1573,6 +1584,8 @@ void Viewport3D::drawSupports(QPainter& painter) const {
         const core::ElementRef ref{core::ElementKind::Node, nodeId};
         if (m_selectionMode && m_selection.contains(ref)) return kHighlight;  // measured: orange when selected
         if (m_selectionMode && m_hover && *m_hover == ref) return QColor(QStringLiteral("#C8B68E"));  // beige under the cursor
+        if (m_supportColour)
+            if (const std::optional<QColor> special = m_supportColour(nodeId)) return *special;
         return kNodeBlue;
     };
     const auto screenOf = [&](const core::Node& n, QPointF& out) {

@@ -68,7 +68,8 @@ inline constexpr double kDefaultResultFraction = 0.1;
 /// Scales of the panel «Esfuerzos» (rows with a scale field, defaults 0.100 for the laws and 100.000 for the deformed shape [V,
 /// resultados_paneles.md]). Measured roughly: with 0.100 a law is drawn ~0.0099 m per kN·m, i.e. drawn length (m) = value x scale x 0.1 [≈V];
 /// the deformed shape is drawn as position + scale x displacement (m) [N: the unit of the field is not shown].
-inline constexpr double kLawMetresPerUnit = 0.1;
+// [V resultados_medidas_original.md B]: height (m) = scale x value in tonnes-force, i.e. scale x kN / 9.81 (0.1019 m per unit, measured 0.1019..0.1022).
+inline constexpr double kLawMetresPerUnit = 1.0 / 9.81;
 inline double lawDrawLength(double value, double scale) { return value * scale * kLawMetresPerUnit; }
 double automaticScale(double maxValue, double modelSize, double fraction = kDefaultResultFraction);
 
@@ -84,5 +85,22 @@ Vec3 lawDirection(const FrameModel& model, std::size_t barIndex, int component);
 /// Largest absolute value of a component over the given bars (barLaw with `divisions`).
 double maxLawValue(const FrameModel& model, const ResultRef& ref, const std::vector<std::size_t>& barIndices, int component, int divisions = 20,
                    const SolverOptions& options = {});
+
+
+/// Deflection of a bar (Flecha xy, Flecha xz, Flecha F of «Esfuerzos») at `x`: displacement of the bar axis relative to the chord between its two
+/// displaced ends (translations only, linear interpolation along the bar), measured on the local axes y (Fxy) and z (Fxz); F = sqrt(Fxy^2 + Fxz^2).
+/// Working definition [≈V]: the clone reproduces the maxima read in the original (rp_c1: F 4.367 mm, Fxz 1.953 mm at X 1.750 m).
+struct DeflectionPoint {
+    double x = 0.0;  ///< metres from nodeI
+    double fxy = 0.0, fxz = 0.0, f = 0.0;  ///< metres
+};
+/// `divisions` + 1 equally spaced points of the deflection of the bar. How many points the original samples is [N].
+std::vector<DeflectionPoint> barDeflection(const FrameModel& model, const ResultRef& ref, std::size_t barIndex, int divisions = 16,
+                                           const SolverOptions& options = {});
+/// Index of the sample with the largest absolute value (the first one on ties; 0 when empty).
+std::size_t largestAbsIndex(const std::vector<double>& values);
+/// The two lines of the label of an extreme, in bold in the colour of its law [V rp_12..rp_17]: "My mín.: -40.00 kN·m" and "X: 0.000 m"
+/// (`value` already in the displayed unit).
+std::array<std::string, 2> extremeLabel(const std::string& law, bool isMaximum, double value, int decimals, const std::string& unit, double x);
 
 }  // namespace cc::fem

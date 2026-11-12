@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <QColor>
 #include <QEnterEvent>
 #include <QOpenGLWidget>
 #include <QPoint>
@@ -195,6 +196,13 @@ public:
     bool pickMode() const { return m_pickMode; }
     /// Extra drawing of a tool (panels, surface loads), painted after the shell loads. Empty function: nothing.
     void setOverlay(std::function<void(class QPainter&)> overlay);
+    /// «Ver la estructura» unchecked in the result panel «Esfuerzos»: the bars are not drawn while laws are shown (resultados_paneles.md section 4.1).
+    void setBarsHidden(bool hidden);
+    bool barsHidden() const { return m_barsHidden; }
+    /// Colour of the support symbol of a node, nullopt = the normal one. «Reacciones» draws the supports turquoise, light brown while a node has its
+    /// balloon [V rp_04 / rp_05].
+    void setSupportColour(std::function<std::optional<QColor>(int nodeId)> colour);
+    std::optional<QColor> supportColour(int nodeId) const { return m_supportColour ? m_supportColour(nodeId) : std::nullopt; }
     /// Bars drawn dashed in the Carga tab (the ones "Asignar" switched off for surface loads). Empty function: none.
     void setDashedBars(std::function<bool(int)> dashed);
     /// Last position of the mouse inside the window (updated by moves and by the clicks of the selection mode).
@@ -514,6 +522,8 @@ private:
     std::function<bool(int)> m_shellExcluded;
     bool m_pickMode = false;
     std::function<void(QPainter&)> m_overlay;
+    std::function<std::optional<QColor>(int)> m_supportColour;
+    bool m_barsHidden = false;
     std::function<bool(int)> m_dashedBars;
     bool m_windowOnlySelection = false;
     bool m_selfWeightDrawn = false;

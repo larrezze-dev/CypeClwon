@@ -235,7 +235,7 @@ MaterialData defaultMaterialData(BarMaterialIcon icon) {
     case BarMaterialIcon::RolledSteelFamily2:
     case BarMaterialIcon::ColdFormedSteel: m = {210000.0, 0.3, 1.2e-5, 77.01}; break;  // 7.85 T/m3 x 9.81 (datmater.dll)
     case BarMaterialIcon::ExtrudedAluminium:
-    case BarMaterialIcon::SpecialAluminium: m = {70000.0, 0.3, 2.3e-5, 27.0}; break;
+    case BarMaterialIcon::SpecialAluminium: m = {70000.0, 0.3, 2.3e-5, 2.7 * 9.81}; break;
     case BarMaterialIcon::Concrete: m = {31476.0, 0.2, 1.0e-5, 2.5 * kOriginalGravity}; break;  // C25/30; nu, alpha and 2.5 T/m3 (x 9.81 = 24.525 kN/m3): REA constants of datmater.dll / basicos.dll
     case BarMaterialIcon::Timber: m = {11000.0, 11000.0 / (2.0 * 690.0) - 1.0, 5.0e-6, 420.0 * kOriginalGravity / 1000.0}; break;  // CONIFERAS_C24 (CTE DB SE-M set); alpha 5e-6 (ed3dlib FUN_1803b3650)
     case BarMaterialIcon::Generic: break;  // dialog defaults

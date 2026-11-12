@@ -1,6 +1,8 @@
 #include "CalculationTool.h"
 
 #include <QAction>
+#include <QColor>
+#include <array>
 #include <QActionGroup>
 #include <QEventLoop>
 #include <QFontMetricsF>
@@ -107,6 +109,45 @@ public:
     }
 };
 
+
+/// Local axes of a bar drawn at 0.8 L: black frame of the section plane and the arrows x (red), y (green), z (blue) [V rp_07_eff_panel.png].
+void drawAxesGizmo(QPainter& painter, const Viewport3D& viewport, const FrameModel& model, std::size_t barIndex) {
+    const Vec3 origin = barPointAt(model, barIndex, 0.8 * barLength(model, barIndex));
+    QPointF o;
+    if (!viewport.worldToScreen(toCore(origin), o)) return;
+    const FemBar& bar = model.bars[barIndex];
+    const Vec3 axes[3] = {bar.ex, bar.ey, bar.ez};
+    const QColor colours[3] = {QColor(0xFF, 0x00, 0x00), QColor(0x00, 0xDD, 0x00), QColor(0x00, 0x00, 0xFF)};
+    QPointF dir[3];
+    double projected[3] = {0, 0, 0}, longest = 0.0;
+    for (int i = 0; i < 3; ++i) {
+        QPointF t;
+        if (!viewport.worldToScreen(toCore(Vec3{origin[0] + axes[i][0], origin[1] + axes[i][1], origin[2] + axes[i][2]}), t)) return;
+        const QPointF d = t - o;
+        projected[i] = std::hypot(d.x(), d.y());
+        longest = std::max(longest, projected[i]);
+        if (projected[i] > 1e-9) dir[i] = d / projected[i];
+    }
+    if (longest < 1e-9) return;
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    // Section frame: spanned by y and z.
+    const QPointF y = dir[1] * (14.0 * projected[1] / longest), z = dir[2] * (14.0 * projected[2] / longest);
+    painter.setPen(QPen(Qt::black, 1.0));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawPolygon(QPolygonF({o - y - z, o + y - z, o + y + z, o - y + z}));
+    for (int i = 0; i < 3; ++i) {
+        if (projected[i] < 1e-9) continue;
+        const QPointF to = o + dir[i] * (90.0 * projected[i] / longest);
+        painter.setPen(QPen(colours[i], 1.2));
+        painter.drawLine(o, to);
+        const QPointF side(-dir[i].y(), dir[i].x());
+        painter.drawLine(to, to - dir[i] * 14.0 + side * 5.0);
+        painter.drawLine(to, to - dir[i] * 14.0 - side * 5.0);
+    }
+    painter.restore();
+}
+
 }  // namespace
 
 CalculationTool::CalculationTool(QObject* parent) : QObject(parent) {
@@ -158,6 +199,7 @@ void CalculationTool::setProject(cc::core::Project* project, cc::core::UndoStack
     m_undo = undo;
     m_analysis.reset();
     m_lastReport.clear();
+    m_panelShownInWork = false;
     updateEnabled();
 }
 
@@ -232,7 +274,11 @@ void CalculationTool::configureViewports() {
     for (const QPointer<Viewport3D>& viewport : m_viewports) {
         viewport->setSelectionMode(false);
         viewport->setPickMode(on);
+        if (!on) viewport->setBarsHidden(false);
         Viewport3D* v = viewport.data();
+        viewport->setSupportColour(m_mode == Mode::Reactions ? std::function<std::optional<QColor>(int)>([this](int nodeId) -> std::optional<QColor> {
+            return m_shownNodes.count(nodeId) ? QColor(0xB0, 0x9A, 0x84) : QColor(0x00, 0x9A, 0xDC);  // light brown with balloon, turquoise without [V rm_*: core #B09A84]
+        }) : std::function<std::optional<QColor>(int)>());
         viewport->setOverlay(on ? std::function<void(QPainter&)>([this, v](QPainter& p) { paint(p, *v); }) : std::function<void(QPainter&)>());
         if (on) viewport->setFocus();
         viewport->update();
@@ -254,8 +300,21 @@ void CalculationTool::showPanel() {
         m_panel.clear();
         if (m_mode != Mode::None) deactivate();  // closing the window ends the mode
     });
-    if (m_dialogParent) m_panel->move(m_dialogParent->mapToGlobal(QPoint(14, 230)));  // over the left column (s_lin.png)
-    m_panel->show();
+    if (m_dialogParent) {
+        // Over the left column (s_lin.png), ~520 px wide down to the bottom of the window [V rp_07_eff_panel.png]. The size must be set before
+        // showMaximized(): Qt keeps it as the geometry the restore button returns to (otherwise the panel stays full screen).
+        const QPoint corner = m_dialogParent->mapToGlobal(QPoint(14, 230));
+        const int height = m_dialogParent->mapToGlobal(QPoint(0, m_dialogParent->height())).y() - corner.y();
+        m_panel->setGeometry(corner.x(), corner.y(), 520, qMax(m_panel->sizeHint().height(), height));
+    }
+    if (!m_panelShownInWork) {
+        // First panel of the work: opens maximised; its restore button leaves it in the left strip [V rp_03_react_open.png].
+        m_panelShownInWork = true;
+        m_panel->show();  // shown normally first so that the restore button has a geometry to return to
+        m_panel->showMaximized();
+    } else {
+        m_panel->show();
+    }
 }
 
 void CalculationTool::closePanel() {
@@ -265,7 +324,15 @@ void CalculationTool::closePanel() {
     closing->close();
 }
 
+void CalculationTool::updateViewportFlags() {
+    // «Ver la estructura» unchecked hides the bars while something is drawn over them [V resultados_paneles.md 4.1, N for the exact condition].
+    const bool hide = m_mode == Mode::Forces && m_panel && !m_panel->showStructure() && m_panel->anyRowChecked();
+    for (const QPointer<Viewport3D>& viewport : m_viewports)
+        if (viewport) viewport->setBarsHidden(hide);
+}
+
 void CalculationTool::repaint() {
+    updateViewportFlags();
     for (const QPointer<Viewport3D>& viewport : m_viewports)
         if (viewport) viewport->update();
 }
@@ -458,6 +525,42 @@ void CalculationTool::paint(QPainter& painter, const Viewport3D& viewport) const
         const ComponentMask laws = m_panel->components();
         QFont bold = painter.font();
         bold.setBold(true);
+        const bool onWindow = m_panel->axesOnWindow();
+
+        // Screen point of `base` displaced by the world vector `offset`. With «Ejes sobre el plano de la ventana» [N: interpretation of the
+        // original's check box] the offset is laid in the plane of the window instead: perpendicular to the projected bar, same sense as the
+        // projected offset, same length per metre as the bar.
+        const auto offsetPoint = [&](std::size_t b, const Vec3& base, const Vec3& offset, QPointF& out) {
+            const Vec3 target{base[0] + offset[0], base[1] + offset[1], base[2] + offset[2]};
+            if (!onWindow) return screen(target, out);
+            QPointF p0, a, c, tip;
+            if (!screen(base, p0) || !screen(barPointAt(model, b, 0.0), a) || !screen(barPointAt(model, b, barLength(model, b)), c) || !screen(target, tip))
+                return false;
+            const QPointF along = c - a;
+            const double screenLength = std::hypot(along.x(), along.y());
+            const double worldLength = barLength(model, b);
+            const double magnitude = std::sqrt(offset[0] * offset[0] + offset[1] * offset[1] + offset[2] * offset[2]);
+            if (screenLength < 1e-6 || worldLength <= 0.0) return false;
+            const QPointF perp(-along.y() / screenLength, along.x() / screenLength);
+            const QPointF projected = tip - p0;
+            const double sign = projected.x() * perp.x() + projected.y() * perp.y() < 0.0 ? -1.0 : 1.0;
+            out = p0 + perp * (sign * magnitude * screenLength / worldLength);
+            return true;
+        };
+        // Dashed dimension line from the bar to the extreme, a marker and the two-line label in the colour of the law [V rp_12 / rp_16].
+        const auto drawExtreme = [&](const QPointF& from, const QPointF& at, const QColor& colour, const std::array<std::string, 2>& label) {
+            painter.save();
+            painter.setPen(QPen(colour, 1.0, Qt::DashLine));
+            painter.drawLine(from, at);
+            painter.setPen(QPen(colour, 1.0));
+            painter.setBrush(colour);
+            painter.drawEllipse(at, 2.5, 2.5);
+            painter.setFont(bold);
+            painter.drawText(at + QPointF(6, -4), qs(label[0]));
+            painter.drawText(at + QPointF(6, 10), qs(label[1]));
+            painter.restore();
+        };
+
         for (int k = 0; k < 6; ++k) {
             if (!laws[static_cast<std::size_t>(k)]) continue;
             const QColor colour = QColor::fromRgb(ResultsPanel::rowColour(k));
@@ -472,7 +575,7 @@ void CalculationTool::paint(QPainter& painter, const Viewport3D& viewport) const
                     const Vec3 base = barPointAt(model, b, law[i].x);
                     const double len = lawDrawLength(law[i].forces[static_cast<std::size_t>(k)], scale);
                     QPointF s;
-                    ok = screen(Vec3{base[0] + dir[0] * len, base[1] + dir[1] * len, base[2] + dir[2] * len}, s);
+                    ok = offsetPoint(b, base, Vec3{dir[0] * len, dir[1] * len, dir[2] * len}, s);
                     outline << s;
                 }
                 if (!ok || law.empty() || !screen(barPointAt(model, b, law.back().x), last) || !screen(barPointAt(model, b, law.front().x), first)) continue;
@@ -485,6 +588,7 @@ void CalculationTool::paint(QPainter& painter, const Viewport3D& viewport) const
                     painter.setBrush(fill);
                     painter.drawPolygon(area);
                 }
+                // Without fill only the contour is drawn [N: the original's drawing was not captured].
                 painter.setBrush(Qt::NoBrush);
                 painter.setPen(QPen(colour, 1.2));
                 painter.drawPolyline(outline);
@@ -498,19 +602,53 @@ void CalculationTool::paint(QPainter& painter, const Viewport3D& viewport) const
                     if (law[i].forces[static_cast<std::size_t>(k)] > law[hi].forces[static_cast<std::size_t>(k)]) hi = i;
                 }
                 static const char* const names[6] = {"N", "Vy", "Vz", "Mt", "My", "Mz"};
-                painter.setFont(bold);
-                for (const auto& [index, word] : {std::pair{hi, "máx."}, std::pair{lo, "mín."}}) {
+                for (const auto& [index, isMax] : {std::pair{hi, true}, std::pair{lo, false}}) {
                     const double value = law[index].forces[static_cast<std::size_t>(k)];
-                    const QString unit = k < 3 ? QStringLiteral("kN") : QStringLiteral("kN·m");
-                    const QString text = QStringLiteral("%1 %2: %3 %4").arg(QLatin1String(names[k]), QString::fromUtf8(word), qs(formatFixed(value, k < 3 ? 3 : 2)), unit);
-                    const QPointF at = outline[static_cast<int>(index)];
-                    painter.drawEllipse(at, 2.5, 2.5);
-                    painter.drawText(at + QPointF(6, -4), text);
-                    painter.drawText(at + QPointF(6, 10), QStringLiteral("X: %1 m").arg(qs(formatFixed(law[index].x, 3))));
+                    QPointF onBar;
+                    if (!screen(barPointAt(model, b, law[index].x), onBar)) continue;
+                    drawExtreme(onBar, outline[static_cast<int>(index)], colour,
+                                extremeLabel(names[k], isMax, value, k < 3 ? 3 : 2, k < 3 ? "kN" : "kN·m", law[index].x));
                 }
-                painter.setFont(viewport.font());
             }
         }
+
+        // Deflections Fxy, Fxz, F (rows 7..9): curve of the deflection from the chord on the local axes, dashed dimension line and label at the
+        // largest value [≈V rp_16: F máx. 4.367 mm at X 1.750 m]. The curve is drawn as position + scale x deflection (m), like the deformed shape [N].
+        for (int row = ResultsPanel::kDeflectionRow; row < ResultsPanel::kForceRows; ++row) {
+            if (!m_panel->rowChecked(row)) continue;
+            const QColor colour = QColor::fromRgb(ResultsPanel::rowColour(row));
+            const double scale = m_panel->scale(row);
+            static const char* const names[3] = {"Fxy", "Fxz", "F"};
+            for (std::size_t b : bars) {
+                const std::vector<DeflectionPoint> d = barDeflection(model, *ref, b, 16, m_solverOptions);
+                if (d.empty()) continue;
+                const FemBar& bar = model.bars[b];
+                const int which = row - ResultsPanel::kDeflectionRow;
+                std::vector<double> values;
+                QPolygonF curve;
+                bool ok = true;
+                for (const DeflectionPoint& p : d) {
+                    const double value = which == 0 ? p.fxy : which == 1 ? p.fxz : p.f;
+                    values.push_back(value);
+                    const double ay = which == 1 ? 0.0 : p.fxy, az = which == 0 ? 0.0 : p.fxz;  // F is drawn along the resultant of the two components
+                    const Vec3 offset{scale * (ay * bar.ey[0] + az * bar.ez[0]), scale * (ay * bar.ey[1] + az * bar.ez[1]),
+                                      scale * (ay * bar.ey[2] + az * bar.ez[2])};
+                    QPointF s;
+                    ok = ok && offsetPoint(b, barPointAt(model, b, p.x), offset, s);
+                    curve << s;
+                }
+                if (!ok) continue;
+                painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(colour, 1.0));
+                painter.drawPolyline(curve);
+                if (!m_panel->drawExtremes()) continue;
+                const std::size_t i = largestAbsIndex(values);
+                QPointF onBar;
+                if (!screen(barPointAt(model, b, d[i].x), onBar)) continue;
+                drawExtreme(onBar, curve[static_cast<int>(i)], colour, extremeLabel(names[which], values[i] >= 0.0, values[i] * 1000.0, 3, "mm", d[i].x));
+            }
+        }
+
         if (m_panel->deformed()) {
             const double scale = m_panel->scale(ResultsPanel::kDeformedRow);
             painter.setPen(QPen(QColor(0xFF, 0x3F, 0x00), 1.5));
@@ -545,6 +683,11 @@ void CalculationTool::paint(QPainter& painter, const Viewport3D& viewport) const
                 if (ok) painter.drawPolyline(line);
             }
         }
+
+        // Local axes gizmo of the bar while «Esfuerzos» is open: a small section frame with the arrows x red, y green, z blue [V rp_07; the point
+        // of the bar (0.8 L here) and the bars that get one are N].
+        constexpr std::size_t kMaxGizmos = 20;
+        for (std::size_t n = 0; n < bars.size() && n < kMaxGizmos; ++n) drawAxesGizmo(painter, viewport, model, bars[n]);
         if (m_query) {
             const auto b = barIndexOf(model, m_query->first);
             QPointF at;

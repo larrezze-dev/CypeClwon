@@ -18,9 +18,10 @@ class ResultsPanel : public CypeDialog {
     Q_OBJECT
 public:
     enum class Kind { Displacements, Reactions, Forces };
-    /// Rows of Esfuerzos: the six laws, Deformada (D) and the three deflections (Fxy, Fxz, F; not wired yet).
+    /// Rows of Esfuerzos: the six laws, Deformada (D) and the three deflections (Fxy, Fxz, F).
     static constexpr int kForceRows = 10;
     static constexpr int kDeformedRow = 6;
+    static constexpr int kDeflectionRow = 7;  ///< first of Fxy, Fxz, F
     explicit ResultsPanel(Kind kind, QWidget* parent = nullptr);
 
     Kind kind() const { return m_kind; }
@@ -37,6 +38,14 @@ public:
     bool fillLaws() const;
     bool showStructure() const;
     bool drawExtremes() const;
+    /// «Ver valores máximos y mínimos» (only available with «Todas las barras» and «Dibujar valores máximos y mínimos»).
+    bool viewExtremes() const;
+    /// «Ejes sobre el plano de la ventana» (only available with «Todas las barras»).
+    bool axesOnWindow() const;
+    /// A row of Esfuerzos is checked (row 0..9; the deformed shape counts only with «Todas las barras», as in deformed()).
+    bool rowChecked(int row) const;
+    /// Some law, the deformed shape or a deflection is drawn.
+    bool anyRowChecked() const;
     /// Scale field of a row of Esfuerzos (defaults 0.100 for the laws, 100.000 for the deformed shape and the deflections [V]).
     double scale(int row) const;
 

@@ -160,7 +160,10 @@ std::vector<Vec3> deformedBar(const FrameModel& model, const ResultRef& ref, std
 Vec3 lawDirection(const FrameModel& model, std::size_t barIndex, int component) {
     if (barIndex >= model.bars.size()) return {0, 0, 1};
     const FemBar& bar = model.bars[barIndex];
-    return (component == 1 || component == 5) ? bar.ey : bar.ez;
+    // [V resultados_medidas_original.md B]: N, Vy and Vz are drawn towards the positive local axis, My and Mz towards the negative one.
+    const Vec3 axis = (component == 1 || component == 5) ? bar.ey : bar.ez;
+    if (component == 4 || component == 5) return Vec3{-axis[0], -axis[1], -axis[2]};
+    return axis;
 }
 
 double maxLawValue(const FrameModel& model, const ResultRef& ref, const std::vector<std::size_t>& barIndices, int component, int divisions,
@@ -173,6 +176,42 @@ double maxLawValue(const FrameModel& model, const ResultRef& ref, const std::vec
             best = std::max(best, std::abs(p.forces[static_cast<std::size_t>(component)]));
     }
     return best;
+}
+
+
+std::vector<DeflectionPoint> barDeflection(const FrameModel& model, const ResultRef& ref, std::size_t barIndex, int divisions, const SolverOptions& options) {
+    std::vector<DeflectionPoint> out;
+    if (!ref.result || !ref.input || barIndex >= model.bars.size()) return out;
+    divisions = std::max(1, divisions);
+    const FemBar& bar = model.bars[barIndex];
+    const double length = barLength(model, barIndex);
+    const Dof6 d0 = barDisplacementAt(model, *ref.result, *ref.input, barIndex, 0.0, options);
+    const Dof6 d1 = barDisplacementAt(model, *ref.result, *ref.input, barIndex, length, options);
+    for (int i = 0; i <= divisions; ++i) {
+        const double x = length * i / divisions;
+        const double t = length > 0.0 ? x / length : 0.0;
+        const Dof6 d = barDisplacementAt(model, *ref.result, *ref.input, barIndex, x, options);
+        Vec3 rel;
+        for (std::size_t k = 0; k < 3; ++k) rel[k] = d[k] - (d0[k] + t * (d1[k] - d0[k]));
+        DeflectionPoint p;
+        p.x = x;
+        p.fxy = rel[0] * bar.ey[0] + rel[1] * bar.ey[1] + rel[2] * bar.ey[2];
+        p.fxz = rel[0] * bar.ez[0] + rel[1] * bar.ez[1] + rel[2] * bar.ez[2];
+        p.f = std::sqrt(p.fxy * p.fxy + p.fxz * p.fxz);
+        out.push_back(p);
+    }
+    return out;
+}
+
+std::size_t largestAbsIndex(const std::vector<double>& values) {
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < values.size(); ++i)
+        if (std::abs(values[i]) > std::abs(values[best]) + 1e-12) best = i;
+    return best;
+}
+
+std::array<std::string, 2> extremeLabel(const std::string& law, bool isMaximum, double value, int decimals, const std::string& unit, double x) {
+    return {law + (isMaximum ? " máx.: " : " mín.: ") + formatFixed(value, decimals) + " " + unit, "X: " + formatFixed(x, 3) + " m"};
 }
 
 }  // namespace cc::fem

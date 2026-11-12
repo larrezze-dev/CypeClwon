@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+#include "core/bar_description_edit.h"
 #include "core/bar_load.h"
 #include "core/load_case_edit.h"
 #include "core/nodal_load_edit.h"
@@ -50,6 +51,39 @@ int main(int argc, char** argv) {
         load.magnitude = 20.0;
         load.direction = LoadDirection::PlusX;
         doc.project.nodalLoads.items.push_back(load);
+        const auto saved = saveProjectFile(argv[1], doc);
+        if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
+        return 0;
+    }
+    if (argc > 2 && std::string(argv[2]) == "cantilever") {  // visual check of results: rp_c1 cantilever (L = 4 m, tip loads +10 X, +10 Y, -10 Z, no self weight)
+        auto& st = doc.project.structure;
+        const int n1 = st.addNode({0, 0, 0}), n2 = st.addNode({4, 0, 0});
+        const int bar = st.addBar(n1, n2);
+        BarDescription d = defaultDescription(BarMaterialIcon::Generic);
+        d.generic.areaM2 = 0.01;
+        d.generic.shearAreaYM2 = 0.01;  // = area: smallest shear deformation allowed
+        d.generic.shearAreaZM2 = 0.01;
+        d.generic.inertiaYM4 = 1e-4;
+        d.generic.inertiaZM4 = 5e-5;
+        d.generic.torsionM4 = 8e-5;
+        d.material.elasticModulusMPa = 210000.0;
+        d.material.densityKnM3 = 1e-6;  // must be positive; negligible self weight
+        UndoStack describeUndo;
+        const std::string refusal = describeBars(doc.project, describeUndo, {bar}, d);
+        if (!refusal.empty()) { std::cerr << refusal << std::endl; return 1; }
+        ExternalSupport fixed;
+        fixed.type = ExternalSupportType::Fixed;
+        doc.project.nodeSupports.external[n1] = fixed;
+        const std::pair<LoadDirection, double> loads[] = {{LoadDirection::PlusX, 10.0}, {LoadDirection::PlusY, 10.0}, {LoadDirection::MinusZ, 10.0}};
+        for (const auto& [dir, value] : loads) {
+            NodalLoad load;
+            load.id = doc.project.nodalLoads.nextId++;
+            load.nodeId = n2;
+            load.loadCaseId = 0;
+            load.magnitude = value;
+            load.direction = dir;
+            doc.project.nodalLoads.items.push_back(load);
+        }
         const auto saved = saveProjectFile(argv[1], doc);
         if (!saved.ok) { std::cerr << saved.error << "\n"; return 1; }
         return 0;

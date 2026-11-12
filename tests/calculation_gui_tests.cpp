@@ -6,6 +6,8 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QImage>
+#include <QPainter>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QRadioButton>
@@ -18,6 +20,7 @@
 #include "LoadCaseDialogs.h"
 #include "ResultsPanel.h"
 #include "UserMessages.h"
+#include "Viewport3D.h"
 #include "core/load_case_edit.h"
 #include "core/nonlinear_combinations_edit.h"
 #include "core/project.h"
@@ -275,4 +278,157 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+namespace {
+
+/// A calculated cantilever (tip loads in Y and Z so that the deflection has both components), its viewport and tool, ready to open result modes.
+struct ResultsFixture {
+    ResultsFixture() {
+        ensureApp();
+        project = cantilever(false);
+        for (const auto& [dir, magnitude] : {std::pair{core::LoadDirection::PlusY, 10.0}, std::pair{core::LoadDirection::MinusZ, 10.0}}) {
+            core::NodalLoad nl;
+            nl.id = project.nodalLoads.nextId++;
+            nl.nodeId = 2;
+            nl.loadCaseId = 0;
+            nl.magnitude = magnitude;
+            nl.direction = dir;
+            project.nodalLoads.items.push_back(nl);
+        }
+        view = std::make_unique<Viewport3D>();
+        view->resize(800, 600);
+        view->setOrthographic(true);
+        view->camera().target = {2, 0, 0};
+        view->setStructure(&project.structure);
+        view->setNodeSupports(&project.nodeSupports);
+        tool = std::make_unique<CalculationTool>();
+        tool->setSynchronous(true);
+        tool->setDialogRunner([](QDialog& d) { return qobject_cast<CalculationDialog*>(&d) ? int(QDialog::Accepted) : int(QDialog::Rejected); });
+        tool->setProject(&project, &stack);
+        tool->addViewport(view.get());
+        EXPECT_TRUE(tool->calculate());
+    }
+    /// Number of pixels of the overlay within a few units of `colour`.
+    int pixels(const QColor& colour) {
+        QImage image(800, 600, QImage::Format_ARGB32);
+        image.fill(Qt::white);
+        QPainter painter(&image);
+        tool->paint(painter, *view);
+        painter.end();
+        int n = 0;
+        for (int y = 0; y < image.height(); ++y)
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor c = image.pixelColor(x, y);
+                if (std::abs(c.red() - colour.red()) < 60 && std::abs(c.green() - colour.green()) < 60 && std::abs(c.blue() - colour.blue()) < 60) ++n;
+            }
+        return n;
+    }
+    void setBox(ResultsPanel* panel, const QString& text, bool on) {
+        for (QCheckBox* box : panel->findChildren<QCheckBox*>())
+            if (box->text() == text) box->setChecked(on);
+    }
+    core::Project project;
+    core::UndoStack stack;
+    std::unique_ptr<Viewport3D> view;
+    std::unique_ptr<CalculationTool> tool;
+};
+
+}  // namespace
+
+TEST(CalculationTool, FirstPanelOfAWorkOpensMaximisedAndTheNextOnesDoNot) {
+    ResultsFixture f;
+    f.tool->reactionsAction()->setChecked(true);  // [V rp_03_react_open.png]
+    ASSERT_NE(f.tool->panel(), nullptr);
+    EXPECT_TRUE(f.tool->panel()->isMaximized());
+    f.tool->forcesAction()->setChecked(true);
+    ASSERT_NE(f.tool->panel(), nullptr);
+    EXPECT_FALSE(f.tool->panel()->isMaximized());
+    f.tool->deactivate();
+    // A new work starts again with a maximised panel.
+    core::Project other = cantilever(false);
+    core::UndoStack otherStack;
+    f.tool->setProject(&other, &otherStack);
+    ASSERT_TRUE(f.tool->calculate());
+    f.tool->displacementsAction()->setChecked(true);
+    EXPECT_TRUE(f.tool->panel()->isMaximized());
+}
+
+TEST(ResultsPanel, DeflectionRowsAndOptionsAreAvailable) {
+    ensureApp();
+    ResultsPanel forces(ResultsPanel::Kind::Forces);
+    for (int r = ResultsPanel::kDeflectionRow; r < ResultsPanel::kForceRows; ++r) {
+        EXPECT_TRUE(forces.rowBox(r)->isEnabled());
+        EXPECT_TRUE(forces.scaleEdit(r)->isEnabled());
+        EXPECT_FALSE(forces.rowChecked(r));
+    }
+    EXPECT_FALSE(forces.anyRowChecked());
+    forces.rowBox(8)->setChecked(true);
+    EXPECT_TRUE(forces.rowChecked(8));
+    EXPECT_TRUE(forces.anyRowChecked());
+    EXPECT_FALSE(forces.axesOnWindow());
+    EXPECT_TRUE(forces.showStructure());
+    forces.rowBox(ResultsPanel::kDeformedRow)->setChecked(true);
+    forces.selectedOnlyRadio()->setChecked(true);  // the deformed shape and the axes option leave with «Sólo las barras seleccionadas»
+    EXPECT_FALSE(forces.rowChecked(ResultsPanel::kDeformedRow));
+    EXPECT_FALSE(forces.axesOnWindow());
+}
+
+TEST(CalculationTool, DeflectionCurveGizmoAndHiddenStructureAreDrawn) {
+    ResultsFixture f;
+    f.tool->forcesAction()->setChecked(true);
+    ResultsPanel* panel = f.tool->panel();
+    ASSERT_NE(panel, nullptr);
+    const QColor flecha = QColor::fromRgb(ResultsPanel::rowColour(9));
+    const int baseline = f.pixels(flecha);
+    EXPECT_GT(f.pixels(QColor(0xFF, 0, 0)), 5);  // gizmo: x axis arrow in red [V rp_07]
+    EXPECT_GT(f.pixels(QColor(0, 0, 0xFF)), 5);  // z axis arrow in blue
+    panel->rowBox(9)->setChecked(true);
+    EXPECT_GT(f.pixels(flecha), baseline);
+    panel->rowBox(8)->setChecked(true);
+    EXPECT_GT(f.pixels(QColor::fromRgb(ResultsPanel::rowColour(8))), 5);
+    // «Dibujar valores máximos y mínimos» adds the dashed dimension line, the marker and the label.
+    const int before = f.pixels(flecha);
+    f.setBox(panel, QStringLiteral("Dibujar valores máximos y mínimos"), true);
+    EXPECT_GT(f.pixels(flecha), before);
+    // «Ver la estructura» unchecked hides the bars while a row is drawn.
+    EXPECT_FALSE(f.view->barsHidden());
+    f.setBox(panel, QStringLiteral("Ver la estructura"), false);
+    EXPECT_TRUE(f.view->barsHidden());
+    panel->rowBox(9)->setChecked(false);
+    panel->rowBox(8)->setChecked(false);
+    EXPECT_FALSE(f.view->barsHidden());  // nothing drawn: the structure stays
+    f.tool->deactivate();
+    EXPECT_FALSE(f.view->barsHidden());
+}
+
+TEST(CalculationTool, ContourOnlyWithoutFillAndWindowAxesDrawTheLaws) {
+    ResultsFixture f;
+    f.tool->forcesAction()->setChecked(true);
+    ResultsPanel* panel = f.tool->panel();
+    const QColor my = QColor::fromRgb(ResultsPanel::rowColour(4));
+    panel->rowBox(4)->setChecked(true);
+    const int filled = f.pixels(my);
+    f.setBox(panel, QStringLiteral("Dibujar las leyes con relleno"), false);
+    const int contour = f.pixels(my);
+    EXPECT_GT(contour, 5);
+    EXPECT_LE(contour, filled);  // the semi-transparent fill never makes an exact-colour pixel
+    f.setBox(panel, QStringLiteral("Ejes sobre el plano de la ventana"), true);
+    EXPECT_TRUE(panel->axesOnWindow());
+    EXPECT_GT(f.pixels(my), 5);  // the law is still drawn, now in the plane of the window
+}
+
+TEST(CalculationTool, SupportsAreTurquoiseAndLightBrownWithBalloonInReactions) {
+    ResultsFixture f;
+    EXPECT_FALSE(f.view->supportColour(1).has_value());
+    f.tool->reactionsAction()->setChecked(true);
+    ASSERT_TRUE(f.view->supportColour(1).has_value());
+    EXPECT_EQ(*f.view->supportColour(1), QColor(0x00, 0x9A, 0xDC));  // [≈V rp_05]
+    QPointF at;
+    ASSERT_TRUE(f.view->worldToScreen({0, 0, 0}, at));
+    f.tool->clickAt(f.view.get(), at);
+    ASSERT_TRUE(f.tool->shownNodes().count(1));
+    EXPECT_EQ(*f.view->supportColour(1), QColor(0xB0, 0x9A, 0x84));  // [≈V rp_04]
+    f.tool->forcesAction()->setChecked(true);
+    EXPECT_FALSE(f.view->supportColour(1).has_value());
 }

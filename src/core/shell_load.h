@@ -44,7 +44,7 @@ inline constexpr double kShellLoadDefaultTemperature = 10.0;   ///< 10.00 degC
 inline constexpr double kShellLoadDefaultShrinkage = 0.0001;   ///< 0.0001 (measured; the REA said 0)
 inline constexpr double kShellLoadTickSpacingM = 0.5;          // measured by counting the lines of cl3_two2.png (about 0.5 m on a 4 m edge)
 /// Specific weight (kN/m3) of the concrete taken from the general data: 25 (measured: 100 mm of C25/30 -> 2.5 kN/m2).
-inline constexpr double kShellConcreteWeightKnM3 = 25.0;
+inline constexpr double kShellConcreteWeightKnM3 = 2.5 * 9.81;  // density 2.5 t/m3 x g 9.81 (datmater.dll + magnitud_Tn_a_kN) [V]
 inline constexpr double kShellSteelWeightKnM3 = 77.01;         // NOT MEASURED for shells (same as the steel bars: 7.85 T/m3 x 9.81)
 inline constexpr double kShellAluminiumWeightKnM3 = 27.0;      // NOT MEASURED for shells (same as the aluminium bars)
 

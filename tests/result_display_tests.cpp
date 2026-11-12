@@ -4,12 +4,14 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <filesystem>
 
 #include "core/fem/project_analysis.h"
 #include "core/fem/result_display.h"
 #include "core/fem/results.h"
 #include "core/nonlinear_combinations_edit.h"
 #include "core/project.h"
+#include "core/project_file.h"
 #include "core/undo_stack.h"
 
 using namespace cc::fem;
@@ -116,8 +118,13 @@ TEST(ResultDisplay, SourcesAndQueriesOfACalculatedWork) {
     // Largest |My| on the bar = clamped end [V C1: -46.16 kN·m].
     EXPECT_NEAR(maxLawValue(a.build.model, *ref, {*b}, 4), 46.16, 0.01);
     // Bar along X: Vy and Mz are drawn along local y, the others along local z.
-    EXPECT_EQ(lawDirection(a.build.model, *b, 5), a.build.model.bars[*b].ey);
-    EXPECT_EQ(lawDirection(a.build.model, *b, 4), a.build.model.bars[*b].ez);
+    EXPECT_EQ(lawDirection(a.build.model, *b, 1), a.build.model.bars[*b].ey);
+    EXPECT_EQ(lawDirection(a.build.model, *b, 2), a.build.model.bars[*b].ez);
+    for (int i = 0; i < 3; ++i) {  // My and Mz are drawn towards the negative axis [V]
+        EXPECT_EQ(lawDirection(a.build.model, *b, 5)[i], -a.build.model.bars[*b].ey[i]);
+        EXPECT_EQ(lawDirection(a.build.model, *b, 4)[i], -a.build.model.bars[*b].ez[i]);
+    }
+    EXPECT_NEAR(lawDrawLength(9.81, 1.0), 1.0, 1e-12);
     const Vec3 mid = barPointAt(a.build.model, *b, 2.0);
     EXPECT_NEAR(mid[0], 2.0, 1e-12);
     EXPECT_NEAR(modelDiagonal(a.build.model), 4.0, 1e-12);
@@ -125,7 +132,7 @@ TEST(ResultDisplay, SourcesAndQueriesOfACalculatedWork) {
 
 TEST(ResultDisplay, ScalesOfThePanel) {
     // 0.100 -> about 0.01 m per kN·m [≈V rp_10]; deformed shape scale 100 multiplies the displacement.
-    EXPECT_NEAR(lawDrawLength(40.0, 0.1), 0.4, 1e-12);
+    EXPECT_NEAR(lawDrawLength(40.0, 0.1), 4.0 / 9.81, 1e-12);
     EXPECT_DOUBLE_EQ(automaticScale(0.0, 10.0), 0.0);
     EXPECT_NEAR(automaticScale(2.0, 10.0), 0.5, 1e-12);
 }
@@ -152,4 +159,54 @@ TEST(NonlinearCombinationsEdit, WriteIsOneUndoableStep) {
     after.items[0].reference = "PP";
     after.items[0].loadSteps = 0;
     EXPECT_FALSE(core::validateNonlinearCombinations(after).empty());
+}
+
+TEST(ResultDisplay, DeflectionOfTheMeasuredCantileverRpC1) {
+    // rp_c1 [V rp_16, resultados_paneles.md 4.2]: tip loads (+10, +10, -10) kN, no self weight (reactions Rx -10, Ry -10, Rz 10, My -40, Mz -40),
+    // original maxima F 4.367 mm, Fxz 1.953 mm, all at X 1.750 m. Section with EIy = 21000 and EIz = 10500 kN·m2 (the one of C1).
+    int n1 = 0, n2 = 0, bar = 0;
+    core::Project p = c1(n1, n2, bar);
+    p.structure.materials[0].densityKnM3 = 0.0;
+    for (const auto& [dir, id] : {std::pair{core::LoadDirection::PlusX, 2}, std::pair{core::LoadDirection::PlusY, 3}}) {
+        core::NodalLoad nl;
+        nl.id = p.nodalLoads.nextId++;
+        nl.nodeId = n2;
+        nl.loadCaseId = 0;
+        nl.magnitude = 10.0;
+        nl.direction = dir;
+        p.nodalLoads.items.push_back(nl);
+        (void)id;
+    }
+    const ProjectAnalysis a = analyseProject(p);
+    ASSERT_TRUE(a.calculated);
+    const auto ref = resultOf(a, ResultFamily::LoadCases, 0);
+    ASSERT_TRUE(ref);
+    const auto d = barDeflection(a.build.model, *ref, 0, 16);
+    ASSERT_EQ(d.size(), 17u);
+    std::vector<double> f, fxy, fxz;
+    for (const DeflectionPoint& q : d) {
+        f.push_back(q.f);
+        fxy.push_back(q.fxy);
+        fxz.push_back(q.fxz);
+        EXPECT_NEAR(q.f, std::sqrt(q.fxy * q.fxy + q.fxz * q.fxz), 1e-15);
+    }
+    EXPECT_NEAR(d.front().f, 0.0, 1e-12);  // both ends lie on the chord
+    EXPECT_NEAR(d.back().f, 0.0, 1e-12);
+    const auto i = largestAbsIndex(f), k = largestAbsIndex(fxz), j = largestAbsIndex(fxy);
+    EXPECT_NEAR(d[i].x, 1.75, 1e-9);
+    EXPECT_NEAR(d[j].x, 1.75, 1e-9);
+    EXPECT_NEAR(std::abs(fxz[k]) * 1e3, 1.953, 0.01);
+    EXPECT_NEAR(std::abs(fxy[j]) * 1e3, 2.0 * 1.953, 0.02);
+    EXPECT_NEAR(f[i] * 1e3, 4.367, 0.01);
+}
+
+TEST(ResultDisplay, ExtremeLabelFollowsTheOriginal) {
+    const auto mn = extremeLabel("My", false, -40.0, 2, "kN·m", 0.0);
+    EXPECT_EQ(mn[0], "My mín.: -40.00 kN·m");
+    EXPECT_EQ(mn[1], "X: 0.000 m");
+    const auto mx = extremeLabel("F", true, 4.3671, 3, "mm", 1.75);
+    EXPECT_EQ(mx[0], "F máx.: 4.367 mm");
+    EXPECT_EQ(mx[1], "X: 1.750 m");
+    EXPECT_EQ(largestAbsIndex({1.0, -3.0, 2.0}), 1u);
+    EXPECT_EQ(largestAbsIndex({}), 0u);
 }

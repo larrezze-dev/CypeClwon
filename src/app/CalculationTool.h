@@ -34,6 +34,8 @@ class Viewport3D;
 ///    redone edit) [V rp_33_after_delete.png]; saving does not count as a change.
 ///  - Desplazamientos: a click on a bar shows / hides the balloons of its two ends (bar end values, LoadCaseResult::barDisplacements) [V #64071].
 ///  - Reacciones: a click on a supported node shows / hides its balloon «N1 (0, 0, 0)» + Rx..Mz [V].
+///  - The first result panel of a work opens maximised, the following ones in the left strip [V resultados_paneles.md section 1].
+///  - Reacciones: the supports are turquoise, light brown (and the balloon shown) once the node was clicked [V rp_04 / rp_05].
 ///  - Esfuerzos: laws of every bar or of the selected ones (click), deformed shape, «Consultar valores» with the right button on a selected bar [V].
 class CalculationTool : public QObject {
     Q_OBJECT
@@ -99,6 +101,7 @@ private:
     void showPanel();
     void closePanel();
     void repaint();
+    void updateViewportFlags();
     std::optional<cc::fem::ResultRef> currentResult() const;
     void markHistory();
 
@@ -122,6 +125,7 @@ private:
     std::function<int(QDialog&)> m_runner;
     bool m_synchronous = false;
     QPointer<ResultsPanel> m_panel;
+    bool m_panelShownInWork = false;  ///< the first panel of each work opens maximised, later ones in the left strip [V rp_03]
     std::set<int> m_shownBars, m_shownNodes, m_selectedBars;
     std::optional<std::pair<int, double>> m_query;
 };
